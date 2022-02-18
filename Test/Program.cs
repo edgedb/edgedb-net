@@ -5,8 +5,6 @@ using System.Net.Security;
 using Newtonsoft.Json;
 using EdgeDB.Codecs;
 
-var cod = ICodec.GetScalerCodec<long>()!.Serialize(1234);
-
 var client = new EdgeDBClient(new EdgeDBConnection
 {
     Hostname = "127.0.0.1",
