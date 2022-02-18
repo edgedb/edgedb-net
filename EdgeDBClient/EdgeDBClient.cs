@@ -186,8 +186,6 @@ namespace EdgeDB
             // execute it 
 
             await SendMessageAsync(new Execute());
-            // [69,  0, 0, 0, 28,  0, 1,  255, 4,  0, 0, 0, 8, 255, 255, 255, 255,  255, 255, 255, 249, 0, 0, 0, 0,  0, 0, 0, 0,  83, 0, 0, 0, 4]
-            // [69,  0, 0, 0, 24,  0, 1,  255, 4,  0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 83, 0, 0, 0, 4],
             await SendMessageAsync(new Sync());
 
             List<Data> receivedData = new();
@@ -215,9 +213,6 @@ namespace EdgeDB
             {
                 return codec.Deserialize(reader);
             }
-
-            //return receivedData;
-
         }
 
         private void ParseServerSettings(ParameterStatus status)
