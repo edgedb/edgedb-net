@@ -6,6 +6,8 @@ using System.Net.Security;
 using Newtonsoft.Json;
 using EdgeDB.Codecs;
 
+var cod = ICodec.GetScalerCodec<long>()!.Serialize(1234);
+
 var d = new EdgeDB.Codecs.Object(new ICodec[]
 {
     new Integer32(),
@@ -78,24 +80,8 @@ var param = config!.Select(x => new ConnectionParam()
     Value = x.Value.ToString()!
 });
 
-await client.SendMessageAsync(new ClientHandshake
-{
-    MajorVersion = 1,
-    MinorVersion = 0,
-    ConnectionParameters = new ConnectionParam[]
-    {
-        new ConnectionParam
-        {
-            Name = "user",
-            Value = "edgedb"
-        },
-        new ConnectionParam
-        {
-            Name = "database",
-            Value = "edgedb"
-        }
-    }
-});
+var result = await client.ExecuteAsync("select \"Hello world!\";");
+
 
 // [86, 0, 0, 0, 52, 0, 1, 0, 0, 0, 2, 0, 0, 0, 4, 117, 115, 101, 114, 0, 0, 0, 6, 101, 100, 103, 101, 100, 98, 0, 0, 0, 8, 100, 97, 116, 97, 98, 97, 115, 101, 0, 0, 0, 6, 101, 100, 103, 101, 100, 98, 0, 0]
 // [86, 0, 0, 0, 50, 0, 1, 0, 0, 0, 2, 0, 0, 0, 4, 117, 115, 101, 114, 0, 0, 0, 6, 101, 100, 103, 101, 100, 98, 0, 0, 0, 8, 100, 97, 116, 97, 98, 97, 115, 101, 0, 0, 0, 6, 101, 100, 103, 101, 100, 98]

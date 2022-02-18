@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -11,19 +12,84 @@ namespace EdgeDB.Codecs
         void Serialize(PacketWriter writer, TConverter? value);
         new TConverter? Deserialize(PacketReader reader);
 
+        new TConverter? Deserialize(byte[] buffer)
+        {
+            using (var reader = new PacketReader(buffer))
+            {
+                return Deserialize(reader);
+            }
+        }
+
+        byte[] Serialize(TConverter? value)
+        {
+            using (var writer = new PacketWriter())
+            {
+                Serialize(writer, value);
+
+                writer.BaseStream.Position = 0;
+                using (var ms = new MemoryStream())
+                {
+                    writer.BaseStream.CopyTo(ms);
+                    return ms.ToArray();
+                }
+            }
+        }
+
         // ICodec
         object? ICodec.Deserialize(PacketReader reader) => Deserialize(reader);
         void ICodec.Serialize(PacketWriter writer, object? value) => Serialize(writer, (TConverter?)value);
-        Type? ICodec.ConverterType => typeof(TConverter);
+        Type ICodec.ConverterType => typeof(TConverter);
         bool ICodec.CanConvert(Type t) => t == typeof(TConverter);
     }
 
     public interface ICodec
     {
         bool CanConvert(Type t);
-        Type? ConverterType { get; }
+        Type ConverterType { get; }
         void Serialize(PacketWriter writer, object? value);
         object? Deserialize(PacketReader reader);
+
+        object? Deserialize(byte[] buffer)
+        {
+            using(var reader = new PacketReader(buffer))
+            {
+                return Deserialize(reader);
+            }
+        }
+
+        byte[] Serialize(object? value)
+        {
+            using(var writer = new PacketWriter())
+            {
+                Serialize(writer, value);
+
+                using(var ms = new MemoryStream())
+                {
+                    writer.BaseStream.CopyTo(ms);
+                    return ms.ToArray();
+                }
+            }
+        }
+
+        private static readonly List<ICodec> _codecs;
+
+        static ICodec()
+        {
+            _codecs = new();
+
+            var codecs = Assembly.GetExecutingAssembly().GetTypes().Where(x => x.GetInterfaces().Any(x => x.Name == "IScalerCodec`1"));
+
+            foreach(var codec in codecs)
+            {
+                // create instance
+                var inst = (ICodec)Activator.CreateInstance(codec)!;
+
+                _codecs.Add(inst);
+            }
+        }
+
+        static IScalerCodec<TType>? GetScalerCodec<TType>()
+            => (IScalerCodec<TType>?)_codecs.FirstOrDefault(x => x.ConverterType == typeof(TType));
     }
 
     public interface IScalerCodec<TInner> : ICodec<TInner> { }

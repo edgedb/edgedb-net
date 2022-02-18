@@ -55,11 +55,7 @@ const edgedb = require("edgedb");
 async function main() {
     const client = edgedb.createClient();
 
-    console.log(
-        await client.querySingle(
-            `SELECT re_replace('World', 'EdgeDB', 'Hello World!')`
-        )
-    );
+    console.log(await client.query(`select "Hello world!";`));
 }
 
 main();

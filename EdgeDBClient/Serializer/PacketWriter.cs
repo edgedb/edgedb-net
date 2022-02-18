@@ -22,6 +22,18 @@ namespace EdgeDB
 
         }
 
+        public void Write(IEnumerable<Header> headers)
+        {
+            // write length
+            Write((ushort)headers.Count());
+
+            foreach(var header in headers)
+            {
+                Write(header.Code);
+                WriteArray(header.Value);
+            }
+        }
+
         public void Write(PacketWriter value)
         {
             // block copy data to other stream
@@ -43,7 +55,8 @@ namespace EdgeDB
         {
             Write((uint)value.Length);
 
-            Write(Encoding.UTF8.GetBytes(value));
+            if(value.Length != 0)
+                Write(Encoding.UTF8.GetBytes(value));
         }
 
         public override void Write(double value)
@@ -73,7 +86,8 @@ namespace EdgeDB
 
         public override void Write(long value)
         {
-            Write(BitConverter.GetBytes(value).Reverse().ToArray());
+            var a = BitConverter.GetBytes(value).Reverse().ToArray(); 
+            Write(a);
         }
 
         public override void Write(short value)

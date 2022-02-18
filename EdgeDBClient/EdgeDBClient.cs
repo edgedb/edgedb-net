@@ -1,4 +1,5 @@
 ﻿using EdgeDB.Models;
+using EdgeDB.Utils;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
@@ -12,6 +13,14 @@ namespace EdgeDB
 {
     public class EdgeDBClient
     {
+        public event Func<IReceiveable, Task> OnMessage
+        {
+            add => _onMessage.Add(value);
+            remove => _onMessage.Remove(value);
+        }
+
+        private AsyncEvent<Func<IReceiveable, Task>> _onMessage = new();
+
         internal SASLMechanism? SASLClient;
 
         private readonly TcpClient _client;
@@ -20,6 +29,9 @@ namespace EdgeDB
         private readonly EdgeDBConnection _connection;
         private CancellationTokenSource _readCancelToken;
         private TaskCompletionSource<AuthenticationStatus> _authenticationStatusSource;
+        private TaskCompletionSource<PrepareComplete> _prepareSource;
+        private TaskCompletionSource _readySource;
+        private CancellationTokenSource _readyCancelTokenSource;
         private byte[] _serverKey;
 
         // server config
@@ -33,6 +45,9 @@ namespace EdgeDB
             _connection = connection;
             _client = new();
             _authenticationStatusSource = new();
+            _prepareSource = new();
+            _readySource = new();
+            _readyCancelTokenSource = new();
             _serverKey = new byte[32];
             _serverConfig = new Dictionary<string, object?>();
         }
@@ -72,13 +87,15 @@ namespace EdgeDB
         {
             Console.WriteLine($"Got message type {payload.Type}");
 
-            if(payload is ErrorResponse err)
-            {
-                Console.WriteLine($"Got error level: {err.Severity}\nMessage: {err.Message}\nHeaders:\n{string.Join("\n", err.Headers.Select(x => $"  0x{BitConverter.ToString(BitConverter.GetBytes(x.Code).Reverse().ToArray()).Replace("-", "")}: {x}"))}");
-            }
-
             switch (payload)
             {
+                case ErrorResponse err:
+                    {
+                        Console.WriteLine($"Got error level: {err.Severity}\nMessage: {err.Message}\nHeaders:\n{string.Join("\n", err.Headers.Select(x => $"  0x{BitConverter.ToString(BitConverter.GetBytes(x.Code).Reverse().ToArray()).Replace("-", "")}: {x}"))}");
+                        if (!_readyCancelTokenSource.IsCancellationRequested)
+                            _readyCancelTokenSource.Cancel();
+                    }
+                    break;
                 case AuthenticationStatus authStatus:
                     {
                         switch (authStatus.AuthStatus)
@@ -112,14 +129,95 @@ namespace EdgeDB
                 case ParameterStatus parameterStatus:
                     ParseServerSettings(parameterStatus);
                     break;
-
                 case ReadyForCommand cmd:
-
+                    _readySource.TrySetResult();
                     break;
-
             }
 
-            await Task.CompletedTask;
+            try
+            {
+                await _onMessage.InvokeAsync(payload);
+            }
+            catch (Exception x)
+            {
+                Console.WriteLine($"Exception in message handler: {x}");
+            }
+        }
+
+        private async Task<PrepareComplete> PrepareAsync(Prepare packet)
+        {
+            await SendMessageAsync(packet);
+            await SendMessageAsync(new Sync());
+            var cts = new CancellationTokenSource();
+            cts.CancelAfter(15000);
+            return await WaitForMessageAsync<PrepareComplete>(ServerMessageTypes.PrepareComplete, cts.Token);
+        }
+
+        public async Task<object?> ExecuteAsync(string query)
+        {
+            var result = await PrepareAsync(new Prepare
+            {
+                Capabilities = AllowCapabilities.All, // TODO: change this
+                Command = query,
+                Format = IOFormat.Binary,
+                ExpectedCardinality = Cardinality.Many
+            });
+
+            // get the codec for the return type
+            var codec = Serializer.GetCodec(result.OutputTypedescId);
+
+            // if its not cached or we dont have a default one for it, ask the server to describe it for us
+            if(codec == null)
+            {
+                await SendMessageAsync(new DescribeStatement());
+                var describer = await WaitForMessageAsync<CommandDataDescription>(ServerMessageTypes.CommandDataDescription);
+
+                using(var innerReader = new PacketReader(describer.OutputTypeDescriptor))
+                {
+                    codec = Serializer.BuildCodec(describer.OutputTypeDescriptorId, innerReader);
+                }
+            }
+
+            if(codec == null)
+            {
+                throw new NotSupportedException($"Couldn't find a codec for type {result.OutputTypedescId}");
+            }
+
+            // execute it 
+
+            await SendMessageAsync(new Execute());
+            // [69,  0, 0, 0, 28,  0, 1,  255, 4,  0, 0, 0, 8, 255, 255, 255, 255,  255, 255, 255, 249, 0, 0, 0, 0,  0, 0, 0, 0,  83, 0, 0, 0, 4]
+            // [69,  0, 0, 0, 24,  0, 1,  255, 4,  0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 83, 0, 0, 0, 4],
+            await SendMessageAsync(new Sync());
+
+            List<Data> receivedData = new();
+
+            Task addData(IReceiveable msg)
+            {
+                if (msg.Type == ServerMessageTypes.Data)
+                    receivedData.Add((Data)msg);
+
+                return Task.CompletedTask;
+            }
+
+            OnMessage += addData;
+
+            var completeResult = await WaitForMessageAsync<CommandComplete>(ServerMessageTypes.CommandComplete);
+
+            List<byte> rawData = new();
+
+            foreach(var data in receivedData)
+            {
+                rawData.AddRange(data.PayloadData);
+            }
+
+            using(var reader = new PacketReader(rawData.ToArray()))
+            {
+                return codec.Deserialize(reader);
+            }
+
+            //return receivedData;
+
         }
 
         private void ParseServerSettings(ParameterStatus status)
@@ -141,7 +239,7 @@ namespace EdgeDB
 
                         using(var innerReader = new PacketReader(typeDesc))
                         {
-                            codec = Serializer.BuildCodec(innerReader);
+                            codec = Serializer.BuildCodec(descriptorId, innerReader);
 
                             if (codec == null)
                                 throw new Exception("Failed to build codec for system config");
@@ -204,6 +302,7 @@ namespace EdgeDB
 
                 if(result == timeout)
                 {
+                    _readyCancelTokenSource.Cancel();
                     throw new TimeoutException("SASL handshakes timeout out :(");
                 }
 
@@ -228,11 +327,11 @@ namespace EdgeDB
 
                 if (result == timeout)
                 {
+                    _readyCancelTokenSource.Cancel();
                     throw new TimeoutException("SASL handshakes timeout out :(");
                 }
 
                 authStatus = await (Task<AuthenticationStatus>)result;
-
 
                 saslResult = await SASLClient.ChallengeOrThrowOnErrorAsync(credentials.CreateChallengeArguments(
                     authStatus.SASLData,
@@ -283,6 +382,56 @@ namespace EdgeDB
             await _secureStream.AuthenticateAsClientAsync(options);
 
             _ = Task.Run(async () => await ReceiveAsync());
+
+            //  send handshake
+
+            await SendMessageAsync(new ClientHandshake
+            {
+                MajorVersion = 1,
+                MinorVersion = 0,
+                ConnectionParameters = new ConnectionParam[]
+                {
+                    new ConnectionParam
+                    {
+                        Name = "user",
+                        Value = _connection.Username
+                    },
+                    new ConnectionParam
+                    {
+                        Name = "database",
+                        Value = _connection.Database
+                    }
+                }
+            });
+
+            // wait for auth promise
+            await Task.Run(() => _readySource.Task, _readyCancelTokenSource.Token);
+        }
+
+        private async Task<TMessage> WaitForMessageAsync<TMessage>(ServerMessageTypes type, CancellationToken token = default) where TMessage : IReceiveable
+        {
+            var tcs = new TaskCompletionSource();
+            TMessage? returnValue = default;
+            Func<IReceiveable, Task> handler = (msg) =>
+            {
+               if (msg.Type == type)
+               {
+                   returnValue = (TMessage)msg;
+                   tcs.TrySetResult();
+
+               }
+
+               return Task.CompletedTask;
+            };
+
+            OnMessage += handler;
+
+            await Task.Run(() => tcs.Task, token);
+
+            OnMessage -= handler;
+
+
+            return returnValue!;
         }
 
         public Task DisconnectAsync()

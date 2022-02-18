@@ -14,6 +14,8 @@ namespace EdgeDB
     {
         public static Dictionary<ServerMessageTypes, IReceiveable> ReceiveablePayload = new();
 
+        private static Dictionary<Guid, ICodec> _codecCache = new();
+
         static Serializer()
         {
             var types = Assembly.GetExecutingAssembly().GetTypes().Where(x => x.GetTypeInfo().ImplementedInterfaces.Any(y => y == typeof(IReceiveable)));
@@ -24,7 +26,6 @@ namespace EdgeDB
                 ReceiveablePayload.Add(inst.Type, inst);
             }
         }
-
 
         public static IReceiveable? DeserializePacket(Stream stream, EdgeDBClient client)
         {
@@ -54,12 +55,20 @@ namespace EdgeDB
             }
         }
 
+        public static ICodec? GetCodec(Guid id)
+        {
+            if (_codecCache.TryGetValue(id, out var codec))
+                return codec;
+
+            return GetScalarCodec(id);
+        }
+
         public static object? DeserializeDescriptor(PacketReader reader)
         {
             return null;
         }
 
-        public static ICodec? BuildCodec(PacketReader reader)
+        public static ICodec? BuildCodec(Guid id, PacketReader reader)
         {
             List<ICodec> codecs = new();
 
@@ -67,7 +76,7 @@ namespace EdgeDB
             {
                 var typeDescriptor = ITypeDescriptor.GetDescriptor(reader);
 
-                var codec = GetCodec(typeDescriptor.Id);
+                var codec = GetScalarCodec(typeDescriptor.Id);
 
                 if (codec != null)
                     codecs.Add(codec);
@@ -85,10 +94,13 @@ namespace EdgeDB
                     }
                 }
             }
+
+            _codecCache.Add(id, codecs.Last());
+
             return codecs.Last();
         }
 
-        public static ICodec? GetCodec(Guid typeId)
+        public static ICodec? GetScalarCodec(Guid typeId)
         {
             if(_defaultCodecs.TryGetValue(typeId, out var codec))
             {
