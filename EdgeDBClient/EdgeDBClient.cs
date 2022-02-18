@@ -34,6 +34,7 @@ namespace EdgeDB
             _client = new();
             _authenticationStatusSource = new();
             _serverKey = new byte[32];
+            _serverConfig = new Dictionary<string, object?>();
         }
 
         private async Task ReceiveAsync()
@@ -110,6 +111,10 @@ namespace EdgeDB
                     break;
                 case ParameterStatus parameterStatus:
                     ParseServerSettings(parameterStatus);
+                    break;
+
+                case ReadyForCommand cmd:
+
                     break;
 
             }
