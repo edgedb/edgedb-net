@@ -1,0 +1,21 @@
+lockfileVersion: 5.3
+
+specifiers:
+  '@types/node': ^17.0.18
+  edgedb: ^0.19.1
+
+dependencies:
+  '@types/node': 17.0.18
+  edgedb: 0.19.5
+
+packages:
+
+  /@types/node/17.0.18:
+    resolution: {integrity: sha512-eKj4f/BsN/qcculZiRSujogjvp5O/k4lOW5m35NopjZM/QwLOR075a8pJW5hD+Rtdm2DaCVPENS6KtSQnUD6BA==}
+    dev: false
+
+  /edgedb/0.19.5:
+    resolution: {integrity: sha512-TxE+WlhL+U9Bzsq9hz9UrhQbL1ArSV2iFFEY+gotYkBN2DkOYJPaQAlXaDViYgkEWfBI5vWDSqmUqH2rA7oTLQ==}
+    engines: {node: '>= 10.0.0'}
+    hasBin: true
+    dev: false

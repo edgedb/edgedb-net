@@ -1,0 +1,11 @@
+{
+    "name": "TestApp",
+    "description": "Test",
+    "authors": "quin",
+    "version": "1.0.0",
+    "main": "./index.ts",
+    "dependencies": {
+        "@types/node": "^17.0.18",
+        "edgedb": "^0.19.1"
+    }
+}
