@@ -29,23 +29,24 @@ namespace EdgeDB
         private readonly EdgeDBConnection _connection;
         private CancellationTokenSource _readCancelToken;
         private TaskCompletionSource<AuthenticationStatus> _authenticationStatusSource;
-        private TaskCompletionSource<PrepareComplete> _prepareSource;
         private TaskCompletionSource _readySource;
         private CancellationTokenSource _readyCancelTokenSource;
-        private byte[] _serverKey;
+        private SemaphoreSlim _sephamore;
+        
 
         // server config
+        private byte[] _serverKey;
         private int _suggestedPoolConcurrency;
         private IDictionary<string, object?> _serverConfig;
 
         // TODO: config?
         public EdgeDBClient(EdgeDBConnection connection)
         {
+            _sephamore = new(1,1);
             _readCancelToken = new();
             _connection = connection;
             _client = new();
             _authenticationStatusSource = new();
-            _prepareSource = new();
             _readySource = new();
             _readyCancelTokenSource = new();
             _serverKey = new byte[32];
@@ -155,63 +156,72 @@ namespace EdgeDB
 
         public async Task<object?> ExecuteAsync(string query)
         {
-            var result = await PrepareAsync(new Prepare
+            await _sephamore.WaitAsync(_readCancelToken.Token);
+
+            try
             {
-                Capabilities = AllowCapabilities.All, // TODO: change this
-                Command = query,
-                Format = IOFormat.Binary,
-                ExpectedCardinality = Cardinality.Many
-            });
-
-            // get the codec for the return type
-            var codec = Serializer.GetCodec(result.OutputTypedescId);
-
-            // if its not cached or we dont have a default one for it, ask the server to describe it for us
-            if(codec == null)
-            {
-                await SendMessageAsync(new DescribeStatement());
-                var describer = await WaitForMessageAsync<CommandDataDescription>(ServerMessageTypes.CommandDataDescription);
-
-                using(var innerReader = new PacketReader(describer.OutputTypeDescriptor))
+                var result = await PrepareAsync(new Prepare
                 {
-                    codec = Serializer.BuildCodec(describer.OutputTypeDescriptorId, innerReader);
+                    Capabilities = AllowCapabilities.All, // TODO: change this
+                    Command = query,
+                    Format = IOFormat.Binary,
+                    ExpectedCardinality = Cardinality.Many
+                });
+
+                // get the codec for the return type
+                var codec = Serializer.GetCodec(result.OutputTypedescId);
+
+                // if its not cached or we dont have a default one for it, ask the server to describe it for us
+                if (codec == null)
+                {
+                    await SendMessageAsync(new DescribeStatement());
+                    var describer = await WaitForMessageAsync<CommandDataDescription>(ServerMessageTypes.CommandDataDescription);
+
+                    using (var innerReader = new PacketReader(describer.OutputTypeDescriptor))
+                    {
+                        codec = Serializer.BuildCodec(describer.OutputTypeDescriptorId, innerReader);
+                    }
+                }
+
+                if (codec == null)
+                {
+                    throw new NotSupportedException($"Couldn't find a codec for type {result.OutputTypedescId}");
+                }
+
+                // execute it 
+
+                await SendMessageAsync(new Execute());
+                await SendMessageAsync(new Sync());
+
+                List<Data> receivedData = new();
+
+                Task addData(IReceiveable msg)
+                {
+                    if (msg.Type == ServerMessageTypes.Data)
+                        receivedData.Add((Data)msg);
+
+                    return Task.CompletedTask;
+                }
+
+                OnMessage += addData;
+
+                var completeResult = await WaitForMessageAsync<CommandComplete>(ServerMessageTypes.CommandComplete);
+
+                List<byte> rawData = new();
+
+                foreach (var data in receivedData)
+                {
+                    rawData.AddRange(data.PayloadData);
+                }
+
+                using (var reader = new PacketReader(rawData.ToArray()))
+                {
+                    return codec.Deserialize(reader);
                 }
             }
-
-            if(codec == null)
+            finally
             {
-                throw new NotSupportedException($"Couldn't find a codec for type {result.OutputTypedescId}");
-            }
-
-            // execute it 
-
-            await SendMessageAsync(new Execute());
-            await SendMessageAsync(new Sync());
-
-            List<Data> receivedData = new();
-
-            Task addData(IReceiveable msg)
-            {
-                if (msg.Type == ServerMessageTypes.Data)
-                    receivedData.Add((Data)msg);
-
-                return Task.CompletedTask;
-            }
-
-            OnMessage += addData;
-
-            var completeResult = await WaitForMessageAsync<CommandComplete>(ServerMessageTypes.CommandComplete);
-
-            List<byte> rawData = new();
-
-            foreach(var data in receivedData)
-            {
-                rawData.AddRange(data.PayloadData);
-            }
-
-            using(var reader = new PacketReader(rawData.ToArray()))
-            {
-                return codec.Deserialize(reader);
+                _sephamore.Release();
             }
         }
 
@@ -249,7 +259,7 @@ namespace EdgeDB
             }
         }
 
-        public async Task SendMessageAsync<T>(T message) where T : Sendable
+        private async Task SendMessageAsync<T>(T message) where T : Sendable
         {
             if (_secureStream == null)
                 return;
