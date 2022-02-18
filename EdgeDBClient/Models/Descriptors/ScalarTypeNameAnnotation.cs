@@ -4,17 +4,19 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB.Models.Descriptors
+namespace EdgeDB.Models
 {
     public struct ScalarTypeNameAnnotation : ITypeDescriptor
     {
-        public DescriptorType Type => throw new NotImplementedException();
+        public DescriptorType Type => DescriptorType.ScalarTypeNameAnnotation;
 
-        public Guid Id => throw new NotImplementedException();
+        public Guid Id { get; set; }
+
+        public string Name { get; set; }
 
         public void Read(PacketReader reader)
         {
-            throw new NotImplementedException();
+            Name = reader.ReadString();
         }
     }
 }

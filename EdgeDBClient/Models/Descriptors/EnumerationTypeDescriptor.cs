@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB.Models.Descriptors
+namespace EdgeDB.Models
 {
     public struct EnumerationTypeDescriptor : ITypeDescriptor
     {

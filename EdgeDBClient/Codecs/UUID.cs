@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
-    public class UUID : ICodec<Guid>
+    public class UUID : IScalerCodec<Guid>
     {
         public Guid Deserialize(PacketReader reader)
         {

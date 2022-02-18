@@ -13,45 +13,40 @@ namespace EdgeDB.Models
 
         void Read(PacketReader reader);
 
-        public static ITypeDescriptor? GetDescriptor(PacketReader reader)
+        public static ITypeDescriptor GetDescriptor(PacketReader reader)
         {
             var type = (DescriptorType)reader.ReadByte();
             var id = reader.ReadGuid();
 
-            switch (type)
+            ITypeDescriptor? descriptor = type switch
             {
-                case DescriptorType.SetDescriptor:
-                    {
-                        var descriptor = new SetDescriptor()
-                        {
-                            Id = id,
-                        };
+                DescriptorType.ArrayTypeDescriptor => new ArrayTypeDescriptor { Id = id },
+                DescriptorType.BaseScalarTypeDescriptor => new BaseScalarTypeDescriptor { Id = id },
+                DescriptorType.EnumerationTypeDescriptor => new EnumerationTypeDescriptor { Id = id },
+                DescriptorType.NamedTupleDescriptor => new NamedTupleTypeDescriptor { Id = id },
+                DescriptorType.ObjectShapeDescriptor => new ObjectShapeDescriptor { Id = id },
+                DescriptorType.ScalarTypeDescriptor => new ScalarTypeDescriptor { Id = id },
+                DescriptorType.ScalarTypeNameAnnotation => new ScalarTypeNameAnnotation { Id = id },
+                DescriptorType.SetDescriptor => new SetDescriptor { Id = id },
+                DescriptorType.TupleTypeDescriptor => new TupleTypeDescriptor { Id = id },
+                _ => null
+            };
 
-                        descriptor.Read(reader);
+            if(descriptor == null)
+            {
+                var rawType = (byte)type;
 
-                        return descriptor;
-                    }
-                default:
-                    {
-                        var rawType = (byte)type;
-
-                        if (rawType >= 0x80 && rawType <= 0xfe)
-                        {
-                            var descriptor = new TypeAnnotationDescriptor()
-                            {
-                                Type = type,
-                                Id = id
-                            };
-
-                            descriptor.Read(reader);
-
-                            return descriptor;
-                        }
-                    }
-                    break;
+                if (rawType >= 0x80 && rawType <= 0xfe)
+                {
+                    descriptor = new TypeAnnotationDescriptor { Id = id, Type = type };
+                }
+                else
+                    throw new InvalidDataException($"No descriptor found for type {type}");
             }
 
-            return null;
+            descriptor.Read(reader);
+
+            return descriptor;
         }
     }
 }

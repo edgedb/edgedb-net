@@ -59,7 +59,36 @@ namespace EdgeDB
             return null;
         }
 
-        public static ICodec GetCodec(Guid typeId)
+        public static ICodec? BuildCodec(PacketReader reader)
+        {
+            List<ICodec> codecs = new();
+
+            while (reader.BaseStream.Position != reader.BaseStream.Length)
+            {
+                var typeDescriptor = ITypeDescriptor.GetDescriptor(reader);
+
+                var codec = GetCodec(typeDescriptor.Id);
+
+                if (codec != null)
+                    codecs.Add(codec);
+                else
+                {
+                    // create based on type descriptor
+                    switch (typeDescriptor)
+                    {
+                        case ObjectShapeDescriptor shapeDescriptor:
+                            var codecArguments = shapeDescriptor.Shapes.Select(x => (x.Name, codecs[x.TypePos]));
+                            codec = new Codecs.Object(codecArguments.Select(x => x.Item2).ToArray(), codecArguments.Select(x => x.Name).ToArray());
+                            codecs.Add(codec);
+
+                            break;
+                    }
+                }
+            }
+            return codecs.Last();
+        }
+
+        public static ICodec? GetCodec(Guid typeId)
         {
             if(_defaultCodecs.TryGetValue(typeId, out var codec))
             {
@@ -68,11 +97,8 @@ namespace EdgeDB
                 return (ICodec)Activator.CreateInstance(codec)!;
 
             }
-            else
-            {
-                // TODO: add coded api?
-                throw new ArgumentException($"No default codec found for {typeId}");
-            }
+
+            return null;
         }
 
         private static Dictionary<Guid, Type> _defaultCodecs = new Dictionary<Guid, Type>

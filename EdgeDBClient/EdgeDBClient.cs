@@ -24,7 +24,8 @@ namespace EdgeDB
 
         // server config
         private int _suggestedPoolConcurrency;
-        
+        private IDictionary<string, object?> _serverConfig;
+
         // TODO: config?
         public EdgeDBClient(EdgeDBConnection connection)
         {
@@ -127,14 +128,24 @@ namespace EdgeDB
                 case "system_config":
                     using(var reader = new PacketReader(status.Value))
                     {
-                        var count = reader.ReadInt32();
+                        var length = reader.ReadInt32() - 16;
+                        var descriptorId = reader.ReadGuid();
+                        var typeDesc = reader.ReadBytes(length);
 
-                        ITypeDescriptor?[] descriptors = new ITypeDescriptor[count];
+                        Codecs.ICodec? codec;
 
-                        for (int i = 0; i != count; i++)
+                        using(var innerReader = new PacketReader(typeDesc))
                         {
-                            descriptors[i] = ITypeDescriptor.GetDescriptor(reader);
+                            codec = Serializer.BuildCodec(innerReader);
+
+                            if (codec == null)
+                                throw new Exception("Failed to build codec for system config");
                         }
+
+                        // disard length
+                        reader.ReadUInt32();
+
+                        _serverConfig = (codec.Deserialize(reader) as IDictionary<string, object?>)!;
                     }
                     break;
             }
