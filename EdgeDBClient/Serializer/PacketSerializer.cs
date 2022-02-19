@@ -11,20 +11,19 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
-    public class Serializer
+    internal class PacketSerializer
     {
-        public static Dictionary<ServerMessageTypes, IReceiveable> ReceiveablePayload = new();
-
+        private static Dictionary<ServerMessageTypes, IReceiveable> _receiveablePayload = new();
         private static Dictionary<Guid, ICodec> _codecCache = new();
 
-        static Serializer()
+        static PacketSerializer()
         {
             var types = Assembly.GetExecutingAssembly().GetTypes().Where(x => x.GetTypeInfo().ImplementedInterfaces.Any(y => y == typeof(IReceiveable)));
 
             foreach(var t in types)
             {
                 var inst = (IReceiveable)Activator.CreateInstance(t)!;
-                ReceiveablePayload.Add(inst.Type, inst);
+                _receiveablePayload.Add(inst.Type, inst);
             }
         }
 
@@ -37,9 +36,9 @@ namespace EdgeDB
             var type = (ServerMessageTypes)reader.ReadSByte();
             var length = reader.ReadUInt32() - 4;
 
-            if (ReceiveablePayload.ContainsKey(type))
+            if (_receiveablePayload.ContainsKey(type))
             {
-                var converter = ReceiveablePayload[type];
+                var converter = _receiveablePayload[type];
 
                 converter.Read(reader, (uint)length, client);
 

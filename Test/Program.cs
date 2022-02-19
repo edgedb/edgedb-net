@@ -6,9 +6,6 @@ using Newtonsoft.Json;
 using EdgeDB.Codecs;
 using Test;
 using System.Linq.Expressions;
-using EdgeDB.QueryBuilder;
-
-// Query test
 
 Logger.AddStream(Console.OpenStandardOutput(), StreamType.StandardOut);
 Logger.AddStream(Console.OpenStandardError(), StreamType.StandardError);
@@ -25,12 +22,15 @@ var client = new EdgeDBClient(new EdgeDBConnection
 await client.ConnectAsync();
 
 
-var result = await client.QueryAsync<Person>(x => x.name == "Quin");
+var result = await client.QueryAsync<Person>(x => x.Name == "aaaaa");
 
 await Task.Delay(-1);
 
-struct Person
+public class Person
 {
-    public string name { get; set; }
-    public string email { get; set; }
+    [EdgeDBProperty("name")]
+    public string? Name { get; set; }
+
+    [EdgeDBProperty("email")]
+    public string? Email { get; set; }
 }

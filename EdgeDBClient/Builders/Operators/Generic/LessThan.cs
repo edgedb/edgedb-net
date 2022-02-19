@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB.QueryBuilder.Operators
+namespace EdgeDB.Operators
 {
     internal class LessThan : IEdgeQLOperator
     {

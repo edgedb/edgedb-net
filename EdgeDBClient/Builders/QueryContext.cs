@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB.QueryBuilder
+namespace EdgeDB
 {
     internal class QueryContext<TInner>
     {

@@ -73,7 +73,7 @@ namespace EdgeDB
                     if (_secureStream == null)
                         return;
 
-                    var msg = Serializer.DeserializePacket(_secureStream, this);
+                    var msg = PacketSerializer.DeserializePacket(_secureStream, this);
 
                     if (msg != null)
                         await HandlePayloadAsync(msg);
@@ -170,10 +170,30 @@ namespace EdgeDB
             else return await errorTask;
         }
 
-        public Task<ExecuteResult?> QueryAsync<TType>(Expression<Func<TType, bool>> filter)
+        public async Task<ExecuteResult<TType>?> QueryAsync<TType>(Expression<Func<TType, bool>> filter)
         {
-            var query = QueryBuilder.QueryBuilder.BuildSelectQuery(filter);
-            return ExecuteAsync(query!);
+            var query = QueryBuilder.BuildSelectQuery(filter);
+
+            var result = await ExecuteAsync(query!);
+
+            if (!result.HasValue)
+                return null;
+
+            var converted = new ExecuteResult<TType>
+            {
+                IsSuccess = result.Value.IsSuccess,
+                Error = result.Value.Error,
+                Exception = result.Value.Exception
+            };
+
+            if(result.Value.Result is IDictionary<string, object?> rawObj)
+            {
+                converted.Result = ResultBuilder.BuildResult<TType>(rawObj);
+            }
+            else if(result.Value.Result != null)
+                converted.Result = (TType?)result.Value.Result;
+
+            return converted;
         }
 
         public async Task<ExecuteResult?> ExecuteAsync(string query)
@@ -205,7 +225,7 @@ namespace EdgeDB
                 }
 
                 // get the codec for the return type
-                var codec = Serializer.GetCodec(result.OutputTypedescId);
+                var codec = PacketSerializer.GetCodec(result.OutputTypedescId);
 
                 // if its not cached or we dont have a default one for it, ask the server to describe it for us
                 if (codec == null)
@@ -216,7 +236,7 @@ namespace EdgeDB
 
                     using (var innerReader = new PacketReader(describer.OutputTypeDescriptor))
                     {
-                        codec = Serializer.BuildCodec(describer.OutputTypeDescriptorId, innerReader);
+                        codec = PacketSerializer.BuildCodec(describer.OutputTypeDescriptorId, innerReader);
                     }
                 }
 
@@ -323,7 +343,7 @@ namespace EdgeDB
 
                         using(var innerReader = new PacketReader(typeDesc))
                         {
-                            codec = Serializer.BuildCodec(descriptorId, innerReader);
+                            codec = PacketSerializer.BuildCodec(descriptorId, innerReader);
 
                             if (codec == null)
                                 throw new Exception("Failed to build codec for system config");

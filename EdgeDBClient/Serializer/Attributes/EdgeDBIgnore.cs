@@ -6,7 +6,5 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
-    internal class DontSerialize : Attribute
-    {
-    }
+    public class EdgeDBIgnore : Attribute { }
 }

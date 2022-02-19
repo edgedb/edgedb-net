@@ -1,4 +1,4 @@
-﻿using EdgeDB.QueryBuilder.Operators;
+﻿using EdgeDB.Operators;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +7,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB.QueryBuilder
+namespace EdgeDB
 {
     public class QueryBuilder
     {
@@ -36,7 +36,7 @@ namespace EdgeDB.QueryBuilder
             var args = ConvertExpression(context.Body!, context);
 
             // by default return all fields
-            var fields = typeof(TInner).GetProperties().Select(x => x.Name);
+            var fields = typeof(TInner).GetProperties().Select(x => x.GetCustomAttribute<EdgeDBProperty>()?.Name ?? x.Name);
             return $"SELECT {typeof(TInner).Name} {{ {string.Join(", ", fields)} }} filter {args}";
         }
 
@@ -78,7 +78,7 @@ namespace EdgeDB.QueryBuilder
                 else 
                 {
                     // tostring it and check the starter accesser for our parameter
-                    var ts = mbs.ToString();
+                    var ts = RecurseNameLookup(mbs);
                     if (ts.StartsWith($"{context.ParameterName}."))
                     {
                         return ts.Substring(context.ParameterName!.Length, ts.Length - context.ParameterName.Length);
@@ -97,6 +97,23 @@ namespace EdgeDB.QueryBuilder
             }
 
             return "";
+        }
+
+        private static string RecurseNameLookup(MemberExpression expression)
+        {
+            List<string?> tree = new();
+
+            tree.Add(expression.Member.GetCustomAttribute<EdgeDBProperty>()?.Name ?? expression.Member.Name);
+
+            var t = expression.Expression?.GetType();
+
+            if (expression.Expression is MemberExpression innerExp)
+                tree.Add(RecurseNameLookup(innerExp));
+            if (expression.Expression is ParameterExpression param)
+                tree.Add(param.Name);
+
+            tree.Reverse();
+            return string.Join('.', tree);
         }
 
         private static string ParseArgument(object? arg)
