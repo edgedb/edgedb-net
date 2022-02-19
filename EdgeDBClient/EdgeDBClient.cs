@@ -154,7 +154,7 @@ namespace EdgeDB
             return await WaitForMessageAsync<PrepareComplete>(ServerMessageTypes.PrepareComplete, cts.Token);
         }
 
-        public async Task<object?> ExecuteAsync(string query)
+        public async Task<ExecuteResult?> ExecuteAsync(string query)
         {
             await _sephamore.WaitAsync(_readCancelToken.Token);
 
@@ -162,7 +162,7 @@ namespace EdgeDB
             {
                 var result = await PrepareAsync(new Prepare
                 {
-                    Capabilities = AllowCapabilities.All, // TODO: change this
+                    Capabilities = AllowCapabilities.ReadOnly, // TODO: change this
                     Command = query,
                     Format = IOFormat.Binary,
                     ExpectedCardinality = Cardinality.Many
@@ -175,6 +175,7 @@ namespace EdgeDB
                 if (codec == null)
                 {
                     await SendMessageAsync(new DescribeStatement());
+                    await SendMessageAsync(new Sync());
                     var describer = await WaitForMessageAsync<CommandDataDescription>(ServerMessageTypes.CommandDataDescription);
 
                     using (var innerReader = new PacketReader(describer.OutputTypeDescriptor))
@@ -190,7 +191,7 @@ namespace EdgeDB
 
                 // execute it 
 
-                await SendMessageAsync(new Execute());
+                await SendMessageAsync(new Execute() { Capabilities = result.Capabilities });
                 await SendMessageAsync(new Sync());
 
                 List<Data> receivedData = new();
@@ -205,19 +206,61 @@ namespace EdgeDB
 
                 OnMessage += addData;
 
-                var completeResult = await WaitForMessageAsync<CommandComplete>(ServerMessageTypes.CommandComplete);
+                // wait for complete or error
+                var completionTask = WaitForMessageAsync<CommandComplete>(ServerMessageTypes.CommandComplete);
+                var errorTask = WaitForMessageAsync<ErrorResponse>(ServerMessageTypes.ErrorResponse);
+                var executionResult = await Task.WhenAny(
+                    completionTask,
+                    errorTask
+                    );
 
-                List<byte> rawData = new();
+                OnMessage -= addData;
 
-                foreach (var data in receivedData)
+                object? queryResult = null;
+
+                if (receivedData.Any()) // TODO: optimize?
                 {
-                    rawData.AddRange(data.PayloadData);
+                    if(receivedData.Count == 1)
+                    {
+                        using (var reader = new PacketReader(receivedData[0].PayloadData))
+                        {
+                            queryResult = codec.Deserialize(reader);
+                        }
+                    }
+                    else
+                    {
+                        object?[] data = new object[receivedData.Count];
+                        
+                        for(int i = 0; i != data.Length; i++)
+                        {
+                            using (var reader = new PacketReader(receivedData[i].PayloadData))
+                            {
+                                data[i] = codec.Deserialize(reader);
+                            }
+                        }
+
+                        queryResult = data;
+                    }
                 }
 
-                using (var reader = new PacketReader(rawData.ToArray()))
+                CommandComplete? completeResult = completionTask.IsCompleted ? completionTask.Result : null;
+                ErrorResponse? errorResult = errorTask.IsCompleted ? errorTask.Result : null;
+
+                return new ExecuteResult
                 {
-                    return codec.Deserialize(reader);
-                }
+                    IsSuccess = completeResult != null,
+                    Error = errorResult,
+                    Result = queryResult,
+                };
+            }
+            catch(Exception x)
+            {
+                Console.WriteLine($"Failed to execute: {x}");
+                return new ExecuteResult
+                {
+                    IsSuccess = false,
+                    Exception = x
+                };
             }
             finally
             {
@@ -413,7 +456,7 @@ namespace EdgeDB
             await Task.Run(() => _readySource.Task, _readyCancelTokenSource.Token);
         }
 
-        private async Task<TMessage> WaitForMessageAsync<TMessage>(ServerMessageTypes type, CancellationToken token = default) where TMessage : IReceiveable
+        private async Task<TMessage?> WaitForMessageAsync<TMessage>(ServerMessageTypes type, CancellationToken token = default) where TMessage : IReceiveable
         {
             var tcs = new TaskCompletionSource();
             TMessage? returnValue = default;

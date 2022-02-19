@@ -60,7 +60,7 @@ namespace EdgeDB.Codecs
         public void Serialize(PacketWriter writer, decimal value)
         {
             // TODO https://www.edgedb.com/docs/reference/protocol/dataformats#std-decimal
-            throw new NotImplementedException();
+            throw new NotSupportedException();
 
             //var sign = Value > 0 ? DecimalSign.POS : DecimalSign.NEG;
             //var uval = Value;

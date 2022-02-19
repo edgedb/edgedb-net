@@ -16,7 +16,17 @@ var client = new EdgeDBClient(new EdgeDBConnection
 
 await client.ConnectAsync();
 
-var result = await client.ExecuteAsync("select \"Hello world!\";");
+//var q = "INSERT Text { \n" +
+//    "    title := 'EdgeDB',\n" +
+//    "    body := \"I'm doing the INSERT tutorial.\",\n" +
+//    "    author := (\n" +
+//    "        # Using a sub-query to fetch the existing user\n" +
+//    "        # so that we can assign them as the author.\n" +
+//    "        SELECT User FILTER .email = 'dana@tutorial.com'\n" +
+//    "    )\n" +
+//    "};";
+
+var result = await client.ExecuteAsync("select {1, 2, 3};");
 
 
 await Task.Delay(-1);

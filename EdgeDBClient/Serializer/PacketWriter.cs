@@ -1,4 +1,5 @@
 ﻿using EdgeDB.Models;
+using EdgeDB.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -48,7 +49,9 @@ namespace EdgeDB
 
         public void Write(Guid value)
         {
-            Write(value.ToByteArray());
+            var bytes = HexConverter.FromHex(value.ToString().Replace("-", ""));
+
+            Write(bytes);
         }
 
         public override void Write(string value)

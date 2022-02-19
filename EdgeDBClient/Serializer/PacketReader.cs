@@ -1,4 +1,5 @@
 ﻿using EdgeDB.Models;
+using EdgeDB.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,7 +39,7 @@ namespace EdgeDB
         {
             var bytes = ReadBytes(16);
 
-            return new Guid(bytes);
+            return Guid.Parse(HexConverter.ToHex(bytes));
         }
 
         public override double ReadDouble()

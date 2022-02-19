@@ -86,11 +86,37 @@ namespace EdgeDB
                     switch (typeDescriptor)
                     {
                         case ObjectShapeDescriptor shapeDescriptor:
-                            var codecArguments = shapeDescriptor.Shapes.Select(x => (x.Name, codecs[x.TypePos]));
-                            codec = new Codecs.Object(codecArguments.Select(x => x.Item2).ToArray(), codecArguments.Select(x => x.Name).ToArray());
-                            codecs.Add(codec);
-
+                            {
+                                var codecArguments = shapeDescriptor.Shapes.Select(x => (x.Name, codecs[x.TypePos]));
+                                codec = new Codecs.Object(codecArguments.Select(x => x.Item2).ToArray(), codecArguments.Select(x => x.Name).ToArray());
+                                codecs.Add(codec);
+                            }
                             break;
+                        case TupleTypeDescriptor tuple:
+                            {
+                                codec = new Codecs.Tuple(tuple.ElementTypeDescriptorsIndex.Select(x => codecs[x]).ToArray());
+                                codecs.Add(codec);
+                            }
+                            break;
+                        case NamedTupleTypeDescriptor namedTuple:
+                            {
+                                // TODO: better datatype than an object?
+                                var codecArguments = namedTuple.Elements.Select(x => (x.Name, codecs[x.TypePos]));
+                                codec = new Codecs.Object(codecArguments.Select(x => x.Item2).ToArray(), codecArguments.Select(x => x.Name).ToArray());
+                                codecs.Add(codec);
+                            }
+                            break;
+                        case ArrayTypeDescriptor array:
+                            {
+                                var innerCodec = codecs[array.TypePos];
+
+                                // create the array codec with reflection
+                                var codecType = typeof(Codecs.Array<>).MakeGenericType(innerCodec.ConverterType);
+                                codec = (ICodec)Activator.CreateInstance(codecType, innerCodec)!;
+                                codecs.Add(codec);
+                            }
+                            break;
+
                     }
                 }
             }

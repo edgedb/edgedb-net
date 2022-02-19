@@ -10,9 +10,9 @@ namespace EdgeDB.Models.DataTypes
     {
         public long TotalBytes { get; }
         public long TotalMegabytes
-            => TotalBytes / 1024;
+            => TotalBytes / 1024 / 1024;
 
-        internal Memory(long bytes)
+        public Memory(long bytes)
         {
             TotalBytes = bytes;
         }
