@@ -1,5 +1,6 @@
 ﻿using EdgeDB.Codecs;
 using EdgeDB.Models;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -50,7 +51,7 @@ namespace EdgeDB
 
                 stream.Read(new byte[length], 0, (int)length);
 
-                Console.WriteLine($"No converter found for message type 0x{type:X} ({type})");
+                client.Logger.LogWarning("No converter found for message type 0x{} ({})", $"{type:X}", type);
                 return null;
             }
         }
@@ -82,7 +83,7 @@ namespace EdgeDB
                     codecs.Add(codec);
                 else
                 {
-                    // create based on type descriptor
+                    // create codec based on type descriptor
                     switch (typeDescriptor)
                     {
                         case ObjectShapeDescriptor shapeDescriptor:

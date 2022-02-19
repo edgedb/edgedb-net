@@ -4,6 +4,14 @@ using System.Net.Sockets;
 using System.Net.Security;
 using Newtonsoft.Json;
 using EdgeDB.Codecs;
+using Test;
+using System.Linq.Expressions;
+using EdgeDB.QueryBuilder;
+
+// Query test
+
+Logger.AddStream(Console.OpenStandardOutput(), StreamType.StandardOut);
+Logger.AddStream(Console.OpenStandardError(), StreamType.StandardError);
 
 var client = new EdgeDBClient(new EdgeDBConnection
 {
@@ -12,21 +20,17 @@ var client = new EdgeDBClient(new EdgeDBConnection
     Username = "edgedb",
     Password = "dpnjEhMqGgGUO9bTmDxtPcMO",
     Database = "edgedb",
-});
+}, Logger.GetLogger<EdgeDBClient>());
 
 await client.ConnectAsync();
 
-//var q = "INSERT Text { \n" +
-//    "    title := 'EdgeDB',\n" +
-//    "    body := \"I'm doing the INSERT tutorial.\",\n" +
-//    "    author := (\n" +
-//    "        # Using a sub-query to fetch the existing user\n" +
-//    "        # so that we can assign them as the author.\n" +
-//    "        SELECT User FILTER .email = 'dana@tutorial.com'\n" +
-//    "    )\n" +
-//    "};";
 
-var result = await client.ExecuteAsync("select {1, 2, 3};");
-
+var result = await client.QueryAsync<Person>(x => x.name == "Quin");
 
 await Task.Delay(-1);
+
+struct Person
+{
+    public string name { get; set; }
+    public string email { get; set; }
+}

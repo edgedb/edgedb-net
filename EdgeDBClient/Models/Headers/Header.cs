@@ -11,6 +11,9 @@ namespace EdgeDB.Models
         public ushort Code { get; set; }
         public byte[] Value { get; set; }
 
+        /// <summary>
+        ///     Converts this headers value to a UTF8 encoded string
+        /// </summary>
         public override string ToString()
         {
             return Encoding.UTF8.GetString(Value);

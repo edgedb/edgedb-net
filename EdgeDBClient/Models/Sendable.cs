@@ -24,8 +24,6 @@ namespace EdgeDB.Models
             var l = stream.Length;
             writer.Write((uint)l + 4);
             writer.Write(data);
-
-            Console.WriteLine($"Writing -> {Type:X}{stream.Length:X2}{BitConverter.ToString(data).Replace("-", "")}");
         }
     }
 }

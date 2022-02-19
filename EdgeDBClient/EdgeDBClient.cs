@@ -1,5 +1,7 @@
 ﻿using EdgeDB.Models;
 using EdgeDB.Utils;
+using Microsoft.Extensions.Logging;
+using System.Linq.Expressions;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
@@ -22,6 +24,7 @@ namespace EdgeDB
         private AsyncEvent<Func<IReceiveable, Task>> _onMessage = new();
 
         internal SASLMechanism? SASLClient;
+        internal ILogger Logger;
 
         private readonly TcpClient _client;
         private NetworkStream? _stream;
@@ -32,7 +35,6 @@ namespace EdgeDB
         private TaskCompletionSource _readySource;
         private CancellationTokenSource _readyCancelTokenSource;
         private SemaphoreSlim _sephamore;
-        
 
         // server config
         private byte[] _serverKey;
@@ -40,8 +42,9 @@ namespace EdgeDB
         private IDictionary<string, object?> _serverConfig;
 
         // TODO: config?
-        public EdgeDBClient(EdgeDBConnection connection)
+        public EdgeDBClient(EdgeDBConnection connection, ILogger? logger)
         {
+            Logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
             _sephamore = new(1,1);
             _readCancelToken = new();
             _connection = connection;
@@ -80,19 +83,23 @@ namespace EdgeDB
             }
             catch (Exception x)
             {
-                Console.WriteLine(x);
+                Logger.LogCritical("Failed to read and deserialize packet: {}", x);
             }
         }
 
         private async Task HandlePayloadAsync(IReceiveable payload)
         {
-            Console.WriteLine($"Got message type {payload.Type}");
+            Logger.LogDebug("Got message type {}", payload.Type);
 
             switch (payload)
             {
                 case ErrorResponse err:
                     {
-                        Console.WriteLine($"Got error level: {err.Severity}\nMessage: {err.Message}\nHeaders:\n{string.Join("\n", err.Headers.Select(x => $"  0x{BitConverter.ToString(BitConverter.GetBytes(x.Code).Reverse().ToArray()).Replace("-", "")}: {x}"))}");
+                        Logger.LogError("Got error level: {}\nMessage: {}\nHeaders:\n{}",
+                            err.Severity,
+                            err.Message,
+                            string.Join("\n", err.Headers.Select(x => $"  0x{BitConverter.ToString(BitConverter.GetBytes(x.Code).Reverse().ToArray()).Replace("-", "")}: {x}")));
+
                         if (!_readyCancelTokenSource.IsCancellationRequested)
                             _readyCancelTokenSource.Cancel();
                     }
@@ -141,17 +148,32 @@ namespace EdgeDB
             }
             catch (Exception x)
             {
-                Console.WriteLine($"Exception in message handler: {x}");
+                Logger.LogCritical("Exception in message handler: {}", x);
             }
         }
 
-        private async Task<PrepareComplete> PrepareAsync(Prepare packet)
+        private async Task<IReceiveable> PrepareAsync(Prepare packet)
         {
             await SendMessageAsync(packet);
             await SendMessageAsync(new Sync());
-            var cts = new CancellationTokenSource();
-            cts.CancelAfter(15000);
-            return await WaitForMessageAsync<PrepareComplete>(ServerMessageTypes.PrepareComplete, cts.Token);
+            var timeoutTask = Task.Delay(15000);
+            var resultTask = WaitForMessageAsync<PrepareComplete>(ServerMessageTypes.PrepareComplete);
+            var errorTask = WaitForMessageAsync<ErrorResponse>(ServerMessageTypes.ErrorResponse);
+
+            var result = await Task.WhenAny(resultTask, errorTask, timeoutTask);
+
+            if (result == timeoutTask)
+                throw new TimeoutException("Didn't receive PrepareComplete result after 15 seconds");
+
+            if (resultTask.IsCompleted)
+                return await resultTask;
+            else return await errorTask;
+        }
+
+        public Task<ExecuteResult?> QueryAsync<TType>(Expression<Func<TType, bool>> filter)
+        {
+            var query = QueryBuilder.QueryBuilder.BuildSelectQuery(filter);
+            return ExecuteAsync(query!);
         }
 
         public async Task<ExecuteResult?> ExecuteAsync(string query)
@@ -160,13 +182,27 @@ namespace EdgeDB
 
             try
             {
-                var result = await PrepareAsync(new Prepare
+                var prepareResult = await PrepareAsync(new Prepare
                 {
                     Capabilities = AllowCapabilities.ReadOnly, // TODO: change this
                     Command = query,
                     Format = IOFormat.Binary,
                     ExpectedCardinality = Cardinality.Many
                 });
+
+                if(prepareResult is ErrorResponse error)
+                {
+                    return new ExecuteResult
+                    {
+                        Error = error,
+                        IsSuccess = false,
+                    };
+                }
+
+                if(prepareResult is not PrepareComplete result)
+                {
+                    throw new InvalidDataException($"Got unexpected result from prepare: {prepareResult.Type}");
+                }
 
                 // get the codec for the return type
                 var codec = Serializer.GetCodec(result.OutputTypedescId);
@@ -255,7 +291,7 @@ namespace EdgeDB
             }
             catch(Exception x)
             {
-                Console.WriteLine($"Failed to execute: {x}");
+                Logger.LogWarning("Failed to execute: {}", x);
                 return new ExecuteResult
                 {
                     IsSuccess = false,
@@ -314,8 +350,6 @@ namespace EdgeDB
                     message.Write(writer, this);
                 }
 
-                var data = $"[{string.Join(", ", ms.ToArray().Select(x => $"{x}"))}]";
-
                 await _secureStream.WriteAsync(ms.ToArray());
             }
         }
@@ -365,7 +399,7 @@ namespace EdgeDB
                     0,
                     encoding));
 
-                Console.WriteLine($"Got {authStatus.AuthStatus}:{saslResult.Item2} for continue");
+                Logger.LogDebug("Got {}:{} for continue", authStatus.AuthStatus, saslResult.Item2);
 
                 await SendMessageAsync(new AuthenticationSASLResponse(writeArray.Array));
 
@@ -389,7 +423,7 @@ namespace EdgeDB
                     0,
                     encoding));
 
-                Console.WriteLine($"Got {authStatus.AuthStatus}:{saslResult.Item2} for final");
+                Logger.LogDebug("Got {}:{} for final", authStatus.AuthStatus, saslResult.Item2);
             }
         }
 
@@ -432,7 +466,6 @@ namespace EdgeDB
             _ = Task.Run(async () => await ReceiveAsync());
 
             //  send handshake
-
             await SendMessageAsync(new ClientHandshake
             {
                 MajorVersion = 1,
