@@ -22,12 +22,15 @@ var client = new EdgeDBClient(new EdgeDBConnection
 await client.ConnectAsync();
 
 
-var result = await client.QueryAsync<Person>(x => x.Name == "aaaaa");
+var result = await client.QueryAsync<Person>(x => x.Name == "Liege");
 
 await Task.Delay(-1);
 
 public class Person
 {
+    [EdgeDBProperty("id")]
+    public Guid Id { get; set; }
+
     [EdgeDBProperty("name")]
     public string? Name { get; set; }
 
