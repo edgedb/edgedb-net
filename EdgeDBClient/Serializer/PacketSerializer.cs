@@ -32,6 +32,8 @@ namespace EdgeDB
 
         public static string? GetEdgeQLType(Type t)
         {
+            if (t.Name == "Nullable`1")
+                t = t.GenericTypeArguments[0];
             if (_scalarTypeMap.TryGetValue(t, out var result))
                 return result;
             return null;
@@ -176,6 +178,7 @@ namespace EdgeDB
         private static Dictionary<Type, string> _scalarTypeMap = new()
         {
             { typeof(string), "str" },
+            { typeof(IEnumerable<char>), "str"},
             { typeof(bool), "bool" },
             { typeof(short), "int16" },
             { typeof(ushort), "int16" },

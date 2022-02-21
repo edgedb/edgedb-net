@@ -43,7 +43,7 @@ namespace EdgeDB
         private IDictionary<string, object?> _serverConfig;
 
         // TODO: config?
-        public EdgeDBClient(EdgeDBConnection connection, ILogger? logger)
+        public EdgeDBClient(EdgeDBConnection connection, ILogger? logger = null)
         {
             Logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
             _sephamore = new(1,1);
@@ -200,6 +200,7 @@ namespace EdgeDB
                     {
                         Error = error,
                         IsSuccess = false,
+                        ExecutedQuery = query + $"\nParameters: {(arguments == null ? "none" : $"[{string.Join(", ", arguments.Select(x => $"{x.Key}: {x.Value}"))}]")}"
                     };
                 }
 
@@ -303,6 +304,7 @@ namespace EdgeDB
                     IsSuccess = completeResult != null,
                     Error = errorResult,
                     Result = queryResult,
+                    ExecutedQuery = query + $"\nParameters: {(arguments == null ? "none" : $"[{string.Join(", ", arguments.Select(x => $"{x.Key}: {x.Value}"))}]")}"
                 };
             }
             catch(Exception x)
@@ -311,7 +313,8 @@ namespace EdgeDB
                 return new ExecuteResult
                 {
                     IsSuccess = false,
-                    Exception = x
+                    Exception = x,
+                    ExecutedQuery = query + $"\nParameters: {(arguments == null ? "none" : $"[{string.Join(", ", arguments.Select(x => $"{x.Key}: {x.Value}"))}]")}"
                 };
             }
             finally

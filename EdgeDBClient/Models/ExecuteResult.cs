@@ -16,12 +16,15 @@ namespace EdgeDB.Models
 
         public Exception? Exception { get; set; }
 
-        internal ExecuteResult(bool success, TType? result, ErrorResponse? error, Exception? exc)
+        public string? ExecutedQuery { get; set; }
+
+        internal ExecuteResult(bool success, TType? result, ErrorResponse? error, Exception? exc, string? executedQuery)
         {
             IsSuccess = success;
             Result = result;
             Error = error;
             Exception = exc;
+            ExecutedQuery = executedQuery;
         }
 
         internal static ExecuteResult<TType>? Convert(ExecuteResult? result)
@@ -33,7 +36,8 @@ namespace EdgeDB.Models
             {
                 IsSuccess = result.Value.IsSuccess,
                 Error = result.Value.Error,
-                Exception = result.Value.Exception
+                Exception = result.Value.Exception,
+                ExecutedQuery = result.Value.ExecutedQuery
             };
 
             if (result.Value.Result is IDictionary<string, object?> rawObj)
@@ -57,12 +61,15 @@ namespace EdgeDB.Models
 
         public Exception? Exception { get; set; }
 
-        internal ExecuteResult(bool success, object? result, ErrorResponse? error, Exception? exc)
+        public string? ExecutedQuery { get; set; }
+
+        internal ExecuteResult(bool success, object? result, ErrorResponse? error, Exception? exc, string? executedQuery)
         {
             IsSuccess = success;
             Result = result;
             Error = error;
             Exception = exc;
+            ExecutedQuery = executedQuery;
         }
     }
 }

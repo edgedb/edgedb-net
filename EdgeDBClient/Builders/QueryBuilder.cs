@@ -26,7 +26,11 @@ namespace EdgeDB
             { "ICollection.Contains", new Contains() },
             { "IEnumerable.Contains", new Contains() },
 
-            { "String.get_Chars", new Operators.Index() }
+            { "String.get_Chars", new Operators.Index() },
+            { "Sring.Substring", new Slice() },
+
+            { "ICollection.Concat", new Concat() },
+            { "IEnumerable.Concat", new Concat() },
         };
 
         static QueryBuilder()
@@ -66,8 +70,6 @@ namespace EdgeDB
         // TODO: add node checks when in Char context, using int converters while in char context will result in the int being converted to a character.
         private static (string Filter, Dictionary<string, object?> Arguments) ConvertExpression<TInner>(Expression s, QueryContext<TInner> context)
         {
-            var t = s.GetType();
-
             if(s is BinaryExpression bin)
             {
                 // compute left and right
@@ -88,6 +90,8 @@ namespace EdgeDB
 
             if(s is UnaryExpression una)
             {
+                // TODO: nullable converts?
+
                 // get the value
                 var val = ConvertExpression(una.Operand, context);
 
@@ -95,7 +99,7 @@ namespace EdgeDB
                 var edgeqlType = una.Operand.Type == typeof(char) ? "str" : PacketSerializer.GetEdgeQLType(una.Type);
 
                 // set char context 
-                context.IsCharContext = true;
+                context.IsCharContext = una.Operand.Type == typeof(char);
 
                 if(edgeqlType == null)
                     throw new NotSupportedException($"No edgeql type map found for type {una.Type}");
@@ -121,9 +125,11 @@ namespace EdgeDB
                 // parse the arguments
                 var arguments = mc.Arguments.Select(x => ConvertExpression(x, context));
 
+                var instName = mc.Object != null ? ConvertExpression(mc.Object!, context).Filter : arguments.First().Filter;
+
                 try
                 {
-                    return (op.Build(new string[] { ConvertExpression(mc.Object!, context).Filter }.Concat(arguments.Select(x => x.Filter)).ToArray()), arguments.SelectMany(x => x.Arguments).ToDictionary(x => x.Key, x => x.Value));
+                    return (op.Build(new string[] { instName }.Concat(arguments.Skip(mc.Object != null ? 0 : 1).Select(x => x.Filter)).ToArray()), arguments.SelectMany(x => x.Arguments).ToDictionary(x => x.Key, x => x.Value));
                 }
                 catch(Exception x)
                 {
