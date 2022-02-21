@@ -6,24 +6,26 @@ using Newtonsoft.Json;
 using EdgeDB.Codecs;
 using Test;
 using System.Linq.Expressions;
+using EdgeDB.Utils;
 
 Logger.AddStream(Console.OpenStandardOutput(), StreamType.StandardOut);
 Logger.AddStream(Console.OpenStandardError(), StreamType.StandardError);
 
-var client = new EdgeDBClient(new EdgeDBConnection
+var conn = EdgeDBConnection.FromProjectFile(@"C:\Users\lynch\source\repos\EdgeDBClient\EdgeDBDatabase\edgedb.toml");
+var client = new EdgeDBTcpClient(new EdgeDBConnection
 {
     Hostname = "127.0.0.1",
     Port = 10701,
     Username = "edgedb",
     Password = "dpnjEhMqGgGUO9bTmDxtPcMO",
     Database = "edgedb",
-}, Logger.GetLogger<EdgeDBClient>());
+}, Logger.GetLogger<EdgeDBTcpClient>());
 
 await client.ConnectAsync();
 
-var name = "Q".Concat("uin");
+await Task.Delay(70000);
 
-var result = await client.QueryAsync<Person>(x => x.Name == name);
+var result = await client.QueryAsync<Person>(x => x.Name == "Liege");
 
 await Task.Delay(-1);
 

@@ -12,7 +12,7 @@ namespace EdgeDB.Models
 
         public byte[] PayloadData { get; set; }
 
-        public void Read(PacketReader reader, uint length, EdgeDBClient client)
+        public void Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             // skip arary since its always one, errr should be one
             var numElements = reader.ReadUInt16();

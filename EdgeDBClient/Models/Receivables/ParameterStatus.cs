@@ -13,7 +13,7 @@ namespace EdgeDB.Models
         public string Name { get; set; }
         public byte[] Value { get; set; }
 
-        public void Read(PacketReader reader, uint length, EdgeDBClient client)
+        public void Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             Name = reader.ReadString();
             Value = reader.ReadByteArray();

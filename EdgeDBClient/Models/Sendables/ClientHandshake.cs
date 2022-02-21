@@ -15,7 +15,7 @@ namespace EdgeDB.Models
         public ConnectionParam[] ConnectionParameters { get; set; } = new ConnectionParam[0];
         public ProtocolExtension[] Extensions { get; set; } = new ProtocolExtension[0];
 
-        protected override void BuildPacket(PacketWriter writer, EdgeDBClient client)
+        protected override void BuildPacket(PacketWriter writer, EdgeDBTcpClient client)
         {
             writer.Write(MajorVersion);
             writer.Write(MinorVersion);

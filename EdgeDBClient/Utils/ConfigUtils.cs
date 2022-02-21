@@ -1,0 +1,73 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+
+namespace EdgeDB.Utils
+{
+    public class ConfigUtils
+    {
+        public static string EdgeDBConfigDir
+            => Path.Combine(GetEdgeDBBasePath(), "config");
+
+        public static string CredentialsDir
+            => Path.Combine(EdgeDBConfigDir, "credentials");
+
+        public static string ProjectsDir
+            => Path.Combine(EdgeDBConfigDir, "projects");
+
+        private static string GetEdgeDBKnownBasePath()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "EdgeDB");
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "Application Support", "edgedb");
+            }
+            else
+            {
+                var xdgConfigDir = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
+
+                if (xdgConfigDir == null || !Path.IsPathRooted(xdgConfigDir))
+                    xdgConfigDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config");
+
+                return Path.Combine(xdgConfigDir, "edgedb");
+            }
+        }
+        private static string GetEdgeDBBasePath()
+        {
+            var basePath = GetEdgeDBKnownBasePath();
+            return Directory.Exists(basePath) ? basePath : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".edgedb");
+        }
+
+        public static string GetInstanceProjectDirectory(string projectDir)
+        {
+            var fullPath = Path.GetFullPath(projectDir);
+            var baseName = projectDir.Split(Path.DirectorySeparatorChar).Last();
+            string hash = "";
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && !fullPath.StartsWith("\\\\"))
+            {
+                fullPath = "\\\\?\\" + fullPath;
+            }
+
+            using (var sha1 = SHA1.Create())
+            {
+                hash = HexConverter.ToHex(sha1.ComputeHash(Encoding.UTF8.GetBytes(fullPath)));
+            }
+
+            return Path.Combine(GetEdgeDBBasePath(), "config", "projects", $"{baseName}-{hash.ToLower()}");
+        }
+
+        public static string GetProjectCredentialsFile(string projectName)
+        {
+            return "";
+        }
+    }
+}

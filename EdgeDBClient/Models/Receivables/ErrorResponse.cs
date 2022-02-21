@@ -19,7 +19,7 @@ namespace EdgeDB.Models
 
         public Header[] Headers { get; set; }
 
-        public void Read(PacketReader reader, uint length, EdgeDBClient client)
+        public void Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             Severity = (ErrorSeverity)reader.ReadByte();
             ErrorCode = reader.ReadUInt32();

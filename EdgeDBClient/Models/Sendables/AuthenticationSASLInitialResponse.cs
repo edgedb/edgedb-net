@@ -23,7 +23,7 @@ namespace EdgeDB.Models
             Payload = payload;
         }
 
-        protected override void BuildPacket(PacketWriter writer, EdgeDBClient client)
+        protected override void BuildPacket(PacketWriter writer, EdgeDBTcpClient client)
         {
             writer.Write(Method);
             writer.WriteArray(Payload);

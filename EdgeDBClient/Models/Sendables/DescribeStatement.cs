@@ -14,7 +14,7 @@ namespace EdgeDB.Models
 
         public string? StatementName { get; set; }
 
-        protected override void BuildPacket(PacketWriter writer, EdgeDBClient client)
+        protected override void BuildPacket(PacketWriter writer, EdgeDBTcpClient client)
         {
             writer.Write((ushort)0); // no headers
             writer.Write((byte)DescribeAspect);

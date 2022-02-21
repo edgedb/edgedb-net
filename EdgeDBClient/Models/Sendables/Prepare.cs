@@ -50,7 +50,7 @@ namespace EdgeDB.Models
 
         public string? Command { get; set; }
 
-        protected override void BuildPacket(PacketWriter writer, EdgeDBClient client)
+        protected override void BuildPacket(PacketWriter writer, EdgeDBTcpClient client)
         {
             if (Command == null)
                 throw new ArgumentException("Command cannot be null");

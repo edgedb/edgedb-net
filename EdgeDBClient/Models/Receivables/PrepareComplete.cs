@@ -19,7 +19,7 @@ namespace EdgeDB.Models
 
         public Guid OutputTypedescId { get; set; }
 
-        public void Read(PacketReader reader, uint length, EdgeDBClient client)
+        public void Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             var headers = reader.ReadHeaders();
 

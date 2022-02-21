@@ -14,7 +14,7 @@ namespace EdgeDB.Models
 
         public TransactionState TransactionState { get; set; }
 
-        public void Read(PacketReader reader, uint length, EdgeDBClient client)
+        public void Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             Headers = reader.ReadHeaders();
             TransactionState = (TransactionState)reader.ReadByte();

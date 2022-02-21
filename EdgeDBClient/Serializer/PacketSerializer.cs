@@ -39,13 +39,11 @@ namespace EdgeDB
             return null;
         }
 
-        public static IReceiveable? DeserializePacket(Stream stream, EdgeDBClient client)
+        public static IReceiveable? DeserializePacket(ServerMessageTypes type, Stream stream, EdgeDBTcpClient client)
         {
             // read the type
 
             var reader = new PacketReader(stream);
-
-            var type = (ServerMessageTypes)reader.ReadSByte();
             var length = reader.ReadUInt32() - 4;
 
             if (_receiveablePayload.ContainsKey(type))
