@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
-    internal class NullCodec : ICodec
+    internal class NullCodec : ICodec, IArgumentCodec
     {
         public Type ConverterType => typeof(object);
 
@@ -18,6 +18,11 @@ namespace EdgeDB.Codecs
         public object? Deserialize(PacketReader reader) { return null; }
 
         public void Serialize(PacketWriter writer, object? value)
+        {
+            writer.Write((int)0);
+        }
+
+        public void SerializeArguments(PacketWriter writer, object? value)
         {
             writer.Write((int)0);
         }

@@ -11,11 +11,11 @@ namespace EdgeDB.Operators
     {
         public ExpressionType Operator => ExpressionType.GreaterThan;
 
-        public string EdgeQLOperator => throw new NotImplementedException();
+        public string EdgeQLOperator => ">";
 
         public string Build(params object[] args)
         {
-            throw new NotImplementedException();
+            return $"{args[0]} > {args[1]}";
         }
     }
 }

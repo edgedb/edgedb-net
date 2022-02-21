@@ -11,7 +11,7 @@ namespace EdgeDB.Operators
     {
         public ExpressionType Operator => ExpressionType.Equal;
 
-        public string EdgeQLOperator => "?="; // TODO: maybe change this?
+        public string EdgeQLOperator => "?="; // TODO: maybe change this to be nullable aware?
 
         public string Build(params object[] args)
         {

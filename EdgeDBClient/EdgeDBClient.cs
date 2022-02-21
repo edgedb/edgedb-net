@@ -210,7 +210,7 @@ namespace EdgeDB
 
                 // get the codec for the return type
                 var outCodec = PacketSerializer.GetCodec(result.OutputTypedescId);
-                var inCodec = (IArgumentCodec?)PacketSerializer.GetCodec(result.InputTypedescId);
+                var inCodec = PacketSerializer.GetCodec(result.InputTypedescId);
 
                 // if its not cached or we dont have a default one for it, ask the server to describe it for us
                 if (outCodec == null || inCodec == null)
@@ -226,7 +226,7 @@ namespace EdgeDB
 
                     using(var innerReader = new PacketReader(describer.InputTypeDescriptor))
                     {
-                        inCodec ??= (IArgumentCodec?)PacketSerializer.BuildCodec(describer.InputTypeDescriptorId, innerReader);
+                        inCodec ??= PacketSerializer.BuildCodec(describer.InputTypeDescriptorId, innerReader);
                     }
                 }
 
@@ -240,8 +240,11 @@ namespace EdgeDB
                     throw new NotSupportedException($"Couldn't find a codec for type {result.InputTypedescId}");
                 }
 
+                if (inCodec is not IArgumentCodec argumentCodec)
+                    throw new NotSupportedException($"Cannot encode arguments, {inCodec} is not a registered argument codec");
+
                 // convert our arguments if any
-                await SendMessageAsync(new Execute() { Capabilities = result.Capabilities, Arguments = inCodec.SerializeArguments(arguments) });
+                await SendMessageAsync(new Execute() { Capabilities = result.Capabilities, Arguments = argumentCodec.SerializeArguments(arguments) });
                 await SendMessageAsync(new Sync());
 
                 List<Data> receivedData = new();

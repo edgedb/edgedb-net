@@ -7,15 +7,16 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Operators
 {
-    internal class NotEquals : IEdgeQLOperator
+    internal class Len : IEdgeQLOperator
     {
-        public ExpressionType Operator => ExpressionType.NotEqual;
+        public ExpressionType Operator => ExpressionType.ArrayLength;
 
-        public string EdgeQLOperator => "?!="; // // TODO: maybe change this to be nullable aware?
+        public string EdgeQLOperator => "len()";
 
         public string Build(params object[] args)
         {
-            return $"{args[0]} ?!= {args[1]}";
+            // remove '.Length.
+            return $"len({args[0].ToString()!.Replace(".Length", "")})";
         }
     }
 }

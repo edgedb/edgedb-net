@@ -13,6 +13,11 @@ namespace EdgeDB
     {
         private static Dictionary<ExpressionType, IEdgeQLOperator> _converters;
 
+        private static Dictionary<string, IEdgeQLOperator> _reservedPropertiesOperators = new()
+        {
+            { "String.Length", new Len() },
+        };
+
         static QueryBuilder()
         {
             var types = Assembly.GetExecutingAssembly().GetTypes().Where(x => x.GetInterfaces().Contains(typeof(IEdgeQLOperator)));
@@ -63,6 +68,24 @@ namespace EdgeDB
 
             }
 
+            if(s is MethodCallExpression mc)
+            {
+                // check if its a edgeql method
+                if (mc.Method.DeclaringType != typeof(EdgeQL))
+                    throw new NotSupportedException($"Cannot use method {mc.Method} because there is no conversion to edgeql for it!");
+
+                // get the equivilant operator
+                var op = mc.Method.GetCustomAttribute<EquivalentOperator>();
+
+                if (op == null)
+                    throw new NotSupportedException($"Couldn't find operator for method {mc.Method}");
+
+                // parse the arguments
+                var arguments = mc.Arguments.Select(x => ConvertExpression(x, context));
+
+                return (op.Operator.Build(arguments.Select(x => x.Filter).ToArray()), arguments.SelectMany(x => x.Arguments).ToDictionary(x => x.Key, x => x.Value));
+            }
+
             if (s is MemberExpression mbs && s.NodeType == ExpressionType.MemberAccess)
             {
                 if (mbs.Expression is ConstantExpression innerConstant)
@@ -88,6 +111,17 @@ namespace EdgeDB
                         throw new NotSupportedException($"No edgeql type map found for type {mbs.Type}");
 
                     return ($"<{edgeqlType}>${mbs.Member.Name}", arguments);
+                }
+                // TODO: optimize this
+                else if(mbs.Expression is MemberExpression innermbs && _reservedPropertiesOperators.TryGetValue($"{innermbs.Type.Name}.{mbs.Member.Name}", out var op))
+                {
+                    // convert the entire expression with the func
+                    var ts = RecurseNameLookup(mbs);
+                    if (ts.StartsWith($"{context.ParameterName}."))
+                    {
+                        return (op.Build(ts.Substring(context.ParameterName!.Length, ts.Length - context.ParameterName.Length)), new());
+                    }
+
                 }
                 else 
                 {

@@ -7,15 +7,15 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Operators
 {
-    internal class NotEquals : IEdgeQLOperator
+    internal class GreaterOrEqual : IEdgeQLOperator
     {
-        public ExpressionType Operator => ExpressionType.NotEqual;
+        public ExpressionType Operator => ExpressionType.GreaterThanOrEqual;
 
-        public string EdgeQLOperator => "?!="; // // TODO: maybe change this to be nullable aware?
+        public string EdgeQLOperator => ">=";
 
         public string Build(params object[] args)
         {
-            return $"{args[0]} ?!= {args[1]}";
+            return $"{args[0]} >= {args[1]}";
         }
     }
 }
