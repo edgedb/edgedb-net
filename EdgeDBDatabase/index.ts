@@ -55,7 +55,12 @@ const edgedb = require("edgedb");
 async function main() {
     const client = edgedb.createClient();
 
-    console.log(await client.query(`select "Hello world!";`));
+    console.log(
+        await client.query(
+            `select Person { name, email } filter .name = <str>$name;`,
+            { name: "Quin" }
+        )
+    );
 }
 
 main();

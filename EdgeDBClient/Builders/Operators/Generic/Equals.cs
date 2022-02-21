@@ -15,7 +15,7 @@ namespace EdgeDB.Operators
 
         public string Build(params object[] args)
         {
-            return $"{args[0]} = {args[1]}";
+            return $"{args[0]} ?= {args[1]}";
         }
     }
 }

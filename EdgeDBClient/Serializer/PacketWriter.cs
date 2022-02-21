@@ -35,9 +35,10 @@ namespace EdgeDB
             }
         }
 
-        public void Write(PacketWriter value)
+        public void Write(PacketWriter value, int offset = 0)
         {
             // block copy data to other stream
+            value.BaseStream.Position = offset;
             value.BaseStream.CopyTo(base.BaseStream);
         }
 

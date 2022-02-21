@@ -12,7 +12,7 @@ namespace EdgeDB.UnitTest.Codecs
     [TestClass]
     public class ScalarTests
     {
-        public void TestCodec<TType>(IScalerCodec<TType>? codec, TType expectedValue, byte[] expectedSerializedValue)
+        public void TestCodec<TType>(IScalarCodec<TType>? codec, TType expectedValue, byte[] expectedSerializedValue)
         {
             Assert.IsNotNull(codec);
 
@@ -39,7 +39,7 @@ namespace EdgeDB.UnitTest.Codecs
         [TestMethod]
         public void TestBooleanCodec()
         {
-            var codec = ICodec.GetScalerCodec<bool>();
+            var codec = ICodec.GetScalarCodec<bool>();
 
             TestCodec(codec, true, new byte[] { 0x01 });
             TestCodec(codec, false, new byte[] { 0x00 });
@@ -48,7 +48,7 @@ namespace EdgeDB.UnitTest.Codecs
         [TestMethod]
         public void TestBytesCodec()
         {
-            var codec = ICodec.GetScalerCodec<byte[]>();
+            var codec = ICodec.GetScalarCodec<byte[]>();
 
             var data = new byte[] { 0x00, 0x01, 0x02, 0x03 };
 
@@ -58,7 +58,7 @@ namespace EdgeDB.UnitTest.Codecs
         [TestMethod]
         public void TestDatetimeCodec()
         {
-            var codec = ICodec.GetScalerCodec<DateTimeOffset>();
+            var codec = ICodec.GetScalarCodec<DateTimeOffset>();
 
             var data = new byte[] { 0x00, 0x02, 0x2b, 0x35, 0x9b, 0xc4, 0x10, 0x00, };
             var expected = DateTimeOffset.Parse("2019-05-06T12:00+00:00");
@@ -69,7 +69,7 @@ namespace EdgeDB.UnitTest.Codecs
         [TestMethod]
         public void TestDecimalCodec()
         {
-            var codec = ICodec.GetScalerCodec<decimal>();
+            var codec = ICodec.GetScalarCodec<decimal>();
 
             var data = new byte[]
             {
@@ -97,7 +97,7 @@ namespace EdgeDB.UnitTest.Codecs
         [TestMethod]
         public void TestFloat32()
         {
-            var codec = ICodec.GetScalerCodec<float>();
+            var codec = ICodec.GetScalarCodec<float>();
 
             var data = new byte[]
             {
@@ -112,7 +112,7 @@ namespace EdgeDB.UnitTest.Codecs
         [TestMethod]
         public void TestFloat64()
         {
-            var codec = ICodec.GetScalerCodec<double>();
+            var codec = ICodec.GetScalarCodec<double>();
 
             var data = new byte[]
             {
@@ -127,7 +127,7 @@ namespace EdgeDB.UnitTest.Codecs
         [TestMethod]
         public void TestInt16()
         {
-            var codec = ICodec.GetScalerCodec<short>();
+            var codec = ICodec.GetScalarCodec<short>();
 
             var data = new byte[]
             {
@@ -142,7 +142,7 @@ namespace EdgeDB.UnitTest.Codecs
         [TestMethod]
         public void TestInt32()
         {
-            var codec = ICodec.GetScalerCodec<int>();
+            var codec = ICodec.GetScalarCodec<int>();
 
             var data = new byte[]
             {
@@ -157,7 +157,7 @@ namespace EdgeDB.UnitTest.Codecs
         [TestMethod]
         public void TestInt64()
         {
-            var codec = ICodec.GetScalerCodec<long>();
+            var codec = ICodec.GetScalarCodec<long>();
 
             var data = new byte[]
             {
@@ -172,7 +172,7 @@ namespace EdgeDB.UnitTest.Codecs
         [TestMethod]
         public void TestJson()
         {
-            var codec = ICodec.GetScalerCodec<Models.DataTypes.Json>();
+            var codec = ICodec.GetScalarCodec<Models.DataTypes.Json>();
 
             var data = new byte[]
             {
@@ -190,7 +190,7 @@ namespace EdgeDB.UnitTest.Codecs
         [TestMethod]
         public void TestMemory()
         {
-            var codec = ICodec.GetScalerCodec<Models.DataTypes.Memory>();
+            var codec = ICodec.GetScalarCodec<Models.DataTypes.Memory>();
 
             var data = new byte[]
             {
@@ -205,7 +205,7 @@ namespace EdgeDB.UnitTest.Codecs
         [TestMethod]
         public void TestText()
         {
-            var codec = ICodec.GetScalerCodec<string>();
+            var codec = ICodec.GetScalarCodec<string>();
 
             var data = new byte[]
             {
@@ -220,7 +220,7 @@ namespace EdgeDB.UnitTest.Codecs
         [TestMethod]
         public void TestUUID()
         {
-            var codec = ICodec.GetScalerCodec<Guid>();
+            var codec = ICodec.GetScalarCodec<Guid>();
 
             var data = new byte[]
             {

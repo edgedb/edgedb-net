@@ -71,7 +71,7 @@ namespace EdgeDB.Models
                 headers.Add(new Header
                 {
                     Code = 0xFF02,
-                    Value = ICodec.GetScalerCodec<bool>()!.Serialize(ImplicitTypeNames.Value)
+                    Value = ICodec.GetScalarCodec<bool>()!.Serialize(ImplicitTypeNames.Value)
                 });
             }
 
@@ -80,7 +80,7 @@ namespace EdgeDB.Models
                 headers.Add(new Header
                 {
                     Code = 0xFF03,
-                    Value = ICodec.GetScalerCodec<bool>()!.Serialize(ImplicitTypeIds.Value)
+                    Value = ICodec.GetScalarCodec<bool>()!.Serialize(ImplicitTypeIds.Value)
                 });
             }
 
@@ -89,7 +89,7 @@ namespace EdgeDB.Models
                 headers.Add(new Header
                 {
                     Code = 0xFF04,
-                    Value = ICodec.GetScalerCodec<long>()!.Serialize((long)Capabilities)
+                    Value = ICodec.GetScalarCodec<long>()!.Serialize((long)Capabilities)
                 });
             }
 
@@ -98,7 +98,7 @@ namespace EdgeDB.Models
                 headers.Add(new Header
                 {
                     Code = 0xFF05,
-                    Value = ICodec.GetScalerCodec<bool>()!.Serialize(ExplicitObjectIds.Value)
+                    Value = ICodec.GetScalarCodec<bool>()!.Serialize(ExplicitObjectIds.Value)
                 });
             }
 

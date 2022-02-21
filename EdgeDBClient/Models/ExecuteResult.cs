@@ -23,6 +23,28 @@ namespace EdgeDB.Models
             Error = error;
             Exception = exc;
         }
+
+        internal static ExecuteResult<TType>? Convert(ExecuteResult? result)
+        {
+            if (!result.HasValue)
+                return null;
+
+            var converted = new ExecuteResult<TType>
+            {
+                IsSuccess = result.Value.IsSuccess,
+                Error = result.Value.Error,
+                Exception = result.Value.Exception
+            };
+
+            if (result.Value.Result is IDictionary<string, object?> rawObj)
+            {
+                converted.Result = ResultBuilder.BuildResult<TType>(rawObj);
+            }
+            else if (result.Value.Result != null)
+                converted.Result = (TType?)result.Value.Result;
+
+            return converted;
+        }
     }
 
     public struct ExecuteResult

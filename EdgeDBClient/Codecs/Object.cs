@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
-    public class Object : ICodec<object>
+    public class Object : ICodec<object>, IArgumentCodec<object>
     {
         private readonly ICodec[] _innerCodecs;
         private readonly string[] _propertyNames;
@@ -62,6 +62,51 @@ namespace EdgeDB.Codecs
         public void Serialize(PacketWriter writer, object? value)
         {
             throw new NotImplementedException();
+        }
+
+        public void SerializeArguments(PacketWriter writer, object? value)
+        {
+            object?[]? values = null;
+
+            if (value is IDictionary<string, object?> dict)
+                values = dict.Values.ToArray();
+            else if (value is object?[] arr)
+                value = arr;
+
+            if (values == null)
+            {
+                throw new ArgumentException($"Expected dynamic object or array but got {value?.GetType()?.Name ?? "null"}");
+            }
+
+            using (var innerWriter = new PacketWriter())
+            {
+                for (int i = 0; i != values.Length; i++)
+                {
+                    var element = values[i];
+                    var innerCodec = _innerCodecs[i];
+
+                    // reserved
+                    innerWriter.Write(0);
+
+                    // encode
+                    if (element == null)
+                    {
+                        innerWriter.Write(-1);
+                    }
+                    else
+                    {
+                        var elementBuff = innerCodec.Serialize(element);
+
+                        innerWriter.Write(elementBuff.Length);
+                        innerWriter.Write(elementBuff);
+                    }
+
+                }
+
+                writer.Write((int)innerWriter.BaseStream.Length + 4);
+                writer.Write(values.Length);
+                writer.Write(innerWriter);
+            }
         }
     }
 }

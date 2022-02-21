@@ -25,6 +25,7 @@ namespace EdgeDB.Models
             writer.Write((long)Capabilities);
 
             writer.Write(PreparedStatementName ?? "");
+
             writer.Write(Arguments ?? new byte[] { 0, 0, 0, 0 });
         }
     }

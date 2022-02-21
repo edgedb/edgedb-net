@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
-    public class Json : IScalerCodec<Models.DataTypes.Json>
+    public class Json : IScalarCodec<Models.DataTypes.Json>
     {
         public Models.DataTypes.Json Deserialize(PacketReader reader)
         {

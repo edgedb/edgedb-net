@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
-    public class Datetime : IScalerCodec<DateTimeOffset> // std::datetime
+    public class Datetime : IScalarCodec<DateTimeOffset> // std::datetime
     {
         public static DateTimeOffset EdgedbEpoc = new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
@@ -33,7 +33,7 @@ namespace EdgeDB.Codecs
         }
     }
 
-    public class Duration : IScalerCodec<TimeSpan>
+    public class Duration : IScalarCodec<TimeSpan>
     {
         public TimeSpan Deserialize(PacketReader reader)
         {
@@ -52,7 +52,7 @@ namespace EdgeDB.Codecs
         }
     }
 
-    public class RelativeDuration : IScalerCodec<TimeSpan>
+    public class RelativeDuration : IScalarCodec<TimeSpan>
     {
         public TimeSpan Deserialize(PacketReader reader)
         {

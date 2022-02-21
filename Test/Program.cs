@@ -21,8 +21,9 @@ var client = new EdgeDBClient(new EdgeDBConnection
 
 await client.ConnectAsync();
 
+var nameFilter = "Quin";
 
-var result = await client.QueryAsync<Person>(x => x.Name == "Liege");
+var result = await client.QueryAsync<Person>(x => x.Name == nameFilter);
 
 await Task.Delay(-1);
 

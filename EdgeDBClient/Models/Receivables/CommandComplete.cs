@@ -23,7 +23,7 @@ namespace EdgeDB.Models
 
             if (usedCap.HasValue)
             {
-                UsedCapabilities = (AllowCapabilities)ICodec.GetScalerCodec<long>()!.Deserialize(usedCap.Value.Value);
+                UsedCapabilities = (AllowCapabilities)ICodec.GetScalarCodec<long>()!.Deserialize(usedCap.Value.Value);
             }
 
             Status = reader.ReadString();

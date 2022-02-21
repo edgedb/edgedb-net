@@ -7,6 +7,30 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
+    public interface IArgumentCodec<TType> : IArgumentCodec, ICodec<TType>
+    {
+        void SerializeArguments(PacketWriter writer, TType? value);
+    }
+
+    public interface IArgumentCodec
+    {
+        void SerializeArguments(PacketWriter writer, object? value);
+        byte[] SerializeArguments(object? value)
+        {
+            using (var writer = new PacketWriter())
+            {
+                SerializeArguments(writer, value);
+
+                writer.BaseStream.Position = 0;
+                using (var ms = new MemoryStream())
+                {
+                    writer.BaseStream.CopyTo(ms);
+                    return ms.ToArray();
+                }
+            }
+        }
+    }
+
     public interface ICodec<TConverter> : ICodec
     {
         void Serialize(PacketWriter writer, TConverter? value);
@@ -63,7 +87,8 @@ namespace EdgeDB.Codecs
             {
                 Serialize(writer, value);
 
-                using(var ms = new MemoryStream())
+                writer.BaseStream.Position = 0;
+                using (var ms = new MemoryStream())
                 {
                     writer.BaseStream.CopyTo(ms);
                     return ms.ToArray();
@@ -77,7 +102,7 @@ namespace EdgeDB.Codecs
         {
             _codecs = new();
 
-            var codecs = Assembly.GetExecutingAssembly().GetTypes().Where(x => x.GetInterfaces().Any(x => x.Name == "IScalerCodec`1"));
+            var codecs = Assembly.GetExecutingAssembly().GetTypes().Where(x => x.GetInterfaces().Any(x => x.Name == "IScalarCodec`1"));
 
             foreach(var codec in codecs)
             {
@@ -88,9 +113,9 @@ namespace EdgeDB.Codecs
             }
         }
 
-        static IScalerCodec<TType>? GetScalerCodec<TType>()
-            => (IScalerCodec<TType>?)_codecs.FirstOrDefault(x => x.ConverterType == typeof(TType));
+        static IScalarCodec<TType>? GetScalarCodec<TType>()
+            => (IScalarCodec<TType>?)_codecs.FirstOrDefault(x => x.ConverterType == typeof(TType));
     }
 
-    public interface IScalerCodec<TInner> : ICodec<TInner> { }
+    public interface IScalarCodec<TInner> : ICodec<TInner> { }
 }

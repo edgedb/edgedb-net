@@ -27,7 +27,7 @@ namespace EdgeDB.Models
 
             if(capabilities != null)
             {
-                Capabilities = (AllowCapabilities)ICodec.GetScalerCodec<long>()!.Deserialize(capabilities.Value.Value);
+                Capabilities = (AllowCapabilities)ICodec.GetScalarCodec<long>()!.Deserialize(capabilities.Value.Value);
             }
 
             Cardinality = (Cardinality)reader.ReadByte();

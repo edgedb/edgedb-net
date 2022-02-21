@@ -1,4 +1,5 @@
-﻿using EdgeDB.Models;
+﻿using EdgeDB.Codecs;
+using EdgeDB.Models;
 using EdgeDB.Utils;
 using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;
@@ -174,29 +175,12 @@ namespace EdgeDB
         {
             var query = QueryBuilder.BuildSelectQuery(filter);
 
-            var result = await ExecuteAsync(query!);
+            var result = await ExecuteAsync(query.QueryText!, query.Parameters);
 
-            if (!result.HasValue)
-                return null;
-
-            var converted = new ExecuteResult<TType>
-            {
-                IsSuccess = result.Value.IsSuccess,
-                Error = result.Value.Error,
-                Exception = result.Value.Exception
-            };
-
-            if(result.Value.Result is IDictionary<string, object?> rawObj)
-            {
-                converted.Result = ResultBuilder.BuildResult<TType>(rawObj);
-            }
-            else if(result.Value.Result != null)
-                converted.Result = (TType?)result.Value.Result;
-
-            return converted;
+            return ExecuteResult<TType>.Convert(result);
         }
 
-        public async Task<ExecuteResult?> ExecuteAsync(string query)
+        public async Task<ExecuteResult?> ExecuteAsync(string query, IDictionary<string, object?>? arguments = null)
         {
             await _sephamore.WaitAsync(_readCancelToken.Token);
 
@@ -225,10 +209,11 @@ namespace EdgeDB
                 }
 
                 // get the codec for the return type
-                var codec = PacketSerializer.GetCodec(result.OutputTypedescId);
+                var outCodec = PacketSerializer.GetCodec(result.OutputTypedescId);
+                var inCodec = (IArgumentCodec?)PacketSerializer.GetCodec(result.InputTypedescId);
 
                 // if its not cached or we dont have a default one for it, ask the server to describe it for us
-                if (codec == null)
+                if (outCodec == null || inCodec == null)
                 {
                     await SendMessageAsync(new DescribeStatement());
                     await SendMessageAsync(new Sync());
@@ -236,18 +221,27 @@ namespace EdgeDB
 
                     using (var innerReader = new PacketReader(describer.OutputTypeDescriptor))
                     {
-                        codec = PacketSerializer.BuildCodec(describer.OutputTypeDescriptorId, innerReader);
+                        outCodec ??= PacketSerializer.BuildCodec(describer.OutputTypeDescriptorId, innerReader);
+                    }
+
+                    using(var innerReader = new PacketReader(describer.InputTypeDescriptor))
+                    {
+                        inCodec ??= (IArgumentCodec?)PacketSerializer.BuildCodec(describer.InputTypeDescriptorId, innerReader);
                     }
                 }
 
-                if (codec == null)
+                if (outCodec == null)
                 {
                     throw new NotSupportedException($"Couldn't find a codec for type {result.OutputTypedescId}");
                 }
 
-                // execute it 
+                if(inCodec == null)
+                {
+                    throw new NotSupportedException($"Couldn't find a codec for type {result.InputTypedescId}");
+                }
 
-                await SendMessageAsync(new Execute() { Capabilities = result.Capabilities });
+                // convert our arguments if any
+                await SendMessageAsync(new Execute() { Capabilities = result.Capabilities, Arguments = inCodec.SerializeArguments(arguments) });
                 await SendMessageAsync(new Sync());
 
                 List<Data> receivedData = new();
@@ -267,8 +261,7 @@ namespace EdgeDB
                 var errorTask = WaitForMessageAsync<ErrorResponse>(ServerMessageTypes.ErrorResponse);
                 var executionResult = await Task.WhenAny(
                     completionTask,
-                    errorTask
-                    );
+                    errorTask);
 
                 OnMessage -= addData;
 
@@ -280,7 +273,7 @@ namespace EdgeDB
                     {
                         using (var reader = new PacketReader(receivedData[0].PayloadData))
                         {
-                            queryResult = codec.Deserialize(reader);
+                            queryResult = outCodec.Deserialize(reader);
                         }
                     }
                     else
@@ -291,7 +284,7 @@ namespace EdgeDB
                         {
                             using (var reader = new PacketReader(receivedData[i].PayloadData))
                             {
-                                data[i] = codec.Deserialize(reader);
+                                data[i] = outCodec.Deserialize(reader);
                             }
                         }
 

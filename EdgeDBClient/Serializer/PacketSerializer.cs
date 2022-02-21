@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
+using System.Numerics;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,6 +14,8 @@ namespace EdgeDB
 {
     internal class PacketSerializer
     {
+        public static readonly Guid NullCodec = Guid.Empty;
+
         private static Dictionary<ServerMessageTypes, IReceiveable> _receiveablePayload = new();
         private static Dictionary<Guid, ICodec> _codecCache = new();
 
@@ -25,6 +28,13 @@ namespace EdgeDB
                 var inst = (IReceiveable)Activator.CreateInstance(t)!;
                 _receiveablePayload.Add(inst.Type, inst);
             }
+        }
+
+        public static string? GetEdgeQLType(Type t)
+        {
+            if (_scalarTypeMap.TryGetValue(t, out var result))
+                return result;
+            return null;
         }
 
         public static IReceiveable? DeserializePacket(Stream stream, EdgeDBClient client)
@@ -141,25 +151,48 @@ namespace EdgeDB
 
         private static Dictionary<Guid, Type> _defaultCodecs = new Dictionary<Guid, Type>
         {
-            {new Guid("00000000-0000-0000-0000-000000000100"), typeof(UUID) },
-            {new Guid("00000000-0000-0000-0000-000000000101"), typeof(Text) },
-            {new Guid("00000000-0000-0000-0000-000000000102"), typeof(Bytes) },
-            {new Guid("00000000-0000-0000-0000-000000000103"), typeof(Integer16) },
-            {new Guid("00000000-0000-0000-0000-000000000104"), typeof(Integer32) },
-            {new Guid("00000000-0000-0000-0000-000000000105"), typeof(Integer64) },
-            {new Guid("00000000-0000-0000-0000-000000000106"), typeof(Float32) },
-            {new Guid("00000000-0000-0000-0000-000000000107"), typeof(Float64) },
-            {new Guid("00000000-0000-0000-0000-000000000108"), typeof(Codecs.Decimal) },
-            {new Guid("00000000-0000-0000-0000-000000000109"), typeof(Bool) },
-            {new Guid("00000000-0000-0000-0000-00000000010A"), typeof(Datetime) },
-            {new Guid("00000000-0000-0000-0000-00000000010B"), typeof(LocalDatetime) },
-            {new Guid("00000000-0000-0000-0000-00000000010C"), typeof(LocalDate) },
-            {new Guid("00000000-0000-0000-0000-00000000010D"), typeof(LocalTime) },
-            {new Guid("00000000-0000-0000-0000-00000000010E"), typeof(Duration) },
-            {new Guid("00000000-0000-0000-0000-00000000010F"), typeof(Json) },
-            {new Guid("00000000-0000-0000-0000-000000000110"), typeof(BigInt) },
-            {new Guid("00000000-0000-0000-0000-000000000111"), typeof(RelativeDuration) },
+            { NullCodec, typeof(NullCodec) },
+            { new Guid("00000000-0000-0000-0000-000000000100"), typeof(UUID) },
+            { new Guid("00000000-0000-0000-0000-000000000101"), typeof(Text) },
+            { new Guid("00000000-0000-0000-0000-000000000102"), typeof(Bytes) },
+            { new Guid("00000000-0000-0000-0000-000000000103"), typeof(Integer16) },
+            { new Guid("00000000-0000-0000-0000-000000000104"), typeof(Integer32) },
+            { new Guid("00000000-0000-0000-0000-000000000105"), typeof(Integer64) },
+            { new Guid("00000000-0000-0000-0000-000000000106"), typeof(Float32) },
+            { new Guid("00000000-0000-0000-0000-000000000107"), typeof(Float64) },
+            { new Guid("00000000-0000-0000-0000-000000000108"), typeof(Codecs.Decimal) },
+            { new Guid("00000000-0000-0000-0000-000000000109"), typeof(Bool) },
+            { new Guid("00000000-0000-0000-0000-00000000010A"), typeof(Datetime) },
+            { new Guid("00000000-0000-0000-0000-00000000010B"), typeof(LocalDatetime) },
+            { new Guid("00000000-0000-0000-0000-00000000010C"), typeof(LocalDate) },
+            { new Guid("00000000-0000-0000-0000-00000000010D"), typeof(LocalTime) },
+            { new Guid("00000000-0000-0000-0000-00000000010E"), typeof(Duration) },
+            { new Guid("00000000-0000-0000-0000-00000000010F"), typeof(Json) },
+            { new Guid("00000000-0000-0000-0000-000000000110"), typeof(BigInt) },
+            { new Guid("00000000-0000-0000-0000-000000000111"), typeof(RelativeDuration) },
 
+        };
+
+        private static Dictionary<Type, string> _scalarTypeMap = new()
+        {
+            { typeof(string), "str" },
+            { typeof(bool), "bool" },
+            { typeof(short), "int16" },
+            { typeof(ushort), "int16" },
+            { typeof(int), "int32" },
+            { typeof(uint), "int32" },
+            { typeof(long), "int64"},
+            { typeof(ulong), "int64"},
+            { typeof(float), "float32"},
+            { typeof(double), "float64"},
+            { typeof(BigInteger), "bigint" },
+            { typeof(decimal), "decimal"},
+            { typeof(Models.DataTypes.Json), "json"},
+            { typeof(Guid), "uuid"},
+            { typeof(byte[]), "bytes"},
+            { typeof(DateTime), "datetime"},
+            { typeof(DateTimeOffset), "datetime"},
+            { typeof(TimeSpan), "duration"}
         };
     }
 }

@@ -30,17 +30,23 @@ namespace EdgeDB
         }
 
 
-        public static string BuildSelectQuery<TInner>(Expression<Func<TInner, bool>> func)
+        public static BuiltQuery BuildSelectQuery<TInner>(Expression<Func<TInner, bool>> func)
         {
             var context = new QueryContext<TInner>(func);
             var args = ConvertExpression(context.Body!, context);
 
             // by default return all fields
             var fields = typeof(TInner).GetProperties().Select(x => x.GetCustomAttribute<EdgeDBProperty>()?.Name ?? x.Name);
-            return $"SELECT {typeof(TInner).Name} {{ {string.Join(", ", fields)} }} filter {args}";
+            var queryText = $"SELECT {typeof(TInner).Name} {{ {string.Join(", ", fields)} }} filter {args.Filter}";
+
+            return new BuiltQuery
+            {
+                QueryText = queryText,
+                Parameters = args.Arguments
+            };
         }
 
-        private static string ConvertExpression<TInner>(Expression s, QueryContext<TInner> context)
+        private static (string Filter, Dictionary<string, object?> Arguments) ConvertExpression<TInner>(Expression s, QueryContext<TInner> context)
         {
             if(s is BinaryExpression bin)
             {
@@ -51,7 +57,7 @@ namespace EdgeDB
                 // get converter 
                 if (_converters.TryGetValue(s.NodeType, out var conv))
                 {
-                    return conv.Build(left, right);
+                    return (conv.Build(left.Filter, right.Filter), left.Arguments.Concat(right.Arguments).ToDictionary(x => x.Key, x => x.Value));
                 }
                 else throw new NotSupportedException($"Couldn't find operator for {s.NodeType}");
 
@@ -59,12 +65,11 @@ namespace EdgeDB
 
             if (s is MemberExpression mbs && s.NodeType == ExpressionType.MemberAccess)
             {
-                var t = mbs.Expression?.GetType();
-
-                object? value = null;
-
                 if (mbs.Expression is ConstantExpression innerConstant)
                 {
+                    object? value = null;
+                    Dictionary<string, object?> arguments = new();
+
                     switch (mbs.Member.MemberType)
                     {
                         case MemberTypes.Field:
@@ -74,6 +79,15 @@ namespace EdgeDB
                             value = ((PropertyInfo)mbs.Member).GetValue(innerConstant.Value);
                             break;
                     }
+
+                    arguments.Add(mbs.Member.Name, value);
+
+                    var edgeqlType = PacketSerializer.GetEdgeQLType(mbs.Type);
+
+                    if (edgeqlType == null)
+                        throw new NotSupportedException($"No edgeql type map found for type {mbs.Type}");
+
+                    return ($"<{edgeqlType}>${mbs.Member.Name}", arguments);
                 }
                 else 
                 {
@@ -81,22 +95,19 @@ namespace EdgeDB
                     var ts = RecurseNameLookup(mbs);
                     if (ts.StartsWith($"{context.ParameterName}."))
                     {
-                        return ts.Substring(context.ParameterName!.Length, ts.Length - context.ParameterName.Length);
+                        return (ts.Substring(context.ParameterName!.Length, ts.Length - context.ParameterName.Length), new());
                     }
 
                     throw new NotSupportedException($"Unknown handler for member access: {mbs}");
                 }
-
-                return ParseArgument(value);
-
             }
 
             if (s is ConstantExpression constant && s.NodeType == ExpressionType.Constant)
             {
-                return ParseArgument(constant.Value);
+                return (ParseArgument(constant.Value), new());
             }
 
-            return "";
+            return ("", new());
         }
 
         private static string RecurseNameLookup(MemberExpression expression)
