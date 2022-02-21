@@ -23,7 +23,7 @@ await client.ConnectAsync();
 
 var nameFilter = "Quin";
 
-var result = await client.QueryAsync<Person>(x => EdgeQL.Length(x.Name) > 4);
+var result = await client.QueryAsync<Person>(x => x.Name![2] == 'i');
 
 await Task.Delay(-1);
 

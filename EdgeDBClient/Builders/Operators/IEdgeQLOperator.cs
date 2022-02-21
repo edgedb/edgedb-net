@@ -9,7 +9,7 @@ namespace EdgeDB.Operators
 {
     public interface IEdgeQLOperator
     {
-        ExpressionType Operator { get; }
+        ExpressionType? Operator { get; }
         string EdgeQLOperator { get; }
 
         string Build(params object[] args);

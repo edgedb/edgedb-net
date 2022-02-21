@@ -7,16 +7,15 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Operators
 {
-    internal class Len : IEdgeQLOperator
+    internal class Contains : IEdgeQLOperator
     {
-        public ExpressionType? Operator => ExpressionType.ArrayLength;
+        public ExpressionType? Operator => null;
 
-        public string EdgeQLOperator => "len()";
+        public string EdgeQLOperator => throw new NotImplementedException();
 
         public string Build(params object[] args)
         {
-            // remove '.Length.
-            return $"len({args[0].ToString()!.Replace(".Length", "")})";
+            return $"contains({args[0]}, {args[1]})";
         }
     }
 }

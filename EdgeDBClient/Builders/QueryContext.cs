@@ -13,6 +13,8 @@ namespace EdgeDB
         public string? ParameterName { get; set; }
         public Expression? Body { get; set; }
 
+        public bool IsCharContext { get; set; } = false;
+
         public QueryContext(Expression<Func<TInner, bool>> func)
         {
             Body = func.Body;

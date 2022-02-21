@@ -9,7 +9,7 @@ namespace EdgeDB.Operators
 {
     internal class NotEquals : IEdgeQLOperator
     {
-        public ExpressionType Operator => ExpressionType.NotEqual;
+        public ExpressionType? Operator => ExpressionType.NotEqual;
 
         public string EdgeQLOperator => "?!="; // // TODO: maybe change this to be nullable aware?
 

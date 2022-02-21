@@ -25,4 +25,8 @@
     <PackageReference Include="UtilPack.Cryptography.SASL.SCRAM" Version="2.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Builders\Operators\String\" />
+  </ItemGroup>
+
 </Project>

@@ -7,15 +7,15 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Operators
 {
-    internal class GreaterOrEqual : IEdgeQLOperator
+    internal class Find : IEdgeQLOperator
     {
-        public ExpressionType? Operator => ExpressionType.GreaterThanOrEqual;
+        public ExpressionType? Operator => null;
 
-        public string EdgeQLOperator => ">=";
-
+        public string EdgeQLOperator => "find()";
+            
         public string Build(params object[] args)
         {
-            return $"{args[0]} >= {args[1]}";
+            return $"find({args[0]}, {args[1]}{(args.Length > 2 ? $", {args[2]}" : "")})";
         }
     }
 }

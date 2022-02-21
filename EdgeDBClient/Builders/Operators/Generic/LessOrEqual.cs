@@ -9,7 +9,7 @@ namespace EdgeDB.Operators
 {
     internal class LessOrEqual : IEdgeQLOperator
     {
-        public ExpressionType Operator => ExpressionType.LessThanOrEqual;
+        public ExpressionType? Operator => ExpressionType.LessThanOrEqual;
 
         public string EdgeQLOperator => "<=";
 
