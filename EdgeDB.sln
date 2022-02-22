@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Driver", "EdgeDB.Dri
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.ExampleApp", "EdgeDB.ExampleApp\EdgeDB.ExampleApp.csproj", "{B85156A1-66B3-46F1-B238-19B96C4C7729}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.UnitTest", "EdgeDB.Test\EdgeDB.UnitTest.csproj", "{CD4A4B5D-4B67-4E64-A13B-3F7BF770B056}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.UnitTest", "EdgeDB.UnitTests\EdgeDB.UnitTest.csproj", "{CD4A4B5D-4B67-4E64-A13B-3F7BF770B056}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.QueryBuilder", "EdgeDB.QueryBuilder\EdgeDB.QueryBuilder.csproj", "{4CC2101C-D0AB-4F08-A0FD-205F96958196}"
 EndProject
