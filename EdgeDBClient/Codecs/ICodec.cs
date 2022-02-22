@@ -114,7 +114,7 @@ namespace EdgeDB.Codecs
         }
 
         static IScalarCodec<TType>? GetScalarCodec<TType>()
-            => (IScalarCodec<TType>?)_codecs.FirstOrDefault(x => x.ConverterType == typeof(TType));
+            => (IScalarCodec<TType>?)_codecs.FirstOrDefault(x => x.ConverterType == typeof(TType) || x.CanConvert(typeof(TType)));
     }
 
     public interface IScalarCodec<TInner> : ICodec<TInner> { }

@@ -27,25 +27,22 @@ namespace EdgeDB.Models
             ExecutedQuery = executedQuery;
         }
 
-        internal static ExecuteResult<TType>? Convert(ExecuteResult? result)
+        internal static ExecuteResult<TType> Convert(ExecuteResult result)
         {
-            if (!result.HasValue)
-                return null;
-
             var converted = new ExecuteResult<TType>
             {
-                IsSuccess = result.Value.IsSuccess,
-                Error = result.Value.Error,
-                Exception = result.Value.Exception,
-                ExecutedQuery = result.Value.ExecutedQuery
+                IsSuccess = result.IsSuccess,
+                Error = result.Error,
+                Exception = result.Exception,
+                ExecutedQuery = result.ExecutedQuery
             };
 
-            if (result.Value.Result is IDictionary<string, object?> rawObj)
+            if (result.Result is IDictionary<string, object?> rawObj)
             {
                 converted.Result = ResultBuilder.BuildResult<TType>(rawObj);
             }
-            else if (result.Value.Result != null)
-                converted.Result = (TType?)result.Value.Result;
+            else if (result.Result != null)
+                converted.Result = (TType?)result.Result;
 
             return converted;
         }

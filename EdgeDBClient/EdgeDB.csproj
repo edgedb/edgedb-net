@@ -20,9 +20,6 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="SuperSimpleTcp" Version="2.5.0.4" />
-    <PackageReference Include="UtilPack.Cryptography.SASL" Version="2.0.0" />
-    <PackageReference Include="UtilPack.Cryptography.SASL.SCRAM" Version="2.0.0" />
   </ItemGroup>
 
   <ItemGroup>

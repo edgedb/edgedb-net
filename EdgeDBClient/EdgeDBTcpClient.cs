@@ -7,14 +7,10 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using UtilPack;
-using UtilPack.Cryptography.Digest;
-using UtilPack.Cryptography.SASL;
-using UtilPack.Cryptography.SASL.SCRAM;
 
 namespace EdgeDB 
 {
-    public class EdgeDBTcpClient
+    public sealed class EdgeDBTcpClient : IAsyncDisposable
     {
         public event Func<IReceiveable, Task> OnMessage
         {
@@ -31,37 +27,37 @@ namespace EdgeDB
         private AsyncEvent<Func<Task>> _onDisconnect = new();
         private AsyncEvent<Func<IReceiveable, Task>> _onMessage = new();
 
-        internal SASLMechanism? SASLClient;
+        // server config
+        internal byte[] ServerKey;
+        internal int SuggestedPoolConcurrency;
+        internal IDictionary<string, object?> ServerConfig;
+
+        internal bool IsIdle { get; private set; }
         internal ILogger Logger;
 
         private readonly TcpClient _client;
         private NetworkStream? _stream;
         private SslStream? _secureStream;
         private readonly EdgeDBConnection _connection;
-        private CancellationTokenSource _readCancelToken;
+        private CancellationTokenSource _disconnectCancelToken;
         private TaskCompletionSource<AuthenticationStatus> _authenticationStatusSource;
         private TaskCompletionSource _readySource;
         private CancellationTokenSource _readyCancelTokenSource;
         private SemaphoreSlim _sephamore;
-
-        // server config
-        private byte[] _serverKey;
-        private int _suggestedPoolConcurrency;
-        private IDictionary<string, object?> _serverConfig;
 
         // TODO: config?
         public EdgeDBTcpClient(EdgeDBConnection connection, ILogger? logger = null)
         {
             Logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
             _sephamore = new(1,1);
-            _readCancelToken = new();
+            _disconnectCancelToken = new();
             _connection = connection;
             _client = new();
             _authenticationStatusSource = new();
             _readySource = new();
             _readyCancelTokenSource = new();
-            _serverKey = new byte[32];
-            _serverConfig = new Dictionary<string, object?>();
+            ServerKey = new byte[32];
+            ServerConfig = new Dictionary<string, object?>();
         }
 
         private async Task ReceiveAsync()
@@ -75,7 +71,7 @@ namespace EdgeDB
                     if (!_client.Connected)
                         return;
 
-                    if (_readCancelToken.IsCancellationRequested)
+                    if (_disconnectCancelToken.IsCancellationRequested)
                         return;
 
                     if (_secureStream == null)
@@ -88,6 +84,8 @@ namespace EdgeDB
                     if(result == 0)
                     {
                         // disconnected
+                        _disconnectCancelToken.Cancel();
+                        _readyCancelTokenSource.Cancel();
                         await _onDisconnect.InvokeAsync().ConfigureAwait(false);
                         return;
                     }
@@ -148,7 +146,7 @@ namespace EdgeDB
                     break;
                 case ServerKeyData keyData:
                     {
-                        _serverKey = keyData.Key;
+                        ServerKey = keyData.Key;
                     }
                     break;
                 case ParameterStatus parameterStatus:
@@ -187,7 +185,7 @@ namespace EdgeDB
             else return await errorTask;
         }
 
-        public async Task<ExecuteResult<TType>?> QueryAsync<TType>(Expression<Func<TType, bool>> filter)
+        public async Task<ExecuteResult<TType>> QueryAsync<TType>(Expression<Func<TType, bool>> filter)
         {
             var query = QueryBuilder.BuildSelectQuery(filter);
 
@@ -196,9 +194,11 @@ namespace EdgeDB
             return ExecuteResult<TType>.Convert(result);
         }
 
-        public async Task<ExecuteResult?> ExecuteAsync(string query, IDictionary<string, object?>? arguments = null)
+        public async Task<ExecuteResult> ExecuteAsync(string query, IDictionary<string, object?>? arguments = null, Cardinality card = Cardinality.Many)
         {
-            await _sephamore.WaitAsync(_readCancelToken.Token).ConfigureAwait(false);
+            await _sephamore.WaitAsync(_disconnectCancelToken.Token).ConfigureAwait(false);
+
+            IsIdle = false;
 
             try
             {
@@ -207,7 +207,7 @@ namespace EdgeDB
                     Capabilities = AllowCapabilities.ReadOnly, // TODO: change this
                     Command = query,
                     Format = IOFormat.Binary,
-                    ExpectedCardinality = Cardinality.Many
+                    ExpectedCardinality = card
                 }).ConfigureAwait(false);
 
                 if(prepareResult is ErrorResponse error)
@@ -289,7 +289,7 @@ namespace EdgeDB
 
                 if (receivedData.Any()) // TODO: optimize?
                 {
-                    if(receivedData.Count == 1)
+                    if(receivedData.Count == 1 && (card == Cardinality.AtMostOne || card == Cardinality.One))
                     {
                         using (var reader = new PacketReader(receivedData[0].PayloadData))
                         {
@@ -336,6 +336,7 @@ namespace EdgeDB
             finally
             {
                 _sephamore.Release();
+                IsIdle = true;
             }
         }
 
@@ -344,7 +345,7 @@ namespace EdgeDB
             switch (status.Name)
             {
                 case "suggested_pool_concurrency":
-                    _suggestedPoolConcurrency = int.Parse(Encoding.UTF8.GetString(status.Value));
+                    SuggestedPoolConcurrency = int.Parse(Encoding.UTF8.GetString(status.Value));
                     break;
 
                 case "system_config":
@@ -367,7 +368,7 @@ namespace EdgeDB
                         // disard length
                         reader.ReadUInt32();
 
-                        _serverConfig = (codec.Deserialize(reader) as IDictionary<string, object?>)!;
+                        ServerConfig = (codec.Deserialize(reader) as IDictionary<string, object?>)!;
                     }
                     break;
             }
@@ -389,7 +390,7 @@ namespace EdgeDB
 
         internal async Task StartSASLAuthenticationAsync(AuthenticationStatus authStatus)
         {
-            using (SASLClient = new SHA256().CreateSASLClientSCRAM())
+            using (var scram = new Scram())
             {
                 var method = authStatus.AuthenticationMethods[0];
 
@@ -399,17 +400,9 @@ namespace EdgeDB
                     throw new NotSupportedException("The only supported method is SCRAM-SHA-256");
                 }
 
-                var credentials = new SASLCredentialsSCRAMForClient(_connection.Username, _connection.Password);
+                var initialMsg = scram.BuildInitialMessage(_connection.Username!, method);
 
-                var writeArray = new ResizableArray<Byte>();
-
-                var encoding = new UTF8Encoding(false, false).CreateDefaultEncodingInfo();
-
-                var saslResult = await SASLClient.ChallengeOrThrowOnErrorAsync(
-                    credentials.CreateChallengeArguments(null, -1, -1, writeArray, 0, encoding)
-                    );
-
-                await SendMessageAsync(new AuthenticationSASLInitialResponse(writeArray.Array, method)).ConfigureAwait(false);
+                await SendMessageAsync(initialMsg).ConfigureAwait(false);
 
                 // wait for continue or timeout
                 var timeout = Task.Delay(15000);
@@ -424,19 +417,11 @@ namespace EdgeDB
                 authStatus = await (Task<AuthenticationStatus>)result;
 
                 // check the continue
-                saslResult = await SASLClient.ChallengeOrThrowOnErrorAsync(credentials.CreateChallengeArguments(
-                    authStatus.SASLData,
-                    0,
-                    authStatus.SASLData.Length,
-                    writeArray,
-                    0,
-                    encoding));
+                var final = scram.BuildFinalMessage(authStatus, _connection.Password!);
 
-                Logger.LogDebug("Got {}:{} for continue", authStatus.AuthStatus, saslResult.Item2);
+                await SendMessageAsync(final.FinalMessage);
 
-                await SendMessageAsync(new AuthenticationSASLResponse(writeArray.Array));
 
-                // wait for final
                 timeout = Task.Delay(15000);
                 result = await Task.WhenAny(_authenticationStatusSource.Task, timeout).ConfigureAwait(false);
 
@@ -448,15 +433,14 @@ namespace EdgeDB
 
                 authStatus = await (Task<AuthenticationStatus>)result;
 
-                saslResult = await SASLClient.ChallengeOrThrowOnErrorAsync(credentials.CreateChallengeArguments(
-                    authStatus.SASLData,
-                    0,
-                    authStatus.SASLData.Length,
-                    writeArray,
-                    0,
-                    encoding)).ConfigureAwait(false);
+                var key = scram.ParseServerFinalMessage(authStatus);
 
-                Logger.LogDebug("Got {}:{} for final", authStatus.AuthStatus, saslResult.Item2);
+                if (!key.SequenceEqual(final.ExpectedSig))
+                {
+                    Logger.LogWarning("Received signature didn't match expected scram signature");
+                    // disconnect
+                    await DisconnectAsync();
+                }
             }
         }
 
@@ -470,7 +454,7 @@ namespace EdgeDB
         }
         public async Task ConnectAsync()
         {
-            _readCancelToken = new();
+            _disconnectCancelToken = new();
 
             await _client.ConnectAsync(_connection.Hostname!, _connection.Port).ConfigureAwait(false);
 
@@ -520,7 +504,7 @@ namespace EdgeDB
             await Task.Run(() => _readySource.Task, _readyCancelTokenSource.Token);
         }
 
-        private async Task<TMessage?> WaitForMessageAsync<TMessage>(ServerMessageTypes type, CancellationToken token = default) where TMessage : IReceiveable
+        private async Task<TMessage?> WaitForMessageAsync<TMessage>(ServerMessageTypes type, CancellationToken? token = null) where TMessage : IReceiveable
         {
             var tcs = new TaskCompletionSource();
             TMessage? returnValue = default;
@@ -538,7 +522,7 @@ namespace EdgeDB
 
             OnMessage += handler;
 
-            await Task.Run(() => tcs.Task, token).ConfigureAwait(false);
+            await Task.Run(() => tcs.Task, token ?? _disconnectCancelToken.Token).ConfigureAwait(false);
 
             OnMessage -= handler;
 
@@ -550,13 +534,21 @@ namespace EdgeDB
         {
             await SendMessageAsync(new Terminate()).ConfigureAwait(false);
             _client.Close();
-            _readCancelToken.Cancel();
+            _disconnectCancelToken.Cancel();
         }
 
         private static bool ValidateServerCertificate(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
         {
             // TODO: validate with conn params
             return true;
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await DisconnectAsync();
+            _client.Dispose();
+            await (_stream?.DisposeAsync() ?? ValueTask.CompletedTask);
+            await (_secureStream?.DisposeAsync() ?? ValueTask.CompletedTask);
         }
     }
 }

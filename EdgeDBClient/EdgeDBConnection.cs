@@ -81,7 +81,7 @@ namespace EdgeDB
         /// <returns>A <see cref="EdgeDBConnection"/> allowing you to connect to the projects database.</returns>
         /// <exception cref="FileNotFoundException">The supplied file path, credentials path, or instance-name file doesn't exist.</exception>
         /// <exception cref="DirectoryNotFoundException">The project directory doesn't exist for the supplied toml file.</exception>
-        public static EdgeDBConnection? FromProjectFile(string path)
+        public static EdgeDBConnection FromProjectFile(string path)
         {
             if (!File.Exists(path))
                 throw new FileNotFoundException("Couldn't find the specified project file", path);
@@ -97,7 +97,7 @@ namespace EdgeDB
             var instanceName = File.ReadAllText(Path.Combine(projectDir, "instance-name"));
 
             // get credentials
-            return JsonConvert.DeserializeObject<EdgeDBConnection>(File.ReadAllText(Path.Combine(ConfigUtils.CredentialsDir, $"{instanceName}.json")));
+            return JsonConvert.DeserializeObject<EdgeDBConnection>(File.ReadAllText(Path.Combine(ConfigUtils.CredentialsDir, $"{instanceName}.json")))!;
         }
 
         internal static EdgeDBConnection ResolveConnection()

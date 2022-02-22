@@ -57,8 +57,9 @@ namespace EdgeDB
             var args = ConvertExpression(context.Body!, context);
 
             // by default return all fields
+            var typename = typeof(TInner).GetCustomAttribute<EdgeDBType>()?.Name ?? typeof(TInner).Name;
             var fields = typeof(TInner).GetProperties().Select(x => x.GetCustomAttribute<EdgeDBProperty>()?.Name ?? x.Name);
-            var queryText = $"SELECT {typeof(TInner).Name} {{ {string.Join(", ", fields)} }} filter {args.Filter}";
+            var queryText = $"SELECT {typename} {{ {string.Join(", ", fields)} }} filter {args.Filter}";
 
             return new BuiltQuery
             {

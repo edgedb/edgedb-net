@@ -3,9 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using UtilPack;
-using UtilPack.Cryptography.Digest;
-using UtilPack.Cryptography.SASL.SCRAM;
 
 namespace EdgeDB.Models
 {

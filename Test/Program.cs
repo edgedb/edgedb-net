@@ -11,21 +11,12 @@ using EdgeDB.Utils;
 Logger.AddStream(Console.OpenStandardOutput(), StreamType.StandardOut);
 Logger.AddStream(Console.OpenStandardError(), StreamType.StandardError);
 
-var conn = EdgeDBConnection.FromProjectFile(@"C:\Users\lynch\source\repos\EdgeDBClient\EdgeDBDatabase\edgedb.toml");
-var client = new EdgeDBTcpClient(new EdgeDBConnection
+var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"C:\Users\lynch\source\repos\EdgeDBClient\EdgeDBDatabase\edgedb.toml"), new EdgeDBConfig
 {
-    Hostname = "127.0.0.1",
-    Port = 10701,
-    Username = "edgedb",
-    Password = "dpnjEhMqGgGUO9bTmDxtPcMO",
-    Database = "edgedb",
-}, Logger.GetLogger<EdgeDBTcpClient>());
+    Logger = Logger.GetLogger<EdgeDBClient>()
+});
 
-await client.ConnectAsync();
-
-await Task.Delay(70000);
-
-var result = await client.QueryAsync<Person>(x => x.Name == "Liege");
+var result = await edgedb.QuerySingleAsync<Person>(x => x.Name == "Quin");
 
 await Task.Delay(-1);
 
