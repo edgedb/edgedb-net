@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EdgeDBClient\EdgeDB.csproj" />
+    <ProjectReference Include="..\EdgeDB.Driver\EdgeDB.Driver.csproj" />
   </ItemGroup>
 
 </Project>

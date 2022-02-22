@@ -73,11 +73,6 @@ namespace EdgeDB
             return GetScalarCodec(id);
         }
 
-        public static object? DeserializeDescriptor(PacketReader reader)
-        {
-            return null;
-        }
-
         public static ICodec? BuildCodec(Guid id, PacketReader reader)
         {
             List<ICodec> codecs = new();

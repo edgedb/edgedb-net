@@ -185,15 +185,6 @@ namespace EdgeDB
             else return await errorTask;
         }
 
-        public async Task<ExecuteResult<TType>> QueryAsync<TType>(Expression<Func<TType, bool>> filter)
-        {
-            var query = QueryBuilder.BuildSelectQuery(filter);
-
-            var result = await ExecuteAsync(query.QueryText!, query.Parameters).ConfigureAwait(false);
-
-            return ExecuteResult<TType>.Convert(result);
-        }
-
         public async Task<ExecuteResult> ExecuteAsync(string query, IDictionary<string, object?>? arguments = null, Cardinality card = Cardinality.Many)
         {
             await _sephamore.WaitAsync(_disconnectCancelToken.Token).ConfigureAwait(false);
@@ -355,14 +346,17 @@ namespace EdgeDB
                         var descriptorId = reader.ReadGuid();
                         var typeDesc = reader.ReadBytes(length);
 
-                        ICodec? codec;
+                        ICodec? codec = PacketSerializer.GetCodec(descriptorId);
 
-                        using(var innerReader = new PacketReader(typeDesc))
+                        if(codec == null)
                         {
-                            codec = PacketSerializer.BuildCodec(descriptorId, innerReader);
+                            using (var innerReader = new PacketReader(typeDesc))
+                            {
+                                codec = PacketSerializer.BuildCodec(descriptorId, innerReader);
 
-                            if (codec == null)
-                                throw new Exception("Failed to build codec for system config");
+                                if (codec == null)
+                                    throw new Exception("Failed to build codec for system config");
+                            }
                         }
 
                         // disard length

@@ -85,72 +85,15 @@ namespace EdgeDB
         }
 
         /// <summary>
-        ///     Queries on the given type and expression and returns 
-        ///     the result(s) as a read only collection.
+        ///     Queries based on the provided edgeql query and deserializes the result(s) as a <see cref="object"/>.
         /// </summary>
-        /// <remarks>
-        ///     The generated querys type name is based on the <see cref="EdgeDBType"/> attribute; if no 
-        ///     attribute is found its name is based on the name of the type.
-        /// </remarks>
-        /// <typeparam name="TResult">The return type of the query.</typeparam>
-        /// <param name="query">The expression to query.</param>
-        /// <returns>
-        ///     An execution result containing the information on the query operation.
-        /// </returns>
-        public Task<ExecuteResult<IReadOnlyCollection<TResult>>> QueryAsync<TResult>(Expression<Func<TResult, bool>> query)
-        {
-            var builtQuery = QueryBuilder.BuildSelectQuery(query);
-            return QueryAsync<TResult>(builtQuery.QueryText, builtQuery.Parameters);
-        }
-
-        /// <summary>
-        ///     Queries on the given type and query and returns 
-        ///     the result(s) as a read only collection.
-        /// </summary>
-        /// <remarks>
-        ///     The generated querys type name is based on the <see cref="EdgeDBType"/> attribute; if no 
-        ///     attribute is found its name is based on the name of the type.
-        /// </remarks>
-        /// <typeparam name="TResult">The return type of the query.</typeparam>
         /// <param name="query">The string query to execute.</param>
         /// <param name="arguments">A collection of arguments used in the query.</param>
         /// <returns>
         ///     An execution result containing the information on the query operation.
-        /// </returns> 
-        public Task<ExecuteResult<IReadOnlyCollection<TResult>>> QueryAsync<TResult>(string query, IDictionary<string, object?> arguments)
-            => ExecuteAsync<IReadOnlyCollection<TResult>>(query, arguments, Cardinality.Many);
-
-        /// <summary>
-        ///     Queries on the given type and expression and returns a single result.
-        /// </summary>
-        /// <typeparam name="TResult">The return type of the query.</typeparam>
-        /// <param name="query">The expression predicate used to filter.</param>
-        /// <returns>
-        ///     An execution result containing the information on the query operation.
         /// </returns>
-        public Task<ExecuteResult<TResult>> QuerySingleAsync<TResult>(Expression<Func<TResult, bool>> query)
-        {
-            var builtQuery = QueryBuilder.BuildSelectQuery(query);
-            return QuerySingleAsync<TResult>(builtQuery.QueryText, builtQuery.Parameters);
-        }
-
-        /// <summary>
-        ///     
-        /// </summary>
-        /// <typeparam name="TResult"></typeparam>
-        /// <param name="query"></param>
-        /// <param name="arguments"></param>
-        /// <returns></returns>
-        public Task<ExecuteResult<TResult>> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? arguments = null)
-            => ExecuteAsync<TResult>(query, arguments, Cardinality.AtMostOne);
-
-        public Task<ExecuteResult<TResult>> QueryRequiredSingleAsync<TResult>(Expression<Func<TResult, bool>> query)
-        {
-            var builtQuery = QueryBuilder.BuildSelectQuery(query);
-            return QueryRequiredSingleAsync<TResult>(builtQuery.QueryText, builtQuery.Parameters);
-        }
-        public Task<ExecuteResult<TResult>> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? arguments = null)
-            => ExecuteAsync<TResult>(query, arguments, Cardinality.One);
+        public Task<ExecuteResult> QueryAsync(string query, IDictionary<string, object?>? arguments = null)
+            => ExecuteAsync(query, arguments);
 
         public Task<ExecuteResult> ExecuteAsync(string query, IDictionary<string, object?>? arguments = null)
             => ExecuteAsync(query, arguments, Cardinality.NoResult);
@@ -171,12 +114,6 @@ namespace EdgeDB
             {
                 _semaphore.Release();
             }
-        }
-
-        internal async Task<ExecuteResult<TResult>> ExecuteAsync<TResult>(string query, IDictionary<string, object?>? arguments = null, Cardinality cardinality = Cardinality.Many)
-        {
-            var result = await ExecuteAsync(query, arguments, cardinality).ConfigureAwait(false);
-            return ExecuteResult<TResult>.Convert(result);
         }
 
         private async Task<EdgeDBTcpClient> GetOrCreateClientAsync()
