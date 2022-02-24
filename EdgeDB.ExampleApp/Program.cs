@@ -10,15 +10,6 @@ var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb
     AllowUnsecureConnection = true
 });
 
-// update Person filter .email ?= "quin@quinch.dev" set { name := "Quinch" }
-
-var person = new Person() { Name = "Yoni", Email = "yoni@yoni.gg" };
-
-var q = QueryBuilder.BuildInsertQuery<Person>(person, x => x.Email);
-
-
-// query builder example
-var result = await edgedb.QueryAsync<Person>(x => x.Name == "Liege");
 
 await Task.Delay(-1);
 
