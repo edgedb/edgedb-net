@@ -226,7 +226,10 @@ namespace EdgeDB
                     Capabilities = AllowCapabilities.ReadOnly, // TODO: change this
                     Command = query,
                     Format = IOFormat.Binary,
-                    ExpectedCardinality = card
+                    ExpectedCardinality = card,
+                    ExplicitObjectIds = true,
+                    ImplicitTypeNames = true,
+                    ImplicitTypeIds = true,
                 }).ConfigureAwait(false);
 
                 if(prepareResult is ErrorResponse error)

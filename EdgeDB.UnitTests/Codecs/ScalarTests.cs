@@ -172,7 +172,7 @@ namespace EdgeDB.UnitTest.Codecs
         [TestMethod]
         public void TestJson()
         {
-            var codec = ICodec.GetScalarCodec<Models.DataTypes.Json>();
+            var codec = ICodec.GetScalarCodec<DataTypes.Json>();
 
             var data = new byte[]
             {
@@ -182,7 +182,7 @@ namespace EdgeDB.UnitTest.Codecs
                 123, 32, 34, 72, 101, 108, 108, 111, 34, 58, 32, 34, 87, 111, 114, 108, 100, 33, 34, 125,
             };
 
-            var expected = new Models.DataTypes.Json("{ \"Hello\": \"World!\"}");
+            var expected = new DataTypes.Json("{ \"Hello\": \"World!\"}");
 
             TestCodec(codec, expected, data);
         }
@@ -190,14 +190,14 @@ namespace EdgeDB.UnitTest.Codecs
         [TestMethod]
         public void TestMemory()
         {
-            var codec = ICodec.GetScalarCodec<Models.DataTypes.Memory>();
+            var codec = ICodec.GetScalarCodec<DataTypes.Memory>();
 
             var data = new byte[]
             {
                 0x00, 0x00, 0x00, 0x00, 0x07, 0xb0, 0x00, 0x00
             };
 
-            var expected = new Models.DataTypes.Memory(128974848);
+            var expected = new DataTypes.Memory(128974848);
 
             TestCodec(codec, expected, data);
         }

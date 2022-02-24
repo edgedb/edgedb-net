@@ -25,8 +25,8 @@ await Task.Delay(-1);
 // our model in a C# form
 public class Person
 {
-    [EdgeDBProperty("id")]
-    public Guid Id { get; set; }
+    //[EdgeDBProperty("id")]
+    //public Guid Id { get; set; }
 
     [EdgeDBProperty("name")]
     public string? Name { get; set; }
