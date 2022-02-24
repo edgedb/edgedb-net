@@ -25,24 +25,11 @@ namespace EdgeDB
         /// <returns>
         ///     An execution result containing the information on the query operation.
         /// </returns>
-        public static Task<IReadOnlyCollection<TResult>> QueryAsync<TResult>(this EdgeDBClient client, Expression<Func<TResult, bool>> query)
+        public static async Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(this EdgeDBClient client, Expression<Func<TResult, bool>> query)
         {
             var builtQuery = QueryBuilder.BuildSelectQuery(query);
-            return client.QueryAsync<TResult>(builtQuery.QueryText, builtQuery.Parameters);
+            return await client.ExecuteAsync<IReadOnlyCollection<TResult?>>(builtQuery.QueryText, builtQuery.Parameters, Cardinality.Many) ?? Array.Empty<TResult?>();
         }
-
-        /// <summary>
-        ///     Queries based on the provided edgeql query and deserializes the result(s) 
-        ///     as a read only collection of <typeparamref name="TResult"/>
-        /// </summary>
-        /// <typeparam name="TResult">The return type of the query.</typeparam>
-        /// <param name="query">The string query to execute.</param>
-        /// <param name="arguments">A collection of arguments used in the query.</param>
-        /// <returns>
-        ///     An execution result containing the information on the query operation.
-        /// </returns> 
-        public static async Task<IReadOnlyCollection<TResult>> QueryAsync<TResult>(this EdgeDBClient client, string query, IDictionary<string, object?>? arguments = null)
-            => await client.ExecuteAsync<IReadOnlyCollection<TResult>>(query, arguments, Cardinality.Many) ?? Array.Empty<TResult>();
         #endregion
 
         #region QuerySingle
@@ -69,43 +56,92 @@ namespace EdgeDB
         /// <returns>
         ///     An execution result containing the information on the query operation.
         /// </returns>
-        public static Task<TResult> QuerySingleAsync<TResult>(this EdgeDBClient client, Expression<Func<TResult, bool>> query)
+        public static Task<TResult?> QuerySingleAsync<TResult>(this EdgeDBClient client, Expression<Func<TResult, bool>> query)
         {
             var builtQuery = QueryBuilder.BuildSelectQuery(query);
-            return client.QuerySingleAsync<TResult>(builtQuery.QueryText, builtQuery.Parameters);
+            return client.ExecuteAsync<TResult>(builtQuery.QueryText, builtQuery.Parameters, Cardinality.AtMostOne);
         }
+        #endregion
 
+        #region Insert
         /// <summary>
-        ///     Queries based on the provided edgeql query and deserializes the result as a <typeparamref name="TResult"/>
+        ///     Inserts a new object into the database.
         /// </summary>
         /// <remarks>
         ///     The generated querys type name is based on the <see cref="EdgeDBType"/> attribute; if no 
         ///     attribute is found its name is based on the name of the type.
-        ///     <br/><br/>
-        ///     This method uses <see cref="Cardinality.AtMostOne"/>, if your query <i>can</i> return 
-        ///     more than one result the query will fail.
-        ///     <br/><br/>
-        ///     Example single query
-        ///     <br/>
-        ///     <c>SELECT 1 + 1;</c>
-        ///     <br/>
-        ///     Example non-single query
-        ///     <br/>
-        ///     <c>SELECT Person { name, email } FILTER .name = "John Smith";</c>
         /// </remarks>
-        /// <typeparam name="TResult">The return type of the query.</typeparam>
-        /// <param name="query"></param>
-        /// <param name="arguments"></param>
-        /// <returns></returns>
-        public static async Task<TResult> QuerySingleAsync<TResult>(this EdgeDBClient client, string query, IDictionary<string, object?>? arguments = null)
-            => await client.ExecuteAsync<TResult>(query, arguments, Cardinality.AtMostOne) ?? default!;
+        /// <typeparam name="TResult">The type to insert.</typeparam>
+        /// <param name="value">The object to insert.</param>
+        /// <returns>
+        ///     The newly inserted object.
+        /// </returns>
+        public static Task<TResult?> InsertAsync<TResult>(this EdgeDBClient client, TResult value)
+        {
+            var builtQuery = QueryBuilder.BuildInsertQuery(value);
+            return client.ExecuteAsync<TResult>(builtQuery.QueryText, builtQuery.Parameters, Cardinality.AtMostOne);
+        }
         #endregion
 
-        #region Insert
-        //public static Task<TResult> InsertAsync<TResult>(TResult value)
-        //{
+        #region Upsert
+        /// <summary>
+        ///     Inserts or updates a object in the database.
+        /// </summary>
+        /// <remarks>
+        ///     The generated querys type name is based on the <see cref="EdgeDBType"/> attribute; if no 
+        ///     attribute is found its name is based on the name of the type.
+        /// </remarks>
+        /// <typeparam name="TResult">The type to upsert.</typeparam>
+        /// <param name="value">The value to use when updating/inserting.</param>
+        /// <param name="constraint">
+        ///     The property constraint for the upsert.<br/>
+        ///     The property <b>must</b> contain a <see href="https://www.edgedb.com/docs/datamodel/constraints#constraints-on-properties">unique constraint</see> 
+        ///     in order to use it as a predicate.
+        /// </param>
+        /// <returns>
+        ///     The newly create or updated object.
+        /// </returns>
+        public static Task<TResult?> UpsertAsync<TResult>(this EdgeDBClient client, TResult value, Expression<Func<TResult, object?>> constraint)
+        {
+            var builtQuery = QueryBuilder.BuildUpsertQuery(value, constraint);
+            return client.ExecuteAsync<TResult>(builtQuery.QueryText, builtQuery.Parameters, Cardinality.AtMostOne);
+        }
+        #endregion
 
-        //}
+        #region Update
+        /// <summary>
+        ///     Updates a pre-existing object within the database.
+        /// </summary>
+        /// <typeparam name="TResult">The type to update.</typeparam>
+        /// <param name="value">The value containing the properties to overwrite.</param>
+        /// <param name="predicate">The predicate to update on, any object matching this predicate will be updated.</param>
+        /// <param name="selectors">A collection of property selectors to use to select which properties to update from the 
+        /// <paramref name="value"/> object.</param>
+        /// <returns>
+        ///     The updated object.
+        /// </returns>
+        public static Task<TResult?> UpdateAsync<TResult>(this EdgeDBClient client, TResult value, Expression<Func<TResult, bool>>? predicate = null, 
+            params Expression<Func<TResult, object?>>[] selectors)
+        {
+            var builtQuery = QueryBuilder.BuildUpdateQuery(value, predicate, selectors);
+            return client.ExecuteAsync<TResult>(builtQuery.QueryText, builtQuery.Parameters, Cardinality.AtMostOne);
+        }
+
+        /// <summary>
+        ///     Updates a pre-existing object within the database.
+        /// </summary>
+        /// <typeparam name="TResult">The type to update.</typeparam>
+        /// <param name="builder">The object builder to use to select which properties to update as well as their values.</param>
+        /// <param name="predicate">The predicate to update on, any object matching this predicate will be updated.</param>
+        /// <returns>
+        ///     The updated object.
+        /// </returns>
+        public static Task<TResult?> UpdateAsync<TResult>(this EdgeDBClient client, Expression<Func<TResult, TResult>> builder, 
+            Expression<Func<TResult, bool>>? predicate = null)
+        {
+            var builtQuery = QueryBuilder.BuildUpdateQuery(builder, predicate);
+            return client.ExecuteAsync<TResult>(builtQuery.QueryText, builtQuery.Parameters, Cardinality.AtMostOne);
+        }
         #endregion
         internal static async Task<TResult?> ExecuteAsync<TResult>(this EdgeDBClient client, string query, IDictionary<string, object?>? arguments = null, Cardinality cardinality = Cardinality.Many)
         {

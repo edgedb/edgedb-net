@@ -73,31 +73,105 @@ namespace EdgeDB
             };
         }
 
-        public static BuiltQuery BuildUpsertQuery<TInner>(TInner obj, Expression<Func<TInner, bool>> predicate)
+        public static BuiltQuery BuildUpsertQuery<TInner>(TInner obj, Expression<Func<TInner, object?>> constraint)
         {
-            var context = new QueryContext<TInner, bool>(predicate);
+            var context = new QueryContext<TInner, object?>(constraint);
+
+            var builtPredicate = ConvertExpression(constraint.Body, context);
+
+            var typeName = GetTypeName(typeof(TInner));
 
             var props = typeof(TInner).GetProperties().Where(x => x.GetCustomAttribute<EdgeDBIgnore>() == null);
 
-            Dictionary<string, (string, object?)> propertySet = new();
+            Dictionary<(string Name, string VarName), (string VarName, object? Value)> propertySet = new();
 
             foreach (var prop in props)
             {
                 var name = GetPropertyName(prop);
                 var value = prop.GetValue(obj);
 
-                propertySet.Add($"{name} := $p_{name}", ($"p_{name}", value));
+                propertySet.Add((name, $"{GetTypePrefix(prop.PropertyType)}$p_{name}"), ($"p_{name}", value));
             }
 
             return new BuiltQuery
             {
                 Parameters = propertySet.Values.ToDictionary(x => x.Item1, x => x.Item2),
-                QueryText = $"insert {GetTypeName(typeof(TInner))} {{ {string.Join(", ", propertySet.Keys)} }}"
+                QueryText = 
+                    $"with {string.Join(", ", propertySet.Select(x => $"{x.Key.Name} := {x.Key.VarName}"))} " +
+                    $"insert {typeName} {{ {string.Join(", ", propertySet.Keys.Select(x => $"{x.Name} := {x.Name}"))} }} " +
+                    $"unless conflict on {builtPredicate.Filter} " +
+                    $"else ( " +
+                    $"update {typeName} set {{ {string.Join(", ", propertySet.Keys.Select(x => $"{x.Name} := {x.Name}"))} }}" +
+                    $")"
             };
         }
 
-        public static BuiltQuery BuildUpdateQuery<TInner>(Expression<Func<TInner, TInner>> builder, Expression<Func<TInner, bool>> predicate, params Expression<Func<TInner, object?>>[] propertySelectors)
+        public static BuiltQuery BuildUpdateQuery<TInner>(TInner obj, Expression<Func<TInner, bool>>? predicate = null, params Expression<Func<TInner, object?>>[] selectors)
         {
+            predicate ??= x => true;
+
+            var typeName = GetTypeName(typeof(TInner));
+
+            var context = new QueryContext<TInner, bool>(predicate);
+            var args = ConvertExpression(predicate.Body!, context);
+
+            Dictionary<string, (string, object?)> parsedProps = new();
+
+            if (selectors.Any())
+            {
+                foreach(var selector in selectors)
+                {
+                    if(selector.Body is not MemberExpression mbs)
+                    {
+                        throw new ArgumentException("Property selector must referemce the type argument");
+                    }
+
+                    var name = RecurseNameLookup(mbs);
+
+                    // remove reference name and '.'
+                    name = name.Substring(selector.Parameters[0].Name!.Length + 1, name.Length - 1 - selector.Parameters[0].Name!.Length);
+
+                    object? value = null;
+                    Type? type = null;
+                    switch (mbs.Member.MemberType)
+                    {
+                        case MemberTypes.Field:
+                            value = ((FieldInfo)mbs.Member).GetValue(obj);
+                            type = ((FieldInfo)mbs.Member).FieldType;
+                            break;
+                        case MemberTypes.Property:
+                            value = ((PropertyInfo)mbs.Member).GetValue(obj);
+                            type = ((PropertyInfo)mbs.Member).PropertyType;
+                            break;
+                    }
+
+                    parsedProps[$"{name} := {GetTypePrefix(type!)}$p_{name}"] = ($"p_{name}", value);
+                }
+            }
+            else
+            {
+                var props = typeof(TInner).GetProperties().Where(x => x.GetCustomAttribute<EdgeDBIgnore>() == null);
+
+                foreach(var prop in props)
+                {
+                    var name = GetPropertyName(prop);
+                    var value = prop.GetValue(obj);
+
+                    parsedProps[$"{name} := {GetTypePrefix(prop.PropertyType)}$p_{name}"] = ($"p_{name}", value);
+                }
+            }
+
+            return new BuiltQuery
+            {
+                QueryText = $"update {typeName} filter {args.Filter} set {{ {string.Join(", ", parsedProps.Keys)} }}",
+                Parameters = args.Arguments.Concat(parsedProps.Select(x => x.Value).ToDictionary(x => x.Item1, x => x.Item2)).ToDictionary(x => x.Key, x => x.Value)
+            };
+        }
+
+        public static BuiltQuery BuildUpdateQuery<TInner>(Expression<Func<TInner, TInner>> builder, Expression<Func<TInner, bool>>? predicate = null)
+        {
+            predicate ??= x => true;
+
             var objectBuilder = ConvertExpression(builder.Body, new QueryContext<TInner, TInner>(builder));
 
             var typeName = GetTypeName(typeof(TInner));
@@ -307,5 +381,15 @@ namespace EdgeDB
 
         private static string GetPropertyName(PropertyInfo t)
             => t.GetCustomAttribute<EdgeDBProperty>()?.Name ?? t.Name;
+
+        private static string GetTypePrefix(Type t)
+        {
+            var edgeqlType = PacketSerializer.GetEdgeQLType(t);
+
+            if (edgeqlType == null)
+                throw new NotSupportedException($"No edgeql type map found for type {t}");
+
+            return $"<{edgeqlType}>";
+        }
     }
 }

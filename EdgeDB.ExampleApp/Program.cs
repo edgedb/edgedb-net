@@ -12,9 +12,9 @@ var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb
 
 // update Person filter .email ?= "quin@quinch.dev" set { name := "Quinch" }
 
-var q = QueryBuilder.BuildUpdateQuery<Person>(
-    x => new Person() { Name = "Quinch", }, 
-    x => x.Email == "quin@quinch.dev");
+var person = new Person() { Name = "Yoni", Email = "yoni@yoni.gg" };
+
+var q = QueryBuilder.BuildInsertQuery<Person>(person, x => x.Email);
 
 
 // query builder example
@@ -25,9 +25,6 @@ await Task.Delay(-1);
 // our model in a C# form
 public class Person
 {
-    //[EdgeDBProperty("id")]
-    //public Guid Id { get; set; }
-
     [EdgeDBProperty("name")]
     public string? Name { get; set; }
 
