@@ -1,4 +1,5 @@
 ﻿using EdgeDB.Models;
+using EdgeDB.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -14,6 +15,16 @@ namespace EdgeDB
     /// </summary>
     public class EdgeDBClient
     {
+        /// <summary>
+        ///     Fired when a client in the client pool executes a command.
+        /// </summary>
+        public event Func<IExecuteResult, Task> CommandExecuted
+        {
+            add => _commandExecuted.Add(value);
+            remove => _commandExecuted.Remove(value);
+        }
+
+        private readonly AsyncEvent<Func<IExecuteResult, Task>> _commandExecuted = new();
         private readonly EdgeDBConnection _connection;
         private readonly EdgeDBConfig _config;
         private readonly ConcurrentDictionary<int, EdgeDBTcpClient> _clients;
@@ -75,30 +86,26 @@ namespace EdgeDB
             if (_isInitialized)
                 return;
 
-            var client = await GetOrCreateClientAsync().ConfigureAwait(false);
+            await using(var client = await GetOrCreateClientAsync().ConfigureAwait(false))
+            {
+                // set the pool size to the recommended
+                _poolSize = client.SuggestedPoolConcurrency;
+                _semaphore = new(_poolSize, _poolSize);
 
-            // set the pool size to the recommended
-            _poolSize = client.SuggestedPoolConcurrency;
-            _semaphore = new(_poolSize, _poolSize);
-
-            _isInitialized = true;
+                _isInitialized = true;
+            }
         }
 
         /// <summary>
-        ///     Queries based on the provided edgeql query and deserializes the result(s) as a <see cref="object"/>.
+        ///     Executes a given query.
         /// </summary>
-        /// <param name="query">The string query to execute.</param>
-        /// <param name="arguments">A collection of arguments used in the query.</param>
+        /// <param name="query">The query to execute.</param>
+        /// <param name="arguments">A collection of arguments referenced in the query.</param>
+        /// <param name="cardinality">The cardinality of the query.</param>
         /// <returns>
-        ///     An execution result containing the information on the query operation.
+        ///     An execute result containing the return value as well as any errors that occured during the query.
         /// </returns>
-        public Task<ExecuteResult> QueryAsync(string query, IDictionary<string, object?>? arguments = null)
-            => ExecuteAsync(query, arguments);
-
-        public Task<ExecuteResult> ExecuteAsync(string query, IDictionary<string, object?>? arguments = null)
-            => ExecuteAsync(query, arguments, Cardinality.NoResult);
-
-        internal async Task<ExecuteResult> ExecuteAsync(string query, IDictionary<string, object?>? arguments = null, Cardinality cardinality = Cardinality.Many)
+        public async Task<ExecuteResult> ExecuteAsync(string query, IDictionary<string, object?>? arguments = null, Cardinality cardinality = Cardinality.Many)
         {
             await InitializeAsync().ConfigureAwait(false);
 
@@ -116,7 +123,17 @@ namespace EdgeDB
             }
         }
 
-        private async Task<EdgeDBTcpClient> GetOrCreateClientAsync()
+        /// <summary>
+        ///     Gets or creates a raw client in the client pool used to interact with edgedb.
+        /// </summary>
+        /// <remarks>
+        ///     This method can hang if the client pool is full and all connections are in use. 
+        ///     It's recommended to use the query methods defined in the <see cref="EdgeDBClient"/> class.
+        /// </remarks>
+        /// <returns>
+        ///     A edgedb tcp client.
+        /// </returns>
+        public async Task<EdgeDBTcpClient> GetOrCreateClientAsync()
         {
             await _clientLookupSemaphore.WaitAsync();
 
@@ -128,7 +145,7 @@ namespace EdgeDB
                     return unusedClient.Value;
 
                 // create new clinet
-                var client = new EdgeDBTcpClient(_connection, _config.Logger);
+                var client = new EdgeDBTcpClient(_connection, _config);
                 var index = Interlocked.Increment(ref _clientIndex);
 
                 client.OnDisconnect += () =>
@@ -137,6 +154,8 @@ namespace EdgeDB
 
                     return Task.CompletedTask;
                 };
+
+                client.CommandExecuted += (i) => _commandExecuted.InvokeAsync(i);
 
                 await client.ConnectAsync().ConfigureAwait(false);
 

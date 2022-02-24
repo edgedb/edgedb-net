@@ -7,19 +7,19 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
-    public class Json : IScalarCodec<Models.DataTypes.Json>
+    public class Json : IScalarCodec<DataTypes.Json>
     {
-        public Models.DataTypes.Json Deserialize(PacketReader reader)
+        public DataTypes.Json Deserialize(PacketReader reader)
         {
             // format (unused)
             reader.ReadByte();
 
             var data = Encoding.UTF8.GetString(reader.ConsumeByteArray());
 
-            return new Models.DataTypes.Json(data);
+            return new DataTypes.Json(data);
         }
 
-        public void Serialize(PacketWriter writer, Models.DataTypes.Json value)
+        public void Serialize(PacketWriter writer, DataTypes.Json value)
         {
             byte[] jsonData = Encoding.UTF8.GetBytes(value.Value ?? "");
 

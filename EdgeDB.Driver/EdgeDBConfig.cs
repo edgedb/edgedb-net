@@ -15,6 +15,15 @@ namespace EdgeDB
         public bool AllowUnsecureConnection { get; set; } = false;
 
         /// <summary>
+        ///     Gets or sets whether or not the servers signature has to match the <see cref="EdgeDBConnection.TLSCertData"/> 
+        ///     and <see cref="EdgeDBConnection.TLSCA"/>.
+        /// </summary>
+        /// <remarks>
+        ///     This option is by default <see langword="true"/>.
+        /// </remarks>
+        public bool RequireCertificateMatch { get; set; } = true;
+
+        /// <summary>
         ///     Gets or sets the default client pool size.
         /// </summary>
         public int DefaultPoolSize { get; set; } = 50;

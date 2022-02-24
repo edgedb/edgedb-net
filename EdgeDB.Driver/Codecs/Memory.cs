@@ -6,14 +6,14 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
-    public class Memory : IScalarCodec<Models.DataTypes.Memory>
+    public class Memory : IScalarCodec<DataTypes.Memory>
     {
-        public Models.DataTypes.Memory Deserialize(PacketReader reader)
+        public DataTypes.Memory Deserialize(PacketReader reader)
         {
-            return new Models.DataTypes.Memory(reader.ReadInt64());
+            return new DataTypes.Memory(reader.ReadInt64());
         }
 
-        public void Serialize(PacketWriter writer, Models.DataTypes.Memory value)
+        public void Serialize(PacketWriter writer, DataTypes.Memory value)
         {
             writer.Write(value.TotalBytes);
         }

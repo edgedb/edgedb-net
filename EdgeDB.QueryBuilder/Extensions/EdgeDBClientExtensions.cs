@@ -1,6 +1,7 @@
 ﻿using EdgeDB.Models;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -10,6 +11,7 @@ namespace EdgeDB
 {
     public static class EdgeDBClientExtensions
     {
+        #region Query
         /// <summary>
         ///     Queries on the given type and expression and returns 
         ///     the result(s) as a read only collection.
@@ -23,7 +25,7 @@ namespace EdgeDB
         /// <returns>
         ///     An execution result containing the information on the query operation.
         /// </returns>
-        public static Task<ExecuteResult<IReadOnlyCollection<TResult>>> QueryAsync<TResult>(this EdgeDBClient client, Expression<Func<TResult, bool>> query)
+        public static Task<IReadOnlyCollection<TResult>> QueryAsync<TResult>(this EdgeDBClient client, Expression<Func<TResult, bool>> query)
         {
             var builtQuery = QueryBuilder.BuildSelectQuery(query);
             return client.QueryAsync<TResult>(builtQuery.QueryText, builtQuery.Parameters);
@@ -39,9 +41,11 @@ namespace EdgeDB
         /// <returns>
         ///     An execution result containing the information on the query operation.
         /// </returns> 
-        public static Task<ExecuteResult<IReadOnlyCollection<TResult>>> QueryAsync<TResult>(this EdgeDBClient client, string query, IDictionary<string, object?>? arguments = null)
-            => client.ExecuteAsync<IReadOnlyCollection<TResult>>(query, arguments, Cardinality.Many);
+        public static async Task<IReadOnlyCollection<TResult>> QueryAsync<TResult>(this EdgeDBClient client, string query, IDictionary<string, object?>? arguments = null)
+            => await client.ExecuteAsync<IReadOnlyCollection<TResult>>(query, arguments, Cardinality.Many) ?? Array.Empty<TResult>();
+        #endregion
 
+        #region QuerySingle
         /// <summary>
         ///     Queries on the given type and expression and returns a single result.
         /// </summary>
@@ -65,7 +69,7 @@ namespace EdgeDB
         /// <returns>
         ///     An execution result containing the information on the query operation.
         /// </returns>
-        public static Task<ExecuteResult<TResult>> QuerySingleAsync<TResult>(this EdgeDBClient client, Expression<Func<TResult, bool>> query)
+        public static Task<TResult> QuerySingleAsync<TResult>(this EdgeDBClient client, Expression<Func<TResult, bool>> query)
         {
             var builtQuery = QueryBuilder.BuildSelectQuery(query);
             return client.QuerySingleAsync<TResult>(builtQuery.QueryText, builtQuery.Parameters);
@@ -93,13 +97,20 @@ namespace EdgeDB
         /// <param name="query"></param>
         /// <param name="arguments"></param>
         /// <returns></returns>
-        public static Task<ExecuteResult<TResult>> QuerySingleAsync<TResult>(this EdgeDBClient client, string query, IDictionary<string, object?>? arguments = null)
-            => client.ExecuteAsync<TResult>(query, arguments, Cardinality.AtMostOne);
+        public static async Task<TResult> QuerySingleAsync<TResult>(this EdgeDBClient client, string query, IDictionary<string, object?>? arguments = null)
+            => await client.ExecuteAsync<TResult>(query, arguments, Cardinality.AtMostOne) ?? default!;
+        #endregion
 
-        public static async Task<ExecuteResult<TResult>> ExecuteAsync<TResult>(this EdgeDBClient client, string query, IDictionary<string, object?>? arguments = null, Cardinality cardinality = Cardinality.Many)
+        #region Insert
+        //public static Task<TResult> InsertAsync<TResult>(TResult value)
+        //{
+
+        //}
+        #endregion
+        internal static async Task<TResult?> ExecuteAsync<TResult>(this EdgeDBClient client, string query, IDictionary<string, object?>? arguments = null, Cardinality cardinality = Cardinality.Many)
         {
             var result = await client.ExecuteAsync(query, arguments, cardinality).ConfigureAwait(false);
-            return ExecuteResult<TResult>.Convert(result);
+            return ExecuteResult<TResult>.Convert(result).Result;
         }
     }
 }

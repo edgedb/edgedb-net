@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
-    public class Set<TInner> : ICodec<Models.DataTypes.Set<TInner?>>
+    public class Set<TInner> : ICodec<DataTypes.Set<TInner?>>
     {
         private readonly ICodec<TInner> _innerCodec;
 
@@ -15,19 +15,19 @@ namespace EdgeDB.Codecs
             _innerCodec = innerCodec;
         }
 
-        public Models.DataTypes.Set<TInner?>? Deserialize(PacketReader reader)
+        public DataTypes.Set<TInner?>? Deserialize(PacketReader reader)
         {
             if (_innerCodec is Array<TInner>)
                 return DecodeSetOfArrays(reader);
             else return DecodeSet(reader);
         }
 
-        public void Serialize(PacketWriter writer, Models.DataTypes.Set<TInner?>? value)
+        public void Serialize(PacketWriter writer, DataTypes.Set<TInner?>? value)
         {
             throw new NotImplementedException();
         }
 
-        private Models.DataTypes.Set<TInner?>? DecodeSetOfArrays(PacketReader reader)
+        private DataTypes.Set<TInner?>? DecodeSetOfArrays(PacketReader reader)
         {
             var dimensions = reader.ReadInt32();
 
@@ -36,7 +36,7 @@ namespace EdgeDB.Codecs
 
             if(dimensions == 0)
             {
-                return new Models.DataTypes.Set<TInner?>();
+                return new DataTypes.Set<TInner?>();
             }
 
             if(dimensions != 1)
@@ -67,10 +67,10 @@ namespace EdgeDB.Codecs
                 result[i] = _innerCodec.Deserialize(reader);
             }
 
-            return new Models.DataTypes.Set<TInner?>(result);
+            return new DataTypes.Set<TInner?>(result, true);
         }
 
-        private Models.DataTypes.Set<TInner?>? DecodeSet(PacketReader reader)
+        private DataTypes.Set<TInner?>? DecodeSet(PacketReader reader)
         {
             var dimensions = reader.ReadInt32();
 
@@ -79,7 +79,7 @@ namespace EdgeDB.Codecs
 
             if (dimensions == 0)
             {
-                return new Models.DataTypes.Set<TInner?>();
+                return new DataTypes.Set<TInner?>();
             }
 
             if (dimensions != 1)
@@ -104,7 +104,7 @@ namespace EdgeDB.Codecs
                     result[i] = _innerCodec.Deserialize(reader);
             }
 
-            return new Models.DataTypes.Set<TInner?>(result);
+            return new DataTypes.Set<TInner?>(result, true);
         }
     }
 }

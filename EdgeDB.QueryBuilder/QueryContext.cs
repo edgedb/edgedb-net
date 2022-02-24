@@ -7,24 +7,21 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
-    internal class QueryContext<TInner>
+    internal class QueryContext<TInner, TReturn>
     {
-        public Type ParameterType { get; set; }
+        public Type? ParameterType { get; set; }
         public string? ParameterName { get; set; }
         public Expression? Body { get; set; }
 
         public bool IsCharContext { get; set; } = false;
 
-        public QueryContext(Expression<Func<TInner, bool>> func)
+        public QueryContext() { }
+
+        public QueryContext(Expression<Func<TInner, TReturn>> func)
         {
             Body = func.Body;
             ParameterType = func.Parameters[0].Type;
             ParameterName = func.Parameters[0].Name;
-        }
-
-        public object? GetCallerInstance(Type type)
-        {
-            return null;
         }
     }
 }

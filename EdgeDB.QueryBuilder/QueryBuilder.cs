@@ -50,16 +50,77 @@ namespace EdgeDB
             _converters = converters;
         }
 
-
-        public static BuiltQuery BuildSelectQuery<TInner>(Expression<Func<TInner, bool>> func)
+        public static BuiltQuery BuildInsertQuery<TInner>(TInner obj)
         {
-            var context = new QueryContext<TInner>(func);
+            var context = new QueryContext<TInner, bool>();
+
+            var props = typeof(TInner).GetProperties().Where(x => x.GetCustomAttribute<EdgeDBIgnore>() == null);
+
+            Dictionary<string, (string, object?)> propertySet = new();
+
+            foreach(var prop in props)
+            {
+                var name = GetPropertyName(prop);
+                var value = prop.GetValue(obj);
+
+                propertySet.Add($"{name} := $p_{name}", ($"p_{name}", value));
+            }
+
+            return new BuiltQuery
+            {
+                Parameters = propertySet.Values.ToDictionary(x => x.Item1, x => x.Item2),
+                QueryText = $"insert {GetTypeName(typeof(TInner))} {{ {string.Join(", ", propertySet.Keys)} }}"
+            };
+        }
+
+        public static BuiltQuery BuildUpsertQuery<TInner>(TInner obj, Expression<Func<TInner, bool>> predicate)
+        {
+            var context = new QueryContext<TInner, bool>(predicate);
+
+            var props = typeof(TInner).GetProperties().Where(x => x.GetCustomAttribute<EdgeDBIgnore>() == null);
+
+            Dictionary<string, (string, object?)> propertySet = new();
+
+            foreach (var prop in props)
+            {
+                var name = GetPropertyName(prop);
+                var value = prop.GetValue(obj);
+
+                propertySet.Add($"{name} := $p_{name}", ($"p_{name}", value));
+            }
+
+            return new BuiltQuery
+            {
+                Parameters = propertySet.Values.ToDictionary(x => x.Item1, x => x.Item2),
+                QueryText = $"insert {GetTypeName(typeof(TInner))} {{ {string.Join(", ", propertySet.Keys)} }}"
+            };
+        }
+
+        public static BuiltQuery BuildUpdateQuery<TInner>(Expression<Func<TInner, TInner>> builder, Expression<Func<TInner, bool>> predicate, params Expression<Func<TInner, object?>>[] propertySelectors)
+        {
+            var objectBuilder = ConvertExpression(builder.Body, new QueryContext<TInner, TInner>(builder));
+
+            var typeName = GetTypeName(typeof(TInner));
+
+            var context = new QueryContext<TInner, bool>(predicate);
+            var args = ConvertExpression(predicate.Body!, context);
+
+            return new BuiltQuery 
+            {
+                QueryText = $"update {typeName} filter {args.Filter} set {{ {objectBuilder.Filter} }}",
+                Parameters = args.Arguments.Concat(objectBuilder.Arguments).ToDictionary(x => x.Key, x => x.Value)
+            };
+        }
+
+        public static BuiltQuery BuildSelectQuery<TInner>(Expression<Func<TInner, bool>> selector)
+        {
+            var context = new QueryContext<TInner, bool>(selector);
             var args = ConvertExpression(context.Body!, context);
 
             // by default return all fields
-            var typename = typeof(TInner).GetCustomAttribute<EdgeDBType>()?.Name ?? typeof(TInner).Name;
+            var typename = GetTypeName(typeof(TInner));
             var fields = typeof(TInner).GetProperties().Select(x => x.GetCustomAttribute<EdgeDBProperty>()?.Name ?? x.Name);
-            var queryText = $"SELECT {typename} {{ {string.Join(", ", fields)} }} filter {args.Filter}";
+            var queryText = $"select {typename} {{ {string.Join(", ", fields)} }} filter {args.Filter}";
 
             return new BuiltQuery
             {
@@ -69,8 +130,21 @@ namespace EdgeDB
         }
 
         // TODO: add node checks when in Char context, using int converters while in char context will result in the int being converted to a character.
-        private static (string Filter, Dictionary<string, object?> Arguments) ConvertExpression<TInner>(Expression s, QueryContext<TInner> context)
+        private static (string Filter, Dictionary<string, object?> Arguments) ConvertExpression<TInner, TReturn>(Expression s, QueryContext<TInner, TReturn> context)
         {
+            if(s is MemberInitExpression init)
+            {
+                var result = new List<(string Filter, Dictionary<string, object?> Arguments)>();
+                foreach (MemberAssignment binding in init.Bindings)
+                {
+                    var value = ConvertExpression(binding.Expression, context);
+                    var name = binding.Member.GetCustomAttribute<EdgeDBProperty>()?.Name ?? binding.Member.Name;
+                    result.Add(($"{name} := {value.Filter}", value.Arguments));
+                }
+
+                return (string.Join(", ", result.Select(x => x.Filter)), result.SelectMany(x => x.Arguments).ToDictionary(x => x.Key, x => x.Value));
+            }
+
             if(s is BinaryExpression bin)
             {
                 // compute left and right
@@ -211,7 +285,7 @@ namespace EdgeDB
             return string.Join('.', tree);
         }
 
-        private static string ParseArgument<TInner>(object? arg, QueryContext<TInner> context)
+        private static string ParseArgument<TInner, TReturn>(object? arg, QueryContext<TInner, TReturn> context)
         {
             if(arg is string str)
                 return $"\"{str}\"";
@@ -227,5 +301,11 @@ namespace EdgeDB
             // empy set for null
             return arg?.ToString() ?? "{}";
         }
+
+        private static string GetTypeName(Type t)
+            => t.GetCustomAttribute<EdgeDBType>()?.Name ?? t.Name;
+
+        private static string GetPropertyName(PropertyInfo t)
+            => t.GetCustomAttribute<EdgeDBProperty>()?.Name ?? t.Name;
     }
 }

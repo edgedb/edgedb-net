@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB.Models.DataTypes
+namespace EdgeDB.DataTypes
 {
     public struct Memory
     {

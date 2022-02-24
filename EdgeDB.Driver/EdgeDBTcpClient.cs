@@ -2,53 +2,81 @@
 using EdgeDB.Models;
 using EdgeDB.Utils;
 using Microsoft.Extensions.Logging;
-using System.Linq.Expressions;
+using System.Collections.Immutable;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace EdgeDB 
 {
+    /// <summary>
+    ///     Represents a TCP client used to interact with EdgeDB.
+    /// </summary>
     public sealed class EdgeDBTcpClient : IAsyncDisposable
     {
+        /// <summary>
+        ///     Fired when the client receives a message.
+        /// </summary>
         public event Func<IReceiveable, Task> OnMessage
         {
             add => _onMessage.Add(value);
             remove => _onMessage.Remove(value);
         }
 
+        /// <summary>
+        ///     Fired when a command is executed.
+        /// </summary>
+        public event Func<ExecuteResult, Task> CommandExecuted 
+        {
+            add => _commandExecuted.Add(value);
+            remove => _commandExecuted.Remove(value);
+        }
+
+        /// <summary>
+        ///     Fired when the client disconnects.
+        /// </summary>
         public event Func<Task> OnDisconnect
         {
             add => _onDisconnect.Add(value);
             remove => _onDisconnect.Remove(value);
         }
 
-        private AsyncEvent<Func<Task>> _onDisconnect = new();
-        private AsyncEvent<Func<IReceiveable, Task>> _onMessage = new();
+        /// <summary>
+        ///     Gets whether or not this connection is idle.
+        /// </summary>
+        public bool IsIdle { get; private set; }
 
-        // server config
+        /// <summary>
+        ///     Gets the raw server config.
+        /// </summary>
+        public IReadOnlyDictionary<string, object?> ServerConfig;
+
+        private readonly AsyncEvent<Func<Task>> _onDisconnect = new();
+        private readonly AsyncEvent<Func<IReceiveable, Task>> _onMessage = new();
+        private readonly AsyncEvent<Func<ExecuteResult, Task>> _commandExecuted = new();
+
         internal byte[] ServerKey;
         internal int SuggestedPoolConcurrency;
-        internal IDictionary<string, object?> ServerConfig;
 
-        internal bool IsIdle { get; private set; }
         internal ILogger Logger;
 
-        private readonly TcpClient _client;
         private NetworkStream? _stream;
         private SslStream? _secureStream;
-        private readonly EdgeDBConnection _connection;
         private CancellationTokenSource _disconnectCancelToken;
         private TaskCompletionSource<AuthenticationStatus> _authenticationStatusSource;
-        private TaskCompletionSource _readySource;
-        private CancellationTokenSource _readyCancelTokenSource;
-        private SemaphoreSlim _sephamore;
+        private readonly TcpClient _client;
+        private readonly EdgeDBConnection _connection;
+        private readonly TaskCompletionSource _readySource;
+        private readonly CancellationTokenSource _readyCancelTokenSource;
+        private readonly SemaphoreSlim _sephamore;
+        private readonly EdgeDBConfig _config;
 
-        // TODO: config?
-        public EdgeDBTcpClient(EdgeDBConnection connection, ILogger? logger = null)
+        public EdgeDBTcpClient(EdgeDBConnection connection, EdgeDBConfig config)
         {
-            Logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
+            _config = config;
+            Logger = config.Logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
             _sephamore = new(1,1);
             _disconnectCancelToken = new();
             _connection = connection;
@@ -362,7 +390,7 @@ namespace EdgeDB
                         // disard length
                         reader.ReadUInt32();
 
-                        ServerConfig = (codec.Deserialize(reader) as IDictionary<string, object?>)!;
+                        ServerConfig = ImmutableDictionary.CreateRange((codec.Deserialize(reader) as IDictionary<string, object?>)!);
                     }
                     break;
             }
@@ -382,7 +410,7 @@ namespace EdgeDB
             await _secureStream.WriteAsync(ms.ToArray()).ConfigureAwait(false);
         }
 
-        internal async Task StartSASLAuthenticationAsync(AuthenticationStatus authStatus)
+        private async Task StartSASLAuthenticationAsync(AuthenticationStatus authStatus)
         {
             using (var scram = new Scram())
             {
@@ -446,6 +474,10 @@ namespace EdgeDB
                 _authenticationStatusSource = new();
             }
         }
+
+        /// <summary>
+        ///     Connects and authenticates this client.
+        /// </summary>
         public async Task ConnectAsync()
         {
             _disconnectCancelToken = new();
@@ -455,8 +487,6 @@ namespace EdgeDB
             _stream = _client.GetStream();
 
             _secureStream = new SslStream(_stream, false, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
-
-            var certs = new X509Certificate2Collection();
 
             var options = new SslClientAuthenticationOptions()
             {
@@ -474,7 +504,7 @@ namespace EdgeDB
 
             _ = Task.Run(async () => await ReceiveAsync().ConfigureAwait(false));
 
-            //  send handshake
+            // send handshake
             await SendMessageAsync(new ClientHandshake
             {
                 MajorVersion = 1,
@@ -524,6 +554,9 @@ namespace EdgeDB
             return returnValue!;
         }
 
+        /// <summary>
+        ///     Disconnects this client from the edgedb database.
+        /// </summary>
         public async Task DisconnectAsync()
         {
             await SendMessageAsync(new Terminate()).ConfigureAwait(false);
@@ -531,15 +564,38 @@ namespace EdgeDB
             _disconnectCancelToken.Cancel();
         }
 
-        private static bool ValidateServerCertificate(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
+        private bool ValidateServerCertificate(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
         {
-            // TODO: validate with conn params
-            return true;
+            if (!_config.RequireCertificateMatch)
+                return true;
+
+            var rawCert = _connection.TLSCertData!;
+            var cleaned = rawCert.Replace("\n", "").Replace("\r", "");
+            var certData = Regex.Match(cleaned, @"-----BEGIN CERTIFICATE-----(.*?)-----END CERTIFICATE-----");
+
+            if (!certData.Success)
+                return false;
+
+            var cert = new X509Certificate2(Encoding.ASCII.GetBytes(_connection.TLSCertData!));
+
+            X509Chain chain2 = new X509Chain();
+            chain2.ChainPolicy.ExtraStore.Add(cert);
+            chain2.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+            chain2.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+
+            bool isValid = chain2.Build(new X509Certificate2(certificate!));
+            var chainRoot = chain2.ChainElements[chain2.ChainElements.Count - 1].Certificate;
+            isValid = isValid && chainRoot.RawData.SequenceEqual(cert.RawData);
+
+            return isValid;
         }
 
+        /// <summary>
+        ///     Disconnects and disposes the client.
+        /// </summary>
         public async ValueTask DisposeAsync()
         {
-            await DisconnectAsync();
+            try { await DisconnectAsync(); } catch { }
             _client.Dispose();
             await (_stream?.DisposeAsync() ?? ValueTask.CompletedTask);
             await (_secureStream?.DisposeAsync() ?? ValueTask.CompletedTask);

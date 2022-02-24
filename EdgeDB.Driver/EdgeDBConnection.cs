@@ -86,6 +86,8 @@ namespace EdgeDB
             if (!File.Exists(path))
                 throw new FileNotFoundException("Couldn't find the specified project file", path);
 
+            path = Path.GetFullPath(path);
+
             // get the folder name
             var dirName = Directory.GetParent(path)!.FullName;
 
@@ -101,8 +103,6 @@ namespace EdgeDB
         }
 
         internal static EdgeDBConnection ResolveConnection()
-        {
-            return new EdgeDBConnection();
-        }
+            => FromProjectFile("./edgedb.toml");
     }
 }

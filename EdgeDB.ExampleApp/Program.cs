@@ -1,25 +1,28 @@
-﻿using EdgeDB.Models;
-using EdgeDB;
-using System.Net.Sockets;
-using System.Net.Security;
-using Newtonsoft.Json;
-using EdgeDB.Codecs;
+﻿using EdgeDB;
 using Test;
-using System.Linq.Expressions;
-using EdgeDB.Utils;
 
 Logger.AddStream(Console.OpenStandardOutput(), StreamType.StandardOut);
 Logger.AddStream(Console.OpenStandardError(), StreamType.StandardError);
 
 var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb.toml"), new EdgeDBConfig
 {
-    Logger = Logger.GetLogger<EdgeDBClient>()
+    Logger = Logger.GetLogger<EdgeDBClient>(),
+    AllowUnsecureConnection = true
 });
 
-var result = await edgedb.QueryAsync<Person>(x => true);
+// update Person filter .email ?= "quin@quinch.dev" set { name := "Quinch" }
+
+var q = QueryBuilder.BuildUpdateQuery<Person>(
+    x => new Person() { Name = "Quinch", }, 
+    x => x.Email == "quin@quinch.dev");
+
+
+// query builder example
+var result = await edgedb.QueryAsync<Person>(x => x.Name == "Liege");
 
 await Task.Delay(-1);
 
+// our model in a C# form
 public class Person
 {
     [EdgeDBProperty("id")]

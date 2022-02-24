@@ -183,7 +183,7 @@ namespace EdgeDB
             { typeof(double), "float64"},
             { typeof(BigInteger), "bigint" },
             { typeof(decimal), "decimal"},
-            { typeof(Models.DataTypes.Json), "json"},
+            { typeof(DataTypes.Json), "json"},
             { typeof(Guid), "uuid"},
             { typeof(byte[]), "bytes"},
             { typeof(DateTime), "datetime"},
