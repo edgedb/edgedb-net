@@ -63,7 +63,7 @@ namespace EdgeDB
                 var name = GetPropertyName(prop);
                 var value = prop.GetValue(obj);
 
-                propertySet.Add($"{name} := $p_{name}", ($"p_{name}", value));
+                propertySet.Add($"{name} := {GetTypePrefix(prop.PropertyType)}$p_{name}", ($"p_{name}", value));
             }
 
             return new BuiltQuery
