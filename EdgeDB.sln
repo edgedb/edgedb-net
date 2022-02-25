@@ -17,6 +17,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{E6B9FABC
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{6FC214F5-C912-4D99-91B1-3E9F52A4E11B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EdgeDB.QueryBuilder.SourceGenerator", "EdgeDB.QueryBuilder.SourceGenerator\EdgeDB.QueryBuilder.SourceGenerator.csproj", "{CEC6204B-1A67-4985-BA51-5261E6A3093F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{4CC2101C-D0AB-4F08-A0FD-205F96958196}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4CC2101C-D0AB-4F08-A0FD-205F96958196}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4CC2101C-D0AB-4F08-A0FD-205F96958196}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CEC6204B-1A67-4985-BA51-5261E6A3093F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CEC6204B-1A67-4985-BA51-5261E6A3093F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CEC6204B-1A67-4985-BA51-5261E6A3093F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CEC6204B-1A67-4985-BA51-5261E6A3093F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -48,6 +54,7 @@ Global
 		{B85156A1-66B3-46F1-B238-19B96C4C7729} = {6FC214F5-C912-4D99-91B1-3E9F52A4E11B}
 		{CD4A4B5D-4B67-4E64-A13B-3F7BF770B056} = {E6B9FABC-241B-4561-9A94-E67B6BE380E2}
 		{4CC2101C-D0AB-4F08-A0FD-205F96958196} = {025AAADF-16AF-4367-9C3D-9E60EDED832F}
+		{CEC6204B-1A67-4985-BA51-5261E6A3093F} = {025AAADF-16AF-4367-9C3D-9E60EDED832F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4E90C94F-D693-4411-82F3-2051DE1BE052}

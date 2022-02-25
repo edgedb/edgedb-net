@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -7,11 +7,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Operators\String\" />
+    <None Remove="operators.yml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="operators.yml" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\EdgeDB.Driver\EdgeDB.Driver.csproj" />
   </ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\EdgeDB.QueryBuilder.SourceGenerator\EdgeDB.QueryBuilder.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
 
 </Project>

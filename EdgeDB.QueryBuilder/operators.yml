@@ -1,0 +1,91 @@
+﻿general:
+  - expression: Equal
+    operator: "{0} ?= {1}"
+    return: bool
+    name: Equals
+    functions:
+      - name: Equals
+        parameters:
+          - object?
+          - object?
+  - expression: NotEqual
+    operator: "{0} ?!= {1}"
+    return: bool
+    name: NotEqual
+    functions:
+      - name: NotEqual
+        parameters:
+          - object?
+          - object?
+  - expression: LessThan
+    operator: "{0} < {1}"
+    return: bool
+    name: LessThan
+    functions:
+      - name: LessThan
+        parameters:
+          - object?
+          - object?
+  - expression: GreaterThan
+    operator: "{0} > {1}"
+    return: bool
+    name: GreaterThan
+    functions:
+      - name: GreaterThan
+        parameters:
+          - object?
+          - object?
+  - expression: LessThanOrEqual
+    operator: "{0} <= {1}"
+    return: bool
+    name: LessThanOrEqual
+    functions: 
+      - name: LessThanOrEqual
+        parameters:
+          - object?
+          - object?
+  - expression: GreaterThanOrEqual
+    operator: "{0} >= {1}"
+    return: bool
+    name: GreaterThanOrEqual
+    functions: 
+      - name: GreaterThanOrEqual
+        parameters:
+          - object?
+          - object?
+  - expression: Index
+    operator: "{0}[{1}]"
+    return: object
+    name: Index
+    function:
+      - name: ElementAt<TType>
+        parameters: 
+          - IEnumerable<TType> collection
+          - long
+        return: TType
+      - name: Index<TType>
+        parameters: 
+          - IEnumerable<TType> collection
+          - long index
+        return: TType
+      - name: Index
+        parameters: 
+          - string
+          - long index
+        return: string
+  - expression: null
+    operator: "{0}[{1}:{2}]"
+    return: object
+    name: Slice
+    function:
+      - name: Slice<TType>
+        parameters:
+          - IEnumerable<TType> collection
+          - long startIndex
+        return: TType
+      - name: Slice<TType>
+        parameters:
+          - IEnumerable<TType> collection
+          - long startIndex
+          - long endIndex
+        return: TType

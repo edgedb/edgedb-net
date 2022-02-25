@@ -7,8 +7,9 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
-    public sealed class EdgeQL
+    public sealed partial class EdgeQL
     {
+        #region General
         #region Length
         [EquivalentOperator(typeof(Len))]
         public static long Length(string value) { return default!; }
@@ -59,5 +60,15 @@ namespace EdgeDB
         [EquivalentOperator(typeof(Concat))]
         public static IEnumerable<TType> Concat<TType>(IEnumerable<TType> a, IEnumerable<TType> b) { return default!; }
         #endregion
+
+        #region Like/ILike
+        [EquivalentOperator(typeof(Like))]
+        public static bool Like(string a, string b) { return default!; }
+
+        [EquivalentOperator(typeof(ILike))]
+        public static bool ILike(string a, string b) { return default!; }
+        #endregion
+
+        #endregion General
     }
 }
