@@ -1,7 +1,7 @@
 ﻿using EdgeDB;
+using EdgeDB.DataTypes;
+using System.Linq.Expressions;
 using Test;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 Logger.AddStream(Console.OpenStandardOutput(), StreamType.StandardOut);
 Logger.AddStream(Console.OpenStandardError(), StreamType.StandardError);
@@ -10,6 +10,11 @@ var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb
 {
     Logger = Logger.GetLogger<EdgeDBClient>(),
 });
+
+var result = await edgedb.ExecuteAsync("select sys::get_version()");
+
+Expression<Func<Person, bool>> func = x => x is object;
+var b = QueryBuilder.BuildSelectQuery<Person>(x => EdgeQL.Is(x.Name, EdgeQL.TypeUnion(typeof(string), typeof(bool), typeof(long), typeof(float))));
 
 await Task.Delay(-1);
 
@@ -21,4 +26,7 @@ public class Person
 
     [EdgeDBProperty("email")]
     public string? Email { get; set; }
+
+    [EdgeDBProperty("number")]
+    public long Number { get; set; }
 }

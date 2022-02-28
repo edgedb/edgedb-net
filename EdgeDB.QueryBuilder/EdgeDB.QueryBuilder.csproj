@@ -11,15 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AdditionalFiles Include="operators.yml" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\EdgeDB.Driver\EdgeDB.Driver.csproj" />
   </ItemGroup>
-
-	<ItemGroup>
-		<ProjectReference Include="..\EdgeDB.QueryBuilder.SourceGenerator\EdgeDB.QueryBuilder.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-	</ItemGroup>
 
 </Project>

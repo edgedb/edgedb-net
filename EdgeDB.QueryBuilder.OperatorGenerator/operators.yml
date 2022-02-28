@@ -1,0 +1,1521 @@
+﻿Generic:
+  - expression: Equal
+    operator: "{0} ?= {1}"
+    return: bool
+    name: Equals
+    functions:
+      - name: Equals
+        parameters:
+          - object?
+          - object?
+
+  - expression: NotEqual
+    operator: "{0} ?!= {1}"
+    return: bool
+    name: NotEqual
+    functions:
+      - name: NotEqual
+        parameters:
+          - object?
+          - object?
+
+  - expression: LessThan
+    operator: "{0} < {1}"
+    return: bool
+    name: LessThan
+    functions:
+      - name: LessThan
+        parameters:
+          - object?
+          - object?
+
+  - expression: GreaterThan
+    operator: "{0} > {1}"
+    return: bool
+    name: GreaterThan
+    functions:
+      - name: GreaterThan
+        parameters:
+          - object?
+          - object?
+
+  - expression: LessThanOrEqual
+    operator: "{0} <= {1}"
+    return: bool
+    name: LessThanOrEqual
+    functions:
+      - name: LessThanOrEqual
+        parameters:
+          - object?
+          - object?
+
+  - expression: GreaterThanOrEqual
+    operator: "{0} >= {1}"
+    return: bool
+    name: GreaterThanOrEqual
+    functions:
+      - name: GreaterThanOrEqual
+        parameters:
+          - object?
+          - object?
+
+  - operator: "len({0})"
+    return: long
+    name: Length
+    functions:
+      - name: Length
+        parameters:
+          - object?
+
+  - operator: "contains({0}, {1})"
+    return: bool
+    name: Contains
+    functions:
+      - name: Contains
+        parameters:
+          - object? source
+          - object? element
+
+  - operator: "find({0}, {1})"
+    return: long
+    name: Find
+    functions:
+      - name: IndexOf
+        parameters:
+          - object? source
+          - object? element
+
+string:
+  - expression: Index
+    operator: "{0}[{1}]"
+    return: string
+    name: Index
+    functions: 
+      - name: Index
+        parameters:
+          - string
+          - long
+
+  - operator: "{0}[{1}:{2?}]"
+    return: string
+    name: Slice
+    functions:
+      - name: Slice
+        parameters:
+          - string str
+          - long startIndex
+      - name: Slice
+        parameters:
+          - string str
+          - long startIndex
+          - long endIndex
+
+  - operator: "{0} ++ {1}"
+    return: string
+    name: Concat
+    functions:
+      - name: Concat
+        parameters:
+          - string
+          - string
+  
+  - operator: "{0} like {1}"
+    return: bool
+    name: Like
+    functions:
+      - name: Like
+        parameters:
+          - string
+          - string
+
+  - operator: "{0} ilike {1}"
+    return: bool
+    name: ILike
+    functions:
+      - name: ILike
+        parameters:
+          - string
+          - string
+  
+  - operator: "to_str({0})"
+    return: string
+    name: ToString
+    functions:
+      - name: ToString
+        parameters:
+          - object?
+  
+  - operator: "len({0})"
+    return: long
+    name: Length
+    functions:
+      - parameters:
+          - string
+  
+  - operator: "contains({0}, {1})"
+    return: bool
+    name: Contains
+    functions: 
+      - parameters:
+          - string
+          - string
+      - parameters:
+          - string
+          - char
+  
+  - operator: "find({0}, {1})"
+    name: Find
+    return: long
+    functions:
+      - parameters:
+          - string
+          - string
+      - parameters:
+          - string
+          - char
+  
+  - operator: "str_lower({0})"
+    return: string
+    name: ToLower
+    functions:
+      - name: ToLower
+        parameters: 
+          - string
+  
+  - operator: "str_upper({0})"
+    return: string
+    name: ToUpper
+    functions:
+      - name: ToUpper
+        parameters:
+          - string
+
+  - operator: "str_title({0})"
+    return: string
+    name: ToTitle
+    functions:
+      - parameters:
+          - string
+  
+  - operator: "str_pad_start({0}, {1}, {2?})"
+    name: PadLeft
+    return: string
+    functions:
+      - parameters:
+          - string
+          - long count
+      - parameters:
+          - string
+          - long count
+          - string fill
+  
+  - operator: "str_pad_end({0}, {1}, {2?})"
+    name: PadRight
+    return: string
+    functions:
+      - parameters:
+          - string
+          - long count
+      - parameters:
+          - string
+          - long count
+          - string fill
+  
+  - operator: "str_trim({0}, {1?})"
+    name: Trim
+    return: string
+    functions: 
+      - parameters:
+          - string
+      - parameters:
+          - string
+          - string trimCharacters
+  
+  - operator: "str_trim_start({0}, {1?})"
+    name: TrimStart
+    return: string
+    functions:
+      - parameters:
+          - string
+      - parameters:
+          - string
+          - string trimCharacters
+
+  - operator: "str_trim_end({0}, {1?})"
+    name: TrimEnd
+    return: string
+    functions:
+      - parameters:
+          - string
+      - parameters:
+          - string
+          - string trimCharacters
+  
+  - operator: "str_repeat({0}, {1})"
+    name: Repeat
+    return: string
+    functions:
+      - parameters:
+          - string
+          - long count
+  
+  - operator: "str_split({0}, {1})"
+    name: Split
+    return: string[]
+    functions:
+      - parameters:
+          - string
+          - string delimiter
+      - parameters:
+          - string
+          - char delimiter
+  
+  - operator: "re_match({0}, {1})"
+    name: Match
+    return: string[]
+    functions:
+      - parameters:
+          - string pattern
+          - string input
+  
+  - operator: "re_match_all({0}, {1})"
+    name: MatchAll
+    return: Set<string[]>
+    functions:
+      - parameters:
+          - string pattern
+          - string input
+  
+  - operator: "re_replace({0}, {1}, {2}, <flags := {3?}>)"
+    name: Replace
+    return: string
+    functions:
+      - parameters:
+          - string pattern
+          - string substitute
+          - string input
+          - string flags
+
+  - operator: "re_test({0}, {1})"
+    name: IsMatch
+    return: bool
+    functions:
+      - parameters:
+        - string pattern
+        - string input
+
+boolean:
+  - expression: Or
+    operator: "{0} or {1}"
+    name: Or
+    return: bool
+    functions:
+      - parameters:
+          - bool
+          - bool
+
+  - expression: And
+    operator: "{0} and {1}"
+    name: And
+    return: bool
+    functions:
+      - parameters:
+          - bool
+          - bool
+  
+  - expression: Not
+    operator: "not {0}"
+    name: Not
+    return: bool
+    functions:
+      - parameters:
+          - bool
+
+  - operator: "all({0})"
+    name: All
+    return: bool
+    functions:
+      - parameters: 
+          - IEnumerable<bool>
+  
+  - operator: "any({0})"
+    name: Any
+    return: bool
+    functions:
+      - parameters: 
+          - IEnumerable<bool>
+  
+numbers:
+  - expression: Add
+    operator: "{0} + {1}"
+    name: Add
+    return: long
+    functions:
+      - parameters:
+          - long
+          - long
+        return: long
+      - parameters:
+          - short
+          - short
+        return: short
+      - parameters:
+          - int
+          - int
+        return: int
+      - parameters:
+          - double
+          - double
+        return: double
+      - parameters:
+          - float
+          - float
+        return: float
+      - parameters:
+          - decimal
+          - decimal
+        return: decimal
+      - parameters:
+          - byte
+          - byte
+        return: byte
+  - expression: Subtract
+    operator: "{0} - {1}"
+    name: Subtract
+    return: long
+    functions:
+      - parameters:
+          - long
+          - long
+        return: long
+      - parameters:
+          - short
+          - short
+        return: short
+      - parameters:
+          - int
+          - int
+        return: int
+      - parameters:
+          - double
+          - double
+        return: double
+      - parameters:
+          - float
+          - float
+        return: float
+      - parameters:
+          - decimal
+          - decimal
+        return: decimal
+      - parameters:
+          - byte
+          - byte
+        return: byte
+  
+  - expression: Negate
+    operator: "-{0}"
+    name: Negative
+    return: long
+    functions:
+      - parameters:
+          - long
+          - long
+        return: long
+      - parameters:
+          - short
+          - short
+        return: short
+      - parameters:
+          - int
+          - int
+        return: int
+      - parameters:
+          - double
+          - double
+        return: double
+      - parameters:
+          - float
+          - float
+        return: float
+      - parameters:
+          - decimal
+          - decimal
+        return: decimal
+      - parameters:
+          - byte
+          - byte
+        return: byte
+  
+  - expression: Multiply
+    operator: "{0} * {1}"
+    name: Multiply
+    return: long
+    functions:
+      - parameters:
+          - long
+          - long
+        return: long
+      - parameters:
+          - short
+          - short
+        return: short
+      - parameters:
+          - int
+          - int
+        return: int
+      - parameters:
+          - double
+          - double
+        return: double
+      - parameters:
+          - float
+          - float
+        return: float
+      - parameters:
+          - decimal
+          - decimal
+        return: decimal
+      - parameters:
+          - byte
+          - byte
+        return: byte
+  
+  - expression: Divide
+    operator: "{0} / {1}"
+    name: Divide
+    return: long
+    functions:
+      - parameters:
+          - long
+          - long
+        return: long
+      - parameters:
+          - short
+          - short
+        return: short
+      - parameters:
+          - int
+          - int
+        return: int
+      - parameters:
+          - double
+          - double
+        return: double
+      - parameters:
+          - float
+          - float
+        return: float
+      - parameters:
+          - decimal
+          - decimal
+        return: decimal
+      - parameters:
+          - byte
+          - byte
+        return: byte
+  
+  - operator: "{0} // {1}"
+    name: Floor
+    return: long
+    functions: 
+      - parameters:
+          - long
+          - long
+        return: long
+      - parameters:
+          - short
+          - short
+        return: short
+      - parameters:
+          - int
+          - int
+        return: int
+      - parameters:
+          - double
+          - double
+        return: double
+      - parameters:
+          - float
+          - float
+        return: float
+      - parameters:
+          - decimal
+          - decimal
+        return: decimal
+      - parameters:
+          - byte
+          - byte
+        return: byte
+  
+  - expression: Modulo
+    name: Modulo
+    return: long
+    functions: 
+      - parameters:
+          - long
+          - long
+        return: long
+      - parameters:
+          - short
+          - short
+        return: short
+      - parameters:
+          - int
+          - int
+        return: int
+      - parameters:
+          - double
+          - double
+        return: double
+      - parameters:
+          - float
+          - float
+        return: float
+      - parameters:
+          - decimal
+          - decimal
+        return: decimal
+      - parameters:
+          - byte
+          - byte
+        return: byte
+  
+  - operator: "{0} ^ {1}"
+    name: Power
+    return: long
+    functions: 
+      - parameters:
+          - long
+          - long
+        return: long
+      - parameters:
+          - short
+          - short
+        return: short
+      - parameters:
+          - int
+          - int
+        return: int
+      - parameters:
+          - double
+          - double
+        return: double
+      - parameters:
+          - float
+          - float
+        return: float
+      - parameters:
+          - decimal
+          - decimal
+        return: decimal
+      - parameters:
+          - byte
+          - byte
+        return: byte
+  
+  - operator: "sum({0})"
+    name: Sum
+    return: long
+    functions:
+      - parameters:
+          -  Set<long>
+      - parameters:
+          -  Set<int>
+      - parameters:
+          -  Set<decimal>
+        return: decimal
+      - parameters:
+          -  Set<float>
+        return: float
+      - parameters:
+          -  Set<double>
+        return: double
+      - parameters:
+          -  Set<BigInteger>
+        return: BigInteger
+  
+  - operator: "round({0}, {1?})"
+    name: Round
+    return: long
+    functions: 
+      - parameters:
+          - long
+      - parameters:
+          - double
+      - parameters:
+          - BigInteger
+      - parameters:
+          - decimal
+      - parameters:
+          - decimal
+          - long decimalPoint
+  
+  - operator: "random()"
+    name: Random
+    return: double
+    functions:
+      - name: Random
+
+  - operator: "to_bigint({0}, {1?})"
+    name: ToBigInteger
+    return: BigInteger
+    functions:
+      - parameters:
+          - string
+      - parameters:
+          - string
+          - string format
+  
+  - operator: "to_decimal({0}, {1?})"
+    name: ToDecimal
+    return: decimal
+    functions:
+      - parameters:
+          - string
+      - parameters:
+          - string
+          - string format
+
+  - operator: "to_int16({0}, {1?})"
+    name: ToShort
+    return: short
+    functions:
+      - parameters:
+          - string
+      - parameters:
+          - string
+          - string format
+  
+  - operator: "to_int32({0}, {1?})"
+    name: ToInt
+    return: int
+    functions:
+      - parameters:
+          - string
+      - parameters:
+          - string
+          - string format
+  
+  - operator: "to_int64({0}, {1?})"
+    name: ToLong
+    return: long
+    functions:
+      - parameters:
+          - string
+      - parameters:
+          - string
+          - string format
+  
+  - operator: "to_float32({0}, {1?})"
+    name: ToFloat
+    return: float
+    functions:
+      - parameters:
+          - string
+      - parameters:
+          - string
+          - string format
+
+  - operator: "to_float64({0}, {1?})"
+    name: ToDouble
+    return: double
+    functions:
+      - parameters:
+          - string
+      - parameters:
+          - string
+          - string format
+
+json:
+  - expression: Index
+    operator: "{0}[{1}]"
+    name: "Index"
+    return: Json
+    functions:
+      - parameters:
+          - Json
+          - long index
+  
+  - operator: "{0}[{1}:{2?}]"
+    name: Slice
+    return: Json
+    functions:
+      - parameters:
+          - long
+      - parameters:
+          - long
+          - long
+  
+  - operator: "{0} ++ {1}"
+    name: Concat
+    return: Json
+    functions:
+      - parameters:
+          - Json
+          - Json
+  
+  - operator: "{0}[{1}]"
+    name: Index
+    return: Json
+    functions:
+      - parameters:
+          - Json
+          - string
+  
+  - operator: "to_json({0})"
+    name: ToJson
+    return: Json
+    functions: 
+      - parameters:
+          - string
+  
+  - operator: "json_array_unpack({0})"
+    name: UnpackJsonArray
+    return: Set<Json>
+    functions:
+      - parameters:
+          - Json
+  
+  - operator: "json_get({0}, {1})"
+    name: JsonGet
+    return: Json?
+    functions:
+      - parameters:
+          - Json
+          - params string[] path
+  
+  - operator: "json_object_unpack({0})"
+    name: UnpackJsonObject
+    return: Set<Tuple<string, Json>>
+    functions:
+      - parameters:
+          - Json
+  
+  - operator: "json_typeof({0})"
+    name: JsonTypeof
+    return: string
+    functions:
+      - parameters:
+          - Json
+
+uuid:
+  - operator: "uuid_generate_v1mc()"
+    name: GenerateGuid
+    return: Guid
+    functions:
+      - name: GenerateGuid
+
+temporal:
+  - expression: Add
+    operator: "{0} + {1}"
+    name: Add
+    return: DateTimeOffset
+    functions:
+      - parameters:
+          - DateTimeOffset
+          - TimeSpan
+  
+  - expression: Subtract
+    operator: "{0} - {1}"
+    name: Subtract
+    functions:
+      - parameters:
+          - TimeSpan
+          - TimeSpan
+        return: TimeSpan
+      - parameters:
+          - DateTimeOffset
+          - TimeSpan
+        return: DateTimeOffset
+      - parameters:
+          - DateTimeOffset
+          - DateTimeOffset
+        return: DateTimeOffset
+      - parameters:
+          - DateTime
+          - TimeSpan
+        return: DateTime
+      - parameters:
+          - DateTime
+          - DateTime
+        return: DateTimeOffset
+  
+  - operator: "std::datetime_current()"
+    name: GetCurrentDateTime
+    return: DateTimeOffset
+    functions:
+      - name: GetCurrentDateTime
+  
+  - operator: "std::datetime_of_transaction()"
+    name: GetTransactionDateTime
+    return: DateTimeOffset
+    functions:
+      - name: GetTransactionDateTime
+  
+  - operator: "std::datetime_of_statement()"
+    name: GetStatementDateTime
+    return: DateTimeOffset
+    functions:
+      - name: GetStatementDateTime
+
+  - operator: "datetime_get({0}, {1})"
+    name: GetDatetimeElement
+    return: double
+    functions:
+      - parameters:
+          - DateTimeOffset
+          - DateTimeElement
+
+  - operator: "cal::time_get({0}, {1})"
+    name: GetTimespanElement
+    return: double
+    functions:
+      - parameters:
+          - TimeSpan
+          - TimeSpanElement
+  
+  - operator: "cal::date_get({0}, {1})"
+    name: GetLocalDateElement
+    return: double
+    functions:
+      - parameters:
+          - DateTime
+          - LocalDateElement
+
+  - operator: "datetime_truncate({0}, {1})"
+    name: TruncateDateTimeOffset
+    return: DateTimeOffset
+    functions:
+      - parameters:
+          - DateTimeOffset
+          - DateTimeTruncateUnit
+  
+  - operator: "duration_truncate({0}, {1})"
+    name: TruncateTimeSpan
+    return: TimeSpan
+    functions:
+      - parameters:
+          - TimeSpan
+          - DurationTruncateUnit
+
+  - operator: "to_datetime({0}, {1?}, {2?}, {3?}, {4?}, {5?}, {6?})"
+    name: ToDateTimeOffset
+    return: DateTimeOffset
+    functions:
+      - parameters:
+          - string
+          - string format
+      - parameters:
+          - DateTime
+          - string timezone
+      - parameters:
+          - long year
+          - long month
+          - long day
+          - long hour
+          - long min
+          - long sec
+          - string timezone
+      - parameters:
+          - decimal unixSeconds
+      - parameters:
+          - double unixSeconds
+      - parameters:
+          - long unixSeconds
+  
+  - operator: "cal::to_local_datetime({0}, {1?}, {2?}, {3?}, {4?}, {5?})"
+    name: ToDateTime
+    return: DateTime
+    functions:
+      - parameters:
+          - string
+          - string format
+      - parameters:
+          - DateTimeOffset
+          - string timezone
+      - parameters:
+          - long year
+          - long month
+          - long day
+          - long hour
+          - long min
+          - long sec
+      
+  - operator: "cal::to_local_date({0}, {1?}, {2?})"
+    name: ToLocalDate
+    return: DateTime
+    functions:
+      - parameters:
+          - string
+          - string format
+      - parameters:
+          - DateTimeOffset
+          - string timezone
+      - parameters:
+          - long year
+          - long month
+          - long day
+  
+  - operator: "cal::to_local_time({0}, {1?}, {2?})"
+    name: ToLocalTime
+    return: TimeSpan
+    functions:
+      - parameters:
+          - string
+          - string format
+      - parameters:
+          - DateTimeOffset
+          - string timezone
+      - parameters:
+          - long hour
+          - long minute
+          - double second
+
+  - operator: "to_duration(<hours := {0?}>, <minutes := {1?}>, <seconds := {2?}> <microseconds := {3?}>)"
+    name: ToTimeSpan
+    return: TimeSpan
+    functions:
+      - parameters:
+          - long? hours = null
+          - long? minutes = null
+          - double? seconds = null
+          - double? microseconds = null
+  
+  - operator: "std::duration_to_seconds({0})"
+    name: TimeSpanToSeconds
+    return: decimal
+    functions:
+      - parameters:
+          - TimeSpan
+  
+  - operator: "cal::to_relative_duration(<years := {0?}>, <months := {1?}>, <days := {2?}>, <hours := {3?}>, <minutes := {4?}>, <seconds := {5?}>, <microseconds := {6?}>)"
+    name: ToRelativeDuration
+    return: TimeSpan
+    functions:
+      - parameters:
+          - long? years = null
+          - long? months = null
+          - long? days = null
+          - long? hours = null
+          - long? minutes = null
+          - long? seconds = null
+          - long? microseconds = null
+  
+bytes:
+  - expression: Index
+    operator: "{0}[{1}]"
+    name: Index
+    return: byte[]
+    functions:
+      - parameters:
+          - byte[]
+          - long index
+  
+  - operator: "{0}[{1}:{2?}]"
+    name: Slice
+    return: byte[]
+    functions:
+      - parameters:
+          - byte[]
+          - long startIndex
+      - parameters:
+          - byte[]
+          - long startIndex
+          - long endIndex
+  
+  - operator: "{0} ++ {1}"
+    name: Concat
+    return: byte[]
+    functions:
+      - parameters:
+          - byte[]
+          - byte[]
+  
+  - operator: "bytes_get_bit({0}, {1})"
+    name: GetBit
+    return: long
+    functions:
+      - parameters:
+          - byte[]
+          - long bitIndex
+  
+sequence:
+  - operator: "sequence_next(<introspect typeof {0}>)"
+    name: IncrementSequence
+    return: long
+    functions:
+      - parameters:
+          - long seq
+  
+  - operator: "sequence_reset(<introspect typeof {0}>, {1?})"
+    name: ResetSequence
+    return: long
+    functions:
+      - parameters:
+          - long seq
+      - parameters:
+          - long seq
+          - long resetTo
+
+array:
+  - expression: Index
+    operator: "{0}[{1}]"
+    name: Index<TType>
+    return: TType
+    functions:
+      - parameters:
+          - IEnumerable<TType>
+          - long index
+  
+  - operator: "{0}[{1}:{2?}]"
+    name: Slice<TType>
+    return: IEnumerable<TType>
+    functions:
+      - parameters:
+          - IEnumerable<TType>
+          - long startIndex
+      - parameters:
+          - IEnumerable<TType>
+          - long startIndex
+          - long endIndex
+  
+  - operator: "{0} ++ {1}"
+    name: Concat<TType>
+    return: IEnumerable<TType>
+    functions:
+      - parameters:
+          - IEnumerable<TType>
+          - IEnumerable<TType>
+  
+  - operator: "array_agg({0})"
+    name: Aggregate<TType>
+    return: IEnumerable<TType>
+    functions:
+      - parameters:
+          - Set<TType>
+  
+  - operator: "array_get({0}, {1}, <default := {2?}>)"
+    name: IndexOrDefault<TType>
+    return: TType?
+    functions:
+      - parameters:
+          - IEnumerable<TType>
+          - long index
+          - TType? defaultValue = default
+  
+  - operator: "array_unpack({0})"
+    name: UnpackArray<TType>
+    return: Set<TType>
+    functions:
+      - parameters:
+          - IEnumerable<TType>
+
+  - operator: "array_join({0}, {1})"
+    name: Join
+    return: string
+    functions:
+      - parameters:
+          - IEnumerable<string>
+          - string delimiter
+
+sets:
+  - operator: "distinct {0}"
+    name: Distinct<TType>
+    return: Set<TType>
+    functions:
+      - parameters:
+          - Set<TType>
+  
+  - operator: "{1} in {0}"
+    name: Contains<TType>
+    return: bool
+    functions:
+      - parameters:
+          - Set<TType>
+          - TType element
+  
+  - operator: "{0} union {1}"
+    name: Union<TType>
+    return: Set<TType>
+    functions:
+      - parameters:
+          - Set<TType>
+          - Set<TType>
+          
+  - expression: Conditional
+    operator: "{1} if {0} else {2}"
+    name: Conditional<TType>
+    return: TType
+    functions:
+      - parameters:
+          - bool condition
+          - TType trueReturn
+          - TType falseReturn
+  
+  - expression: Coalesce
+    operator: "{0} ?? {1}"
+    name: Coalesce<TType>
+    return: TType
+    functions:
+      - parameters:
+          - TType?
+          - TType
+  
+  - operator: "detached {0}" 
+    name: Detached<TType>
+    return: TType
+    functions:
+      - parameters:
+          - TType
+  
+  - operator: "exists {0}"
+    name: NotNull<TType>
+    return: bool
+    functions:
+      - parameters:
+          - TType value
+  
+  - expression: TypeIs
+    operator: "{0}[is {1}]"
+    name: CastIfTypeIs<TDesired>
+    parameter_map:
+      - 1:TDesired
+    return: TDesired
+    functions:
+      - parameters:
+          - object?
+  
+  - operator: "assert_distinct({0})"
+    name: AssertDistinct<TType>
+    return: Set<TType>
+    functions:
+      - parameters:
+          - Set<TType>
+  
+  - operator: "assert_single({0})"
+    name: AssertSingle<TType>
+    return: TType
+    functions:
+      - parameters:
+          - Set<TType>
+
+  - operator: "assert_exists({0})"
+    name: AssertNotNull<TType>
+    return: TType
+    functions:
+      - parameters:
+          - TType?
+  
+  - operator: "count({0})"
+    name: Count<TType>
+    return: long
+    functions:
+      - parameters:
+          - Set<TType>
+
+  - operator: "enumerate({0})"
+    name: Enumerate<TType>
+    return: Set<Tuple<long, TType>>
+    functions:
+      - parameters:
+          - Set<TType>
+
+  - operator: "min({0})"
+    name: Min<TType>
+    return: TType
+    functions:
+      - parameters:
+          - Set<TType>
+  
+  - operator: "max({0})"
+    name: Max<TType>
+    return: TType
+    functions:
+      - parameters:
+          - Set<TType>
+
+types:
+  - operator: "{0} is {1}"
+    name: Is<TType>
+    return: bool
+    parameter_map:
+      - 1:TType
+    functions:
+      - parameters:
+          - object?
+          
+  - operator: "{0} is {1}"
+    name: Is
+    return: bool
+    functions:
+      - parameters:
+          - object?
+          - Type
+
+  - operator: "{0} is not {1}"
+    name: IsNot<TType>
+    return: bool
+    parameter_map:
+      - 1:TType
+    functions:
+      - parameters:
+          - object?
+  
+  - operator: "({0} | {1} { | :2+})"
+    name: TypeUnion
+    return: Type
+    functions:
+      - parameters:
+          - Type
+          - Type
+          - params Type[] additional
+  
+  - expression: Convert
+    operator: "<{0}>{1}"
+    name: Cast<TType>
+    return: TType
+    parameter_map:
+      - 0:TType
+    functions:
+      - parameters:
+          - object?
+  
+  - operator: "introspect (typeof {0})"
+    name: GetType
+    return: Type
+    functions:
+      - parameters:
+          - object?
+  
+  - operator: "{0} is typeof {1}"
+    name: IsTypeOf
+    return: bool
+    functions:
+      - parameters:
+          - object?
+          - object?
+
+  - operator: "{0} is not typeof {1}"
+    name: IsNotTypeOf
+    return: bool
+    functions:
+      - parameters:
+          - object?
+          - object?
+
+  - operator: "introspect {0}"
+    name: Introspect
+    return: Type
+    functions:
+      - parameters:
+          - Type
+
+math:
+    - operator: "math::abs({0})"
+    name: Abs
+    functions:
+      - parameters:
+          - anyreal
+
+  - operator: "math::ceil({0})"
+    name: Ceil
+    functions:
+      - parameters:
+          - long
+        return: double
+      - parameters:
+          - double
+        return: double
+      - parameters:
+          - BigInteger
+        return: BigInteger
+      - parameters:
+          - decimal
+        return: decimal
+  
+  - operator: "math::floor({0})"
+    name: Floor
+    functions:
+      - parameters:
+          - long
+        return: double
+      - parameters:
+          - double
+        return: double
+      - parameters:
+          - BigInteger
+        return: BigInteger
+      - parameters:
+          - decimal
+        return: decimal
+
+  - operator: "math::ln({0})"
+    name: NaturalLog
+    functions:
+      - parameters:
+          - long
+        return: double
+      - parameters:
+          - double
+        return: double
+      - parameters:
+          - decimal
+        return: decimal
+  
+  - operator: "math::lg({0})"
+    name: Logarithm
+    functions:
+      - parameters:
+          - long
+        return: double
+      - parameters:
+          - double
+        return: double
+      - parameters:
+          - decimal
+        return: decimal
+  
+  - operator: "math::log({0} <base := {1}>)"
+    name: Logarithm
+    return: decimal
+    functions:
+      - parameters:
+          - decimal
+          - decimal numericBase
+  
+  - operator: "math::mean({0})"
+    name: Mean
+    return: double
+    functions:
+      - parameters:
+          - Set<long>
+      - parameters:
+          - Set<double>
+      - parameters:
+          - Set<decimal>
+        return: decimal
+  
+  - operator: "math::stddev({0})"
+    name: StandardDeviation
+    return: double
+    functions:
+      - parameters:
+          - Set<long>
+      - parameters:
+          - Set<double>
+      - parameters:
+          - Set<decimal>
+        return: decimal
+  
+  - operator: "math::stddev_pop({0})"
+    name: StandardDeviationPop
+    return: double
+    functions:
+      - parameters:
+          - Set<long>
+      - parameters:
+          - Set<double>
+      - parameters:
+          - Set<decimal>
+        return: decimal
+
+  - operator: "math::var({0})"
+    name: Variance
+    return: double
+    functions:
+      - parameters:
+          - Set<long>
+      - parameters:
+          - Set<double>
+      - parameters:
+          - Set<decimal>
+        return: decimal
+  
+  - operator: "math::var_pop({0})"
+    name: VariancePop
+    return: double
+    functions:
+      - parameters:
+          - Set<long>
+      - parameters:
+          - Set<double>
+      - parameters:
+          - Set<decimal>
+        return: decimal
+
+
+          
+enums:
+  - name: DurationTruncateUnit
+    serialize_method: Lower
+    elements:
+      - Microseconds
+      - Milliseconds
+      - Seconds
+      - Minutes
+      - Hours
+
+  - name: DateTimeTruncateUnit
+    serialize_method: Lower
+    elements:
+      - Microseconds
+      - Milliseconds
+      - seconds
+      - minutes
+      - hours
+      - days
+      - weeks
+      - months
+      - quarters
+      - years
+      - decades
+      - centuries
+
+  - name: LocalDateElement
+    serialize_method: Lower
+    elements:
+      - Century
+      - Day
+      - Decade
+      - Dow
+      - Doy
+      - ISODow
+      - ISOYear
+      - Millennium
+      - Month
+      - Quarter
+      - Week
+      - Year
+
+  - name: TimeSpanElement
+    serialize_method: Lower
+    elements:
+      - MidnightSeconds
+      - Hour
+      - Microseconds
+      - Milliseconds
+      - Minutes
+      - Seconds
+
+  - name: DateTimeElement
+    serialize_method: Lower
+    elements:
+      - EpochSeconds
+      - Century
+      - Day
+      - Decade
+      - Dow
+      - Doy
+      - Hour
+      - ISODow
+      - ISOYear
+      - Microseconds
+      - Millennium
+      - Milliseconds
+      - Minutes
+      - Month
+      - Quarter
+      - Seconds
+      - Week
+      - Year

@@ -90,6 +90,11 @@ namespace EdgeDB
                     // create codec based on type descriptor
                     switch (typeDescriptor)
                     {
+                        case EnumerationTypeDescriptor enumeration:
+                            {
+
+                            }
+                            break;
                         case ObjectShapeDescriptor shapeDescriptor:
                             {
                                 var codecArguments = shapeDescriptor.Shapes.Select(x => (x.Name, codecs[x.TypePos]));
@@ -158,7 +163,7 @@ namespace EdgeDB
             { new Guid("00000000-0000-0000-0000-000000000108"), typeof(Codecs.Decimal) },
             { new Guid("00000000-0000-0000-0000-000000000109"), typeof(Bool) },
             { new Guid("00000000-0000-0000-0000-00000000010A"), typeof(Datetime) },
-            { new Guid("00000000-0000-0000-0000-00000000010B"), typeof(LocalDatetime) },
+            { new Guid("00000000-0000-0000-0000-00000000010B"), typeof(LocalDateTime) },
             { new Guid("00000000-0000-0000-0000-00000000010C"), typeof(LocalDate) },
             { new Guid("00000000-0000-0000-0000-00000000010D"), typeof(LocalTime) },
             { new Guid("00000000-0000-0000-0000-00000000010E"), typeof(Duration) },
@@ -186,7 +191,7 @@ namespace EdgeDB
             { typeof(DataTypes.Json), "json"},
             { typeof(Guid), "uuid"},
             { typeof(byte[]), "bytes"},
-            { typeof(DateTime), "datetime"},
+            { typeof(DateTime), "local_datetime" },
             { typeof(DateTimeOffset), "datetime"},
             { typeof(TimeSpan), "duration"}
         };

@@ -15,22 +15,22 @@ namespace EdgeDB
 
         private static Dictionary<string, IEdgeQLOperator> _reservedPropertiesOperators = new()
         {
-            { "String.Length", new Len() },
+            { "String.Length", new EdgeDB.Operators.StringLength() },
         };
 
         private static Dictionary<string, IEdgeQLOperator> _reservedFunctionOperators = new()
         {
-            { "ICollection.IndexOf", new Find() },
-            { "IEnumerable.IndexOf", new Find() },
+            { "ICollection.IndexOf", new GenericFind() },
+            { "IEnumerable.IndexOf", new GenericFind() },
 
-            { "ICollection.Contains", new Contains() },
-            { "IEnumerable.Contains", new Contains() },
+            { "ICollection.Contains", new GenericContains() },
+            { "IEnumerable.Contains", new GenericContains() },
 
-            { "String.get_Chars", new Operators.Index() },
-            { "Sring.Substring", new Slice() },
+            { "String.get_Chars", new StringIndex() },
+            { "Sring.Substring", new StringSlice() },
 
-            { "ICollection.Concat", new Concat() },
-            { "IEnumerable.Concat", new Concat() },
+            //{ "ICollection.Concat", new Generic() },
+            //{ "IEnumerable.Concat", new Concat() },
         };
 
         static QueryBuilder()
@@ -43,7 +43,7 @@ namespace EdgeDB
             {
                 var inst = (IEdgeQLOperator)Activator.CreateInstance(type)!;
 
-                if(inst.Operator.HasValue)
+                if(inst.Operator.HasValue && !converters.ContainsKey(inst.Operator.Value))
                     converters.Add(inst.Operator.Value, inst);
             }
 
@@ -222,8 +222,8 @@ namespace EdgeDB
             if(s is BinaryExpression bin)
             {
                 // compute left and right
-                var left = ConvertExpression(bin.Left, context);
-                var right = ConvertExpression(bin.Right, context);
+                var left = ConvertExpression(bin.Left, context.Enter(bin.Left));
+                var right = ConvertExpression(bin.Right, context.Enter(bin.Right));
 
                 // reset char context
                 context.IsCharContext = false;
@@ -260,25 +260,55 @@ namespace EdgeDB
             {
                 IEdgeQLOperator? op = null;
 
+                Dictionary<long, string> parameterMap = new();
+
                 // check if we have a reserved operator for it
                 if(_reservedFunctionOperators.TryGetValue($"{mc.Method.DeclaringType!.Name}.{mc.Method.Name}", out op) || (mc.Method.DeclaringType?.GetInterfaces().Any(i => _reservedFunctionOperators.TryGetValue($"{i.Name}.{mc.Method.Name}", out op)) ?? false)) { }
                 else if(mc.Method.DeclaringType == typeof(EdgeQL))
                 {
                     // get the equivilant operator
                     op = mc.Method.GetCustomAttribute<EquivalentOperator>()?.Operator;
+
+                    // check for parameter map
+                    parameterMap = new Dictionary<long, string>(mc.Method.GetCustomAttributes<ParameterMap>().ToDictionary(x => x.Index, x => x.Name));
                 }
 
                 if (op == null)
                     throw new NotSupportedException($"Couldn't find operator for method {mc.Method}");
 
                 // parse the arguments
-                var arguments = mc.Arguments.Select(x => ConvertExpression(x, context));
+                var arguments = mc.Arguments.SelectMany((x, i) =>
+                {
+                    if (x is NewArrayExpression newArr)
+                    {
+                        return newArr.Expressions.Select((x, i) => ConvertExpression(x, context.Enter(x, i)));
+                    }
 
-                var instName = mc.Object != null ? ConvertExpression(mc.Object!, context).Filter : arguments.First().Filter;
+                    return new (string Filter, Dictionary<string, object?> Arguments)[] { ConvertExpression(x, context.Enter(x)) };
+                }).ToList();
+
+                // add our parameter map
+                if (parameterMap.Any())
+                {
+                    var genericMethod = mc.Method.GetGenericMethodDefinition();
+                    var genericTypeArgs = mc.Method.GetGenericArguments();
+                    var genericDict = genericMethod.GetGenericArguments().Select((x, i) => new KeyValuePair<string, Type>(x.Name, genericTypeArgs[i])).ToDictionary(x => x.Key, x => x.Value);
+                    foreach (var item in parameterMap)
+                    {
+                        if (genericDict.TryGetValue(item.Value, out var strongType))
+                        {
+                            // convert the strong type
+                            var typename = PacketSerializer.GetEdgeQLType(strongType) ?? GetTypeName(strongType);
+
+                            // insert into arguments
+                            arguments.Insert((int)item.Key, (typename, new()));
+                        }
+                    }
+                }
 
                 try
                 {
-                    return (op.Build(new string[] { instName }.Concat(arguments.Skip(mc.Object != null ? 0 : 1).Select(x => x.Filter)).ToArray()), arguments.SelectMany(x => x.Arguments).ToDictionary(x => x.Key, x => x.Value));
+                    return (op.Build(arguments.Select(x => x.Filter).ToArray()), arguments.SelectMany(x => x.Arguments).ToDictionary(x => x.Key, x => x.Value));
                 }
                 catch(Exception x)
                 {
@@ -316,12 +346,11 @@ namespace EdgeDB
                 else if(mbs.Expression is MemberExpression innermbs && _reservedPropertiesOperators.TryGetValue($"{innermbs.Type.Name}.{mbs.Member.Name}", out var op))
                 {
                     // convert the entire expression with the func
-                    var ts = RecurseNameLookup(mbs);
+                    var ts = RecurseNameLookup(mbs, true);
                     if (ts.StartsWith($"{context.ParameterName}."))
                     {
                         return (op.Build(ts.Substring(context.ParameterName!.Length, ts.Length - context.ParameterName.Length)), new());
                     }
-
                 }
                 else 
                 {
@@ -341,14 +370,38 @@ namespace EdgeDB
                 return (ParseArgument(constant.Value, context), new());
             }
 
+            if(s is NewArrayExpression newArr)
+            {
+                IEnumerable<(string Filter, Dictionary<string, object?> Arguments)>? values;
+                // check if its a 'params' array
+                if (context.ParameterIndex.HasValue && context.Parent?.Body is MethodCallExpression callExpression)
+                {
+                    var p = callExpression.Method.GetParameters();
+                    
+                    if(p[context.ParameterIndex.Value].GetCustomAttribute<ParamArrayAttribute>() != null)
+                    {
+                        // return joined by ,
+                        values = newArr.Expressions.Select((x, i) => ConvertExpression(x, context.Enter(x, i)));
+
+                        return (string.Join(", ", values.Select(x => x.Filter)), values.SelectMany(x => x.Arguments).ToDictionary(x => x.Key, x => x.Value));
+                    }
+                }
+
+                // return normal array 
+                values = newArr.Expressions.Select((x, i) => ConvertExpression(x, context.Enter(x, i)));
+
+                return ($"[{string.Join(", ", values.Select(x => x.Filter))}]", values.SelectMany(x => x.Arguments).ToDictionary(x => x.Key, x => x.Value));
+            }
+
             return ("", new());
         }
 
-        private static string RecurseNameLookup(MemberExpression expression)
+        private static string RecurseNameLookup(MemberExpression expression, bool skipStart = false)
         {
             List<string?> tree = new();
 
-            tree.Add(expression.Member.GetCustomAttribute<EdgeDBProperty>()?.Name ?? expression.Member.Name);
+            if(!skipStart)
+                tree.Add(expression.Member.GetCustomAttribute<EdgeDBProperty>()?.Name ?? expression.Member.Name);
 
             if (expression.Expression is MemberExpression innerExp)
                 tree.Add(RecurseNameLookup(innerExp));
@@ -371,6 +424,36 @@ namespace EdgeDB
             {
                 return $"\"{char.ConvertFromUtf32(c)}\"";
             }
+
+            if(arg is Type t)
+            {
+                return PacketSerializer.GetEdgeQLType(t) ?? GetTypeName(t) ?? t.Name;
+            }
+
+            if(arg != null)
+            {
+                var type = arg.GetType();
+
+                if (type.IsEnum)
+                {
+                    // check for the serialization method attribute
+                    var att = type.GetCustomAttribute<EnumSerializer>();
+                    if(att != null)
+                    {
+                        return att.Method switch
+                        {
+                            SerializationMethod.Lower => $"\"{arg.ToString()?.ToLower()}\"",
+                            SerializationMethod.Numeric => Convert.ChangeType(arg, type.BaseType ?? typeof(int)).ToString() ?? "{}",
+                            _ => "{}"
+                        };
+                    }
+                    else
+                    {
+                        return Convert.ChangeType(arg, type.BaseType ?? typeof(int)).ToString() ?? "{}";
+                    }
+                }
+            }
+
 
             // empy set for null
             return arg?.ToString() ?? "{}";
