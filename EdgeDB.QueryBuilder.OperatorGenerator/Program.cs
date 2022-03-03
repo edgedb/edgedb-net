@@ -30,6 +30,9 @@ using (var _ = writer.BeginScope("namespace EdgeDB"))
 {
     using (var __ = writer.BeginScope("public sealed partial class EdgeQL"))
     {
+        List<(string CSName, string OperatorName)> propertyMap = new();
+        List<(string CSName, string OperatorName)> functionMap = new();
+
         foreach (var section in sections)
         {
             if (section.Key == "enums")
@@ -42,7 +45,19 @@ using (var _ = writer.BeginScope("namespace EdgeDB"))
             writer.AppendLine();
             foreach (var op in section.Value)
             {
+                var cleanedName = Regex.Replace(op.Name!, @"(<.*?>)", x => "");
+                var operatorName = $"{FirstCharToUpper(section.Key)}{cleanedName}";
                 BuildSingleOperator(section.Key, op);
+
+                if (op.FunctionMap.Any())
+                {
+                    functionMap.AddRange(op.FunctionMap.Select(x => (x, operatorName)));
+                }
+
+                if (op.PropertyMap.Any())
+                {
+                    propertyMap.AddRange(op.PropertyMap.Select(x => (x, operatorName)));
+                }
 
                 if (op.Functions != null && op.Functions.Any())
                 {
@@ -55,9 +70,7 @@ using (var _ = writer.BeginScope("namespace EdgeDB"))
 
                         foreach(var func in funcs)
                         {
-                            var cleanedName = Regex.Replace(op.Name!, @"(<.*?>)", x => "");
-
-                            writer.AppendLine($"[EquivalentOperator(typeof(EdgeDB.Operators.{FirstCharToUpper(section.Key)}{cleanedName}))]");
+                            writer.AppendLine($"[EquivalentOperator(typeof(EdgeDB.Operators.{operatorName}))]");
                             foreach(var map in op.ParameterMap)
                             {
                                 var split = map.Split(":");
@@ -74,6 +87,26 @@ using (var _ = writer.BeginScope("namespace EdgeDB"))
             }
             writer.AppendLine($"#endregion {section.Key}");
             writer.AppendLine();
+        }
+
+        // write the property and function map
+        if (propertyMap.Any())
+        {
+            using(var ___ = writer.BeginScope("internal static Dictionary<string, IEdgeQLOperator> PropertyOperators = new()"))
+            {
+                propertyMap.ForEach(x => writer.AppendLine($"{{ \"{x.CSName}\", new {x.OperatorName}()}}"));
+            }
+            writer.AppendLine(";");
+        }
+
+        if (functionMap.Any())
+        {
+            using (var ___ = writer.BeginScope("internal static Dictionary<string, IEdgeQLOperator> FunctionOperators = new()"))
+            {
+                functionMap.ForEach(x => writer.AppendLine($"{{ \"{x.CSName}\", new {x.OperatorName}()}},"));
+                //writer.AppendLine(string.Join(",\n", functionMap.Select(x => $"{new string(' ', writer.IndentLevel)}{{ \"{x.CSName}\", new {x.OperatorName}()}}")));
+            }
+            writer.Append(";\n");
         }
     }
 }

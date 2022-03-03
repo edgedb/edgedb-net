@@ -2,9 +2,9 @@ using System.Linq.Expressions;
 
 namespace EdgeDB.Operators
 {
-    internal class NumbersFloor : IEdgeQLOperator
+    internal class MathVariancePop : IEdgeQLOperator
     {
         public ExpressionType? Operator => null;
-        public string EdgeQLOperator => "{0} // {1}";
+        public string EdgeQLOperator => "math::var_pop({0})";
     }
 }

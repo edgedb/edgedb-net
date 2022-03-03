@@ -13,6 +13,10 @@ namespace EdgeDB.QueryBuilder.OperatorGenerator
         public List<EdgeQLFunction>? Functions { get; set; } = new();
         public List<string> ParameterMap { get; set; } = new();
 
+        public List<string> PropertyMap { get; set; } = new();
+        public List<string> FunctionMap { get; set; } = new();
+
+
         // enum
         public List<string> Elements { get; set; } = new();
         public string? SerializeMethod { get; set; }

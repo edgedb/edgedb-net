@@ -393,111 +393,6 @@ namespace EdgeDB
         public static double Random() { return default!; }
         #endregion
 
-        #region Abs
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersAbs))]
-        public static short Abs(short a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersAbs))]
-        public static int Abs(int a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersAbs))]
-        public static long Abs(long a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersAbs))]
-        public static float Abs(float a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersAbs))]
-        public static double Abs(double a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersAbs))]
-        public static decimal Abs(decimal a) { return default!; }
-        #endregion
-
-        #region Ceil
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersCeil))]
-        public static double Ceil(long a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersCeil))]
-        public static double Ceil(double a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersCeil))]
-        public static BigInteger Ceil(BigInteger a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersCeil))]
-        public static decimal Ceil(decimal a) { return default!; }
-        #endregion
-
-        #region Floor
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersFloor))]
-        public static double Floor(long a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersFloor))]
-        public static double Floor(double a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersFloor))]
-        public static BigInteger Floor(BigInteger a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersFloor))]
-        public static decimal Floor(decimal a) { return default!; }
-        #endregion
-
-        #region NaturalLog
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersNaturalLog))]
-        public static double NaturalLog(long a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersNaturalLog))]
-        public static double NaturalLog(double a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersNaturalLog))]
-        public static decimal NaturalLog(decimal a) { return default!; }
-        #endregion
-
-        #region Logarithm
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersLogarithm))]
-        public static double Logarithm(long a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersLogarithm))]
-        public static double Logarithm(double a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersLogarithm))]
-        public static decimal Logarithm(decimal a) { return default!; }
-        #endregion
-
-        #region Logarithm
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersLogarithm))]
-        public static decimal Logarithm(decimal a, decimal numericBase) { return default!; }
-        #endregion
-
-        #region Mean
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersMean))]
-        public static double Mean(Set<long> a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersMean))]
-        public static double Mean(Set<double> a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersMean))]
-        public static decimal Mean(Set<decimal> a) { return default!; }
-        #endregion
-
-        #region StandardDeviation
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersStandardDeviation))]
-        public static double StandardDeviation(Set<long> a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersStandardDeviation))]
-        public static double StandardDeviation(Set<double> a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersStandardDeviation))]
-        public static decimal StandardDeviation(Set<decimal> a) { return default!; }
-        #endregion
-
-        #region StandardDeviationPop
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersStandardDeviationPop))]
-        public static double StandardDeviationPop(Set<long> a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersStandardDeviationPop))]
-        public static double StandardDeviationPop(Set<double> a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersStandardDeviationPop))]
-        public static decimal StandardDeviationPop(Set<decimal> a) { return default!; }
-        #endregion
-
-        #region Variance
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersVariance))]
-        public static double Variance(Set<long> a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersVariance))]
-        public static double Variance(Set<double> a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersVariance))]
-        public static decimal Variance(Set<decimal> a) { return default!; }
-        #endregion
-
-        #region VariancePop
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersVariancePop))]
-        public static double VariancePop(Set<long> a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersVariancePop))]
-        public static double VariancePop(Set<double> a) { return default!; }
-        [EquivalentOperator(typeof(EdgeDB.Operators.NumbersVariancePop))]
-        public static decimal VariancePop(Set<decimal> a) { return default!; }
-        #endregion
-
         #region ToBigInteger
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToBigInteger))]
         public static BigInteger ToBigInteger(string a) { return default!; }
@@ -915,7 +810,148 @@ namespace EdgeDB
         public static Type TypeUnion(Type a, Type b, params Type[] additional) { return default!; }
         #endregion
 
+        #region Cast<TType>
+        [EquivalentOperator(typeof(EdgeDB.Operators.TypesCast))]
+        [ParameterMap(0, "TType")]
+        public static TType Cast<TType>(object? a) { return default!; }
+        #endregion
+
+        #region GetType
+        [EquivalentOperator(typeof(EdgeDB.Operators.TypesGetType))]
+        public static Type GetType(object? a) { return default!; }
+        #endregion
+
+        #region IsTypeOf
+        [EquivalentOperator(typeof(EdgeDB.Operators.TypesIsTypeOf))]
+        public static bool IsTypeOf(object? a, object? b) { return default!; }
+        #endregion
+
+        #region IsNotTypeOf
+        [EquivalentOperator(typeof(EdgeDB.Operators.TypesIsNotTypeOf))]
+        public static bool IsNotTypeOf(object? a, object? b) { return default!; }
+        #endregion
+
+        #region Introspect
+        [EquivalentOperator(typeof(EdgeDB.Operators.TypesIntrospect))]
+        public static Type Introspect(Type a) { return default!; }
+        #endregion
+
         #endregion types
 
+        #region math
+
+        #region Abs
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathAbs))]
+        public static short Abs(short a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathAbs))]
+        public static int Abs(int a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathAbs))]
+        public static long Abs(long a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathAbs))]
+        public static float Abs(float a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathAbs))]
+        public static double Abs(double a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathAbs))]
+        public static decimal Abs(decimal a) { return default!; }
+        #endregion
+
+        #region Ceil
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathCeil))]
+        public static double Ceil(long a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathCeil))]
+        public static double Ceil(double a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathCeil))]
+        public static BigInteger Ceil(BigInteger a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathCeil))]
+        public static decimal Ceil(decimal a) { return default!; }
+        #endregion
+
+        #region Floor
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathFloor))]
+        public static double Floor(long a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathFloor))]
+        public static double Floor(double a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathFloor))]
+        public static BigInteger Floor(BigInteger a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathFloor))]
+        public static decimal Floor(decimal a) { return default!; }
+        #endregion
+
+        #region NaturalLog
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathNaturalLog))]
+        public static double NaturalLog(long a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathNaturalLog))]
+        public static double NaturalLog(double a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathNaturalLog))]
+        public static decimal NaturalLog(decimal a) { return default!; }
+        #endregion
+
+        #region Logarithm
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathLogarithm))]
+        public static double Logarithm(long a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathLogarithm))]
+        public static double Logarithm(double a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathLogarithm))]
+        public static decimal Logarithm(decimal a) { return default!; }
+        #endregion
+
+        #region Logarithm
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathLogarithm))]
+        public static decimal Logarithm(decimal a, decimal numericBase) { return default!; }
+        #endregion
+
+        #region Mean
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathMean))]
+        public static double Mean(Set<long> a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathMean))]
+        public static double Mean(Set<double> a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathMean))]
+        public static decimal Mean(Set<decimal> a) { return default!; }
+        #endregion
+
+        #region StandardDeviation
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathStandardDeviation))]
+        public static double StandardDeviation(Set<long> a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathStandardDeviation))]
+        public static double StandardDeviation(Set<double> a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathStandardDeviation))]
+        public static decimal StandardDeviation(Set<decimal> a) { return default!; }
+        #endregion
+
+        #region StandardDeviationPop
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathStandardDeviationPop))]
+        public static double StandardDeviationPop(Set<long> a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathStandardDeviationPop))]
+        public static double StandardDeviationPop(Set<double> a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathStandardDeviationPop))]
+        public static decimal StandardDeviationPop(Set<decimal> a) { return default!; }
+        #endregion
+
+        #region Variance
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathVariance))]
+        public static double Variance(Set<long> a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathVariance))]
+        public static double Variance(Set<double> a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathVariance))]
+        public static decimal Variance(Set<decimal> a) { return default!; }
+        #endregion
+
+        #region VariancePop
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathVariancePop))]
+        public static double VariancePop(Set<long> a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathVariancePop))]
+        public static double VariancePop(Set<double> a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.MathVariancePop))]
+        public static decimal VariancePop(Set<decimal> a) { return default!; }
+        #endregion
+
+        #endregion math
+
+        internal static Dictionary<string, IEdgeQLOperator> FunctionOperators = new()
+        {
+            { "String.ToLower", new StringToLower()},
+            { "String.ToUpper", new StringToUpper()},
+        }
+;
     }
 }

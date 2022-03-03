@@ -9,11 +9,13 @@ namespace EdgeDB
     [AttributeUsage(AttributeTargets.Class)]
     public class EdgeDBType : Attribute
     {
-        internal readonly string Name;
+        internal readonly string? Name;
 
         public EdgeDBType(string name)
         {
             Name = name;
         }
+
+        public EdgeDBType() { }
     }
 }

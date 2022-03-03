@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Numerics;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -92,7 +93,8 @@ namespace EdgeDB
                     {
                         case EnumerationTypeDescriptor enumeration:
                             {
-
+                                // decode as string like
+                                codecs.Add(new Text());
                             }
                             break;
                         case ObjectShapeDescriptor shapeDescriptor:

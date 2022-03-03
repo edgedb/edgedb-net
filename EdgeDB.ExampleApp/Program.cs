@@ -1,6 +1,9 @@
 ﻿using EdgeDB;
 using EdgeDB.DataTypes;
 using System.Linq.Expressions;
+using System;
+using System.Reflection;
+using System.Reflection.Emit;
 using Test;
 
 Logger.AddStream(Console.OpenStandardOutput(), StreamType.StandardOut);
@@ -11,14 +14,12 @@ var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb
     Logger = Logger.GetLogger<EdgeDBClient>(),
 });
 
-var result = await edgedb.ExecuteAsync("select sys::get_version()");
-
-Expression<Func<Person, bool>> func = x => x is object;
-var b = QueryBuilder.BuildSelectQuery<Person>(x => EdgeQL.Is(x.Name, EdgeQL.TypeUnion(typeof(string), typeof(bool), typeof(long), typeof(float))));
+var result = await edgedb.ExecuteAsync($"select Hello Cake!\"");
 
 await Task.Delay(-1);
 
 // our model in a C# form
+[EdgeDBType]
 public class Person
 {
     [EdgeDBProperty("name")]
@@ -29,4 +30,15 @@ public class Person
 
     [EdgeDBProperty("number")]
     public long Number { get; set; }
+
+    [EdgeDBProperty("hobbies")]
+    public Set<Hobby> Hobbies { get; set; } = new();
+}
+
+[EdgeDBType]
+public class Hobby
+{
+    [EdgeDBProperty("name")]
+    public string? Name { get; set; }
+
 }
