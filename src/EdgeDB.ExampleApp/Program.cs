@@ -14,7 +14,9 @@ var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb
     Logger = Logger.GetLogger<EdgeDBClient>(),
 });
 
-var result = await edgedb.ExecuteAsync($"select Hello Cake!\"");
+var q = QueryBuilder.Select<Person>().Filter(x => x.Name == "Quin");
+
+var result = await edgedb.ExecuteAsync($"select \"Hello\"; select \"World\"");
 
 await Task.Delay(-1);
 
@@ -30,15 +32,4 @@ public class Person
 
     [EdgeDBProperty("number")]
     public long Number { get; set; }
-
-    [EdgeDBProperty("hobbies")]
-    public Set<Hobby> Hobbies { get; set; } = new();
-}
-
-[EdgeDBType]
-public class Hobby
-{
-    [EdgeDBProperty("name")]
-    public string? Name { get; set; }
-
 }

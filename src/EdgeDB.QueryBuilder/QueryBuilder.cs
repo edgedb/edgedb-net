@@ -12,9 +12,11 @@ namespace EdgeDB
 { 
     public partial class QueryBuilder
     {
-        internal List<QueryNode> CurrentQuery = new();
+        internal List<QueryNode> QueryNodes = new();
+        internal QueryNode CurrentNode
+            => QueryNodes.LastOrDefault() ?? new QueryNode() { Type = QueryExpressionType.Start };
+
         public List<KeyValuePair<string, object?>> Arguments { get; set; } = new();
-        internal QueryExpressionType PreviousQueryItem { get; set; }
 
         public static QueryBuilder<TType> Select<TType>() 
         {
@@ -33,7 +35,7 @@ namespace EdgeDB
 
         internal QueryBuilder<TType> BuildStrongTyped<TType>()
         {
-            return new QueryBuilder<TType>(CurrentQuery);
+            return new QueryBuilder<TType>(QueryNodes);
         }
 
         /// <summary>
@@ -42,7 +44,7 @@ namespace EdgeDB
         /// <returns>A edgeql query.</returns>
         public override string ToString()
         {
-            return string.Join(" ", CurrentQuery.Select(x => x.Build()));
+            return string.Join(" ", QueryNodes.Select(x => x.Build()));
         }
 
         /// <summary>
@@ -52,7 +54,7 @@ namespace EdgeDB
         /// <returns>A prettified version of the current query.</returns>
         public string ToPrettyString()
         {
-            return string.Join("\n", CurrentQuery);
+            return string.Join("\n", QueryNodes);
         }
     }
 
@@ -60,7 +62,7 @@ namespace EdgeDB
     {
         public QueryBuilder(List<QueryNode>? query = null)
         {
-            CurrentQuery = query ?? new List<QueryNode>();
+            QueryNodes = query ?? new List<QueryNode>();
         }
 
         public new QueryBuilder<TSelect> Select<TSelect>(params Expression<Func<TSelect, object?>>[] properties)
@@ -85,8 +87,9 @@ namespace EdgeDB
         {
             AssertValid(QueryExpressionType.Select);
             var typename = GetTypeName(typeof(TSelect));
-            EnterNode($"select {typename} {{ {string.Join(", ", properties)} }}", QueryExpressionType.Select);
-            PreviousQueryItem = QueryExpressionType.Select;
+            EnterRootNode($"select {typename} {{ {string.Join(", ", properties)} }}", QueryExpressionType.Select);
+            if (typeof(TSelect) == typeof(TType))
+                return (this as QueryBuilder<TSelect>)!;
             return BuildStrongTyped<TSelect>();
         }
 
@@ -96,7 +99,6 @@ namespace EdgeDB
             var builtFilter = ConvertExpression(filter.Body, context);
             Arguments.AddRange(builtFilter.Arguments);
             EnterNode($"filter {builtFilter.Filter}", QueryExpressionType.Filter);
-            PreviousQueryItem = QueryExpressionType.Filter;
             return this;
         }
 
@@ -111,7 +113,7 @@ namespace EdgeDB
             AssertValid(QueryExpressionType.OrderBy);
             var builtSelector = ParsePropertySelectors(true, selector).FirstOrDefault();
             string orderByExp = "";
-            if(PreviousQueryItem == QueryExpressionType.OrderBy)
+            if(CurrentNode.Type == QueryExpressionType.OrderBy)
                 orderByExp += $"then {builtSelector} {direction}";
             else
                 orderByExp += $"order by {builtSelector} {direction}";
@@ -120,7 +122,6 @@ namespace EdgeDB
                 orderByExp += $" empty {nullPlacement.Value.ToString().ToLower()}";
 
             EnterNode(orderByExp, QueryExpressionType.OrderBy);
-            PreviousQueryItem = QueryExpressionType.OrderBy;
             return this;
         }
 
@@ -128,7 +129,6 @@ namespace EdgeDB
         {
             AssertValid(QueryExpressionType.Offset);
             EnterNode($"offset {count}", QueryExpressionType.Offset);
-            PreviousQueryItem = QueryExpressionType.Offset;
             return this;
         }
 
@@ -136,7 +136,6 @@ namespace EdgeDB
         {
             AssertValid(QueryExpressionType.Limit);
             EnterNode($"limit {count}", QueryExpressionType.Limit);
-            PreviousQueryItem = QueryExpressionType.Limit;
             return this;
         }
 
@@ -147,9 +146,8 @@ namespace EdgeDB
             var builtIterator = iterator.Compile()(builder);
 
             EnterNode($"for {iterator.Parameters[0].Name} in {set.Name}", QueryExpressionType.For);
-            EnterNode($"union", QueryExpressionType.Union).AddChild(EnterNode(builtIterator.ToString(), builtIterator.CurrentQuery.First().Type), x => $" ( {x} ) ");
+            EnterNode($"union", QueryExpressionType.Union).AddChild(EnterNode(builtIterator.ToString(), builtIterator.QueryNodes.First().Type), x => $" ( {x} ) ");
             Arguments.AddRange(builtIterator.Arguments);
-            PreviousQueryItem = QueryExpressionType.For;
             return this;
         }
 
@@ -178,7 +176,6 @@ namespace EdgeDB
         {
             AssertValid(QueryExpressionType.Update);
             EnterNode($"update {GetTypeName(typeof(TType))}", QueryExpressionType.Update);
-            PreviousQueryItem = QueryExpressionType.Update;
             if (filter != null)
             {
                 Filter(filter);
@@ -186,7 +183,6 @@ namespace EdgeDB
             var serializedObj = SerializeQueryObject(obj);
             EnterNode($"set {serializedObj.Property}", QueryExpressionType.Set);
             Arguments.AddRange(serializedObj.Arguments);
-            PreviousQueryItem = QueryExpressionType.Set;
             return this;
         }
 
@@ -195,14 +191,12 @@ namespace EdgeDB
             AssertValid(QueryExpressionType.Update);
             var serializedObj = ConvertExpression(builder.Body, new QueryContext<TType, TType>(builder));
             EnterNode($"update {GetTypeName(typeof(TType))}", QueryExpressionType.Update);
-            PreviousQueryItem = QueryExpressionType.Update;
             if (filter != null)
             {
                 Filter(filter);
             }
             EnterNode($"set {{ {serializedObj.Filter} }}", QueryExpressionType.Set);
             Arguments.AddRange(serializedObj.Arguments);
-            PreviousQueryItem = QueryExpressionType.Set;
             return this;
         }
 
@@ -210,7 +204,6 @@ namespace EdgeDB
         {
             AssertValid(QueryExpressionType.Delete);
             EnterNode($"delete {GetTypeName(typeof(TType))}", QueryExpressionType.Delete);
-            PreviousQueryItem = QueryExpressionType.Delete;
             return this;
         }
 
@@ -218,7 +211,6 @@ namespace EdgeDB
         {
             AssertValid(QueryExpressionType.With);
             EnterNode($"with module {moduleName}", QueryExpressionType.With);
-            PreviousQueryItem = QueryExpressionType.With;
             return this;
         }
 
@@ -253,7 +245,6 @@ namespace EdgeDB
             EnterNode($"{transactionString};", QueryExpressionType.Transaction);
             EnterNode($"{builtQuery};", QueryExpressionType.Start);
             EnterNode($"rollback;", QueryExpressionType.Rollback);
-            PreviousQueryItem = QueryExpressionType.Transaction;
             return this;
         }
 
@@ -279,16 +270,12 @@ namespace EdgeDB
             }
 
             EnterNode($"start transaction{(transactionArgs.Any() ? $" {string.Join(", ", transactionArgs)}" : "")};", QueryExpressionType.Transaction);
-            PreviousQueryItem = QueryExpressionType.Start;
             return this;
         }
 
         public QueryBuilder<TType> EndTransaction()
         {
             EnterNode("rollback;", QueryExpressionType.Rollback);
-
-            // set back to start
-            PreviousQueryItem = QueryExpressionType.Start;
             return this;
         }
 
@@ -296,9 +283,6 @@ namespace EdgeDB
         {
 
             EnterNode("commit;", QueryExpressionType.Commit);
-
-            // set back to start
-            PreviousQueryItem = QueryExpressionType.Start;
             return this;
         }
 
@@ -307,6 +291,17 @@ namespace EdgeDB
 
         //}
 
+        private QueryNode EnterRootNode(string q, QueryExpressionType nodeType)
+        {
+            var node = new QueryNode
+            {
+                Query = q,
+                Type = nodeType
+            };
+            QueryNodes.Add(node);
+            return node;
+        }
+
         private QueryNode EnterNode(string q, QueryExpressionType nodeType)
         {
             var node = new QueryNode
@@ -314,7 +309,7 @@ namespace EdgeDB
                 Query = q,
                 Type = nodeType
             };
-            CurrentQuery.Add(node);
+            CurrentNode.AddChild(node, (x) => x);
             return node;
         }
 
@@ -328,7 +323,7 @@ namespace EdgeDB
 
         private void AssertValid(QueryExpressionType currentExpression)
         {
-            if (!_validExpressions[currentExpression].Contains(PreviousQueryItem))
+            if (!_validExpressions[currentExpression].Contains(CurrentNode.Type))
             {
                 throw new InvalidQueryOperationException(currentExpression, _validExpressions[currentExpression]);
             }
