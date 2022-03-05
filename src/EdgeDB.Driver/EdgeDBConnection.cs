@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -72,6 +73,13 @@ namespace EdgeDB
         public override string ToString()
         {
             return $"edgedb://{Username}:{Password}@{Hostname}:{Port}/{Database}";
+        }
+
+        public static EdgeDBConnection FromDSN(string dsn)
+        {
+
+
+            return new EdgeDBConnection { };
         }
 
         /// <summary>

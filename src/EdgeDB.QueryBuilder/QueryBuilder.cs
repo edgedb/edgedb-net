@@ -155,7 +155,7 @@ namespace EdgeDB
         {
             AssertValid(QueryExpressionType.Insert);
             var obj = SerializeQueryObject(value);
-            EnterNode($"insert {GetTypeName(typeof(TType))} {obj.Property}", QueryExpressionType.Insert);
+            EnterRootNode($"insert {GetTypeName(typeof(TType))} {obj.Property}", QueryExpressionType.Insert);
             Arguments.AddRange(obj.Arguments);
             if (unlessConflictOn.Any())
             {
@@ -363,7 +363,7 @@ namespace EdgeDB
 
         public string Build()
         {
-            return $"{(BuildFunc != null ? BuildFunc(Query!) : Query)}{(Children.Any() ? string.Join(" ", Children.Select(x => x.Build())) : "")}";
+            return $"{(BuildFunc != null ? BuildFunc(Query!) : Query)} {(Children.Any() ? string.Join(" ", Children.Select(x => x.Build())) : "")}";
         }
     }
 

@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "EdgeDB.DotnetTool": {
+      "commandName": "Project",
+      "commandLineArgs": "generate -f C:\\Users\\lynch\\source\\repos\\EdgeDB\\src\\EdgeDB.ExampleApp\\dbschema\\default.esdl -v"
+      //"commandLineArgs": "generate -c edgedb://edgedb:YOwTPjSTia4UAxmrIBNSow68@localhost:10705/edgedb"
+    }
+  }
+}

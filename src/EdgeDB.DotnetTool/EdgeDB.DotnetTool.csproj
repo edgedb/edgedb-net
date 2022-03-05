@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+	<TargetFrameworks>net6.0</TargetFrameworks>
+	<ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+	<WarningLevel>5</WarningLevel>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+	<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+	<WarningLevel>5</WarningLevel>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommandLineParser" Version="2.8.0" />
+    <PackageReference Include="YamlDotNet" Version="11.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\EdgeDB.Driver\EdgeDB.Driver.csproj" />
+    <ProjectReference Include="..\src\EdgeDB.QueryBuilder\EdgeDB.QueryBuilder.csproj" />
+  </ItemGroup>
+
+</Project>

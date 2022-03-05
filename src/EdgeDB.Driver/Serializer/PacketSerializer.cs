@@ -40,6 +40,13 @@ namespace EdgeDB
             return null;
         }
 
+        public static Type? GetDotnetType(string? t)
+        {
+            var val = _scalarTypeMap.FirstOrDefault(x => x.Value == t);
+
+            return val.Key;
+        }
+
         public static IReceiveable? DeserializePacket(ServerMessageTypes type, Stream stream, EdgeDBTcpClient client)
         {
             // read the type

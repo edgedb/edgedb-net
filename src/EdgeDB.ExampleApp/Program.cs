@@ -16,7 +16,9 @@ var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb
 
 var q = QueryBuilder.Select<Person>().Filter(x => x.Name == "Quin");
 
-var result = await edgedb.ExecuteAsync($"select \"Hello\"; select \"World\"");
+var s = q.ToString();
+
+var result = await edgedb.ExecuteAsync($"{q}", q.Arguments.ToDictionary(x => x.Key, x => x.Value));
 
 await Task.Delay(-1);
 
@@ -29,7 +31,4 @@ public class Person
 
     [EdgeDBProperty("email")]
     public string? Email { get; set; }
-
-    [EdgeDBProperty("number")]
-    public long Number { get; set; }
 }

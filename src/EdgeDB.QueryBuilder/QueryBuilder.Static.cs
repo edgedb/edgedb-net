@@ -6,6 +6,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace EdgeDB
@@ -13,6 +14,7 @@ namespace EdgeDB
     public partial class QueryBuilder
     {
         private static Dictionary<ExpressionType, IEdgeQLOperator> _converters;
+        private static Dictionary<IEdgeQLOperator, Type> _operators = new();
 
         private static Dictionary<string, IEdgeQLOperator> _reservedPropertiesOperators = new()
         {
@@ -41,11 +43,37 @@ namespace EdgeDB
             {
                 var inst = (IEdgeQLOperator)Activator.CreateInstance(type)!;
 
-                if(inst.Operator.HasValue && !converters.ContainsKey(inst.Operator.Value))
+                if (inst.Operator.HasValue && !converters.ContainsKey(inst.Operator.Value))
                     converters.Add(inst.Operator.Value, inst);
             }
 
+            // get the funcs
+            var methods = typeof(EdgeQL).GetMethods();
+
+            _operators = methods.Select<MethodInfo, (MethodInfo? Info, IEdgeQLOperator? Operator)>(x =>
+            {
+                var att = x.GetCustomAttribute<EquivalentOperator>();
+                if (att == null)
+                    return (null, null);
+
+                return (x, att.Operator);
+            }).Where(x => x.Info != null && x.Operator != null).ToDictionary(x => x.Operator!, x => x.Info!.ReturnType);
+
             _converters = converters;
+        }
+
+        public static Type? ReverseLookupFunction(string funcText)
+        {
+            // check if its a function
+            var funcMatch = Regex.Match(funcText, @"^(\w+)\(");
+
+            if (funcMatch.Success)
+            {
+                var funcName = funcMatch.Groups[1].Value;
+                // lookup in our defined ops for this func
+                return _operators.FirstOrDefault(x => Regex.IsMatch(x.Key.EdgeQLOperator, @"^\w+\(") && x.Key.EdgeQLOperator.StartsWith($"{funcName}(")).Value;
+            }
+            return null;
         }
 
         public static BuiltQuery BuildInsertQuery<TInner>(TInner obj)
@@ -116,7 +144,7 @@ namespace EdgeDB
                 var varName = $"p_{name}";
                 var value = prop.GetValue(obj);
 
-                propertySet.Add($"{name} := ${varName}");
+                propertySet.Add($"{name} := <{PacketSerializer.GetEdgeQLType(prop.PropertyType)}>${varName}");
                 args.Add(varName, value);
             }
 
