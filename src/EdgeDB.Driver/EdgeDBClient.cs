@@ -96,7 +96,7 @@ namespace EdgeDB
             }
         }
 
-        public async Task<TResult?> QueryAsync<TResult>(string query, IDictionary<string, object?>? arguments = null, Cardinality cardinality = Cardinality.Many)
+        public async Task<TResult?> QueryAsync<TResult>(string query, IDictionary<string, object?>? arguments = null, Cardinality? cardinality = null)
         {
             await InitializeAsync().ConfigureAwait(false);
 
@@ -125,7 +125,7 @@ namespace EdgeDB
         /// <returns>
         ///     An execute result containing the return value as well as any errors that occured during the query.
         /// </returns>
-        public async Task<object?> QueryAsync(string query, IDictionary<string, object?>? arguments = null, Cardinality cardinality = Cardinality.Many)
+        public async Task<object?> QueryAsync(string query, IDictionary<string, object?>? arguments = null, Cardinality? cardinality = null)
         {
             await InitializeAsync().ConfigureAwait(false);
 

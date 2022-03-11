@@ -343,6 +343,11 @@ namespace EdgeDB
             { QueryExpressionType.Transaction, new QueryExpressionType[] { QueryExpressionType.Start} }
             
         };
+
+        public static implicit operator Set<TType>(QueryBuilder<TType> v) => new Set<TType>(v.ToString(), v.Arguments.ToDictionary(x => x.Key, x => x.Value));
+
+        public IEnumerable<TType> BuildSubQuery()
+            => (Set<TType>)this;
     }
 
     public class QueryNode

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.DataTypes
 {
-    public class Set<T> : IEnumerable<T>, ICollection<T>
+    public class Set<T> : IEnumerable<T>, ICollection<T>, ISet
     {
         public virtual T this[int index]
         {
@@ -19,6 +19,10 @@ namespace EdgeDB.DataTypes
         public bool IsReadOnly { get; protected set; }
 
         protected readonly List<T> Collection;
+
+        internal string? Query { get; }
+        internal IDictionary<string, object?>? Arguments { get; }
+        internal bool IsSubQuery { get; } = false;
 
         public Set() 
         {
@@ -36,6 +40,14 @@ namespace EdgeDB.DataTypes
         {
             Collection = new(capacity);
             IsReadOnly = false;
+        }
+
+        internal Set(string query, IDictionary<string, object?> args)
+            : this()
+        {
+            Query = query;
+            Arguments = args;
+            IsSubQuery = true;
         }
 
         public IEnumerator<T> GetEnumerator()
@@ -73,5 +85,20 @@ namespace EdgeDB.DataTypes
 
             return Collection.Remove(item);
         }
+
+        // ISet
+        string? ISet.Query => Query;
+        IDictionary<string, object?>? ISet.Arguments => Arguments;
+        bool ISet.IsSubQuery => IsSubQuery;
+    }
+
+    public interface ISet
+    {
+        int Count { get; }
+        bool IsReadOnly { get; }
+
+        internal string? Query { get; }
+        internal IDictionary<string, object?>? Arguments { get; }
+        internal bool IsSubQuery { get; }
     }
 }

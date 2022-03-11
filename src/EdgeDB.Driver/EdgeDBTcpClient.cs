@@ -213,7 +213,7 @@ namespace EdgeDB
             else return await errorTask;
         }
 
-        public async Task<object?> ExecuteAsync(string query, IDictionary<string, object?>? arguments = null, Cardinality card = Cardinality.Many)
+        public async Task<object?> ExecuteAsync(string query, IDictionary<string, object?>? arguments = null, Cardinality? card = null)
         {
             await _sephamore.WaitAsync(_disconnectCancelToken.Token).ConfigureAwait(false);
 
@@ -226,13 +226,13 @@ namespace EdgeDB
                     Capabilities = AllowCapabilities.ReadOnly, // TODO: change this
                     Command = query,
                     Format = IOFormat.Binary,
-                    ExpectedCardinality = card,
+                    ExpectedCardinality = card ?? Cardinality.Many,
                     ExplicitObjectIds = true,
                     ImplicitTypeNames = true,
                     ImplicitTypeIds = true,
                 }).ConfigureAwait(false);
 
-                if(prepareResult is ErrorResponse error)
+                if (prepareResult is ErrorResponse error)
                 {
                     throw new EdgeDBErrorException(error);
                 }
@@ -241,6 +241,8 @@ namespace EdgeDB
                 {
                     throw new EdgeDBException($"Got unexpected result from prepare: {prepareResult.Type}");
                 }
+
+                card ??= result.Cardinality;
 
                 // get the codec for the return type
                 var outCodec = PacketSerializer.GetCodec(result.OutputTypedescId);

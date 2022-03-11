@@ -1,4 +1,5 @@
-﻿using EdgeDB.Operators;
+﻿using EdgeDB.DataTypes;
+using EdgeDB.Operators;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -143,8 +144,18 @@ namespace EdgeDB
                 var name = GetPropertyName(prop);
                 var varName = $"p_{name}";
                 var value = prop.GetValue(obj);
+                var queryValue = "";
 
-                propertySet.Add($"{name} := <{PacketSerializer.GetEdgeQLType(prop.PropertyType)}>${varName}");
+
+                if (value is ISet set && set.IsSubQuery)
+                {
+                    args = set.Arguments!.Concat(args).ToDictionary(x => x.Key, x => x.Value);
+                    queryValue = $"({set.Query})";
+                }
+                else
+                    queryValue = $"<{PacketSerializer.GetEdgeQLType(prop.PropertyType)}>${varName}";
+
+                propertySet.Add($"{name} := {queryValue}");
                 args.Add(varName, value);
             }
 
@@ -203,9 +214,7 @@ namespace EdgeDB
                 var type = prop.PropertyType;
 
                 if (TryGetEnumerableType(prop.PropertyType, out var i) && i.GetCustomAttribute<EdgeDBType>() != null)
-                {
                     type = i;
-                }
 
                 var edgeqlType = type.GetCustomAttribute<EdgeDBType>();
 
@@ -603,6 +612,13 @@ namespace EdgeDB
         internal static bool TryGetEnumerableType(Type t, out Type type)
         {
             type = t;
+
+            if(t.Name == typeof(IEnumerable<>).Name)
+            {
+                type = t.GenericTypeArguments[0];
+                return true;
+            }
+
             if(t.GetInterfaces().Any(x => x.Name == typeof(IEnumerable<>).Name))
             {
                 var i = t.GetInterface(typeof(IEnumerable<>).Name);

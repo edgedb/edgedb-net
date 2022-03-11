@@ -29,8 +29,11 @@ namespace EdgeDB
             if (rawResult.GetType() == targetType)
                 return rawResult;
 
+            if (targetType.IsAssignableTo(typeof(IEnumerable)))
+                return ConvertTo(targetType, new object[] { rawResult });
+
             if (!IsValidTargetType(targetType))
-                throw new ArgumentException("Target type isn't valid");
+                throw new EdgeDBException($"Invalid type {targetType} for building");
 
             var instance = Activator.CreateInstance(targetType);
 
