@@ -16,16 +16,16 @@ var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb
 
 //var q = QueryBuilder.Select<Person>().Filter(x => x.Name == "Quin");
 
+
+
 var q = new QueryBuilder<Person>().Insert(new Person
 {
-    Email = "test@mail.com",
-    Name = "Test",
-    Hobbies = QueryBuilder.Select<Hobby>().Filter(x => x.Name == "Soccer")
+    Hobbies = new List<Hobby>() { QueryBuilder.Select<Hobby>().Filter(x => x.Name == "BasketBall").BuildExplicitSubQuery() }
 });
 
 var query = $"{q}";
 
-var result = await edgedb.QueryAsync(query, q.Arguments.ToDictionary(x => x.Key, x => x.Value));
+//var result = await edgedb.QueryAsync(query, q.Arguments.ToDictionary(x => x.Key, x => x.Value));
 
 await Task.Delay(-1);
 
@@ -40,7 +40,7 @@ public class Person
     public string? Email { get; set; }
 
     [EdgeDBProperty("hobbies", IsLink = true)]
-    public Set<Hobby>? Hobbies { get; set; }
+    public IEnumerable<Hobby>? Hobbies { get; set; }
 }
 
 [EdgeDBType]

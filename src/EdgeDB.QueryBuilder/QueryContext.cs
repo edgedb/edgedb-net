@@ -15,7 +15,7 @@ namespace EdgeDB
         public QueryContext<TInner, TReturn>? Parent { get; set; }
         public int? ParameterIndex { get; set; }
         public bool IsCharContext { get; set; } = false;
-
+        public bool AllowStaticOperators { get; set; } = false;
         public QueryContext() { }
 
         public QueryContext(Expression<Func<TInner, TReturn>> func)

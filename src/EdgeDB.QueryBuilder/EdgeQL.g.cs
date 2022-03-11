@@ -947,10 +947,20 @@ namespace EdgeDB
 
         #endregion math
 
+        #region links
+
+        #region LinkAdd<TType>
+        [EquivalentOperator(typeof(EdgeDB.Operators.LinksLinkAdd))]
+        public static IEnumerable<TType> LinkAdd<TType>(IEnumerable<TType> source, TType element) { return default!; }
+        #endregion
+
+        #endregion links
+
         internal static Dictionary<string, IEdgeQLOperator> FunctionOperators = new()
         {
             { "string?.ToLower", new StringToLower()},
             { "string?.ToUpper", new StringToUpper()},
+            { "Enumerable.Concat", new SetsUnion()},
         }
 ;
     }

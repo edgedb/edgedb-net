@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -44,7 +45,7 @@ namespace EdgeDB
         /// <returns>A edgeql query.</returns>
         public override string ToString()
         {
-            return string.Join(" ", QueryNodes.Select(x => x.Build()));
+            return string.Join(" ", QueryNodes.Select(x => x.Build())).Trim();
         }
 
         /// <summary>
@@ -60,6 +61,7 @@ namespace EdgeDB
 
     public class QueryBuilder<TType> : QueryBuilder
     {
+        public QueryBuilder() : this(null) { }
         public QueryBuilder(List<QueryNode>? query = null)
         {
             QueryNodes = query ?? new List<QueryNode>();
@@ -189,8 +191,8 @@ namespace EdgeDB
         public QueryBuilder<TType> Update(Expression<Func<TType, TType>> builder, Expression<Func<TType, bool>>? filter = null)
         {
             AssertValid(QueryExpressionType.Update);
-            var serializedObj = ConvertExpression(builder.Body, new QueryContext<TType, TType>(builder));
-            EnterNode($"update {GetTypeName(typeof(TType))}", QueryExpressionType.Update);
+            var serializedObj = ConvertExpression(builder.Body, new QueryContext<TType, TType>(builder) {  AllowStaticOperators = true });
+            EnterRootNode($"update {GetTypeName(typeof(TType))}", QueryExpressionType.Update);
             if (filter != null)
             {
                 Filter(filter);
@@ -348,6 +350,13 @@ namespace EdgeDB
 
         public IEnumerable<TType> BuildSubQuery()
             => (Set<TType>)this;
+
+        public TType BuildExplicitSubQuery()
+        {
+            var obj = (ISubQueryType)Activator.CreateInstance(CreateMockedType(typeof(TType)))!;
+            obj.Builder = this;
+            return (TType)obj;
+        }
     }
 
     public class QueryNode

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -146,14 +147,38 @@ namespace EdgeDB
                 var value = prop.GetValue(obj);
                 var queryValue = "";
 
-
-                if (value is ISet set && set.IsSubQuery)
+                if (IsLink(prop))
                 {
-                    args = set.Arguments!.Concat(args).ToDictionary(x => x.Key, x => x.Value);
-                    queryValue = $"({set.Query})";
+                    if (value is ISet set && set.IsSubQuery)
+                    {
+                        args = set.Arguments!.Concat(args).ToDictionary(x => x.Key, x => x.Value);
+                        queryValue = $"({set.Query})";
+                    }
+                    else if (value is IEnumerable enm)
+                    {
+                        List<QueryBuilder> values = new();
+                        // enumerate object links for mock objects
+                        foreach(var val in enm)
+                        {
+                            if (val is not ISubQueryType sub)
+                                throw new InvalidOperationException($"Expected a sub query for object type, but got {val.GetType()}");
+
+                            values.Add(sub.Builder);
+                        }
+
+                        var vals = values.Select(x =>
+                        {
+                            args = x.Arguments.Concat(args).ToDictionary(x => x.Key, x => x.Value);
+                            return $"({x})";
+                        });
+
+                        queryValue = $"{{ {string.Join(", ", vals)} }}";
+                    }
                 }
                 else
+                {
                     queryValue = $"<{PacketSerializer.GetEdgeQLType(prop.PropertyType)}>${varName}";
+                }
 
                 propertySet.Add($"{name} := {queryValue}");
                 args.Add(varName, value);
@@ -383,6 +408,11 @@ namespace EdgeDB
 
             if(s is MethodCallExpression mc)
             {
+                // check for query builder
+                if(TryResolveQueryBuilder(mc, out var innerBuilder))
+                {
+                    return ($"({innerBuilder})", innerBuilder!.Arguments.ToDictionary(x => x.Key, x => x.Value));
+                }
                 IEdgeQLOperator? op = null;
 
                 List<(string Filter, Dictionary<string, object?> Arguments)>? arguments = new();
@@ -392,11 +422,14 @@ namespace EdgeDB
                 if(_reservedFunctionOperators.TryGetValue($"{mc.Method.DeclaringType!.Name}.{mc.Method.Name}", out op) || (mc.Method.DeclaringType?.GetInterfaces().Any(i => _reservedFunctionOperators.TryGetValue($"{i.Name}.{mc.Method.Name}", out op)) ?? false)) 
                 {
                     // add the object as a param
-                    if (mc.Object == null)
+                    var objectInst = mc.Object;
+                    if (objectInst == null && !context.AllowStaticOperators)
                         throw new ArgumentException("Cannot use static methods that require an instance to build");
-
-                    var inst = ConvertExpression(mc.Object, context.Enter(mc.Object));
-                    arguments.Add(inst);
+                    else if(objectInst != null)
+                    {
+                        var inst = ConvertExpression(objectInst, context.Enter(objectInst));
+                        arguments.Add(inst);
+                    }
                 }
                 else if(mc.Method.DeclaringType == typeof(EdgeQL))
                 {
@@ -530,6 +563,28 @@ namespace EdgeDB
             return ("", new());
         }
 
+        internal static bool TryResolveQueryBuilder(MethodCallExpression mc, out QueryBuilder? builder)
+        {
+            builder = null;
+
+            var obj = (MethodCallExpression?)mc.Object;
+
+            while(obj is MethodCallExpression innermc && innermc.Object != null && innermc.Object is MethodCallExpression innerInnermc && (!obj?.Type.IsAssignableTo(typeof(QueryBuilder)) ?? true))
+            {
+                obj = innerInnermc;
+            }
+
+            if (obj?.Type.IsAssignableTo(typeof(QueryBuilder)) ?? false)
+            {
+                // execute it
+                builder = Expression.Lambda<Func<QueryBuilder>>(obj).Compile()();
+                return true;
+            }
+
+            return false;
+
+        }
+
         internal static string RecurseNameLookup(MemberExpression expression, bool skipStart = false)
         {
             List<string?> tree = new();
@@ -628,5 +683,105 @@ namespace EdgeDB
 
             return false;
         }
+
+        internal static bool IsLink(PropertyInfo? info)
+        {
+            if (info == null)
+                return false;
+
+            return
+                (info.GetCustomAttribute<EdgeDBProperty>()?.IsLink ?? false) ||
+                info.PropertyType.GetCustomAttribute<EdgeDBType>() != null ||
+                (TryGetEnumerableType(info.PropertyType, out var inner) && inner.GetCustomAttribute<EdgeDBType>() != null);
+                
+        }
+
+        internal static ModuleBuilder ModuleBuilder;
+
+        internal static Type CreateMockedType(Type mock)
+        {
+            if (mock.IsValueType || mock.IsSealed)
+                throw new InvalidOperationException($"Cannot create mocked type from {mock}");
+
+            if (ModuleBuilder == null)
+            {
+                var assembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("EdgeDB.Runtime"), AssemblyBuilderAccess.Run);
+                
+                ModuleBuilder = assembly.DefineDynamicModule("MainModule");
+            }
+
+            var tb = ModuleBuilder.DefineType($"SubQuery{mock.Name}",
+                   TypeAttributes.Public |
+                   TypeAttributes.Class |
+                   TypeAttributes.AutoClass |
+                   TypeAttributes.AnsiClass |
+                   TypeAttributes.BeforeFieldInit |
+                   TypeAttributes.AutoLayout,
+                   null);
+
+            tb.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
+            var get = typeof(ISubQueryType).GetMethod("get_Builder");
+            var set = typeof(ISubQueryType).GetMethod("set_Builder");
+            CreateProperty(tb, "Builder", typeof(QueryBuilder), get, set);
+            tb.SetParent(mock);
+            tb.AddInterfaceImplementation(typeof(ISubQueryType));
+
+
+            Type objectType = tb.CreateType()!;
+
+            return objectType;
+        }
+
+        private static void CreateProperty(TypeBuilder tb, string propertyName, Type propertyType, MethodInfo? overrideGetMethod = null, MethodInfo? overrideSetMethod = null)
+        {
+            var fieldBuilder = tb.DefineField("_" + propertyName, propertyType, FieldAttributes.Private);
+
+            var propertyBuilder = tb.DefineProperty(propertyName, PropertyAttributes.HasDefault, propertyType, null);
+            var getPropMthdBldr = tb.DefineMethod("get_" + propertyName, MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.SpecialName | MethodAttributes.HideBySig, propertyType, Type.EmptyTypes);
+            var getIl = getPropMthdBldr.GetILGenerator();
+
+            getIl.Emit(OpCodes.Ldarg_0);
+            getIl.Emit(OpCodes.Ldfld, fieldBuilder);
+            getIl.Emit(OpCodes.Ret);
+
+            var setPropMthdBldr =
+                tb.DefineMethod("set_" + propertyName,
+                  MethodAttributes.Public |
+                  MethodAttributes.Virtual |
+                  MethodAttributes.SpecialName |
+                  MethodAttributes.HideBySig,
+                  null, new[] { propertyType });
+
+            var setIl = setPropMthdBldr.GetILGenerator();
+            var modifyProperty = setIl.DefineLabel();
+            var exitSet = setIl.DefineLabel();
+
+            setIl.MarkLabel(modifyProperty);
+            setIl.Emit(OpCodes.Ldarg_0);
+            setIl.Emit(OpCodes.Ldarg_1);
+            setIl.Emit(OpCodes.Stfld, fieldBuilder);
+
+            setIl.Emit(OpCodes.Nop);
+            setIl.MarkLabel(exitSet);
+            setIl.Emit(OpCodes.Ret);
+
+            propertyBuilder.SetGetMethod(getPropMthdBldr);
+            propertyBuilder.SetSetMethod(setPropMthdBldr);
+
+            if(overrideGetMethod != null)
+            {
+                tb.DefineMethodOverride(getPropMthdBldr, overrideGetMethod);
+            }
+
+            if(overrideSetMethod != null)
+            {
+                tb.DefineMethodOverride(setPropMthdBldr, overrideSetMethod);
+            }
+        }
+    }
+
+    public interface ISubQueryType
+    {
+        QueryBuilder Builder { get; set; }
     }
 }

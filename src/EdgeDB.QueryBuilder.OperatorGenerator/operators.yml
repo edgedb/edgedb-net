@@ -1142,6 +1142,8 @@ sets:
   - operator: "{0} union {1}"
     name: Union<TType>
     return: Set<TType>
+    function_map:
+      - Enumerable.Concat
     functions:
       - parameters:
           - Set<TType>
@@ -1448,7 +1450,14 @@ math:
           - Set<decimal>
         return: decimal
 
-
+links:
+  - operator: "+= {1}"
+    name: LinkAdd<TType>
+    return: IEnumerable<TType>
+    functions:
+      - parameters:
+          - IEnumerable<TType> source
+          - TType element
           
 enums:
   - name: DurationTruncateUnit
