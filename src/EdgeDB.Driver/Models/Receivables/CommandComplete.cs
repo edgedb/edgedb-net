@@ -15,7 +15,7 @@ namespace EdgeDB.Models
 
         public string Status { get; set; }
 
-        public void Read(PacketReader reader, uint length, EdgeDBTcpClient client)
+        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             var headers = reader.ReadHeaders();
 

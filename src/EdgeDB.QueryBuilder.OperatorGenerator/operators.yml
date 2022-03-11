@@ -88,36 +88,36 @@
 string:
   - expression: Index
     operator: "{0}[{1}]"
-    return: string
+    return: string?
     name: Index
     functions: 
       - name: Index
         parameters:
-          - string
+          - string?
           - long
 
   - operator: "{0}[{1}:{2?}]"
-    return: string
+    return: string?
     name: Slice
     functions:
       - name: Slice
         parameters:
-          - string str
+          - string? str
           - long startIndex
       - name: Slice
         parameters:
-          - string str
+          - string? str
           - long startIndex
           - long endIndex
 
   - operator: "{0} ++ {1}"
-    return: string
+    return: string?
     name: Concat
     functions:
       - name: Concat
         parameters:
-          - string
-          - string
+          - string?
+          - string?
   
   - operator: "{0} like {1}"
     return: bool
@@ -125,8 +125,8 @@ string:
     functions:
       - name: Like
         parameters:
-          - string
-          - string
+          - string?
+          - string?
 
   - operator: "{0} ilike {1}"
     return: bool
@@ -134,11 +134,11 @@ string:
     functions:
       - name: ILike
         parameters:
-          - string
-          - string
+          - string?
+          - string?
   
   - operator: "to_str({0})"
-    return: string
+    return: string?
     name: ToString
     functions:
       - name: ToString
@@ -150,17 +150,17 @@ string:
     name: Length
     functions:
       - parameters:
-          - string
+          - string?
   
   - operator: "contains({0}, {1})"
     return: bool
     name: Contains
     functions: 
       - parameters:
-          - string
-          - string
+          - string?
+          - string?
       - parameters:
-          - string
+          - string?
           - char
   
   - operator: "find({0}, {1})"
@@ -168,145 +168,145 @@ string:
     return: long
     functions:
       - parameters:
-          - string
-          - string
+          - string?
+          - string?
       - parameters:
-          - string
+          - string?
           - char
   
   - operator: "str_lower({0})"
-    return: string
+    return: string?
     name: ToLower
     function_map:
-      - String.ToLower
+      - string?.ToLower
     functions:
       - name: ToLower
         parameters: 
-          - string
+          - string?
   
   - operator: "str_upper({0})"
-    return: string
+    return: string?
     name: ToUpper
     function_map:
-      - String.ToUpper
+      - string?.ToUpper
     functions:
       - name: ToUpper
         parameters:
-          - string
+          - string?
 
   - operator: "str_title({0})"
-    return: string
+    return: string?
     name: ToTitle
     functions:
       - parameters:
-          - string
+          - string?
   
   - operator: "str_pad_start({0}, {1}, {2?})"
     name: PadLeft
-    return: string
+    return: string?
     functions:
       - parameters:
-          - string
+          - string?
           - long count
       - parameters:
-          - string
+          - string?
           - long count
-          - string fill
+          - string? fill
   
   - operator: "str_pad_end({0}, {1}, {2?})"
     name: PadRight
-    return: string
+    return: string?
     functions:
       - parameters:
-          - string
+          - string?
           - long count
       - parameters:
-          - string
+          - string?
           - long count
-          - string fill
+          - string? fill
   
   - operator: "str_trim({0}, {1?})"
     name: Trim
-    return: string
+    return: string?
     functions: 
       - parameters:
-          - string
+          - string?
       - parameters:
-          - string
-          - string trimCharacters
+          - string?
+          - string? trimCharacters
   
   - operator: "str_trim_start({0}, {1?})"
     name: TrimStart
-    return: string
+    return: string?
     functions:
       - parameters:
-          - string
+          - string?
       - parameters:
-          - string
-          - string trimCharacters
+          - string?
+          - string? trimCharacters
 
   - operator: "str_trim_end({0}, {1?})"
     name: TrimEnd
-    return: string
+    return: string?
     functions:
       - parameters:
-          - string
+          - string?
       - parameters:
-          - string
-          - string trimCharacters
+          - string?
+          - string? trimCharacters
   
   - operator: "str_repeat({0}, {1})"
     name: Repeat
-    return: string
+    return: string?
     functions:
       - parameters:
-          - string
+          - string?
           - long count
   
   - operator: "str_split({0}, {1})"
     name: Split
-    return: string[]
+    return: string?[]
     functions:
       - parameters:
-          - string
-          - string delimiter
+          - string?
+          - string? delimiter
       - parameters:
-          - string
+          - string?
           - char delimiter
   
   - operator: "re_match({0}, {1})"
     name: Match
-    return: string[]
+    return: string?[]
     functions:
       - parameters:
-          - string pattern
-          - string input
+          - string? pattern
+          - string? input
   
   - operator: "re_match_all({0}, {1})"
     name: MatchAll
     return: Set<string[]>
     functions:
       - parameters:
-          - string pattern
-          - string input
+          - string? pattern
+          - string? input
   
   - operator: "re_replace({0}, {1}, {2}, <flags := {3?}>)"
     name: Replace
-    return: string
+    return: string?
     functions:
       - parameters:
-          - string pattern
-          - string substitute
-          - string input
-          - string flags
+          - string? pattern
+          - string? substitute
+          - string? input
+          - string? flags
 
   - operator: "re_test({0}, {1})"
     name: IsMatch
     return: bool
     functions:
       - parameters:
-        - string pattern
-        - string input
+        - string? pattern
+        - string? input
 
 boolean:
   - expression: Or
@@ -666,70 +666,70 @@ numbers:
     return: BigInteger
     functions:
       - parameters:
-          - string
+          - string?
       - parameters:
-          - string
-          - string format
+          - string?
+          - string? format
   
   - operator: "to_decimal({0}, {1?})"
     name: ToDecimal
     return: decimal
     functions:
       - parameters:
-          - string
+          - string?
       - parameters:
-          - string
-          - string format
+          - string?
+          - string? format
 
   - operator: "to_int16({0}, {1?})"
     name: ToShort
     return: short
     functions:
       - parameters:
-          - string
+          - string?
       - parameters:
-          - string
-          - string format
+          - string?
+          - string? format
   
   - operator: "to_int32({0}, {1?})"
     name: ToInt
     return: int
     functions:
       - parameters:
-          - string
+          - string?
       - parameters:
-          - string
-          - string format
+          - string?
+          - string? format
   
   - operator: "to_int64({0}, {1?})"
     name: ToLong
     return: long
     functions:
       - parameters:
-          - string
+          - string?
       - parameters:
-          - string
-          - string format
+          - string?
+          - string? format
   
   - operator: "to_float32({0}, {1?})"
     name: ToFloat
     return: float
     functions:
       - parameters:
-          - string
+          - string?
       - parameters:
-          - string
-          - string format
+          - string?
+          - string? format
 
   - operator: "to_float64({0}, {1?})"
     name: ToDouble
     return: double
     functions:
       - parameters:
-          - string
+          - string?
       - parameters:
-          - string
-          - string format
+          - string?
+          - string? format
 
 json:
   - expression: Index
@@ -765,14 +765,14 @@ json:
     functions:
       - parameters:
           - Json
-          - string
+          - string?
   
   - operator: "to_json({0})"
     name: ToJson
     return: Json
     functions: 
       - parameters:
-          - string
+          - string?
   
   - operator: "json_array_unpack({0})"
     name: UnpackJsonArray
@@ -798,7 +798,7 @@ json:
   
   - operator: "json_typeof({0})"
     name: JsonTypeof
-    return: string
+    return: string?
     functions:
       - parameters:
           - Json
@@ -908,11 +908,11 @@ temporal:
     return: DateTimeOffset
     functions:
       - parameters:
-          - string
-          - string format
+          - string?
+          - string? format
       - parameters:
           - DateTime
-          - string timezone
+          - string? timezone
       - parameters:
           - long year
           - long month
@@ -920,7 +920,7 @@ temporal:
           - long hour
           - long min
           - long sec
-          - string timezone
+          - string? timezone
       - parameters:
           - decimal unixSeconds
       - parameters:
@@ -933,11 +933,11 @@ temporal:
     return: DateTime
     functions:
       - parameters:
-          - string
-          - string format
+          - string?
+          - string? format
       - parameters:
           - DateTimeOffset
-          - string timezone
+          - string? timezone
       - parameters:
           - long year
           - long month
@@ -951,11 +951,11 @@ temporal:
     return: DateTime
     functions:
       - parameters:
-          - string
-          - string format
+          - string?
+          - string? format
       - parameters:
           - DateTimeOffset
-          - string timezone
+          - string? timezone
       - parameters:
           - long year
           - long month
@@ -966,11 +966,11 @@ temporal:
     return: TimeSpan
     functions:
       - parameters:
-          - string
-          - string format
+          - string?
+          - string? format
       - parameters:
           - DateTimeOffset
-          - string timezone
+          - string? timezone
       - parameters:
           - long hour
           - long minute
@@ -1117,11 +1117,11 @@ array:
 
   - operator: "array_join({0}, {1})"
     name: Join
-    return: string
+    return: string?
     functions:
       - parameters:
           - IEnumerable<string>
-          - string delimiter
+          - string? delimiter
 
 sets:
   - operator: "distinct {0}"

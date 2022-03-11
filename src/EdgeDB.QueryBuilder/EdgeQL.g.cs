@@ -60,135 +60,135 @@ namespace EdgeDB
 
         #region Index
         [EquivalentOperator(typeof(EdgeDB.Operators.StringIndex))]
-        public static string Index(string a, long b) { return default!; }
+        public static string? Index(string? a, long b) { return default!; }
         #endregion
 
         #region Slice
         [EquivalentOperator(typeof(EdgeDB.Operators.StringSlice))]
-        public static string Slice(string str, long startIndex) { return default!; }
+        public static string? Slice(string? str, long startIndex) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.StringSlice))]
-        public static string Slice(string str, long startIndex, long endIndex) { return default!; }
+        public static string? Slice(string? str, long startIndex, long endIndex) { return default!; }
         #endregion
 
         #region Concat
         [EquivalentOperator(typeof(EdgeDB.Operators.StringConcat))]
-        public static string Concat(string a, string b) { return default!; }
+        public static string? Concat(string? a, string? b) { return default!; }
         #endregion
 
         #region Like
         [EquivalentOperator(typeof(EdgeDB.Operators.StringLike))]
-        public static bool Like(string a, string b) { return default!; }
+        public static bool Like(string? a, string? b) { return default!; }
         #endregion
 
         #region ILike
         [EquivalentOperator(typeof(EdgeDB.Operators.StringILike))]
-        public static bool ILike(string a, string b) { return default!; }
+        public static bool ILike(string? a, string? b) { return default!; }
         #endregion
 
         #region ToString
         [EquivalentOperator(typeof(EdgeDB.Operators.StringToString))]
-        public static string ToString(object? a) { return default!; }
+        public static string? ToString(object? a) { return default!; }
         #endregion
 
         #region Length
         [EquivalentOperator(typeof(EdgeDB.Operators.StringLength))]
-        public static long Length(string a) { return default!; }
+        public static long Length(string? a) { return default!; }
         #endregion
 
         #region Contains
         [EquivalentOperator(typeof(EdgeDB.Operators.StringContains))]
-        public static bool Contains(string a, string b) { return default!; }
+        public static bool Contains(string? a, string? b) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.StringContains))]
-        public static bool Contains(string a, char b) { return default!; }
+        public static bool Contains(string? a, char b) { return default!; }
         #endregion
 
         #region Find
         [EquivalentOperator(typeof(EdgeDB.Operators.StringFind))]
-        public static long Find(string a, string b) { return default!; }
+        public static long Find(string? a, string? b) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.StringFind))]
-        public static long Find(string a, char b) { return default!; }
+        public static long Find(string? a, char b) { return default!; }
         #endregion
 
         #region ToLower
         [EquivalentOperator(typeof(EdgeDB.Operators.StringToLower))]
-        public static string ToLower(string a) { return default!; }
+        public static string? ToLower(string? a) { return default!; }
         #endregion
 
         #region ToUpper
         [EquivalentOperator(typeof(EdgeDB.Operators.StringToUpper))]
-        public static string ToUpper(string a) { return default!; }
+        public static string? ToUpper(string? a) { return default!; }
         #endregion
 
         #region ToTitle
         [EquivalentOperator(typeof(EdgeDB.Operators.StringToTitle))]
-        public static string ToTitle(string a) { return default!; }
+        public static string? ToTitle(string? a) { return default!; }
         #endregion
 
         #region PadLeft
         [EquivalentOperator(typeof(EdgeDB.Operators.StringPadLeft))]
-        public static string PadLeft(string a, long count) { return default!; }
+        public static string? PadLeft(string? a, long count) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.StringPadLeft))]
-        public static string PadLeft(string a, long count, string fill) { return default!; }
+        public static string? PadLeft(string? a, long count, string? fill) { return default!; }
         #endregion
 
         #region PadRight
         [EquivalentOperator(typeof(EdgeDB.Operators.StringPadRight))]
-        public static string PadRight(string a, long count) { return default!; }
+        public static string? PadRight(string? a, long count) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.StringPadRight))]
-        public static string PadRight(string a, long count, string fill) { return default!; }
+        public static string? PadRight(string? a, long count, string? fill) { return default!; }
         #endregion
 
         #region Trim
         [EquivalentOperator(typeof(EdgeDB.Operators.StringTrim))]
-        public static string Trim(string a) { return default!; }
+        public static string? Trim(string? a) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.StringTrim))]
-        public static string Trim(string a, string trimCharacters) { return default!; }
+        public static string? Trim(string? a, string? trimCharacters) { return default!; }
         #endregion
 
         #region TrimStart
         [EquivalentOperator(typeof(EdgeDB.Operators.StringTrimStart))]
-        public static string TrimStart(string a) { return default!; }
+        public static string? TrimStart(string? a) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.StringTrimStart))]
-        public static string TrimStart(string a, string trimCharacters) { return default!; }
+        public static string? TrimStart(string? a, string? trimCharacters) { return default!; }
         #endregion
 
         #region TrimEnd
         [EquivalentOperator(typeof(EdgeDB.Operators.StringTrimEnd))]
-        public static string TrimEnd(string a) { return default!; }
+        public static string? TrimEnd(string? a) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.StringTrimEnd))]
-        public static string TrimEnd(string a, string trimCharacters) { return default!; }
+        public static string? TrimEnd(string? a, string? trimCharacters) { return default!; }
         #endregion
 
         #region Repeat
         [EquivalentOperator(typeof(EdgeDB.Operators.StringRepeat))]
-        public static string Repeat(string a, long count) { return default!; }
+        public static string? Repeat(string? a, long count) { return default!; }
         #endregion
 
         #region Split
         [EquivalentOperator(typeof(EdgeDB.Operators.StringSplit))]
-        public static string[] Split(string a, string delimiter) { return default!; }
+        public static string?[] Split(string? a, string? delimiter) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.StringSplit))]
-        public static string[] Split(string a, char delimiter) { return default!; }
+        public static string?[] Split(string? a, char delimiter) { return default!; }
         #endregion
 
         #region Match
         [EquivalentOperator(typeof(EdgeDB.Operators.StringMatch))]
-        public static string[] Match(string pattern, string input) { return default!; }
+        public static string?[] Match(string? pattern, string? input) { return default!; }
         #endregion
 
         #region MatchAll
         [EquivalentOperator(typeof(EdgeDB.Operators.StringMatchAll))]
-        public static Set<string[]> MatchAll(string pattern, string input) { return default!; }
+        public static Set<string[]> MatchAll(string? pattern, string? input) { return default!; }
         #endregion
 
         #region Replace
         [EquivalentOperator(typeof(EdgeDB.Operators.StringReplace))]
-        public static string Replace(string pattern, string substitute, string input, string flags) { return default!; }
+        public static string? Replace(string? pattern, string? substitute, string? input, string? flags) { return default!; }
         #endregion
 
         #region IsMatch
         [EquivalentOperator(typeof(EdgeDB.Operators.StringIsMatch))]
-        public static bool IsMatch(string pattern, string input) { return default!; }
+        public static bool IsMatch(string? pattern, string? input) { return default!; }
         #endregion
 
         #endregion string
@@ -395,51 +395,51 @@ namespace EdgeDB
 
         #region ToBigInteger
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToBigInteger))]
-        public static BigInteger ToBigInteger(string a) { return default!; }
+        public static BigInteger ToBigInteger(string? a) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToBigInteger))]
-        public static BigInteger ToBigInteger(string a, string format) { return default!; }
+        public static BigInteger ToBigInteger(string? a, string? format) { return default!; }
         #endregion
 
         #region ToDecimal
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToDecimal))]
-        public static decimal ToDecimal(string a) { return default!; }
+        public static decimal ToDecimal(string? a) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToDecimal))]
-        public static decimal ToDecimal(string a, string format) { return default!; }
+        public static decimal ToDecimal(string? a, string? format) { return default!; }
         #endregion
 
         #region ToShort
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToShort))]
-        public static short ToShort(string a) { return default!; }
+        public static short ToShort(string? a) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToShort))]
-        public static short ToShort(string a, string format) { return default!; }
+        public static short ToShort(string? a, string? format) { return default!; }
         #endregion
 
         #region ToInt
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToInt))]
-        public static int ToInt(string a) { return default!; }
+        public static int ToInt(string? a) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToInt))]
-        public static int ToInt(string a, string format) { return default!; }
+        public static int ToInt(string? a, string? format) { return default!; }
         #endregion
 
         #region ToLong
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToLong))]
-        public static long ToLong(string a) { return default!; }
+        public static long ToLong(string? a) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToLong))]
-        public static long ToLong(string a, string format) { return default!; }
+        public static long ToLong(string? a, string? format) { return default!; }
         #endregion
 
         #region ToFloat
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToFloat))]
-        public static float ToFloat(string a) { return default!; }
+        public static float ToFloat(string? a) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToFloat))]
-        public static float ToFloat(string a, string format) { return default!; }
+        public static float ToFloat(string? a, string? format) { return default!; }
         #endregion
 
         #region ToDouble
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToDouble))]
-        public static double ToDouble(string a) { return default!; }
+        public static double ToDouble(string? a) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToDouble))]
-        public static double ToDouble(string a, string format) { return default!; }
+        public static double ToDouble(string? a, string? format) { return default!; }
         #endregion
 
         #endregion numbers
@@ -465,12 +465,12 @@ namespace EdgeDB
 
         #region Index
         [EquivalentOperator(typeof(EdgeDB.Operators.JsonIndex))]
-        public static Json Index(Json a, string b) { return default!; }
+        public static Json Index(Json a, string? b) { return default!; }
         #endregion
 
         #region ToJson
         [EquivalentOperator(typeof(EdgeDB.Operators.JsonToJson))]
-        public static Json ToJson(string a) { return default!; }
+        public static Json ToJson(string? a) { return default!; }
         #endregion
 
         #region UnpackJsonArray
@@ -490,7 +490,7 @@ namespace EdgeDB
 
         #region JsonTypeof
         [EquivalentOperator(typeof(EdgeDB.Operators.JsonJsonTypeof))]
-        public static string JsonTypeof(Json a) { return default!; }
+        public static string? JsonTypeof(Json a) { return default!; }
         #endregion
 
         #endregion json
@@ -566,11 +566,11 @@ namespace EdgeDB
 
         #region ToDateTimeOffset
         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToDateTimeOffset))]
-        public static DateTimeOffset ToDateTimeOffset(string a, string format) { return default!; }
+        public static DateTimeOffset ToDateTimeOffset(string? a, string? format) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToDateTimeOffset))]
-        public static DateTimeOffset ToDateTimeOffset(DateTime a, string timezone) { return default!; }
+        public static DateTimeOffset ToDateTimeOffset(DateTime a, string? timezone) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToDateTimeOffset))]
-        public static DateTimeOffset ToDateTimeOffset(long year, long month, long day, long hour, long min, long sec, string timezone) { return default!; }
+        public static DateTimeOffset ToDateTimeOffset(long year, long month, long day, long hour, long min, long sec, string? timezone) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToDateTimeOffset))]
         public static DateTimeOffset ToDateTimeOffset(decimal unixSeconds) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToDateTimeOffset))]
@@ -581,27 +581,27 @@ namespace EdgeDB
 
         #region ToDateTime
         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToDateTime))]
-        public static DateTime ToDateTime(string a, string format) { return default!; }
+        public static DateTime ToDateTime(string? a, string? format) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToDateTime))]
-        public static DateTime ToDateTime(DateTimeOffset a, string timezone) { return default!; }
+        public static DateTime ToDateTime(DateTimeOffset a, string? timezone) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToDateTime))]
         public static DateTime ToDateTime(long year, long month, long day, long hour, long min, long sec) { return default!; }
         #endregion
 
         #region ToLocalDate
         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToLocalDate))]
-        public static DateTime ToLocalDate(string a, string format) { return default!; }
+        public static DateTime ToLocalDate(string? a, string? format) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToLocalDate))]
-        public static DateTime ToLocalDate(DateTimeOffset a, string timezone) { return default!; }
+        public static DateTime ToLocalDate(DateTimeOffset a, string? timezone) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToLocalDate))]
         public static DateTime ToLocalDate(long year, long month, long day) { return default!; }
         #endregion
 
         #region ToLocalTime
         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToLocalTime))]
-        public static TimeSpan ToLocalTime(string a, string format) { return default!; }
+        public static TimeSpan ToLocalTime(string? a, string? format) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToLocalTime))]
-        public static TimeSpan ToLocalTime(DateTimeOffset a, string timezone) { return default!; }
+        public static TimeSpan ToLocalTime(DateTimeOffset a, string? timezone) { return default!; }
         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToLocalTime))]
         public static TimeSpan ToLocalTime(long hour, long minute, double second) { return default!; }
         #endregion
@@ -701,7 +701,7 @@ namespace EdgeDB
 
         #region Join
         [EquivalentOperator(typeof(EdgeDB.Operators.ArrayJoin))]
-        public static string Join(IEnumerable<string> a, string delimiter) { return default!; }
+        public static string? Join(IEnumerable<string> a, string? delimiter) { return default!; }
         #endregion
 
         #endregion array
@@ -949,8 +949,8 @@ namespace EdgeDB
 
         internal static Dictionary<string, IEdgeQLOperator> FunctionOperators = new()
         {
-            { "String.ToLower", new StringToLower()},
-            { "String.ToUpper", new StringToUpper()},
+            { "string?.ToLower", new StringToLower()},
+            { "string?.ToUpper", new StringToUpper()},
         }
 ;
     }

@@ -11,15 +11,15 @@ namespace EdgeDB.Models
     {
         public ServerMessageTypes Type => ServerMessageTypes.ErrorResponse;
 
-        public ErrorSeverity Severity { get; set; }
+        public ErrorSeverity Severity { get; private set; }
 
-        public uint ErrorCode { get; set; }
+        public uint ErrorCode { get; private set; }
 
-        public string Message { get; set; }
+        public string Message { get; private set; }
 
-        public Header[] Headers { get; set; }
+        public Header[] Headers { get; private set; }
 
-        public void Read(PacketReader reader, uint length, EdgeDBTcpClient client)
+        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             Severity = (ErrorSeverity)reader.ReadByte();
             ErrorCode = reader.ReadUInt32();

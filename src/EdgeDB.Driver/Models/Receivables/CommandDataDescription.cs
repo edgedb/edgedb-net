@@ -20,7 +20,7 @@ namespace EdgeDB.Models
         public Guid OutputTypeDescriptorId { get; set; }
         public byte[] OutputTypeDescriptor { get; set; }
 
-        public void Read(PacketReader reader, uint length, EdgeDBTcpClient client)
+        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             Headers = reader.ReadHeaders();
             Cardinality = (Cardinality)reader.ReadByte();

@@ -16,7 +16,7 @@ namespace EdgeDB.Models.Receivables
 
         public ProtocolExtension[] Extensions { get; set; }
 
-        public void Read(PacketReader reader, uint length, EdgeDBTcpClient client)
+        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             MajorVersion = reader.ReadUInt16();
             MinorVersion = reader.ReadUInt16();

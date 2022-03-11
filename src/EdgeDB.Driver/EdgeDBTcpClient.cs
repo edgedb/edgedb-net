@@ -213,7 +213,7 @@ namespace EdgeDB
             else return await errorTask;
         }
 
-        public async Task<ExecuteResult> ExecuteAsync(string query, IDictionary<string, object?>? arguments = null, Cardinality card = Cardinality.Many)
+        public async Task<object?> ExecuteAsync(string query, IDictionary<string, object?>? arguments = null, Cardinality card = Cardinality.Many)
         {
             await _sephamore.WaitAsync(_disconnectCancelToken.Token).ConfigureAwait(false);
 
@@ -234,53 +234,54 @@ namespace EdgeDB
 
                 if(prepareResult is ErrorResponse error)
                 {
-                    return new ExecuteResult
-                    {
-                        Error = error,
-                        IsSuccess = false,
-                        ExecutedQuery = query + $"\nParameters: {(arguments == null ? "none" : $"[{string.Join(", ", arguments.Select(x => $"{x.Key}: {x.Value}"))}]")}"
-                    };
+                    throw new EdgeDBErrorException(error);
                 }
 
                 if(prepareResult is not PrepareComplete result)
                 {
-                    throw new InvalidDataException($"Got unexpected result from prepare: {prepareResult.Type}");
+                    throw new EdgeDBException($"Got unexpected result from prepare: {prepareResult.Type}");
                 }
 
                 // get the codec for the return type
                 var outCodec = PacketSerializer.GetCodec(result.OutputTypedescId);
                 var inCodec = PacketSerializer.GetCodec(result.InputTypedescId);
+                CommandDataDescription? describer = null;
 
                 // if its not cached or we dont have a default one for it, ask the server to describe it for us
                 if (outCodec == null || inCodec == null)
                 {
                     await SendMessageAsync(new DescribeStatement()).ConfigureAwait(false);
                     await SendMessageAsync(new Sync()).ConfigureAwait(false);
-                    var describer = await WaitForMessageAsync<CommandDataDescription>(ServerMessageTypes.CommandDataDescription).ConfigureAwait(false);
+                    describer = await WaitForMessageAsync<CommandDataDescription>(ServerMessageTypes.CommandDataDescription).ConfigureAwait(false);
 
-                    using (var innerReader = new PacketReader(describer.OutputTypeDescriptor))
+                    if (!describer.HasValue)
+                        throw new EdgeDBException("Failed to get a descriptor");
+
+                    using (var innerReader = new PacketReader(describer.Value.OutputTypeDescriptor))
                     {
-                        outCodec ??= PacketSerializer.BuildCodec(describer.OutputTypeDescriptorId, innerReader);
+                        outCodec ??= PacketSerializer.BuildCodec(describer.Value.OutputTypeDescriptorId, innerReader);
                     }
 
-                    using(var innerReader = new PacketReader(describer.InputTypeDescriptor))
+                    using(var innerReader = new PacketReader(describer.Value.InputTypeDescriptor))
                     {
-                        inCodec ??= PacketSerializer.BuildCodec(describer.InputTypeDescriptorId, innerReader);
+                        inCodec ??= PacketSerializer.BuildCodec(describer.Value.InputTypeDescriptorId, innerReader);
                     }
                 }
 
                 if (outCodec == null)
                 {
-                    throw new NotSupportedException($"Couldn't find a codec for type {result.OutputTypedescId}");
+                    throw new MissingCodecException("Couldn't find a valid output codec", result.OutputTypedescId, describer!.Value.OutputTypeDescriptor);
                 }
 
                 if(inCodec == null)
                 {
-                    throw new NotSupportedException($"Couldn't find a codec for type {result.InputTypedescId}");
+                    throw new MissingCodecException("Couldn't find a valid input codec", result.InputTypedescId, describer!.Value.InputTypeDescriptor);
                 }
 
                 if (inCodec is not IArgumentCodec argumentCodec)
-                    throw new NotSupportedException($"Cannot encode arguments, {inCodec} is not a registered argument codec");
+                    throw new MissingCodecException($"Cannot encode arguments, {inCodec} is not a registered argument codec", result.InputTypedescId, describer.HasValue
+                        ? describer!.Value.InputTypeDescriptor
+                        : Array.Empty<byte>());
 
                 // convert our arguments if any
                 await SendMessageAsync(new Execute() { Capabilities = result.Capabilities, Arguments = argumentCodec.SerializeArguments(arguments) }).ConfigureAwait(false);
@@ -311,7 +312,7 @@ namespace EdgeDB
 
                 if (receivedData.Any()) // TODO: optimize?
                 {
-                    if(receivedData.Count == 1 && (card == Cardinality.AtMostOne || card == Cardinality.One))
+                    if(receivedData.Count == 1 && (result.Cardinality == Cardinality.AtMostOne || result.Cardinality == Cardinality.One))
                     {
                         using (var reader = new PacketReader(receivedData[0].PayloadData))
                         {
@@ -337,28 +338,26 @@ namespace EdgeDB
                 CommandComplete? completeResult = completionTask.IsCompleted ? completionTask.Result : null;
                 ErrorResponse? errorResult = errorTask.IsCompleted ? errorTask.Result : null;
 
-                return new ExecuteResult
+                if (completeResult.HasValue)
                 {
-                    IsSuccess = completeResult != null,
-                    Error = errorResult,
-                    Result = queryResult,
-                    ExecutedQuery = query + $"\nParameters: {(arguments == null ? "none" : $"[{string.Join(", ", arguments.Select(x => $"{x.Key}: {x.Value}"))}]")}"
-                };
+                    Logger.LogInformation("Executed query with {}: {}", completeResult.Value.Status, completeResult.Value.UsedCapabilities);
+                    return queryResult;
+                }
+                else if (errorResult.HasValue)
+                {
+                    throw new EdgeDBErrorException(errorResult.Value);
+                }
+                else throw new EdgeDBException("Didn't receive a result or error response trying to execute a query.");
             }
             catch(Exception x)
             {
                 Logger.LogWarning("Failed to execute: {}", x);
-                return new ExecuteResult
-                {
-                    IsSuccess = false,
-                    Exception = x,
-                    ExecutedQuery = query + $"\nParameters: {(arguments == null ? "none" : $"[{string.Join(", ", arguments.Select(x => $"{x.Key}: {x.Value}"))}]")}"
-                };
+                throw new EdgeDBException($"Failed to execute query: {x}", x);
             }
             finally
             {
-                _sephamore.Release();
                 IsIdle = true;
+                _sephamore.Release();
             }
         }
 

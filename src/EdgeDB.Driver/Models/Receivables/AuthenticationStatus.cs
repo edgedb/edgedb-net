@@ -16,7 +16,7 @@ namespace EdgeDB.Models
 
         public byte[] SASLData { get; set; }
 
-        public void Read(PacketReader reader, uint length, EdgeDBTcpClient client)
+        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             AuthStatus = (AuthStatus)reader.ReadUInt32();
 

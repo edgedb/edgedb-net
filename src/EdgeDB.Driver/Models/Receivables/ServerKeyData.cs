@@ -12,7 +12,7 @@ namespace EdgeDB.Models
 
         public byte[] Key { get; set; }
 
-        public void Read(PacketReader reader, uint length, EdgeDBTcpClient client)
+        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             Key = reader.ReadBytes(32);
         }

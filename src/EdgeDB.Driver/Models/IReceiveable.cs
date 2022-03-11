@@ -10,6 +10,6 @@ namespace EdgeDB.Models
     {
         ServerMessageTypes Type { get; }
 
-        void Read(PacketReader reader, uint length, EdgeDBTcpClient client);
+        internal void Read(PacketReader reader, uint length, EdgeDBTcpClient client);
     }
 }

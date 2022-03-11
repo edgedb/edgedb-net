@@ -105,7 +105,7 @@ namespace EdgeDB
         /// <returns>
         ///     An execute result containing the return value as well as any errors that occured during the query.
         /// </returns>
-        public async Task<ExecuteResult> ExecuteAsync(string query, IDictionary<string, object?>? arguments = null, Cardinality cardinality = Cardinality.Many)
+        public async Task<object?> ExecuteAsync(string query, IDictionary<string, object?>? arguments = null, Cardinality cardinality = Cardinality.Many)
         {
             await InitializeAsync().ConfigureAwait(false);
 
