@@ -28,11 +28,31 @@ namespace EdgeDB
             return new QueryBuilder<TType>().Select(properties);
         }
 
-        //public static QueryBuilder Insert<TType>() { }
-        //public static QueryBuilder Update<TType>() { }
-        //public static QueryBuilder Delete<TType>() { }
-        //public static QueryBuilder With<TType>() { }
-        //public static QueryBuilder For<TType>() { }
+        public static QueryBuilder Insert<TType>(TType value, params Expression<Func<TType, object?>>[] unlessConflictOn) 
+        {
+            return new QueryBuilder<TType>().Insert(value, unlessConflictOn);
+        }
+        public static QueryBuilder Update<TType>(TType obj, Expression<Func<TType, bool>>? filter = null) 
+        {
+            return new QueryBuilder<TType>().Update(obj, filter);
+        }
+        public static QueryBuilder Update<TType>(Expression<Func<TType, TType>> builder, Expression<Func<TType, bool>>? filter = null)
+        {
+            return new QueryBuilder<TType>().Update(builder, filter);
+        }
+
+        public static QueryBuilder Delete<TType>() 
+        {
+            return new QueryBuilder<TType>().Delete();
+        }
+        public static QueryBuilder With<TType>(string moduleName) 
+        {
+            return new QueryBuilder<TType>().With(moduleName);
+        }
+        public static QueryBuilder For<TType>(Set<TType> set, Expression<Func<QueryBuilder<TType>, QueryBuilder>> iterator) 
+        {
+            return new QueryBuilder<TType>().For(set, iterator);
+        }
 
         internal QueryBuilder<TType> BuildStrongTyped<TType>()
         {
@@ -147,7 +167,7 @@ namespace EdgeDB
             var builder = new QueryBuilder<TType>();
             var builtIterator = iterator.Compile()(builder);
 
-            EnterNode($"for {iterator.Parameters[0].Name} in {set}", QueryExpressionType.For);
+            EnterNode($"for {iterator.Parameters[0].Name} in {GetTypeName(typeof(TType))}", QueryExpressionType.For);
             EnterNode($"union", QueryExpressionType.Union).AddChild(EnterNode(builtIterator.ToString(), builtIterator.QueryNodes.First().Type), x => $" ( {x} ) ");
             Arguments.AddRange(builtIterator.Arguments);
             return this;
