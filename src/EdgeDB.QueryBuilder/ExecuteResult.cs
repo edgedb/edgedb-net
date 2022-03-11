@@ -41,7 +41,7 @@ namespace EdgeDB
 
             if (result.Result is IDictionary<string, object?> rawObj)
             {
-                converted.Result = ResultBuilder.BuildResult<TType>(rawObj);
+                converted.Result = ObjectBuilder.BuildResult<TType>(rawObj);
             }
             else if (typeof(TType).Name == "IReadOnlyCollection`1" && result.Result is object?[] arr)
             {
@@ -61,7 +61,7 @@ namespace EdgeDB
 
                     if (obj is IDictionary<string, object?> dict)
                     {
-                        convt = ResultBuilder.BuildResult(targetType, dict);
+                        convt = ObjectBuilder.BuildResult(targetType, dict);
                     }
 
                     newArr.SetValue(convt, i);

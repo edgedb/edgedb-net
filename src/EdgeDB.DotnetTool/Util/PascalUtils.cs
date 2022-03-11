@@ -9,8 +9,11 @@ namespace EdgeDB.DotnetTool
 {
     internal class PascalUtils
     {
-        public static string ToPascalCase(string original)
+        public static string ToPascalCase(string? original)
         {
+            if (original == null)
+                return "";
+
             Regex invalidCharsRgx = new Regex("[^_a-zA-Z0-9]");
             Regex whiteSpace = new Regex(@"(?<=\s)");
             Regex startsWithLowerCaseChar = new Regex("^[a-z]");

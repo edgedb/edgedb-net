@@ -14,13 +14,20 @@ var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb
     Logger = Logger.GetLogger<EdgeDBClient>(),
 });
 
-var q = QueryBuilder.Select<Person>().Filter(x => x.Name == "Quin");
-
-var s = q.ToString();
+var q = QueryBuilder.Select<PartialPerson>().Filter(x => EdgeQL.ILike(x.Name, "quin"));
 
 var result = await edgedb.ExecuteAsync($"{q}", q.Arguments.ToDictionary(x => x.Key, x => x.Value));
 
+var person = result.ResutAs<IReadOnlyCollection<PartialPerson>>();
+
 await Task.Delay(-1);
+
+[EdgeDBType("Person")]
+public class PartialPerson
+{
+    [EdgeDBProperty("name")]
+    public string? Name { get; set; }
+}
 
 // our model in a C# form
 [EdgeDBType]

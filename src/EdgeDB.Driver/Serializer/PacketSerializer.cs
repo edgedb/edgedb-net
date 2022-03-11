@@ -202,7 +202,8 @@ namespace EdgeDB
             { typeof(byte[]), "bytes"},
             { typeof(DateTime), "local_datetime" },
             { typeof(DateTimeOffset), "datetime"},
-            { typeof(TimeSpan), "duration"}
+            { typeof(TimeSpan), "duration"},
+            { typeof(Sequence), "sequence"}
         };
     }
 }

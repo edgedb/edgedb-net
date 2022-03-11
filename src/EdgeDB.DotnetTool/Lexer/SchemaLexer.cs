@@ -31,11 +31,13 @@ namespace EdgeDB.DotnetTool.Lexer
             {"annotation", TokenType.Annotation },
             {"type", TokenType.Type },
             {"index", TokenType.Index },
-            {"scalar", TokenType.Scalar }
+            {"scalar", TokenType.Scalar },
+            {"function", TokenType.Function },
         };
 
         private readonly SchemaBuffer _reader;
         private readonly Stack<Token> _stack;
+        private Token? _previousToken;
 
         public SchemaLexer(string schema)
         {
@@ -75,10 +77,14 @@ namespace EdgeDB.DotnetTool.Lexer
                         case TokenType.Assignment
                             or TokenType.TypeArrow
                             or TokenType.Extending
-                            or TokenType.Constraint:
+                            or TokenType.Constraint when _previousToken?.Type != TokenType.Abstract:
                             {
                                 ReadWhitespace();
-                                var value = ReadValue(token == TokenType.Assignment, ';', '{');
+                                List<char> delimiters = new(new char[] { ';', '{' });
+                                if (token == TokenType.Extending && _reader.Peek(4) != "enum")
+                                    delimiters.Add(',');
+
+                                var value = ReadValue(token == TokenType.Assignment, delimiters.ToArray());
                                 return NewToken(token, value);
                             }
 
@@ -88,8 +94,98 @@ namespace EdgeDB.DotnetTool.Lexer
                             or TokenType.Link:
                             {
                                 ReadWhitespace();
-                                var value = ReadValue();
+                                var value = ReadValue(false, ';');
                                 return NewToken(token, value);
+                            }
+
+                        case TokenType.Constraint when _previousToken?.Type == TokenType.Abstract:
+                            {
+                                // read value until the end of line or until ;
+                                var value = ReadValue(true, ';');
+                                // read the semi colon
+                                if (_reader.Peek(1) == ";")
+                                    value += _reader.Read(1);
+                                return NewToken(TokenType.Constraint, value);
+                            }
+                        case TokenType.Function:
+                            {
+                                // read the value until the closing block
+                                //var value = ReadValue(true, '{');
+
+                                // read the name
+                                var func = _reader.ReadUntil("(");
+                                var funcParamsDepth = 1;
+                                func += _reader.ReadWhile(x =>
+                                {
+                                    if (x == "(")
+                                        funcParamsDepth++;
+
+                                    if (x == ")")
+                                        funcParamsDepth--;
+
+                                    return funcParamsDepth > 0;
+                                });
+                                func += _reader.Read(1); // the closing prarms brace
+
+                                // type arrow
+                                func += ReadWhitespace();
+                                func += _reader.Read(2);
+                                func += ReadWhitespace();
+                                // return type
+                                func += ReadValue();
+                                func += ReadWhitespace();
+                                // check if its a bracket function
+                                if(_reader.Peek(1) == "{")
+                                {
+                                    var depth = 1;
+                                    _reader.Read(1);
+                                    func += _reader.ReadWhile(x =>
+                                    {
+                                        if (x == "{")
+                                            depth++;
+                                        if (x == "}")
+                                            depth--;
+
+                                        return depth > 0;
+                                    });
+
+                                    func += _reader.Read(1);
+
+                                    // add semi colon
+                                    if (_reader.Peek(1) == ";")
+                                        func += _reader.Read(1);
+
+                                    return NewToken(TokenType.Function, func);
+                                }
+                                else if(_reader.Peek(5) == "using")
+                                {
+                                    // assume its a parentheses block?
+                                    func += _reader.Read(5); // read using
+                                    func += ReadWhitespace(); // read whitespace
+                                    func += _reader.Read(1); // read starting parantheses
+                                    var depth = 1;
+                                    func += _reader.ReadWhile(x =>
+                                    {
+                                        if (x == "(")
+                                            depth++;
+                                        if (x == ")")
+                                            depth--;
+
+                                        return depth > 0;
+                                    });
+
+                                    func += _reader.Read(1); // read closing parantheses
+
+                                    // add semi colon
+                                    if (_reader.Peek(1) == ";")
+                                        func += _reader.Read(1);
+
+                                    return NewToken(TokenType.Function, func);
+                                }
+
+                                var a = _reader.Read(5);
+
+                                return NewToken(TokenType.Function, "");
                             }
                         default:
                             return NewToken(token, null);
@@ -110,11 +206,9 @@ namespace EdgeDB.DotnetTool.Lexer
             var c = _reader.Peek(1)[0];
 
             // identifier
-            if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))
-            {
-                var val = _reader.ReadWhile(x => !char.IsWhiteSpace(x, 0));
-                return NewToken(TokenType.Identifier, val);
-            }
+            var val = ReadValue(false, ';');
+
+            return NewToken(TokenType.Identifier, val);
 
             throw new Exception("No token");
         }
@@ -125,7 +219,7 @@ namespace EdgeDB.DotnetTool.Lexer
             bool isEscaped = false;
             return _reader.ReadWhile(x =>
             {
-                if (x == "'" || x == "\"" || x == "[" || x == "]")
+                if (x == "'" || x == "\"" || x == "[" || x == "]" || x == "`" || x == "<" || x == ">")
                     isEscaped = !isEscaped;
 
                 return isEscaped || ((ignoreSpace || !char.IsWhiteSpace(x, 0)) && (delimiters.Length > 0 ? !delimiters.Contains(x[0]) : true));
@@ -142,23 +236,25 @@ namespace EdgeDB.DotnetTool.Lexer
             }
 
             if (t.Type != type)
-                throw new Exception($"Unexpected token! Expected {type} but got {t.Type}");
+                throw new Exception($"Unexpected token! Expected {type} but got {t.Type} at {t.StartLine}:{t.StartPos}");
 
             return ReadToken();
         }
 
         private Token NewToken(TokenType t, string? value = null)
         {
-            return new Token
+            var token = new Token
             {
                 Type = t,
                 Value = value,
                 StartPos = _reader.Column,
                 StartLine = _reader.Line
             };
+            _previousToken = token;
+            return token;
         }
 
-        private void ReadWhitespace()
+        private string ReadWhitespace()
             => _reader.ReadWhile(x => char.IsWhiteSpace(x, 0));
     }
 }

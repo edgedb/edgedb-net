@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
-    internal class ResultBuilder
+    internal class ObjectBuilder
     {
         public static TType? BuildResult<TType>(IDictionary<string, object?> rawResult)
             => (TType?)BuildResult(typeof(TType), rawResult);
@@ -28,7 +28,7 @@ namespace EdgeDB
             // build our type properties
             Dictionary<string, Action<object?>> properties = new();
 
-            foreach(var prop in targetType.GetProperties())
+            foreach (var prop in targetType.GetProperties())
             {
                 if (!IsValidProperty(prop))
                     continue;
@@ -38,7 +38,7 @@ namespace EdgeDB
                 properties.Add(name, (obj) => prop.SetValue(instance, obj));
             }
 
-            foreach(var result in rawResult)
+            foreach (var result in rawResult)
             {
                 if (properties.TryGetValue(result.Key, out var setter))
                     setter(result.Value);

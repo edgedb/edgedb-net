@@ -30,6 +30,7 @@ namespace EdgeDB.DotnetTool.Lexer
         Type,
         Index,
         Scalar,
+        Function,
 
         Identifier,
         EndOfFile

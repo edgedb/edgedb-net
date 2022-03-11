@@ -23,8 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\EdgeDB.Driver\EdgeDB.Driver.csproj" />
-    <ProjectReference Include="..\src\EdgeDB.QueryBuilder\EdgeDB.QueryBuilder.csproj" />
+    <ProjectReference Include="..\EdgeDB.Driver\EdgeDB.Driver.csproj" />
+    <ProjectReference Include="..\EdgeDB.QueryBuilder\EdgeDB.QueryBuilder.csproj" />
   </ItemGroup>
 
 </Project>

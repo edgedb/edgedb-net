@@ -81,7 +81,7 @@ namespace EdgeDB.DotnetTool.Commands
                 foreach (var module in modules)
                 {
                     Console.WriteLine($"Generating {module.Name}...");
-                    builder.Generate(module);
+                    builder.Generate(module, GetValidDotnetName);
                 }
 
             }
@@ -92,6 +92,25 @@ namespace EdgeDB.DotnetTool.Commands
             }
 
             Console.WriteLine("Generation succeeded");
+        }
+
+        private static string GetValidDotnetName(string str)
+        {
+            Console.WriteLine($"The name \"{str}\" isn't a valid name in DotNet, what would you want to name it instead?");
+            Console.Write("> ");
+
+            while (true)
+            {
+                var newName = Console.ReadLine();
+
+                if (newName == null)
+                    continue;
+
+                if (ClassBuilder.IsValidDotnetName(newName))
+                {
+                    return newName;
+                }
+            }
         }
     }
 }
