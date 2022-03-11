@@ -96,6 +96,26 @@ namespace EdgeDB
             }
         }
 
+        public async Task<TResult?> QueryAsync<TResult>(string query, IDictionary<string, object?>? arguments = null, Cardinality cardinality = Cardinality.Many)
+        {
+            await InitializeAsync().ConfigureAwait(false);
+
+            await _semaphore.WaitAsync().ConfigureAwait(false);
+
+            try
+            {
+                var client = await GetOrCreateClientAsync().ConfigureAwait(false);
+
+                var result = await client.ExecuteAsync(query, arguments, cardinality).ConfigureAwait(false);
+
+                return ObjectBuilder.BuildResult<TResult>(result);
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+        }
+
         /// <summary>
         ///     Executes a given query.
         /// </summary>
@@ -105,7 +125,7 @@ namespace EdgeDB
         /// <returns>
         ///     An execute result containing the return value as well as any errors that occured during the query.
         /// </returns>
-        public async Task<object?> ExecuteAsync(string query, IDictionary<string, object?>? arguments = null, Cardinality cardinality = Cardinality.Many)
+        public async Task<object?> QueryAsync(string query, IDictionary<string, object?>? arguments = null, Cardinality cardinality = Cardinality.Many)
         {
             await InitializeAsync().ConfigureAwait(false);
 

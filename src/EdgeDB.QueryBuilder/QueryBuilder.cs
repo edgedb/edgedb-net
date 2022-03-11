@@ -145,7 +145,7 @@ namespace EdgeDB
             var builder = new QueryBuilder<TType>();
             var builtIterator = iterator.Compile()(builder);
 
-            EnterNode($"for {iterator.Parameters[0].Name} in {set.Name}", QueryExpressionType.For);
+            EnterNode($"for {iterator.Parameters[0].Name} in {set}", QueryExpressionType.For);
             EnterNode($"union", QueryExpressionType.Union).AddChild(EnterNode(builtIterator.ToString(), builtIterator.QueryNodes.First().Type), x => $" ( {x} ) ");
             Arguments.AddRange(builtIterator.Arguments);
             return this;

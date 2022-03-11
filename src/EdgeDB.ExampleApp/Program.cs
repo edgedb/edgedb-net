@@ -14,22 +14,11 @@ var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb
     Logger = Logger.GetLogger<EdgeDBClient>(),
 });
 
-var q = QueryBuilder.Select<PartialPerson>().Filter(x => EdgeQL.ILike(x.Name, "quin"));
+var q = new QueryBuilder();
 
-//var result = await edgedb.ExecuteAsync($"{q}", q.Arguments.ToDictionary(x => x.Key, x => x.Value));
-
-var result = await edgedb.ExecuteAsync("select 1");
-
+var result = await edgedb.QueryAsync<List<Person>>($"{q}", q.Arguments.ToDictionary(x => x.Key, x => x.Value));
 
 await Task.Delay(-1);
-
-
-[EdgeDBType("Person")]
-public class PartialPerson
-{
-    [EdgeDBProperty("name")]
-    public string? Name { get; set; }
-}
 
 // our model in a C# form
 [EdgeDBType]
@@ -40,4 +29,14 @@ public class Person
 
     [EdgeDBProperty("email")]
     public string? Email { get; set; }
+
+    [EdgeDBProperty("hobbies", IsLink = true)]
+    public List<Hobby> Hobbies { get; set; } = new();
+}
+
+[EdgeDBType]
+public class Hobby
+{
+    [EdgeDBProperty("name")]
+    public string? Name { get; set; }
 }

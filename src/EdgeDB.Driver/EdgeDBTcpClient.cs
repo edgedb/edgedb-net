@@ -312,7 +312,7 @@ namespace EdgeDB
 
                 if (receivedData.Any()) // TODO: optimize?
                 {
-                    if(receivedData.Count == 1 && (result.Cardinality == Cardinality.AtMostOne || result.Cardinality == Cardinality.One))
+                    if(receivedData.Count == 1 && (card == Cardinality.AtMostOne || card == Cardinality.One))
                     {
                         using (var reader = new PacketReader(receivedData[0].PayloadData))
                         {

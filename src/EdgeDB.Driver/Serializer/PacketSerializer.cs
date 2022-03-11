@@ -135,6 +135,15 @@ namespace EdgeDB
                                 codecs.Add(codec);
                             }
                             break;
+                        case SetDescriptor set:
+                            {
+                                var innerCodec = codecs[set.TypePos];
+
+                                var codecType = typeof(Set<>).MakeGenericType(innerCodec.ConverterType);
+                                codec = (ICodec)Activator.CreateInstance(codecType, innerCodec)!;
+                                codecs.Add(codec);
+                            }
+                            break;
 
                     }
                 }

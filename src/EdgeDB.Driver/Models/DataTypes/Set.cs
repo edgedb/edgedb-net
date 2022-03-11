@@ -9,8 +9,6 @@ namespace EdgeDB.DataTypes
 {
     public class Set<T> : IEnumerable<T>, ICollection<T>
     {
-        public string Name { get; set; }
-
         public virtual T this[int index]
         {
             get => Collection[index];
@@ -24,21 +22,18 @@ namespace EdgeDB.DataTypes
 
         public Set() 
         {
-            Name = "DummySet";
             IsReadOnly = false;
             Collection = new();
         }
 
         public Set(IEnumerable<T> collection, bool readOnly) 
         {
-            Name = "DummySet";
             Collection = new(collection);
             IsReadOnly = readOnly;
         }
 
         public Set(int capacity)
         {
-            Name = "DummySet";
             Collection = new(capacity);
             IsReadOnly = false;
         }
