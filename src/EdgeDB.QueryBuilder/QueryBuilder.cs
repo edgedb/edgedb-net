@@ -19,6 +19,10 @@ namespace EdgeDB
 
         public List<KeyValuePair<string, object?>> Arguments { get; set; } = new();
 
+        public static QueryBuilder<TResult> Select<TResult>(Expression<Func<TResult>> selector)
+        {
+            return new QueryBuilder<TResult>().Select(selector);   
+        }
         public static QueryBuilder<TType> Select<TType>() 
         {
             return new QueryBuilder<TType>().Select<TType>();
@@ -87,6 +91,17 @@ namespace EdgeDB
             QueryNodes = query ?? new List<QueryNode>();
         }
 
+        public new QueryBuilder<TResult> Select<TResult>(Expression<Func<TResult>> selector)
+        {
+            AssertValid(QueryExpressionType.Select);
+            var query = ConvertExpression(selector.Body, new QueryContext<TResult>(selector));
+            EnterRootNode($"select {query.Filter}", QueryExpressionType.Select);
+            Arguments.AddRange(query.Arguments);
+            if (typeof(TResult) == typeof(TType))
+                return (this as QueryBuilder<TResult>)!;
+            return BuildStrongTyped<TResult>();
+        }
+
         public new QueryBuilder<TSelect> Select<TSelect>(params Expression<Func<TSelect, object?>>[] properties)
         {
             var props = ParsePropertySelectors(selectors: properties);
@@ -95,14 +110,16 @@ namespace EdgeDB
 
         public QueryBuilder<TType> Select()
         {
-            var props = GetTypePropertyNames(typeof(TType)).ToArray();
-            return SelectInternal<TType>(props ?? Array.Empty<string>());
+            var result = GetTypePropertyNames(typeof(TType));
+            Arguments.AddRange(result.Arguments);
+            return SelectInternal<TType>(result.Properties.ToArray() ?? Array.Empty<string>());
         }
 
         public new QueryBuilder<TSelect> Select<TSelect>()
         {
-            var props = GetTypePropertyNames(typeof(TSelect)).ToArray();
-            return SelectInternal<TSelect>(props ?? Array.Empty<string>());
+            var result = GetTypePropertyNames(typeof(TSelect));
+            Arguments.AddRange(result.Arguments);
+            return SelectInternal<TSelect>(result.Properties.ToArray() ?? Array.Empty<string>());
         }
 
         internal QueryBuilder<TSelect> SelectInternal<TSelect>(IEnumerable<string> properties)
@@ -367,7 +384,7 @@ namespace EdgeDB
         };
 
         public static implicit operator Set<TType>(QueryBuilder<TType> v) => new Set<TType>(v.ToString(), v.Arguments.ToDictionary(x => x.Key, x => x.Value));
-
+        public static implicit operator ComputedValue<TType>(QueryBuilder<TType> v) => new ComputedValue<TType>(default, v);
         public IEnumerable<TType> BuildSubQuery()
             => (Set<TType>)this;
 

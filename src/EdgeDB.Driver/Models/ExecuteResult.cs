@@ -29,43 +29,43 @@ namespace EdgeDB.Models
             ExecutedQuery = executedQuery;
         }
 
-        public TType? ResutAs<TType>()
-        {
-            if (Result is IDictionary<string, object?> rawObj)
-            {
-                return ObjectBuilder.BuildResult<TType>(rawObj);
-            }
-            else if (typeof(TType).Name == "IReadOnlyCollection`1" && Result is object?[] arr)
-            {
-                var targetType = typeof(TType).GenericTypeArguments[0];
+        //public TType? ResutAs<TType>()
+        //{
+        //    if (Result is IDictionary<string, object?> rawObj)
+        //    {
+        //        return ObjectBuilder.BuildResult<TType>(rawObj);
+        //    }
+        //    else if (typeof(TType).Name == "IReadOnlyCollection`1" && Result is object?[] arr)
+        //    {
+        //        var targetType = typeof(TType).GenericTypeArguments[0];
 
-                var m = typeof(ImmutableArray).GetMethods();
+        //        var m = typeof(ImmutableArray).GetMethods();
 
-                var createFunc = typeof(ImmutableArray).GetMethods().First(x => x.Name == "CreateRange" && x.GetParameters().Length == 1)!.MakeGenericMethod(targetType);
+        //        var createFunc = typeof(ImmutableArray).GetMethods().First(x => x.Name == "CreateRange" && x.GetParameters().Length == 1)!.MakeGenericMethod(targetType);
 
-                var newArr = Array.CreateInstance(targetType, arr.Length);
+        //        var newArr = Array.CreateInstance(targetType, arr.Length);
 
-                // convert expando objects
-                for (int i = 0; i != arr.Length; i++)
-                {
-                    var obj = arr[i];
-                    object? convt = obj;
+        //        // convert expando objects
+        //        for (int i = 0; i != arr.Length; i++)
+        //        {
+        //            var obj = arr[i];
+        //            object? convt = obj;
 
-                    if (obj is IDictionary<string, object?> dict)
-                    {
-                        convt = ObjectBuilder.BuildResult(targetType, dict);
-                    }
+        //            if (obj is IDictionary<string, object?> dict)
+        //            {
+        //                convt = ObjectBuilder.BuildResult(targetType, dict);
+        //            }
 
-                    newArr.SetValue(convt, i);
-                }
+        //            newArr.SetValue(convt, i);
+        //        }
 
-                return (TType?)createFunc.Invoke(null, new object[] { newArr });
-            }
-            else if (Result != null)
-                return (TType?)Result;
+        //        return (TType?)createFunc.Invoke(null, new object[] { newArr });
+        //    }
+        //    else if (Result != null)
+        //        return (TType?)Result;
 
-            return default(TType);
-        }
+        //    return default(TType);
+        //}
     }
 
     public interface IExecuteResult

@@ -80,8 +80,6 @@ namespace EdgeDB
 
         public static BuiltQuery BuildInsertQuery<TInner>(TInner obj)
         {
-            var context = new QueryContext<TInner, bool>();
-
             var props = typeof(TInner).GetProperties().Where(x => x.GetCustomAttribute<EdgeDBIgnore>() == null);
 
             Dictionary<string, (string, object?)> propertySet = new();
@@ -227,16 +225,27 @@ namespace EdgeDB
             return props;
         }
 
-        internal static List<string> GetTypePropertyNames(Type t)
+        internal static (List<string> Properties, List<KeyValuePair<string, object?>> Arguments) GetTypePropertyNames(Type t)
         {
             List<string> returnProps = new List<string>();
             var props = t.GetProperties();
-
+            var instance = Activator.CreateInstance(t);
+            var args = new List<KeyValuePair<string, object?>>();
             // get inner props on types
-            foreach(var prop in props)
+            foreach (var prop in props)
             {
                 var name = prop.GetCustomAttribute<EdgeDBProperty>()?.Name ?? prop.Name;
                 var type = prop.PropertyType;
+
+                if(ReflectionUtils.IsSubclassOfRawGeneric(typeof(ComputedValue<>), type))
+                {
+                    // its a computed value with a query, expose it
+
+                    var val = (IComputedValue)prop.GetValue(instance)!;
+                    returnProps.Add($"{name} := ({val.Builder})");
+                    args = val.Builder!.Arguments;
+                    continue;
+                }
 
                 if (TryGetEnumerableType(prop.PropertyType, out var i) && i.GetCustomAttribute<EdgeDBType>() != null)
                     type = i;
@@ -245,7 +254,9 @@ namespace EdgeDB
 
                 if (edgeqlType != null)
                 {
-                    returnProps.Add($"{name}: {{ {string.Join(", ", GetTypePropertyNames(type))} }}");
+                    var result = GetTypePropertyNames(type);
+                    args.AddRange(result.Arguments);
+                    returnProps.Add($"{name}: {{ {string.Join(", ", result.Properties)} }}");
                 }
                 else
                 {
@@ -253,7 +264,7 @@ namespace EdgeDB
                 }
             }
 
-            return returnProps;
+            return (returnProps, args);
         }
 
         public static BuiltQuery BuildUpdateQuery<TInner>(TInner obj, Expression<Func<TInner, bool>>? predicate = null, params Expression<Func<TInner, object?>>[] selectors)
@@ -354,7 +365,7 @@ namespace EdgeDB
         }
 
         // TODO: add node checks when in Char context, using int converters while in char context will result in the int being converted to a character.
-        internal static (string Filter, Dictionary<string, object?> Arguments) ConvertExpression<TInner, TReturn>(Expression s, QueryContext<TInner, TReturn> context)
+        internal static (string Filter, Dictionary<string, object?> Arguments) ConvertExpression(Expression s, QueryContext context)
         {
             if(s is MemberInitExpression init)
             {
@@ -487,6 +498,13 @@ namespace EdgeDB
             {
                 if (mbs.Expression is ConstantExpression innerConstant)
                 {
+                    if(IsEdgeQLType(innerConstant.Type))
+                    {
+                        // assume its a reference to another property and use the self reference context
+                        var name = mbs.Member.GetCustomAttribute<EdgeDBProperty>()?.Name ?? mbs.Member.Name;
+                        return ($".{name}", new());
+                    }
+
                     object? value = null;
                     Dictionary<string, object?> arguments = new();
 
@@ -601,7 +619,7 @@ namespace EdgeDB
             return string.Join('.', tree);
         }
 
-        internal static string ParseArgument<TInner, TReturn>(object? arg, QueryContext<TInner, TReturn> context)
+        internal static string ParseArgument(object? arg, QueryContext context)
         {
             if(arg is string str)
                 return $"\"{str}\"";
@@ -647,6 +665,9 @@ namespace EdgeDB
             // empy set for null
             return arg?.ToString() ?? "{}";
         }
+
+        internal static bool IsEdgeQLType(Type t)
+            => t.GetCustomAttribute<EdgeDBType>() != null;
 
         internal static string GetTypeName(Type t)
             => t.GetCustomAttribute<EdgeDBType>()?.Name ?? t.Name;
@@ -696,87 +717,31 @@ namespace EdgeDB
                 
         }
 
-        internal static ModuleBuilder ModuleBuilder;
+        
 
         internal static Type CreateMockedType(Type mock)
         {
             if (mock.IsValueType || mock.IsSealed)
                 throw new InvalidOperationException($"Cannot create mocked type from {mock}");
 
-            if (ModuleBuilder == null)
-            {
-                var assembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("EdgeDB.Runtime"), AssemblyBuilderAccess.Run);
-                
-                ModuleBuilder = assembly.DefineDynamicModule("MainModule");
-            }
-
-            var tb = ModuleBuilder.DefineType($"SubQuery{mock.Name}",
+            var tb = ReflectionUtils.GetTypeBuilder($"SubQuery{mock.Name}",
                    TypeAttributes.Public |
                    TypeAttributes.Class |
                    TypeAttributes.AutoClass |
                    TypeAttributes.AnsiClass |
                    TypeAttributes.BeforeFieldInit |
-                   TypeAttributes.AutoLayout,
-                   null);
+                   TypeAttributes.AutoLayout);
 
             tb.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
             var get = typeof(ISubQueryType).GetMethod("get_Builder");
             var set = typeof(ISubQueryType).GetMethod("set_Builder");
-            CreateProperty(tb, "Builder", typeof(QueryBuilder), get, set);
+            ReflectionUtils.CreateProperty(tb, "Builder", typeof(QueryBuilder), get, set);
             tb.SetParent(mock);
             tb.AddInterfaceImplementation(typeof(ISubQueryType));
-
 
             Type objectType = tb.CreateType()!;
 
             return objectType;
-        }
-
-        private static void CreateProperty(TypeBuilder tb, string propertyName, Type propertyType, MethodInfo? overrideGetMethod = null, MethodInfo? overrideSetMethod = null)
-        {
-            var fieldBuilder = tb.DefineField("_" + propertyName, propertyType, FieldAttributes.Private);
-
-            var propertyBuilder = tb.DefineProperty(propertyName, PropertyAttributes.HasDefault, propertyType, null);
-            var getPropMthdBldr = tb.DefineMethod("get_" + propertyName, MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.SpecialName | MethodAttributes.HideBySig, propertyType, Type.EmptyTypes);
-            var getIl = getPropMthdBldr.GetILGenerator();
-
-            getIl.Emit(OpCodes.Ldarg_0);
-            getIl.Emit(OpCodes.Ldfld, fieldBuilder);
-            getIl.Emit(OpCodes.Ret);
-
-            var setPropMthdBldr =
-                tb.DefineMethod("set_" + propertyName,
-                  MethodAttributes.Public |
-                  MethodAttributes.Virtual |
-                  MethodAttributes.SpecialName |
-                  MethodAttributes.HideBySig,
-                  null, new[] { propertyType });
-
-            var setIl = setPropMthdBldr.GetILGenerator();
-            var modifyProperty = setIl.DefineLabel();
-            var exitSet = setIl.DefineLabel();
-
-            setIl.MarkLabel(modifyProperty);
-            setIl.Emit(OpCodes.Ldarg_0);
-            setIl.Emit(OpCodes.Ldarg_1);
-            setIl.Emit(OpCodes.Stfld, fieldBuilder);
-
-            setIl.Emit(OpCodes.Nop);
-            setIl.MarkLabel(exitSet);
-            setIl.Emit(OpCodes.Ret);
-
-            propertyBuilder.SetGetMethod(getPropMthdBldr);
-            propertyBuilder.SetSetMethod(setPropMthdBldr);
-
-            if(overrideGetMethod != null)
-            {
-                tb.DefineMethodOverride(getPropMthdBldr, overrideGetMethod);
-            }
-
-            if(overrideSetMethod != null)
-            {
-                tb.DefineMethodOverride(setPropMthdBldr, overrideSetMethod);
-            }
         }
     }
 

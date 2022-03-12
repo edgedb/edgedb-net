@@ -108,7 +108,8 @@ namespace EdgeDB
 
                 var result = await client.ExecuteAsync(query, arguments, cardinality).ConfigureAwait(false);
 
-                return ObjectBuilder.BuildResult<TResult>(result);
+                //return default;
+                return ObjectBuilder.BuildResult<TResult>(Guid.NewGuid(), result);
             }
             finally
             {

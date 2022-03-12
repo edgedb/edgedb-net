@@ -1219,6 +1219,8 @@ sets:
     functions:
       - parameters:
           - Set<TType>
+      - parameters:
+          - IEnumerable<TType>
 
   - operator: "enumerate({0})"
     name: Enumerate<TType>

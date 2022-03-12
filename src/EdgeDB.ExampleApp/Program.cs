@@ -14,6 +14,14 @@ var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb
     Logger = Logger.GetLogger<EdgeDBClient>(),
 });
 
+var q = QueryBuilder.Select<Person>().Filter(x => x.Name == "Quin");
+
+var qr = q.ToString();
+
+var result = await edgedb.QueryAsync<IEnumerable<Person>>(q.ToString(), q.Arguments.ToDictionary(x => x.Key, x => x.Value));
+
+var count = result.First().HobbyCount;
+
 
 await Task.Delay(-1);
 
@@ -29,6 +37,11 @@ public class Person
 
     [EdgeDBProperty("hobbies", IsLink = true)]
     public IEnumerable<Hobby>? Hobbies { get; set; }
+
+    // TODO: Take a look at our generated version to see if we can use the `new` keyword instead of virtual here
+    [EdgeDBProperty("hobbyCount", IsComputed = true)]
+    public virtual ComputedValue<long> HobbyCount 
+        => QueryBuilder.Select(() => EdgeQL.Count(Hobbies));
 }
 
 [EdgeDBType]

@@ -767,6 +767,8 @@ namespace EdgeDB
         #region Count<TType>
         [EquivalentOperator(typeof(EdgeDB.Operators.SetsCount))]
         public static long Count<TType>(Set<TType> a) { return default!; }
+        [EquivalentOperator(typeof(EdgeDB.Operators.SetsCount))]
+        public static long Count<TType>(IEnumerable<TType> a) { return default!; }
         #endregion
 
         #region Enumerate<TType>
