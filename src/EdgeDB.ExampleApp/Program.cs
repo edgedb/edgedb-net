@@ -19,6 +19,8 @@ var insertQuery = QueryBuilder.Insert(new Person
     Hobbies = QueryBuilder.Select<Hobby>().Filter(x => x.Name == "Coding").SubQuerySet(),
 }, x => x.Email).Build();
 
+var pretty = insertQuery.Prettify();
+
 var result = await edgedb.QueryAsync(insertQuery.QueryText, insertQuery.Parameters.ToDictionary(x => x.Key, x => x.Value));
 
 // get that person
@@ -57,7 +59,7 @@ public class Person
     // Computed example
     [EdgeDBProperty("hobbyCount", IsComputed = true)]
     public virtual ComputedValue<long> HobbyCount 
-        => QueryBuilder.Select(() => EdgeQL.Count(Hobbies));
+        => QueryBuilder.Select(() => EdgeQL.Count(Hobbies!));
 }
 
 [EdgeDBType]

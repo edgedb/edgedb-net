@@ -174,6 +174,7 @@ namespace EdgeDB
                     }
                     else if (value is ISubQueryType sub)
                     {
+                        // TODO: reference TType and check for same type reference. https://www.edgedb.com/docs/stdlib/set#operator::detached
                         var result = sub.Builder.Build(context?.Enter(x => x.UseDetachedSelects = true) ?? new());
                         args = args.Concat(result.Parameters).ToDictionary(x => x.Key, x => x.Value);
                         queryValue = $"({result.QueryText})";
