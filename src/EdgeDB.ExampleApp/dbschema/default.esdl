@@ -5,6 +5,7 @@ module default {
       constraint exclusive;
     }
     multi link hobbies -> Hobby;
+    single link bestFriend -> Person;
   }
   type Hobby {
     property name -> str;

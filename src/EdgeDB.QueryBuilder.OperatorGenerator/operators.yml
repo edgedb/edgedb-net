@@ -1454,12 +1454,13 @@ math:
 
 links:
   - operator: "+= {1}"
-    name: LinkAdd<TType>
-    return: IEnumerable<TType>
+    name: AddLink<TSource, TType>
+    return: TSource
     functions:
       - parameters:
-          - IEnumerable<TType> source
+          - TSource source
           - TType element
+        filter: "where TSource : IEnumerable<TType>"
           
 enums:
   - name: DurationTruncateUnit

@@ -143,6 +143,10 @@ namespace EdgeDB
             if (valueType.IsAssignableTo(type))
                 return value;
 
+            // check for edgeql types
+            if (type.GetCustomAttribute<EdgeDBType>() != null && value is IDictionary<string, object?> dict)
+                return BuildResult(descriptorId, type, dict);
+
             // check for sets
             if(valueType.Name == typeof(DataTypes.Set<>).Name) // TODO: better compare
             {
@@ -164,7 +168,6 @@ namespace EdgeDB
                     return method.Invoke(null, new object[] { value });
             }
 
-
             try
             {
                 return Convert.ChangeType(value, type);
@@ -181,46 +184,54 @@ namespace EdgeDB
 
         private static object? ConvertCollection(Guid descriptorId, Type targetType, Type valueType, object value)
         {
-            List<object?> converted = new();
-            var strongInnerType = targetType.GenericTypeArguments.FirstOrDefault();
-
-            foreach (var val in (IEnumerable)value)
+            try
             {
-                if (val is IDictionary<string, object?> raw)
+                List<object?> converted = new();
+                var strongInnerType = targetType.GenericTypeArguments.FirstOrDefault();
+
+                foreach (var val in (IEnumerable)value)
                 {
-                    converted.Add(strongInnerType != null ? BuildResult(descriptorId, strongInnerType, raw) : val);
+                    if (val is IDictionary<string, object?> raw)
+                    {
+                        converted.Add(strongInnerType != null ? BuildResult(descriptorId, strongInnerType, raw) : val);
+                    }
+                    else
+                        converted.Add(strongInnerType != null ? ConvertTo(descriptorId, strongInnerType, val) : val);
+
                 }
-                else
-                    converted.Add(strongInnerType != null ? ConvertTo(descriptorId, strongInnerType, val) : val);
 
+                var arr = Array.CreateInstance(strongInnerType ?? valueType.GenericTypeArguments[0], converted.Count);
+                Array.Copy(converted.ToArray(), arr, converted.Count);
+
+                switch (targetType)
+                {
+                    case Type when targetType.Name == typeof(List<>).Name:
+                        {
+                            var l = typeof(List<>).MakeGenericType(strongInnerType ?? valueType.GenericTypeArguments[0]);
+                            return Activator.CreateInstance(l, arr);
+                        }
+                    case Type when targetType.IsArray:
+                        {
+                            return arr;
+                        }
+                    case Type when targetType.Name == typeof(DataTypes.Set<>).Name:
+                        {
+                            var l = typeof(DataTypes.Set<>).MakeGenericType(strongInnerType ?? valueType.GenericTypeArguments[0]);
+                            return Activator.CreateInstance(l, arr, true);
+                        }
+                    default:
+                        {
+                            if (arr.GetType().IsAssignableTo(targetType))
+                                return DynamicCast(arr, targetType);
+
+                            throw new EdgeDBException($"Couldn't convert {valueType} to {targetType}");
+                        }
+                }
             }
-
-            var arr = Array.CreateInstance(strongInnerType ?? valueType.GenericTypeArguments[0], converted.Count);
-            Array.Copy(converted.ToArray(), arr, converted.Count);
-
-            switch (targetType)
+            catch(Exception x)
             {
-                case Type when targetType.Name == typeof(List<>).Name:
-                    {
-                        var l = typeof(List<>).MakeGenericType(strongInnerType ?? valueType.GenericTypeArguments[0]);
-                        return Activator.CreateInstance(l, arr);
-                    }
-                case Type when targetType.IsArray:
-                    {
-                        return arr;
-                    }
-                case Type when targetType.Name == typeof(DataTypes.Set<>).Name:
-                    {
-                        var l = typeof(DataTypes.Set<>).MakeGenericType(strongInnerType ?? valueType.GenericTypeArguments[0]);
-                        return Activator.CreateInstance(l, arr, true);
-                    }
-                default:
-                    {
-                        if (arr.GetType().IsAssignableTo(targetType))
-                            return DynamicCast(arr, targetType);
-
-                        throw new EdgeDBException($"Couldn't convert {valueType} to {targetType}");
-                    }
+                Console.WriteLine(x);
+                return null;
             }
         }
 

@@ -951,9 +951,9 @@ namespace EdgeDB
 
         #region links
 
-        #region LinkAdd<TType>
-        [EquivalentOperator(typeof(EdgeDB.Operators.LinksLinkAdd))]
-        public static IEnumerable<TType> LinkAdd<TType>(IEnumerable<TType> source, TType element) { return default!; }
+        #region AddLink<TSource, TType>
+        [EquivalentOperator(typeof(EdgeDB.Operators.LinksAddLink))]
+        public static TSource AddLink<TSource, TType>(TSource source, TType element) where TSource : IEnumerable<TType> { return default!; }
         #endregion
 
         #endregion links

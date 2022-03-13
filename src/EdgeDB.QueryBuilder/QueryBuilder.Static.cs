@@ -132,9 +132,9 @@ namespace EdgeDB
             };
         }
 
-        internal static (string Property, Dictionary<string, object?> Arguments) SerializeQueryObject<TType>(TType obj)
+        internal static (string Property, Dictionary<string, object?> Arguments) SerializeQueryObject<TType>(TType obj, QueryBuilderContext? context = null)
         {
-            var props = typeof(TType).GetProperties().Where(x => x.GetCustomAttribute<EdgeDBIgnore>() == null);
+            var props = typeof(TType).GetProperties().Where(x => x.GetCustomAttribute<EdgeDBIgnore>() == null && x.GetCustomAttribute<EdgeDBProperty>()?.IsComputed == false);
             var propertySet = new List<string>();
             var args = new Dictionary<string, object?>();
 
@@ -156,7 +156,7 @@ namespace EdgeDB
                     {
                         List<QueryBuilder> values = new();
                         // enumerate object links for mock objects
-                        foreach(var val in enm)
+                        foreach (var val in enm)
                         {
                             if (val is not ISubQueryType sub)
                                 throw new InvalidOperationException($"Expected a sub query for object type, but got {val.GetType()}");
@@ -172,6 +172,13 @@ namespace EdgeDB
 
                         queryValue = $"{{ {string.Join(", ", vals)} }}";
                     }
+                    else if (value is ISubQueryType sub)
+                    {
+                        var result = sub.Builder.Build(context?.Enter(x => x.UseDetachedSelects = true) ?? new());
+                        args = args.Concat(result.Parameters).ToDictionary(x => x.Key, x => x.Value);
+                        queryValue = $"({result.QueryText})";
+                    }
+                    else throw new ArgumentException("Unresolved link parser");
                 }
                 else
                 {
@@ -225,7 +232,7 @@ namespace EdgeDB
             return props;
         }
 
-        internal static (List<string> Properties, List<KeyValuePair<string, object?>> Arguments) GetTypePropertyNames(Type t)
+        internal static (List<string> Properties, List<KeyValuePair<string, object?>> Arguments) GetTypePropertyNames(Type t, ArgumentAggregationContext? context = null)
         {
             List<string> returnProps = new List<string>();
             var props = t.GetProperties();
@@ -254,7 +261,12 @@ namespace EdgeDB
 
                 if (edgeqlType != null)
                 {
-                    var result = GetTypePropertyNames(type);
+                    if (type == t && context?.PropertyType == type)
+                    {
+                        continue;
+                    }
+
+                    var result = GetTypePropertyNames(type, context?.Enter(type) ?? new ArgumentAggregationContext(type));
                     args.AddRange(result.Arguments);
                     returnProps.Add($"{name}: {{ {string.Join(", ", result.Properties)} }}");
                 }
@@ -265,6 +277,25 @@ namespace EdgeDB
             }
 
             return (returnProps, args);
+        }
+
+        internal class ArgumentAggregationContext
+        {
+            public Type PropertyType { get; }
+            public ArgumentAggregationContext? Parent { get; private set; }
+
+            public ArgumentAggregationContext(Type propType)
+            {
+                PropertyType = propType;
+            }
+
+            public ArgumentAggregationContext Enter(Type propType)
+            {
+                return new ArgumentAggregationContext(propType)
+                {
+                    Parent = this,
+                };
+            }
         }
 
         public static BuiltQuery BuildUpdateQuery<TInner>(TInner obj, Expression<Func<TInner, bool>>? predicate = null, params Expression<Func<TInner, object?>>[] selectors)

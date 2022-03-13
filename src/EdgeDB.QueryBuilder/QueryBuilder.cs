@@ -14,11 +14,16 @@ namespace EdgeDB
     public partial class QueryBuilder
     {
         internal List<QueryNode> QueryNodes = new();
-        internal QueryNode CurrentNode
+
+        internal QueryExpressionType PreviousNodeType
+            => CurrentRootNode.Children.LastOrDefault().Type;
+
+        internal QueryNode CurrentRootNode
             => QueryNodes.LastOrDefault() ?? new QueryNode() { Type = QueryExpressionType.Start };
 
         public List<KeyValuePair<string, object?>> Arguments { get; set; } = new();
 
+        #region Static keyword proxies
         public static QueryBuilder<TResult> Select<TResult>(Expression<Func<TResult>> selector)
         {
             return new QueryBuilder<TResult>().Select(selector);   
@@ -32,28 +37,28 @@ namespace EdgeDB
             return new QueryBuilder<TType>().Select(properties);
         }
 
-        public static QueryBuilder Insert<TType>(TType value, params Expression<Func<TType, object?>>[] unlessConflictOn) 
+        public static QueryBuilder<TType> Insert<TType>(TType value, params Expression<Func<TType, object?>>[] unlessConflictOn) 
         {
             return new QueryBuilder<TType>().Insert(value, unlessConflictOn);
         }
-        public static QueryBuilder Update<TType>(TType obj, Expression<Func<TType, bool>>? filter = null) 
+        public static QueryBuilder<TType> Update<TType>(TType obj, Expression<Func<TType, bool>>? filter = null) 
         {
             return new QueryBuilder<TType>().Update(obj, filter);
         }
-        public static QueryBuilder Update<TType>(Expression<Func<TType, TType>> builder, Expression<Func<TType, bool>>? filter = null)
+        public static QueryBuilder<TType> Update<TType>(Expression<Func<TType, TType>> builder, Expression<Func<TType, bool>>? filter = null)
         {
             return new QueryBuilder<TType>().Update(builder, filter);
         }
 
-        public static QueryBuilder Delete<TType>() 
+        public static QueryBuilder<TType> Delete<TType>() 
         {
             return new QueryBuilder<TType>().Delete();
         }
-        public static QueryBuilder With<TType>(string moduleName) 
+        public static QueryBuilder<TType> With<TType>(string moduleName) 
         {
             return new QueryBuilder<TType>().With(moduleName);
         }
-        public static QueryBuilder For<TType>(Set<TType> set, Expression<Func<QueryBuilder<TType>, QueryBuilder>> iterator) 
+        public static QueryBuilder<TType> For<TType>(Set<TType> set, Expression<Func<QueryBuilder<TType>, QueryBuilder>> iterator) 
         {
             return new QueryBuilder<TType>().For(set, iterator);
         }
@@ -62,6 +67,7 @@ namespace EdgeDB
         {
             return new QueryBuilder<TType>(QueryNodes);
         }
+        #endregion
 
         /// <summary>
         ///     Turns this query builder into a edgeql representation.
@@ -69,7 +75,7 @@ namespace EdgeDB
         /// <returns>A edgeql query.</returns>
         public override string ToString()
         {
-            return string.Join(" ", QueryNodes.Select(x => x.Build())).Trim();
+            return Build().QueryText;
         }
 
         /// <summary>
@@ -79,24 +85,91 @@ namespace EdgeDB
         /// <returns>A prettified version of the current query.</returns>
         public string ToPrettyString()
         {
-            return string.Join("\n", QueryNodes);
+            int tabIndex = 0;
+            bool escaped = false;
+            var raw = Build().QueryText;
+            var result = "";
+
+            for (int i = 0; i != raw.Length; i++)
+            {
+                var c = raw[i];
+                var prev = i == 0 ? '\0' : raw[i - 1];
+                var prevFormatted = i == 0 ? '\0' : result.Last();
+                var next = i == raw.Length - 1 ? '\0' : raw[i + 1];
+
+                if (c == '\"')
+                    escaped = !escaped;
+                else if (escaped)
+                {
+                    result += c;
+                    continue;
+                }
+
+                string padChar = "".PadLeft(tabIndex);
+
+                if (
+                    (c == ' ' && (next == '{' || next == '}')) ||
+                    (c == ' ' && prevFormatted == ' ')
+                )
+                {
+                    continue;
+                }
+
+                if (prevFormatted == '\n' && c != ',' && prev != ' ')
+                    result += padChar;
+                if (c == ',')
+                {
+                    result += $"{c}\n{padChar}";
+                }
+                else if (c == '{' || c == '(')
+                {
+                    tabIndex += 4;
+                    result += $"{(c != '(' ? $"\n{padChar}" : "")}{c}\n{"".PadLeft(tabIndex)}";
+                }
+                else if (c == '}' || c == ')')
+                {
+                    tabIndex -= 4;
+                    result += $"{((prevFormatted != ' ' && prevFormatted != '\n') ? $"\n{"".PadLeft(tabIndex)}" : "")}{c}{(next != ',' ? '\n' : "")}";
+                }
+                else result += c;
+            }
+
+            return result;
+        }
+
+        public BuiltQuery Build()
+        {
+            return Build(new());
+        }
+
+        internal BuiltQuery Build(QueryBuilderContext config)
+        {
+            var results = QueryNodes.Select(x => x.Build(config));
+            return new BuiltQuery
+            {
+                Parameters = results.SelectMany(x => x.Parameters),
+                QueryText = string.Join(" ", results.Select(x => x.QueryText))
+            };
         }
     }
 
     public class QueryBuilder<TType> : QueryBuilder
     {
         public QueryBuilder() : this(null) { }
-        public QueryBuilder(List<QueryNode>? query = null)
+        internal QueryBuilder(List<QueryNode>? query = null)
         {
             QueryNodes = query ?? new List<QueryNode>();
         }
 
         public new QueryBuilder<TResult> Select<TResult>(Expression<Func<TResult>> selector)
         {
-            AssertValid(QueryExpressionType.Select);
-            var query = ConvertExpression(selector.Body, new QueryContext<TResult>(selector));
-            EnterRootNode($"select {query.Filter}", QueryExpressionType.Select);
-            Arguments.AddRange(query.Arguments);
+            EnterRootNode(QueryExpressionType.Select, (QueryNode node, ref QueryBuilderContext context) =>
+            {
+                var query = ConvertExpression(selector.Body, new QueryContext<TResult>(selector));
+                node.Query = query.Filter;
+                node.AddArguments(query.Arguments);
+            });
+
             if (typeof(TResult) == typeof(TType))
                 return (this as QueryBuilder<TResult>)!;
             return BuildStrongTyped<TResult>();
@@ -104,29 +177,51 @@ namespace EdgeDB
 
         public new QueryBuilder<TSelect> Select<TSelect>(params Expression<Func<TSelect, object?>>[] properties)
         {
-            var props = ParsePropertySelectors(selectors: properties);
-            return SelectInternal<TSelect>(props);
+            return SelectInternal<TSelect>(context =>
+            {
+                if (context.DontSelectProperties)
+                    return null;
+
+                return (ParsePropertySelectors(selectors: properties), null);
+            });
         }
 
         public QueryBuilder<TType> Select()
         {
-            var result = GetTypePropertyNames(typeof(TType));
-            Arguments.AddRange(result.Arguments);
-            return SelectInternal<TType>(result.Properties.ToArray() ?? Array.Empty<string>());
+            return Select<TType>();
         }
 
         public new QueryBuilder<TSelect> Select<TSelect>()
         {
-            var result = GetTypePropertyNames(typeof(TSelect));
-            Arguments.AddRange(result.Arguments);
-            return SelectInternal<TSelect>(result.Properties.ToArray() ?? Array.Empty<string>());
+            return SelectInternal<TSelect>(context =>
+            {
+                if (context.DontSelectProperties)
+                {
+                    return null;
+                }
+                var result = GetTypePropertyNames(typeof(TSelect));
+
+                return (result.Properties.ToArray() ?? Array.Empty<string>(), result.Arguments);
+            });
         }
 
-        internal QueryBuilder<TSelect> SelectInternal<TSelect>(IEnumerable<string> properties)
+        internal QueryBuilder<TSelect> SelectInternal<TSelect>(Func<QueryBuilderContext, (IEnumerable<string>? Properties, IEnumerable<KeyValuePair<string, object?>>? Arguments)?> argumentBuilder)
         {
-            AssertValid(QueryExpressionType.Select);
-            var typename = GetTypeName(typeof(TSelect));
-            EnterRootNode($"select {typename} {{ {string.Join(", ", properties)} }}", QueryExpressionType.Select);
+            EnterRootNode(QueryExpressionType.Select, (QueryNode node, ref QueryBuilderContext context) =>
+            {
+                var selectArgs = argumentBuilder(context);
+
+                IEnumerable<string>? properties = selectArgs?.Properties;
+                IEnumerable<KeyValuePair<string, object?>>? args = selectArgs?.Arguments;
+
+                node.Query = $"select {(context.UseDetachedSelects ? "detached " : "")}{GetTypeName(typeof(TSelect))}{(properties != null ? $" {{ {string.Join(", ", properties)} }}" : "")}";
+                if (context.UseDetachedSelects && PreviousNodeType != QueryExpressionType.Limit)
+                    node.AddChild(QueryExpressionType.Limit, (ref QueryBuilderContext _) => new BuiltQuery { QueryText = "limit 1" });
+                
+                if (args != null)
+                    node.AddArguments(args);
+            });
+
             if (typeof(TSelect) == typeof(TType))
                 return (this as QueryBuilder<TSelect>)!;
             return BuildStrongTyped<TSelect>();
@@ -134,10 +229,17 @@ namespace EdgeDB
 
         public QueryBuilder<TType> Filter(Expression<Func<TType, bool>> filter)
         {
-            var context = new QueryContext<TType, bool>(filter);
-            var builtFilter = ConvertExpression(filter.Body, context);
-            Arguments.AddRange(builtFilter.Arguments);
-            EnterNode($"filter {builtFilter.Filter}", QueryExpressionType.Filter);
+            EnterNode(QueryExpressionType.Filter, (ref QueryBuilderContext builderContext) =>
+            {
+                var context = new QueryContext<TType, bool>(filter);
+                var builtFilter = ConvertExpression(filter.Body, context);
+
+                return new BuiltQuery
+                {
+                    Parameters = builtFilter.Arguments,
+                    QueryText = $"filter {builtFilter.Filter}"
+                };
+            });
             return this;
         }
 
@@ -150,206 +252,171 @@ namespace EdgeDB
         internal QueryBuilder<TType> OrderByInternal(string direction, Expression<Func<TType, object?>> selector, NullPlacement? nullPlacement = null)
         {
             AssertValid(QueryExpressionType.OrderBy);
-            var builtSelector = ParsePropertySelectors(true, selector).FirstOrDefault();
-            string orderByExp = "";
-            if(CurrentNode.Type == QueryExpressionType.OrderBy)
-                orderByExp += $"then {builtSelector} {direction}";
-            else
-                orderByExp += $"order by {builtSelector} {direction}";
+            EnterNode(QueryExpressionType .OrderBy, (ref QueryBuilderContext context) =>
+            {
+                var builtSelector = ParsePropertySelectors(true, selector).FirstOrDefault();
+                string orderByExp = "";
+                if (CurrentRootNode.Type == QueryExpressionType.OrderBy)
+                    orderByExp += $"then {builtSelector} {direction}";
+                else
+                    orderByExp += $"order by {builtSelector} {direction}";
 
-            if (nullPlacement.HasValue)
-                orderByExp += $" empty {nullPlacement.Value.ToString().ToLower()}";
+                if (nullPlacement.HasValue)
+                    orderByExp += $" empty {nullPlacement.Value.ToString().ToLower()}";
 
-            EnterNode(orderByExp, QueryExpressionType.OrderBy);
+                return new BuiltQuery
+                {
+                    QueryText = orderByExp
+                };
+            });
             return this;
         }
 
         public QueryBuilder<TType> Offset(ulong count)
         {
             AssertValid(QueryExpressionType.Offset);
-            EnterNode($"offset {count}", QueryExpressionType.Offset);
-            return this;
+            EnterNode(QueryExpressionType .Offset, (ref QueryBuilderContext context) =>
+            {
+                return new BuiltQuery
+                {
+                    QueryText = $"offset {count}"
+                };
+            }); return this;
         }
 
         public QueryBuilder<TType> Limit(ulong count)
         {
             AssertValid(QueryExpressionType.Limit);
-            EnterNode($"limit {count}", QueryExpressionType.Limit);
+            EnterNode(QueryExpressionType.Limit, (ref QueryBuilderContext context) =>
+            {
+                return new BuiltQuery
+                {
+                    QueryText = $"limit {count}"
+                };
+            });
             return this;
         }
 
         public QueryBuilder<TType> For(Set<TType> set, Expression<Func<QueryBuilder<TType>, QueryBuilder>> iterator)
         {
-            AssertValid(QueryExpressionType.For);
-            var builder = new QueryBuilder<TType>();
-            var builtIterator = iterator.Compile()(builder);
+            EnterRootNode(QueryExpressionType.For, (QueryNode node, ref QueryBuilderContext context) =>
+            {
+                var builder = new QueryBuilder<TType>();
+                var builtIterator = iterator.Compile()(builder);
 
-            EnterNode($"for {iterator.Parameters[0].Name} in {GetTypeName(typeof(TType))}", QueryExpressionType.For);
-            EnterNode($"union", QueryExpressionType.Union).AddChild(EnterNode(builtIterator.ToString(), builtIterator.QueryNodes.First().Type), x => $" ( {x} ) ");
-            Arguments.AddRange(builtIterator.Arguments);
+                node.Query = $"for {iterator.Parameters[0].Name} in {GetTypeName(typeof(TType))}";
+                node.AddChild(QueryExpressionType.Union, (ref QueryBuilderContext innerContext) =>
+                {
+                    var result = builtIterator.Build(innerContext);
+                    result.QueryText = $"union ({result.QueryText})";
+                    return result;
+                });
+            });
             return this;
         }
 
         public QueryBuilder<TType> Insert(TType value, params Expression<Func<TType, object?>>[] unlessConflictOn)
         {
-            AssertValid(QueryExpressionType.Insert);
-            var obj = SerializeQueryObject(value);
-            EnterRootNode($"insert {GetTypeName(typeof(TType))} {obj.Property}", QueryExpressionType.Insert);
-            Arguments.AddRange(obj.Arguments);
-            if (unlessConflictOn.Any())
+            EnterRootNode(QueryExpressionType.Insert, (QueryNode node, ref QueryBuilderContext context) =>
             {
-                var props = ParsePropertySelectors(true, unlessConflictOn);
+                context.DontSelectProperties = true;
+                var obj = SerializeQueryObject(value, context);
+                node.Query = $"insert {GetTypeName(typeof(TType))} {obj.Property}";
+                node.AddArguments(obj.Arguments);
 
-                if (props.Count > 1)
+                if (unlessConflictOn.Any())
                 {
-                    EnterNode($"unless conflict on ({string.Join(", ", props)})", QueryExpressionType.UnlessConflictOn);
+                    var props = ParsePropertySelectors(true, unlessConflictOn);
+                    node.AddChild(QueryExpressionType.UnlessConflictOn, (ref QueryBuilderContext innerContext) =>
+                    {
+                        return new BuiltQuery
+                        {
+                            QueryText = props.Count > 1
+                                ? $"unless conflict on ({string.Join(", ", props)})"
+                                : $"unless conflict on {props[0]}"
+                        };
+                    });
                 }
-                else
-                    EnterNode($"unless conflict on {props[0]}", QueryExpressionType.UnlessConflictOn);
-            }
+            });
 
             return this;
         }
 
         public QueryBuilder<TType> Update(TType obj, Expression<Func<TType, bool>>? filter = null)
         {
-            AssertValid(QueryExpressionType.Update);
-            EnterNode($"update {GetTypeName(typeof(TType))}", QueryExpressionType.Update);
-            if (filter != null)
+            EnterRootNode(QueryExpressionType.Update, (QueryNode node, ref QueryBuilderContext context) =>
             {
-                Filter(filter);
-            }
-            var serializedObj = SerializeQueryObject(obj);
-            EnterNode($"set {serializedObj.Property}", QueryExpressionType.Set);
-            Arguments.AddRange(serializedObj.Arguments);
+                node.Query = $"update {GetTypeName(typeof(TType))}";
+                if (filter != null)
+                {
+                    Filter(filter);
+                }
+                var serializedObj = SerializeQueryObject(obj);
+                node.AddChild(QueryExpressionType.Set, (ref QueryBuilderContext innerContext) =>
+                {
+                    return new BuiltQuery
+                    {
+                        QueryText = $"set {serializedObj.Property}",
+                        Parameters = serializedObj.Arguments,
+                    };
+                });
+            });
             return this;
         }
 
         public QueryBuilder<TType> Update(Expression<Func<TType, TType>> builder, Expression<Func<TType, bool>>? filter = null)
         {
-            AssertValid(QueryExpressionType.Update);
-            var serializedObj = ConvertExpression(builder.Body, new QueryContext<TType, TType>(builder) {  AllowStaticOperators = true });
-            EnterRootNode($"update {GetTypeName(typeof(TType))}", QueryExpressionType.Update);
-            if (filter != null)
+            EnterRootNode(QueryExpressionType.Update, (QueryNode node, ref QueryBuilderContext context) =>
             {
-                Filter(filter);
-            }
-            EnterNode($"set {{ {serializedObj.Filter} }}", QueryExpressionType.Set);
-            Arguments.AddRange(serializedObj.Arguments);
+                var serializedObj = ConvertExpression(builder.Body, new QueryContext<TType, TType>(builder) { AllowStaticOperators = true });
+                if (filter != null)
+                {
+                    Filter(filter);
+                }
+
+                node.Query = $"update {GetTypeName(typeof(TType))}";
+                node.AddChild(QueryExpressionType.Set, (ref QueryBuilderContext innerContext) =>
+                {
+                    return new BuiltQuery
+                    {
+                        QueryText = $"set {{ {serializedObj.Filter} }}",
+                        Parameters = serializedObj.Arguments
+                    };
+                });
+            });
+
             return this;
         }
 
         public QueryBuilder<TType> Delete()
         {
-            AssertValid(QueryExpressionType.Delete);
-            EnterNode($"delete {GetTypeName(typeof(TType))}", QueryExpressionType.Delete);
+            EnterRootNode(QueryExpressionType.Delete, (QueryNode node, ref QueryBuilderContext context) =>
+            {
+                node.Query = $"delete {GetTypeName(typeof(TType))}";
+            });
             return this;
         }
 
         public QueryBuilder<TType> With(string moduleName)
         {
-            AssertValid(QueryExpressionType.With);
-            EnterNode($"with module {moduleName}", QueryExpressionType.With);
+            EnterRootNode(QueryExpressionType.With, (QueryNode node, ref QueryBuilderContext context) =>
+            {
+                node.Query = $"with module {moduleName}";
+            });
             return this;
         }
 
-        public QueryBuilder<TType> Transaction(Expression<Func<QueryBuilder<TType>, QueryBuilder>> query, IsolationMode? isolation = null,
-            AccessMode? accessMode = null, bool? deferrable = null)
+        private QueryNode EnterRootNode(QueryExpressionType type, RootNodeBuilder builder)
         {
-            AssertValid(QueryExpressionType.Transaction);
-            var builder = new QueryBuilder<TType>();
-            var builtQuery = query.Compile()(builder);
-
-            var transactionString = "start transaction";
-
-            if (isolation.HasValue)
-            {
-                transactionString += $" isolation {ToEnumString(isolation.Value)}";
-            }
-
-            if (accessMode.HasValue)
-            {
-                transactionString += $" {accessMode.Value}";
-            }
-
-            if (deferrable.HasValue)
-            {
-                transactionString += deferrable.Value switch
-                {
-                    true => " deferrable",
-                    false => " not deferrable"
-                };
-            }
-
-            EnterNode($"{transactionString};", QueryExpressionType.Transaction);
-            EnterNode($"{builtQuery};", QueryExpressionType.Start);
-            EnterNode($"rollback;", QueryExpressionType.Rollback);
-            return this;
-        }
-
-        public QueryBuilder<TType> StartTransaction(IsolationMode? isolation = null,
-            AccessMode? accessMode = null, bool? deferrable = null)
-        {
-            AssertValid(QueryExpressionType.Transaction);
-            List<string> transactionArgs = new();
-
-            if (isolation.HasValue)
-            {
-                transactionArgs.Add($"isolation {ToEnumString(isolation.Value)}");
-            }
-
-            if (accessMode.HasValue)
-            {
-                transactionArgs.Add($"{ToEnumString(accessMode.Value)}");
-            }
-
-            if (deferrable.HasValue)
-            {
-                transactionArgs.Add($"{(deferrable.Value ? "deferrable" : "not deferrable")}");
-            }
-
-            EnterNode($"start transaction{(transactionArgs.Any() ? $" {string.Join(", ", transactionArgs)}" : "")};", QueryExpressionType.Transaction);
-            return this;
-        }
-
-        public QueryBuilder<TType> EndTransaction()
-        {
-            EnterNode("rollback;", QueryExpressionType.Rollback);
-            return this;
-        }
-
-        public QueryBuilder<TType> Commit()
-        {
-
-            EnterNode("commit;", QueryExpressionType.Commit);
-            return this;
-        }
-
-        //public QueryBuilder<TType> DeclareSavepoint(string name)
-        //{
-
-        //}
-
-        private QueryNode EnterRootNode(string q, QueryExpressionType nodeType)
-        {
-            var node = new QueryNode
-            {
-                Query = q,
-                Type = nodeType
-            };
+            AssertValid(type);
+            var node = new QueryNode(type, builder);
             QueryNodes.Add(node);
             return node;
         }
 
-        private QueryNode EnterNode(string q, QueryExpressionType nodeType)
+        private void EnterNode(QueryExpressionType type, ChildNodeBuilder builder)
         {
-            var node = new QueryNode
-            {
-                Query = q,
-                Type = nodeType
-            };
-            CurrentNode.AddChild(node, (x) => x);
-            return node;
+            CurrentRootNode.AddChild(type, builder);
         }
 
         private string ToEnumString<TEnum>(TEnum value) where TEnum : notnull
@@ -362,7 +429,7 @@ namespace EdgeDB
 
         private void AssertValid(QueryExpressionType currentExpression)
         {
-            if (!_validExpressions[currentExpression].Contains(CurrentNode.Type))
+            if (!_validExpressions[currentExpression].Contains(CurrentRootNode.Type))
             {
                 throw new InvalidQueryOperationException(currentExpression, _validExpressions[currentExpression]);
             }
@@ -370,7 +437,7 @@ namespace EdgeDB
 
         private Dictionary<QueryExpressionType, QueryExpressionType[]> _validExpressions = new()
         {
-            { QueryExpressionType.With, new QueryExpressionType[] { QueryExpressionType.With} },
+            { QueryExpressionType.With, new QueryExpressionType[] { QueryExpressionType.With, QueryExpressionType.Start } },
             { QueryExpressionType.Select, new QueryExpressionType[] { QueryExpressionType.With, QueryExpressionType.Start} },
             { QueryExpressionType.OrderBy, new QueryExpressionType[] { QueryExpressionType.Delete, QueryExpressionType.Filter, QueryExpressionType.Select} },
             { QueryExpressionType.Offset, new QueryExpressionType[] { QueryExpressionType.Delete, QueryExpressionType.OrderBy, QueryExpressionType.Select, QueryExpressionType.Filter } },
@@ -385,10 +452,11 @@ namespace EdgeDB
 
         public static implicit operator Set<TType>(QueryBuilder<TType> v) => new Set<TType>(v.ToString(), v.Arguments.ToDictionary(x => x.Key, x => x.Value));
         public static implicit operator ComputedValue<TType>(QueryBuilder<TType> v) => new ComputedValue<TType>(default, v);
-        public IEnumerable<TType> BuildSubQuery()
+        
+        public Set<TType> SubQuerySet()
             => (Set<TType>)this;
 
-        public TType BuildExplicitSubQuery()
+        public TType SubQuery()
         {
             var obj = (ISubQueryType)Activator.CreateInstance(CreateMockedType(typeof(TType)))!;
             obj.Builder = this;
@@ -396,25 +464,62 @@ namespace EdgeDB
         }
     }
 
-    public class QueryNode
+    internal delegate BuiltQuery ChildNodeBuilder(ref QueryBuilderContext context);
+    internal delegate void RootNodeBuilder(QueryNode node, ref QueryBuilderContext context);
+
+
+    internal class QueryNode
     {
         public QueryExpressionType Type { get; set; }
-        public List<QueryNode> Children { get; set; } = new();
+        public List<(ChildNodeBuilder Builder, QueryExpressionType Type)> Children { get; set; } = new();
         public QueryNode? Parent { get; set; }
         public string? Query { get; set; }
-        internal Func<string, string>? BuildFunc { get; set; }
-        
+        public IEnumerable<KeyValuePair<string, object?>> Arguments { get; set; } = new Dictionary<string, object?>();
 
-        public void AddChild(QueryNode node, Func<string, string> buildFunc)
+        private readonly object _lock = new();
+
+        private readonly RootNodeBuilder? _builder;
+
+        public QueryNode() { }
+
+        public QueryNode(QueryExpressionType type, RootNodeBuilder builder)
         {
-            node.BuildFunc = buildFunc;
-            node.Parent = this;
-            Children.Add(node);
+            _builder = builder;
+            Type = type;
         }
 
-        public string Build()
+        public void AddChild(QueryExpressionType type, ChildNodeBuilder builder)
+            => Children.Add((builder, type));
+
+        public void AddArguments(IEnumerable<KeyValuePair<string, object?>> args)
         {
-            return $"{(BuildFunc != null ? BuildFunc(Query!) : Query)} {(Children.Any() ? string.Join(" ", Children.Select(x => x.Build())) : "")}";
+            lock (_lock)
+            {
+                Arguments = Arguments.Concat(args);
+            }
+        }
+
+        public BuiltQuery Build(QueryBuilderContext config)
+        {
+            // remove current arguments incase of building twice
+            Arguments = new Dictionary<string, object?>();
+            if(_builder != null)
+                _builder.Invoke(this, ref config);
+
+            var result = $"{Query}";
+
+            if (Children.Any())
+            {
+                var results = Children.Select(x => x.Builder.Invoke(ref config));
+                result += $" {string.Join(" ", results.Select(x => x.QueryText))}";
+                AddArguments(results.SelectMany(x => x.Parameters));
+            }
+
+            return new BuiltQuery
+            {
+                Parameters = Arguments,
+                QueryText = result
+            };
         }
     }
 

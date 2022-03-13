@@ -11,16 +11,19 @@ namespace EdgeDB
     {
         public string Details { get; }
         public string? ServerTraceBack { get; }
-
+        public string? Hint { get; }
         public Models.ErrorResponse ErrorResponse { get; }
 
         public EdgeDBErrorException(Models.ErrorResponse error)
-            : base(Encoding.UTF8.GetString(error.Headers.FirstOrDefault(x => x.Code == 0x0001).Value))
+            : base(error.Message)
         {
             Details = Encoding.UTF8.GetString(error.Headers.FirstOrDefault(x => x.Code == 0x0002).Value);
 
             if (error.Headers.Any(x => x.Code == 0x0101))
                 ServerTraceBack = Encoding.UTF8.GetString(error.Headers.FirstOrDefault(x => x.Code == 0x0101).Value);
+
+            if (error.Headers.Any(x => x.Code == 0x0001))
+                Hint = Encoding.UTF8.GetString(error.Headers.FirstOrDefault(x => x.Code == 0x0001).Value);
 
             ErrorResponse = error;
         }

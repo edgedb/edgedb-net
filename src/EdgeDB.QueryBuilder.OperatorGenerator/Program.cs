@@ -77,7 +77,7 @@ using (var _ = writer.BeginScope("namespace EdgeDB"))
 
                                 writer.AppendLine($"[ParameterMap({split[0]}, \"{split[1]}\")]");
                             }
-                            writer.AppendLine($"public static {func.Return ?? op.Return} {func.Name ?? op.Name}({string.Join(", ", func.Parameters.Select((x, i) => $"{x.Split(' ')[0]} {(x.Split(' ').Length > 1 ? string.Join(" ", x.Split(' ').Skip(1)) : ParamaterNames[i])}"))}) {{ return default!; }}");
+                            writer.AppendLine($"public static {func.Return ?? op.Return} {func.Name ?? op.Name}({string.Join(", ", func.Parameters.Select((x, i) => $"{x.Split(' ')[0]} {(x.Split(' ').Length > 1 ? string.Join(" ", x.Split(' ').Skip(1)) : ParamaterNames[i])}"))}){(func.Filter != null ? $" {func.Filter}" : "")} {{ return default!; }}");
                         }
 
                     }

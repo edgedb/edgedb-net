@@ -1,9 +1,5 @@
 ﻿using EdgeDB;
 using EdgeDB.DataTypes;
-using System.Linq.Expressions;
-using System;
-using System.Reflection;
-using System.Reflection.Emit;
 using Test;
 
 Logger.AddStream(Console.OpenStandardOutput(), StreamType.StandardOut);
@@ -14,14 +10,28 @@ var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb
     Logger = Logger.GetLogger<EdgeDBClient>(),
 });
 
-var q = QueryBuilder.Select<Person>().Filter(x => x.Name == "Quin");
+// inset a new person
+var insertQuery = QueryBuilder.Insert(new Person
+{
+    Name = "Liege",
+    Email = "liege@liege.dev",
+    BestFriend = QueryBuilder.Select<Person>().Filter(x => x.Name == "Quin").SubQuery(),
+    Hobbies = QueryBuilder.Select<Hobby>().Filter(x => x.Name == "Coding").SubQuerySet(),
+}, x => x.Email).Build();
 
-var qr = q.ToString();
+var result = await edgedb.QueryAsync(insertQuery.QueryText, insertQuery.Parameters.ToDictionary(x => x.Key, x => x.Value));
 
-var result = await edgedb.QueryAsync<IEnumerable<Person>>(q.ToString(), q.Arguments.ToDictionary(x => x.Key, x => x.Value));
+// get that person
+var liegeQuery = QueryBuilder.Select<Person>().Filter(x => x.Name == "Liege").Build();
 
-var count = result.First().HobbyCount;
+var liege = await edgedb.QueryAsync<Set<Person>>(liegeQuery.QueryText, liegeQuery.Parameters.ToDictionary(x => x.Key, x => x.Value));
 
+// Add a new hobby 
+// TODO: Fix link addition wrapping.
+var hobbyUpdateQuery = QueryBuilder.Update<Person>(x => new Person()
+{
+    Hobbies = EdgeQL.AddLink(x.Hobbies!, QueryBuilder.Select<Hobby>().Filter(x => x.Name == "BasketBall").SubQuery())
+}).Filter(x => x.Name == "Liege").Build();
 
 await Task.Delay(-1);
 
@@ -35,10 +45,16 @@ public class Person
     [EdgeDBProperty("email")]
     public string? Email { get; set; }
 
-    [EdgeDBProperty("hobbies", IsLink = true)]
-    public IEnumerable<Hobby>? Hobbies { get; set; }
 
-    // TODO: Take a look at our generated version to see if we can use the `new` keyword instead of virtual here
+    // Multi link example
+    [EdgeDBProperty("hobbies", IsLink = true)]
+    public Set<Hobby>? Hobbies { get; set; }
+
+    // Single link example
+    [EdgeDBProperty("bestFriend", IsLink = true)]
+    public Person? BestFriend { get; set; }
+
+    // Computed example
     [EdgeDBProperty("hobbyCount", IsComputed = true)]
     public virtual ComputedValue<long> HobbyCount 
         => QueryBuilder.Select(() => EdgeQL.Count(Hobbies));
