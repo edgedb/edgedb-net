@@ -52,7 +52,7 @@ namespace EdgeDB
                 else if (c == '{' || c == '(')
                 {
                     tabIndex += 2;
-                    result += $"{(c != '(' ? $"\n{padChar}" : "")}{c}\n{"".PadLeft(tabIndex)}";
+                    result += $"{(prevFormatted != ' ' ? " " : "")}{c}\n{"".PadLeft(tabIndex)}";
                 }
                 else if (c == '}' || c == ')')
                 {
