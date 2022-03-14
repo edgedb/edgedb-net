@@ -41,13 +41,13 @@ namespace EdgeDB
         {
             return new QueryBuilder<TType>().Insert(value, unlessConflictOn);
         }
-        public static QueryBuilder<TType> Update<TType>(TType obj, Expression<Func<TType, bool>>? filter = null) 
+        public static QueryBuilder<TType> Update<TType>(TType obj) 
         {
-            return new QueryBuilder<TType>().Update(obj, filter);
+            return new QueryBuilder<TType>().Update(obj);
         }
-        public static QueryBuilder<TType> Update<TType>(Expression<Func<TType, TType>> builder, Expression<Func<TType, bool>>? filter = null)
+        public static QueryBuilder<TType> Update<TType>(Expression<Func<TType, TType>> builder)
         {
-            return new QueryBuilder<TType>().Update(builder, filter);
+            return new QueryBuilder<TType>().Update(builder);
         }
 
         public static QueryBuilder<TType> Delete<TType>() 
@@ -58,15 +58,20 @@ namespace EdgeDB
         {
             return new QueryBuilder<TType>().With(moduleName);
         }
+        public static QueryBuilder<TType> With<TType>(string name, TType value)
+        {
+            return new QueryBuilder<TType>().With(name, value);
+        }
+        public static QueryBuilder<object> With(params (string Name, object? Value)[] variables)
+        {
+            return new QueryBuilder<object>().With(variables);
+        }
+
         public static QueryBuilder<TType> For<TType>(Set<TType> set, Expression<Func<QueryBuilder<TType>, QueryBuilder>> iterator) 
         {
             return new QueryBuilder<TType>().For(set, iterator);
         }
 
-        internal QueryBuilder<TType> BuildStrongTyped<TType>()
-        {
-            return new QueryBuilder<TType>(QueryNodes);
-        }
         #endregion
 
         /// <summary>
@@ -95,7 +100,7 @@ namespace EdgeDB
 
         internal BuiltQuery Build(QueryBuilderContext config)
         {
-            var results = QueryNodes.Select(x => x.Build(config));
+            var results = QueryNodes.Select(x => x.Build(config)).ToArray();
             return new BuiltQuery
             {
                 Parameters = results.SelectMany(x => x.Parameters),
@@ -112,23 +117,32 @@ namespace EdgeDB
             QueryNodes = query ?? new List<QueryNode>();
         }
 
-        public new QueryBuilder<TResult> Select<TResult>(Expression<Func<TResult>> selector)
+
+
+        internal QueryBuilder<TTarget> ConvertTo<TTarget>()
+        {
+            if (typeof(TTarget) == typeof(TType))
+                return (this as QueryBuilder<TTarget>)!;
+            return new QueryBuilder<TTarget>(QueryNodes);
+        }
+
+        public new QueryBuilder<TTarget> Select<TTarget>(Expression<Func<TTarget>> selector)
         {
             EnterRootNode(QueryExpressionType.Select, (QueryNode node, ref QueryBuilderContext context) =>
             {
-                var query = ConvertExpression(selector.Body, new QueryContext<TResult>(selector));
-                node.Query = query.Filter;
+                var query = ConvertExpression(selector.Body, new QueryContext<TTarget>(selector));
+                node.Query = $"select {query.Filter}";
                 node.AddArguments(query.Arguments);
             });
 
-            if (typeof(TResult) == typeof(TType))
-                return (this as QueryBuilder<TResult>)!;
-            return BuildStrongTyped<TResult>();
+            if (typeof(TTarget) == typeof(TType))
+                return (this as QueryBuilder<TTarget>)!;
+            return ConvertTo<TTarget>();
         }
 
-        public new QueryBuilder<TSelect> Select<TSelect>(params Expression<Func<TSelect, object?>>[] properties)
+        public new QueryBuilder<TTarget> Select<TTarget>(params Expression<Func<TTarget, object?>>[] properties)
         {
-            return SelectInternal<TSelect>(context =>
+            return SelectInternal<TTarget>(context =>
             {
                 if (context.DontSelectProperties)
                     return null;
@@ -142,21 +156,21 @@ namespace EdgeDB
             return Select<TType>();
         }
 
-        public new QueryBuilder<TSelect> Select<TSelect>()
+        public new QueryBuilder<TTarget> Select<TTarget>()
         {
-            return SelectInternal<TSelect>(context =>
+            return SelectInternal<TTarget>(context =>
             {
                 if (context.DontSelectProperties)
                 {
                     return null;
                 }
-                var result = GetTypePropertyNames(typeof(TSelect));
+                var result = GetTypePropertyNames(typeof(TTarget));
 
                 return (result.Properties.ToArray() ?? Array.Empty<string>(), result.Arguments);
             });
         }
 
-        internal QueryBuilder<TSelect> SelectInternal<TSelect>(Func<QueryBuilderContext, (IEnumerable<string>? Properties, IEnumerable<KeyValuePair<string, object?>>? Arguments)?> argumentBuilder)
+        internal QueryBuilder<TTarget> SelectInternal<TTarget>(Func<QueryBuilderContext, (IEnumerable<string>? Properties, IEnumerable<KeyValuePair<string, object?>>? Arguments)?> argumentBuilder)
         {
             EnterRootNode(QueryExpressionType.Select, (QueryNode node, ref QueryBuilderContext context) =>
             {
@@ -165,24 +179,24 @@ namespace EdgeDB
                 IEnumerable<string>? properties = selectArgs?.Properties;
                 IEnumerable<KeyValuePair<string, object?>>? args = selectArgs?.Arguments;
 
-                node.Query = $"select {(context.UseDetachedSelects ? "detached " : "")}{GetTypeName(typeof(TSelect))}{(properties != null ? $" {{ {string.Join(", ", properties)} }}" : "")}";
+                node.Query = $"select {(context.UseDetachedSelects ? "detached " : "")}{GetTypeName(typeof(TTarget))}{(properties != null ? $" {{ {string.Join(", ", properties)} }}" : "")}";
                 if (context.UseDetachedSelects && PreviousNodeType != QueryExpressionType.Limit)
                     node.AddChild(QueryExpressionType.Limit, (ref QueryBuilderContext _) => new BuiltQuery { QueryText = "limit 1" });
                 
                 if (args != null)
                     node.AddArguments(args);
             });
-
-            if (typeof(TSelect) == typeof(TType))
-                return (this as QueryBuilder<TSelect>)!;
-            return BuildStrongTyped<TSelect>();
+            return ConvertTo<TTarget>();
         }
 
+
         public QueryBuilder<TType> Filter(Expression<Func<TType, bool>> filter)
+            => Filter<TType>(filter);
+        public QueryBuilder<TTarget> Filter<TTarget>(Expression<Func<TTarget, bool>> filter)
         {
             EnterNode(QueryExpressionType.Filter, (ref QueryBuilderContext builderContext) =>
             {
-                var context = new QueryContext<TType, bool>(filter);
+                var context = new QueryContext<TTarget, bool>(filter);
                 var builtFilter = ConvertExpression(filter.Body, context);
 
                 return new BuiltQuery
@@ -191,7 +205,7 @@ namespace EdgeDB
                     QueryText = $"filter {builtFilter.Filter}"
                 };
             });
-            return this;
+            return ConvertTo<TTarget>();
         }
 
         public QueryBuilder<TType> OrderBy(Expression<Func<TType, object?>> selector, NullPlacement? nullPlacement = null)
@@ -266,13 +280,13 @@ namespace EdgeDB
             return this;
         }
 
-        public QueryBuilder<TType> Insert(TType value, params Expression<Func<TType, object?>>[] unlessConflictOn)
+        public new QueryBuilder<TTarget> Insert<TTarget>(TTarget value, params Expression<Func<TTarget, object?>>[] unlessConflictOn)
         {
             EnterRootNode(QueryExpressionType.Insert, (QueryNode node, ref QueryBuilderContext context) =>
             {
                 context.DontSelectProperties = true;
                 var obj = SerializeQueryObject(value, context);
-                node.Query = $"insert {GetTypeName(typeof(TType))} {obj.Property}";
+                node.Query = $"insert {GetTypeName(typeof(TTarget))} {obj.Property}";
                 node.AddArguments(obj.Arguments);
 
                 if (unlessConflictOn.Any())
@@ -290,18 +304,31 @@ namespace EdgeDB
                 }
             });
 
+            return ConvertTo<TTarget>();
+        }
+
+        public QueryBuilder<TType> UnlessConflictOn(params Expression<Func<TType, object?>>[] selectors)
+        {
+            EnterNode(QueryExpressionType.UnlessConflictOn, (ref QueryBuilderContext innerContext) =>
+            {
+                var props = ParsePropertySelectors(true, selectors);
+
+                return new BuiltQuery
+                {
+                    QueryText = props.Count > 1
+                        ? $"unless conflict on ({string.Join(", ", props)})"
+                        : $"unless conflict on {props[0]}"
+                };
+            });
+
             return this;
         }
 
-        public QueryBuilder<TType> Update(TType obj, Expression<Func<TType, bool>>? filter = null)
+        public new QueryBuilder<TTarget> Update<TTarget>(TTarget obj)
         {
             EnterRootNode(QueryExpressionType.Update, (QueryNode node, ref QueryBuilderContext context) =>
             {
-                node.Query = $"update {GetTypeName(typeof(TType))}";
-                if (filter != null)
-                {
-                    Filter(filter);
-                }
+                node.Query = $"update {GetTypeName(typeof(TTarget))}";
                 var serializedObj = SerializeQueryObject(obj);
                 node.AddChild(QueryExpressionType.Set, (ref QueryBuilderContext innerContext) =>
                 {
@@ -312,20 +339,16 @@ namespace EdgeDB
                     };
                 });
             });
-            return this;
+            return ConvertTo<TTarget>();
         }
 
-        public QueryBuilder<TType> Update(Expression<Func<TType, TType>> builder, Expression<Func<TType, bool>>? filter = null)
+        public new QueryBuilder<TTarget> Update<TTarget>(Expression<Func<TTarget, TTarget>> builder)
         {
             EnterRootNode(QueryExpressionType.Update, (QueryNode node, ref QueryBuilderContext context) =>
             {
-                var serializedObj = ConvertExpression(builder.Body, new QueryContext<TType, TType>(builder) { AllowStaticOperators = true });
-                if (filter != null)
-                {
-                    Filter(filter);
-                }
-
-                node.Query = $"update {GetTypeName(typeof(TType))}";
+                var serializedObj = ConvertExpression(builder.Body, new QueryContext<TTarget, TTarget>(builder) { AllowStaticOperators = true });
+                
+                node.Query = $"update {GetTypeName(typeof(TTarget))}";
                 node.AddChild(QueryExpressionType.Set, (ref QueryBuilderContext innerContext) =>
                 {
                     return new BuiltQuery
@@ -336,7 +359,7 @@ namespace EdgeDB
                 });
             });
 
-            return this;
+            return ConvertTo<TTarget>();
         }
 
         public QueryBuilder<TType> Delete()
@@ -355,6 +378,57 @@ namespace EdgeDB
                 node.Query = $"with module {moduleName}";
             });
             return this;
+        }
+
+        public new QueryBuilder<TType> With(params (string Name, object? Value)[] variables)
+        {
+            EnterRootNode(QueryExpressionType.With, (QueryNode node, ref QueryBuilderContext context) =>
+            {
+                List<string> statements = new();
+
+                context.IntrospectObjectIds = true;
+                foreach (var item in variables)
+                {
+                    var converted = SerializeProperty(item.Value?.GetType() ?? typeof(object), item.Value, false, context);
+                    node.AddArguments(converted.Arguments);
+
+                    statements.Add($"{item.Name} := {converted.Property}");
+                }
+
+                node.Query = $"with {string.Join(", ", statements)}";
+            });
+
+            return this;
+        }
+
+        public new QueryBuilder<TTarget> With<TTarget>(string name, TTarget value)
+        {
+            if(PreviousNodeType == QueryExpressionType.With)
+            {
+                EnterNode(QueryExpressionType.With, (ref QueryBuilderContext context) =>
+                {
+                    context.IntrospectObjectIds = true;
+                    var converted = SerializeProperty(value, false, context);
+
+                    return new BuiltQuery
+                    {
+                        QueryText = $", {name} := {converted.Property}",
+                        Parameters = converted.Arguments
+                    };
+                });
+            }
+            else
+            {
+                EnterRootNode(QueryExpressionType.With, (QueryNode node, ref QueryBuilderContext context) =>
+                {
+                    context.IntrospectObjectIds = true;
+                    var converted = SerializeProperty(value, false, context);
+                    node.AddArguments(converted.Arguments);
+                    node.Query = $"with {name} := {converted.Property}";
+                });
+            }
+
+            return ConvertTo<TTarget>();
         }
 
         private QueryNode EnterRootNode(QueryExpressionType type, RootNodeBuilder builder)
@@ -461,7 +535,7 @@ namespace EdgeDB
 
             if (Children.Any())
             {
-                var results = Children.Select(x => x.Builder.Invoke(ref config));
+                var results = Children.Select(x => x.Builder.Invoke(ref config)).ToArray();
                 result += $" {string.Join(" ", results.Select(x => x.QueryText))}";
                 AddArguments(results.SelectMany(x => x.Parameters));
             }

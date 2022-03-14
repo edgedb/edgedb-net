@@ -954,10 +954,19 @@ namespace EdgeDB
 
         #region AddLink<TSource, TType>
         [EquivalentOperator(typeof(EdgeDB.Operators.LinksAddLink))]
-        public static TSource AddLink<TSource, TType>(TSource source, TType element) where TSource : IEnumerable<TType> { return default!; }
+        public static TSource AddLink<TSource, TType>(TSource source, TType element) where TSource : IEnumerable<TType>? { return default!; }
+        #endregion
+
+        #region RemoveLink<TSource, TType>
+        [EquivalentOperator(typeof(EdgeDB.Operators.LinksRemoveLink))]
+        public static TSource RemoveLink<TSource, TType>(TSource source, TType element) where TSource : IEnumerable<TType>? { return default!; }
         #endregion
 
         #endregion links
+
+        #region variables
+
+        #endregion variables
 
         internal static Dictionary<string, IEdgeQLOperator> FunctionOperators = new()
         {

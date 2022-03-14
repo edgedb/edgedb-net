@@ -213,7 +213,10 @@ namespace EdgeDB
             else return await errorTask;
         }
 
-        public async Task<object?> ExecuteAsync(string query, IDictionary<string, object?>? arguments = null, Cardinality? card = null)
+        public Task<object?> ExecuteAsync(string query, IDictionary<string, object?>? arguments = null, Cardinality? card = null)
+            => ExecuteAsync<object>(query, arguments, card);
+
+        public async Task<TResult?> ExecuteAsync<TResult>(string query, IDictionary<string, object?>? arguments = null, Cardinality? card = null)
         {
             await _sephamore.WaitAsync(_disconnectCancelToken.Token).ConfigureAwait(false);
 
@@ -343,7 +346,7 @@ namespace EdgeDB
                 if (completeResult.HasValue)
                 {
                     Logger.LogInformation("Executed query with {}: {}", completeResult.Value.Status, completeResult.Value.UsedCapabilities);
-                    return queryResult;
+                    return ObjectBuilder.BuildResult<TResult>(result.OutputTypedescId, queryResult);
                 }
                 else if (errorResult.HasValue)
                 {

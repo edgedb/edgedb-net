@@ -141,56 +141,78 @@ namespace EdgeDB
             foreach (var prop in props)
             {
                 var name = GetPropertyName(prop);
-                var varName = $"p_{name}";
-                var value = prop.GetValue(obj);
-                var queryValue = "";
+                var result = SerializeProperty(prop.PropertyType, prop.GetValue(obj), IsLink(prop), context);
 
-                if (IsLink(prop))
-                {
-                    if (value is ISet set && set.IsSubQuery)
-                    {
-                        args = set.Arguments!.Concat(args).ToDictionary(x => x.Key, x => x.Value);
-                        queryValue = $"({set.Query})";
-                    }
-                    else if (value is IEnumerable enm)
-                    {
-                        List<QueryBuilder> values = new();
-                        // enumerate object links for mock objects
-                        foreach (var val in enm)
-                        {
-                            if (val is not ISubQueryType sub)
-                                throw new InvalidOperationException($"Expected a sub query for object type, but got {val.GetType()}");
-
-                            values.Add(sub.Builder);
-                        }
-
-                        var vals = values.Select(x =>
-                        {
-                            args = x.Arguments.Concat(args).ToDictionary(x => x.Key, x => x.Value);
-                            return $"({x})";
-                        });
-
-                        queryValue = $"{{ {string.Join(", ", vals)} }}";
-                    }
-                    else if (value is ISubQueryType sub)
-                    {
-                        // TODO: reference TType and check for same type reference. https://www.edgedb.com/docs/stdlib/set#operator::detached
-                        var result = sub.Builder.Build(context?.Enter(x => x.UseDetachedSelects = true) ?? new());
-                        args = args.Concat(result.Parameters).ToDictionary(x => x.Key, x => x.Value);
-                        queryValue = $"({result.QueryText})";
-                    }
-                    else throw new ArgumentException("Unresolved link parser");
-                }
-                else
-                {
-                    queryValue = $"<{PacketSerializer.GetEdgeQLType(prop.PropertyType)}>${varName}";
-                }
-
-                propertySet.Add($"{name} := {queryValue}");
-                args.Add(varName, value);
+                propertySet.Add($"{name} := {result.Property}");
+                args = args.Concat(result.Arguments).ToDictionary(x => x.Key, x => x.Value); // TODO: optimize?
             }
 
             return ($"{{ {string.Join(", ", propertySet)} }}", args);
+        }
+
+        internal static (string Property, Dictionary<string, object?> Arguments) SerializeProperty<TType>(TType value, bool isLink, QueryBuilderContext? context = null)
+            => SerializeProperty(typeof(TType), value, isLink, context);
+        internal static (string Property, Dictionary<string, object?> Arguments) SerializeProperty(Type type, object? value, bool isLink, QueryBuilderContext? context = null)
+        {
+            var args = new Dictionary<string, object?>();
+            var queryValue = "";
+            var varName = $"p_{Guid.NewGuid().ToString().Replace("-", "")}";
+
+            if (isLink)
+            {
+                if (value is ISet set && set.IsSubQuery)
+                {
+                    args = set.Arguments!.Concat(args).ToDictionary(x => x.Key, x => x.Value);
+                    queryValue = $"({set.Query})";
+                }
+                else if (value is IEnumerable enm)
+                {
+                    List<QueryBuilder> values = new();
+                    // enumerate object links for mock objects
+                    foreach (var val in enm)
+                    {
+                        if (val is not ISubQueryType sub)
+                            throw new InvalidOperationException($"Expected a sub query for object type, but got {val.GetType()}");
+
+                        values.Add(sub.Builder);
+                    }
+
+                    var vals = values.Select(x =>
+                    {
+                        args = x.Arguments.Concat(args).ToDictionary(x => x.Key, x => x.Value);
+                        return $"({x})";
+                    });
+
+                    queryValue = $"{{ {string.Join(", ", vals)} }}";
+                }
+                else if (value is ISubQueryType sub)
+                {
+                    // TODO: reference TType and check for same type reference. https://www.edgedb.com/docs/stdlib/set#operator::detached
+                    var result = sub.Builder.Build(context?.Enter(x => x.UseDetachedSelects = true) ?? new());
+                    args = args.Concat(result.Parameters).ToDictionary(x => x.Key, x => x.Value);
+                    queryValue = $"({result.QueryText})";
+                }
+                else throw new ArgumentException("Unresolved link parser");
+            }
+            else if (value is ISubQueryType sub)
+            {
+                // TODO: reference TType and check for same type reference. https://www.edgedb.com/docs/stdlib/set#operator::detached
+                var result = sub.Builder.Build(context?.Enter(x => x.UseDetachedSelects = true) ?? new());
+                args = args.Concat(result.Parameters).ToDictionary(x => x.Key, x => x.Value);
+                queryValue = $"({result.QueryText})";
+            }
+            else if(value is IQueryResultObject obj && (context?.IntrospectObjectIds ?? false))
+            {
+                // generate a select query
+                queryValue = $"(select {GetTypeName(type)} filter .id = <uuid>\"{obj.GetObjectId()}\")";
+            }
+            else
+            {
+                queryValue = $"<{PacketSerializer.GetEdgeQLType(type)}>${varName}";
+                args.Add(varName, value);
+            }
+
+            return (queryValue, args);
         }
 
         internal static List<string> ParsePropertySelectors<TInner, TSelect>(bool referenceObject = false, params Expression<Func<TInner, TSelect>>[] selectors)
@@ -236,7 +258,7 @@ namespace EdgeDB
         internal static (List<string> Properties, List<KeyValuePair<string, object?>> Arguments) GetTypePropertyNames(Type t, ArgumentAggregationContext? context = null)
         {
             List<string> returnProps = new List<string>();
-            var props = t.GetProperties();
+            var props = t.GetProperties().Where(x => x.GetCustomAttribute<EdgeDBIgnore>() == null);
             var instance = Activator.CreateInstance(t);
             var args = new List<KeyValuePair<string, object?>>();
             // get inner props on types
@@ -404,9 +426,10 @@ namespace EdgeDB
                 var result = new List<(string Filter, Dictionary<string, object?> Arguments)>();
                 foreach (MemberAssignment binding in init.Bindings)
                 {
-                    var value = ConvertExpression(binding.Expression, context);
+                    var innerContext = context.Enter(binding.Expression);
+                    var value = ConvertExpression(binding.Expression, innerContext);
                     var name = binding.Member.GetCustomAttribute<EdgeDBProperty>()?.Name ?? binding.Member.Name;
-                    result.Add(($"{name} := {value.Filter}", value.Arguments));
+                    result.Add(($"{name}{(innerContext.IncludeSetOperand ? " :=" : "")} {value.Filter}", value.Arguments));
                 }
 
                 return (string.Join(", ", result.Select(x => x.Filter)), result.SelectMany(x => x.Arguments).ToDictionary(x => x.Key, x => x.Value));
@@ -518,7 +541,25 @@ namespace EdgeDB
 
                 try
                 {
-                    return ($"({op.Build(arguments.Select(x => x.Filter).ToArray())})", arguments.SelectMany(x => x.Arguments).ToDictionary(x => x.Key, x => x.Value));
+                    string builtOperator = op.Build(arguments.Select(x => x.Filter).ToArray());
+
+                    switch (op)
+                    {
+                        case LinksAddLink or LinksRemoveLink:
+                            {
+                                context.IncludeSetOperand = false;
+                            }
+                            break;
+                        case VariablesReference:
+                            {
+                            }
+                            break;
+                        default:
+                            builtOperator = $"({builtOperator})";
+                            break;
+                    }
+
+                    return (builtOperator, arguments.SelectMany(x => x.Arguments).ToDictionary(x => x.Key, x => x.Value));
                 }
                 catch(Exception x)
                 {
@@ -571,11 +612,36 @@ namespace EdgeDB
                 }
                 else 
                 {
+                    // check for variable access with recursion
+                    
                     // tostring it and check the starter accesser for our parameter
                     var ts = RecurseNameLookup(mbs);
                     if (ts.StartsWith($"{context.ParameterName}."))
                     {
                         return (ts.Substring(context.ParameterName!.Length, ts.Length - context.ParameterName.Length), new());
+                    }
+
+                    if (TryResolveOperator(mbs, out var opr, out var exp) && opr is VariablesReference)
+                    {
+                        if (exp == null || opr == null)
+                            throw new Exception("Got faulty operator resolve results");
+
+
+                        var varName = ConvertExpression(exp, context.Enter(exp));
+
+                        var param = Expression.Parameter(exp.Method.ReturnType, "x");
+                        var newExp = mbs.Update(param);
+                        var func = Expression.Lambda(newExp, param);
+
+                        var accessors = ConvertExpression(func.Body, new QueryContext
+                        {
+                            Body = func.Body,
+                            ParameterName = "x",
+                            ParameterType = exp.Method.ReturnType
+                        });
+
+                        // TODO: optimize dict
+                        return ($"{varName.Filter}{accessors.Filter}", varName.Arguments.Concat(accessors.Arguments).ToDictionary(x => x.Key, x => x.Value));
                     }
 
                     throw new NotSupportedException($"Unknown handler for member access: {mbs}");
@@ -635,6 +701,32 @@ namespace EdgeDB
 
         }
 
+        internal static bool TryResolveOperator(MemberExpression mc, out IEdgeQLOperator? edgeQLOperator, out MethodCallExpression? expression)
+        {
+            edgeQLOperator = null;
+            expression = null;
+
+            Expression? currentExpression = mc;
+
+            while(currentExpression != null)
+            {
+                if(currentExpression is MethodCallExpression mcs && mcs.Method.DeclaringType == typeof(EdgeQL) && mcs.Method.Name == nameof(EdgeQL.Var))
+                {
+                    edgeQLOperator = mcs.Method.GetCustomAttribute<EquivalentOperator>()!.Operator;
+                    expression = mcs;
+                    return true;
+                }
+
+                if (currentExpression is MemberExpression mcin)
+                    currentExpression = mcin.Expression;
+                else
+                    break;
+            }
+
+            return false;
+
+        }
+
         internal static string RecurseNameLookup(MemberExpression expression, bool skipStart = false)
         {
             List<string?> tree = new();
@@ -654,7 +746,7 @@ namespace EdgeDB
         internal static string ParseArgument(object? arg, QueryContext context)
         {
             if(arg is string str)
-                return $"\"{str}\"";
+                return context.IsVariableReference ? str : $"\"{str}\"";
 
             if (arg is char chr)
                 return $"\"{chr}\"";

@@ -31,7 +31,10 @@ namespace EdgeDB
         {
             if (ModuleBuilder == null)
             {
-                var assembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("EdgeDB.Runtime"), AssemblyBuilderAccess.Run);
+                var assembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("EdgeDB.Runtime")
+                {
+                    Version = Assembly.GetExecutingAssembly().GetName().Version,
+                }, AssemblyBuilderAccess.Run);
 
                 ModuleBuilder = assembly.DefineDynamicModule("MainModule");
             }

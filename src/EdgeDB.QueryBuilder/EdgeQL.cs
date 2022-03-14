@@ -9,6 +9,10 @@ namespace EdgeDB
 {
     public sealed partial class EdgeQL
     {
-        
+        [EquivalentOperator(typeof(VariablesReference))]
+        public static object? Var(string name) => default;
+
+        [EquivalentOperator(typeof(VariablesReference))]
+        public static TType? Var<TType>(string name) => default;
     }
 }

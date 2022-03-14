@@ -64,6 +64,14 @@ namespace EdgeDB.DataTypes
             Collection.Add(item);
         }
 
+        public void AddRange(IEnumerable<T> item)
+        {
+            if (IsReadOnly)
+                throw new NotSupportedException("Cannot add to a read only set");
+
+            Collection.AddRange(item);
+        }
+
         public void Clear()
         {
             if (IsReadOnly)
@@ -86,10 +94,42 @@ namespace EdgeDB.DataTypes
             return Collection.Remove(item);
         }
 
+        public int RemoveRange(IEnumerable<T> item)
+        {
+            if (IsReadOnly)
+                throw new NotSupportedException("Cannot remove from a read only set");
+
+            return Collection.RemoveAll(x => item.Contains(x));
+        }
+
         // ISet
         string? ISet.Query => Query;
         IDictionary<string, object?>? ISet.Arguments => Arguments;
         bool ISet.IsSubQuery => IsSubQuery;
+
+        public static Set<T> operator +(Set<T> set, T value)
+        {
+            set.Add(value);
+            return set;
+        }
+
+        public static Set<T> operator +(Set<T> set, Set<T> value)
+        {
+            set.AddRange(value);
+            return set;
+        }
+
+        public static Set<T> operator -(Set<T> set, T value)
+        {
+            set.Remove(value);
+            return set;
+        }
+
+        public static Set<T> operator -(Set<T> set, Set<T> value)
+        {
+            set.RemoveRange(value);
+            return set;
+        }
     }
 
     public interface ISet

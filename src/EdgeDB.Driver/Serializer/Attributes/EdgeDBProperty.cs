@@ -13,8 +13,7 @@ namespace EdgeDB
         public bool IsRequired { get; set; }
         public bool IsComputed { get; set; }
         public bool IsReadOnly { get; set; }
-
-        internal readonly string? Name;
+        internal string? Name { get; set; }
 
         public EdgeDBProperty(string? propertyName = null)
         {

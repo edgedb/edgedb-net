@@ -1460,8 +1460,21 @@ links:
       - parameters:
           - TSource source
           - TType element
-        filter: "where TSource : IEnumerable<TType>"
-          
+        filter: "where TSource : IEnumerable<TType>?"
+  - operator: "-= {1}"
+    name: RemoveLink<TSource, TType>
+    return: TSource
+    functions:
+      - parameters:
+          - TSource source
+          - TType element
+        filter: "where TSource : IEnumerable<TType>?"
+
+variables:
+  - operator: "{0}"
+    name: Reference
+  
+
 enums:
   - name: DurationTruncateUnit
     serialize_method: Lower

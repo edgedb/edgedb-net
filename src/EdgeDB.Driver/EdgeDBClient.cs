@@ -106,10 +106,7 @@ namespace EdgeDB
             {
                 var client = await GetOrCreateClientAsync().ConfigureAwait(false);
 
-                var result = await client.ExecuteAsync(query, arguments, cardinality).ConfigureAwait(false);
-
-                //return default;
-                return ObjectBuilder.BuildResult<TResult>(Guid.NewGuid(), result);
+                return await client.ExecuteAsync<TResult>(query, arguments, cardinality).ConfigureAwait(false);
             }
             finally
             {

@@ -2,6 +2,8 @@
 using EdgeDB.DataTypes;
 using Test;
 
+var t = typeof(IQueryResultObject);
+
 Logger.AddStream(Console.OpenStandardOutput(), StreamType.StandardOut);
 Logger.AddStream(Console.OpenStandardError(), StreamType.StandardError);
 
@@ -10,6 +12,9 @@ var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb
     Logger = Logger.GetLogger<EdgeDBClient>(),
 });
 
+
+
+
 // inset a new person
 var insertQuery = QueryBuilder.Insert(new Person
 {
@@ -17,24 +22,53 @@ var insertQuery = QueryBuilder.Insert(new Person
     Email = "liege@liege.dev",
     BestFriend = QueryBuilder.Select<Person>().Filter(x => x.Name == "Quin").SubQuery(),
     Hobbies = QueryBuilder.Select<Hobby>().Filter(x => x.Name == "Coding").SubQuerySet(),
-}, x => x.Email).Build();
+}).UnlessConflictOn(x => x.Email);
 
-var pretty = insertQuery.Prettify();
+var result = await edgedb.QueryAsync(insertQuery.Build());
 
-var result = await edgedb.QueryAsync(insertQuery.QueryText, insertQuery.Parameters.ToDictionary(x => x.Key, x => x.Value));
 
-// get that person
-var liegeQuery = QueryBuilder.Select<Person>().Filter(x => x.Name == "Liege").Build();
 
-var liege = await edgedb.QueryAsync<Set<Person>>(liegeQuery.QueryText, liegeQuery.Parameters.ToDictionary(x => x.Key, x => x.Value));
 
 // Add a new hobby 
-// TODO: Fix link addition wrapping.
 var hobbyUpdateQuery = QueryBuilder.Update<Person>(x => new Person()
 {
-    Hobbies = EdgeQL.AddLink(x.Hobbies!, QueryBuilder.Select<Hobby>().Filter(x => x.Name == "BasketBall").SubQuery())
-}).Filter(x => x.Name == "Liege").Build();
+    Hobbies = EdgeQL.AddLink(x.Hobbies, QueryBuilder.Select<Hobby>().Filter(x => x.Name == "BasketBall").SubQuery())
+}).Filter(x => x.Name == "Liege");
 
+await edgedb.QueryAsync(hobbyUpdateQuery.Build());
+
+
+
+
+// get that person
+var liegeQuery = QueryBuilder.Select<Person>().Filter(x => x.Name == "Liege");
+
+var liege = await edgedb.QueryAsync<Set<Person>>(liegeQuery.Build());
+
+
+
+
+// use our previous liege person in a query and remove the coding hobby
+// Declare our variables
+var removeHobbyBuilder = QueryBuilder.With(
+    ("liege", liege!.First()),
+    ("hobbyToRemove", QueryBuilder.Select<Hobby>().Filter(x => x.Name == "BasketBall").SubQuery())
+);
+
+// update the hobbies link
+removeHobbyBuilder.Update<Person>(x => new Person
+{
+    Hobbies = EdgeQL.RemoveLink(x.Hobbies, EdgeQL.Var("hobbyToRemove"))
+});
+
+// add a filter
+removeHobbyBuilder.Filter<Person>(x => x.Email == EdgeQL.Var<Person>("liege")!.Email);
+
+// execute
+await edgedb.QueryAsync(removeHobbyBuilder.Build());
+
+
+// hault the program
 await Task.Delay(-1);
 
 // our model in a C# form
@@ -61,6 +95,26 @@ public class Person
     public virtual ComputedValue<long> HobbyCount 
         => QueryBuilder.Select(() => EdgeQL.Count(Hobbies!));
 }
+
+public class TestClass : IQueryResultObject
+{
+    private Guid Id { get; }
+
+    public Guid GetObjectId()
+    {
+        return Id;
+    }
+}
+
+//public class TestClass : IQueryResultObject
+//{
+//    public Guid SomeRandomId { get; set; }
+//    Guid IQueryResultObject.ObjectId
+//    {
+//        get => SomeRandomId;
+//        set => SomeRandomId = value;
+//    }
+//}
 
 [EdgeDBType]
 public class Hobby

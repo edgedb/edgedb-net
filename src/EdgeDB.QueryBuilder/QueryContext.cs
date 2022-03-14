@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -16,6 +17,10 @@ namespace EdgeDB
         public int? ParameterIndex { get; set; }
         public bool IsCharContext { get; set; } = false;
         public bool AllowStaticOperators { get; set; } = false;
+        public bool IncludeSetOperand { get; set; } = true;
+
+        public bool IsVariableReference
+            => Parent?.Body is MethodCallExpression mc && mc.Method.GetCustomAttribute<Operators.EquivalentOperator>()?.Operator?.GetType() == typeof(Operators.VariablesReference);
         public QueryContext() { }
 
         public virtual QueryContext Enter(Expression x, int? paramIndex = null)

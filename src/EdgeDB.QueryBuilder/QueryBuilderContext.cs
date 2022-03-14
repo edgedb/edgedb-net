@@ -10,6 +10,7 @@ namespace EdgeDB
     {
         public bool DontSelectProperties { get; set; }
         public bool UseDetachedSelects { get; set; }
+        public bool IntrospectObjectIds { get; set; }
 
         public QueryBuilderContext? Parent { get; set; }
 

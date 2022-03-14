@@ -2,9 +2,9 @@ using System.Linq.Expressions;
 
 namespace EdgeDB.Operators
 {
-    internal class NumbersStandardDeviation : IEdgeQLOperator
+    internal class LinksRemoveLink : IEdgeQLOperator
     {
         public ExpressionType? Operator => null;
-        public string EdgeQLOperator => "math::stddev({0})";
+        public string EdgeQLOperator => "-= {1}";
     }
 }
