@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
-    public struct BuiltQuery
+    public sealed class BuiltQuery
     {
         public string QueryText { get; set; } = "";
         public IEnumerable<KeyValuePair<string, object?>> Parameters { get; set; } = new Dictionary<string, object?>();
