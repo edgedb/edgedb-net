@@ -73,7 +73,7 @@ namespace EdgeDB
         ///     Turns this query builder into a edgeql representation.
         /// </summary>
         /// <returns>A edgeql query.</returns>
-        public override string ToString()
+        public override string? ToString()
         {
             return Build().QueryText;
         }

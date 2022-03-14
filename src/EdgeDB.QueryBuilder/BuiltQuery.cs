@@ -8,14 +8,14 @@ namespace EdgeDB
 {
     public struct BuiltQuery
     {
-        public string QueryText { get; set; }
+        public string? QueryText { get; set; }
         public IEnumerable<KeyValuePair<string, object?>> Parameters { get; set; } = new Dictionary<string, object?>();
 
         public string Prettify()
         {
             int tabIndex = 0;
             bool escaped = false;
-            var raw = QueryText;
+            var raw = QueryText ?? "";
             var result = "";
 
             for (int i = 0; i != raw.Length; i++)

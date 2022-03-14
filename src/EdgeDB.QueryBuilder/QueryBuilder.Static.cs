@@ -729,7 +729,7 @@ namespace EdgeDB
 
             if(t.GetInterfaces().Any(x => x.Name == typeof(IEnumerable<>).Name))
             {
-                var i = t.GetInterface(typeof(IEnumerable<>).Name);
+                var i = t.GetInterface(typeof(IEnumerable<>).Name)!;
                 type = i.GenericTypeArguments[0];
                 return true;
             }

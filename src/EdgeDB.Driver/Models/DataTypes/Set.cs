@@ -42,7 +42,7 @@ namespace EdgeDB.DataTypes
             IsReadOnly = false;
         }
 
-        internal Set(string query, IDictionary<string, object?> args)
+        internal Set(string? query, IDictionary<string, object?> args)
             : this()
         {
             Query = query;

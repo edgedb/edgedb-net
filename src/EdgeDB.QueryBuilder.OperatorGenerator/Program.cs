@@ -21,6 +21,7 @@ var sections = deserializer!.Deserialize<Dictionary<string, EdgeQLOperator[]>>(c
 var writer = new CodeWriter();
 
 writer.AppendLine("#nullable restore");
+writer.AppendLine("#pragma warning disable");
 writer.AppendLine("using EdgeDB.Operators;");
 writer.AppendLine("using EdgeDB.DataTypes;");
 writer.AppendLine("using System.Numerics;");
@@ -110,6 +111,9 @@ using (var _ = writer.BeginScope("namespace EdgeDB"))
         }
     }
 }
+
+writer.AppendLine("#nullable restore");
+writer.AppendLine("#pragma warning restore");
 
 void WriteEnums(EdgeQLOperator[] enums)
 {

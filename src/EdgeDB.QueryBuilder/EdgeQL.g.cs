@@ -1,4 +1,5 @@
 #nullable restore
+#pragma warning disable
 using EdgeDB.Operators;
 using EdgeDB.DataTypes;
 using System.Numerics;
@@ -967,3 +968,5 @@ namespace EdgeDB
 ;
     }
 }
+#nullable restore
+#pragma warning restore
