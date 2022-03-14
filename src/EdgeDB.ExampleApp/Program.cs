@@ -2,11 +2,12 @@
 using EdgeDB.DataTypes;
 using Test;
 
-var t = typeof(IQueryResultObject);
-
+// Initialize our logger
 Logger.AddStream(Console.OpenStandardOutput(), StreamType.StandardOut);
 Logger.AddStream(Console.OpenStandardError(), StreamType.StandardError);
 
+
+// create our client
 var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb.toml"), new EdgeDBConfig
 {
     Logger = Logger.GetLogger<EdgeDBClient>(),
