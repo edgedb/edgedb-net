@@ -18,7 +18,7 @@ namespace EdgeDB
         public bool IsCharContext { get; set; } = false;
         public bool AllowStaticOperators { get; set; } = false;
         public bool IncludeSetOperand { get; set; } = true;
-
+        public QueryBuilderContext? BuilderContext { get; set; }
         public bool IsVariableReference
             => Parent?.Body is MethodCallExpression mc && mc.Method.GetCustomAttribute<Operators.EquivalentOperator>()?.Operator?.GetType() == typeof(Operators.VariablesReference);
         public QueryContext() { }
@@ -32,7 +32,8 @@ namespace EdgeDB
                 ParameterType = ParameterType,
                 IsCharContext = IsCharContext,
                 ParameterIndex = paramIndex,
-                Parent = this
+                Parent = this,
+                BuilderContext = BuilderContext,
             };
         }
     }

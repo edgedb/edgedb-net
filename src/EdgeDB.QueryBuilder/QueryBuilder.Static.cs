@@ -78,61 +78,7 @@ namespace EdgeDB
             return null;
         }
 
-        public static BuiltQuery BuildInsertQuery<TInner>(TInner obj)
-        {
-            var props = typeof(TInner).GetProperties().Where(x => x.GetCustomAttribute<EdgeDBIgnore>() == null);
-
-            Dictionary<string, (string, object?)> propertySet = new();
-
-            foreach(var prop in props)
-            {
-                var name = GetPropertyName(prop);
-                var value = prop.GetValue(obj);
-
-                propertySet.Add($"{name} := {GetTypePrefix(prop.PropertyType)}$p_{name}", ($"p_{name}", value));
-            }
-
-            return new BuiltQuery
-            {
-                Parameters = propertySet.Values.ToDictionary(x => x.Item1, x => x.Item2),
-                QueryText = $"insert {GetTypeName(typeof(TInner))} {{ {string.Join(", ", propertySet.Keys)} }}"
-            };
-        }
-
-        public static BuiltQuery BuildUpsertQuery<TInner>(TInner obj, Expression<Func<TInner, object?>> constraint)
-        {
-            var context = new QueryContext<TInner, object?>(constraint);
-
-            var builtPredicate = ConvertExpression(constraint.Body, context);
-
-            var typeName = GetTypeName(typeof(TInner));
-
-            var props = typeof(TInner).GetProperties().Where(x => x.GetCustomAttribute<EdgeDBIgnore>() == null);
-
-            Dictionary<(string Name, string VarName), (string VarName, object? Value)> propertySet = new();
-
-            foreach (var prop in props)
-            {
-                var name = GetPropertyName(prop);
-                var value = prop.GetValue(obj);
-
-                propertySet.Add((name, $"{GetTypePrefix(prop.PropertyType)}$p_{name}"), ($"p_{name}", value));
-            }
-
-            return new BuiltQuery
-            {
-                Parameters = propertySet.Values.ToDictionary(x => x.Item1, x => x.Item2),
-                QueryText = 
-                    $"with {string.Join(", ", propertySet.Select(x => $"{x.Key.Name} := {x.Key.VarName}"))} " +
-                    $"insert {typeName} {{ {string.Join(", ", propertySet.Keys.Select(x => $"{x.Name} := {x.Name}"))} }} " +
-                    $"unless conflict on {builtPredicate.Filter} " +
-                    $"else ( " +
-                    $"update {typeName} set {{ {string.Join(", ", propertySet.Keys.Select(x => $"{x.Name} := {x.Name}"))} }}" +
-                    $")"
-            };
-        }
-
-        internal static (string Property, Dictionary<string, object?> Arguments) SerializeQueryObject<TType>(TType obj, QueryBuilderContext? context = null)
+        internal static (string Query, Dictionary<string, object?> Arguments) SerializeQueryObject<TType>(TType obj, QueryBuilderContext? context = null)
         {
             var props = typeof(TType).GetProperties().Where(x => x.GetCustomAttribute<EdgeDBIgnore>() == null && x.GetCustomAttribute<EdgeDBProperty>()?.IsComputed == false);
             var propertySet = new List<string>();
@@ -160,10 +106,11 @@ namespace EdgeDB
 
             if (isLink)
             {
-                if (value is ISet set && set.IsSubQuery)
+                if (value is ISet set && set.IsSubQuery && set.QueryBuilder is QueryBuilder builder)
                 {
-                    args = set.Arguments!.Concat(args).ToDictionary(x => x.Key, x => x.Value);
-                    queryValue = $"({set.Query})";
+                    var result = builder.Build(context?.Enter(x => x.UseDetachedSelects = type == set.GetInnerType()) ?? new());
+                    args = args.Concat(result.Parameters).ToDictionary(x => x.Key, x => x.Value);
+                    queryValue = $"({result.QueryText})";
                 }
                 else if (value is IEnumerable enm)
                 {
@@ -187,8 +134,7 @@ namespace EdgeDB
                 }
                 else if (value is ISubQueryType sub)
                 {
-                    // TODO: reference TType and check for same type reference. https://www.edgedb.com/docs/stdlib/set#operator::detached
-                    var result = sub.Builder.Build(context?.Enter(x => x.UseDetachedSelects = true) ?? new());
+                    var result = sub.Builder.Build(context?.Enter(x => x.UseDetachedSelects = type == sub.Builder.QuerySelectorType) ?? new());
                     args = args.Concat(result.Parameters).ToDictionary(x => x.Key, x => x.Value);
                     queryValue = $"({result.QueryText})";
                 }
@@ -196,8 +142,7 @@ namespace EdgeDB
             }
             else if (value is ISubQueryType sub)
             {
-                // TODO: reference TType and check for same type reference. https://www.edgedb.com/docs/stdlib/set#operator::detached
-                var result = sub.Builder.Build(context?.Enter(x => x.UseDetachedSelects = true) ?? new());
+                var result = sub.Builder.Build(context?.Enter(x => x.UseDetachedSelects = sub.Builder.QuerySelectorType == type) ?? new());
                 args = args.Concat(result.Parameters).ToDictionary(x => x.Key, x => x.Value);
                 queryValue = $"({result.QueryText})";
             }
@@ -215,11 +160,11 @@ namespace EdgeDB
             return (queryValue, args);
         }
 
-        internal static List<string> ParsePropertySelectors<TInner, TSelect>(bool referenceObject = false, params Expression<Func<TInner, TSelect>>[] selectors)
+        internal static List<string> ParseShapeDefinition<TInner, TSelect>(bool referenceObject = false, params Expression<Func<TInner, TSelect>>[] shape)
         {
             List<string> props = new();
 
-            foreach (var selector in selectors)
+            foreach (var selector in shape)
             {
                 if (selector.Body is MemberExpression mbs)
                 {
@@ -242,7 +187,7 @@ namespace EdgeDB
                     // create a dynamic version of this method
                     var funcInner = mc.Arguments[1].Type.GenericTypeArguments[0];
                     var funcSelect = mc.Arguments[1].Type.GenericTypeArguments[1];
-                    var method = typeof(QueryBuilder).GetRuntimeMethods().First(x => x.Name == nameof(ParsePropertySelectors)).MakeGenericMethod(funcInner, funcSelect);
+                    var method = typeof(QueryBuilder).GetRuntimeMethods().First(x => x.Name == nameof(ParseShapeDefinition)).MakeGenericMethod(funcInner, funcSelect);
 
                     // make the array arg
                     var arr = Array.CreateInstance(typeof(Expression<>).MakeGenericType(typeof(Func<,>).MakeGenericType(funcInner, funcSelect)), 1);
@@ -319,103 +264,6 @@ namespace EdgeDB
                     Parent = this,
                 };
             }
-        }
-
-        public static BuiltQuery BuildUpdateQuery<TInner>(TInner obj, Expression<Func<TInner, bool>>? predicate = null, params Expression<Func<TInner, object?>>[] selectors)
-        {
-            predicate ??= x => true;
-
-            var typeName = GetTypeName(typeof(TInner));
-
-            var context = new QueryContext<TInner, bool>(predicate);
-            var args = ConvertExpression(predicate.Body!, context);
-
-            Dictionary<string, (string, object?)> parsedProps = new();
-
-            if (selectors.Any())
-            {
-                foreach(var selector in selectors)
-                {
-                    if(selector.Body is not MemberExpression mbs)
-                    {
-                        throw new ArgumentException("Property selector must referemce the type argument");
-                    }
-
-                    var name = RecurseNameLookup(mbs);
-
-                    // remove reference name and '.'
-                    name = name.Substring(selector.Parameters[0].Name!.Length + 1, name.Length - 1 - selector.Parameters[0].Name!.Length);
-
-                    object? value = null;
-                    Type? type = null;
-                    switch (mbs.Member.MemberType)
-                    {
-                        case MemberTypes.Field:
-                            value = ((FieldInfo)mbs.Member).GetValue(obj);
-                            type = ((FieldInfo)mbs.Member).FieldType;
-                            break;
-                        case MemberTypes.Property:
-                            value = ((PropertyInfo)mbs.Member).GetValue(obj);
-                            type = ((PropertyInfo)mbs.Member).PropertyType;
-                            break;
-                    }
-
-                    parsedProps[$"{name} := {GetTypePrefix(type!)}$p_{name}"] = ($"p_{name}", value);
-                }
-            }
-            else
-            {
-                var props = typeof(TInner).GetProperties().Where(x => x.GetCustomAttribute<EdgeDBIgnore>() == null);
-
-                foreach(var prop in props)
-                {
-                    var name = GetPropertyName(prop);
-                    var value = prop.GetValue(obj);
-
-                    parsedProps[$"{name} := {GetTypePrefix(prop.PropertyType)}$p_{name}"] = ($"p_{name}", value);
-                }
-            }
-
-            return new BuiltQuery
-            {
-                QueryText = $"update {typeName} filter {args.Filter} set {{ {string.Join(", ", parsedProps.Keys)} }}",
-                Parameters = args.Arguments.Concat(parsedProps.Select(x => x.Value).ToDictionary(x => x.Item1, x => x.Item2)).ToDictionary(x => x.Key, x => x.Value)
-            };
-        }
-
-        public static BuiltQuery BuildUpdateQuery<TInner>(Expression<Func<TInner, TInner>> builder, Expression<Func<TInner, bool>>? predicate = null)
-        {
-            predicate ??= x => true;
-
-            var objectBuilder = ConvertExpression(builder.Body, new QueryContext<TInner, TInner>(builder));
-
-            var typeName = GetTypeName(typeof(TInner));
-
-            var context = new QueryContext<TInner, bool>(predicate);
-            var args = ConvertExpression(predicate.Body!, context);
-
-            return new BuiltQuery 
-            {
-                QueryText = $"update {typeName} filter {args.Filter} set {{ {objectBuilder.Filter} }}",
-                Parameters = args.Arguments.Concat(objectBuilder.Arguments).ToDictionary(x => x.Key, x => x.Value)
-            };
-        }
-
-        public static BuiltQuery BuildSelectQuery<TInner>(Expression<Func<TInner, bool>> selector)
-        {
-            var context = new QueryContext<TInner, bool>(selector);
-            var args = ConvertExpression(context.Body!, context);
-
-            // by default return all fields
-            var typename = GetTypeName(typeof(TInner));
-            var fields = typeof(TInner).GetProperties().Select(x => x.GetCustomAttribute<EdgeDBProperty>()?.Name ?? x.Name);
-            var queryText = $"select {typename} {{ {string.Join(", ", fields)} }} filter {args.Filter}";
-
-            return new BuiltQuery
-            {
-                QueryText = queryText,
-                Parameters = args.Arguments
-            };
         }
 
         // TODO: add node checks when in Char context, using int converters while in char context will result in the int being converted to a character.
@@ -552,6 +400,7 @@ namespace EdgeDB
                             break;
                         case VariablesReference:
                             {
+                                context.BuilderContext?.AddTrackedVariable(builtOperator);
                             }
                             break;
                         default:
@@ -626,7 +475,6 @@ namespace EdgeDB
                         if (exp == null || opr == null)
                             throw new Exception("Got faulty operator resolve results");
 
-
                         var varName = ConvertExpression(exp, context.Enter(exp));
 
                         var param = Expression.Parameter(exp.Method.ReturnType, "x");
@@ -639,6 +487,8 @@ namespace EdgeDB
                             ParameterName = "x",
                             ParameterType = exp.Method.ReturnType
                         });
+
+                        context.BuilderContext?.AddTrackedVariable($"{varName.Filter}{accessors.Filter}");
 
                         // TODO: optimize dict
                         return ($"{varName.Filter}{accessors.Filter}", varName.Arguments.Concat(accessors.Arguments).ToDictionary(x => x.Key, x => x.Value));

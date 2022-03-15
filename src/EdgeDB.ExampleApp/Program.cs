@@ -65,6 +65,8 @@ removeHobbyBuilder.Update<Person>(x => new Person
 // add a filter
 removeHobbyBuilder.Filter<Person>(x => x.Email == EdgeQL.Var<Person>("liege")!.Email);
 
+var str = removeHobbyBuilder.ToString();
+
 // execute
 await edgedb.QueryAsync(removeHobbyBuilder.Build());
 

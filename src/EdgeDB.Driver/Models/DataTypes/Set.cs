@@ -19,10 +19,8 @@ namespace EdgeDB.DataTypes
         public bool IsReadOnly { get; protected set; }
 
         protected readonly List<T> Collection;
-
-        internal string? Query { get; }
-        internal IDictionary<string, object?>? Arguments { get; }
         internal bool IsSubQuery { get; } = false;
+        internal object? QueryBuilder { get; }
 
         public Set() 
         {
@@ -42,11 +40,10 @@ namespace EdgeDB.DataTypes
             IsReadOnly = false;
         }
 
-        internal Set(string? query, IDictionary<string, object?> args)
+        internal Set(object? queryBuilder)
             : this()
         {
-            Query = query;
-            Arguments = args;
+            QueryBuilder = queryBuilder;
             IsSubQuery = true;
         }
 
@@ -103,9 +100,9 @@ namespace EdgeDB.DataTypes
         }
 
         // ISet
-        string? ISet.Query => Query;
-        IDictionary<string, object?>? ISet.Arguments => Arguments;
+        object? ISet.QueryBuilder => QueryBuilder;
         bool ISet.IsSubQuery => IsSubQuery;
+        Type ISet.GetInnerType() => typeof(T);
 
         public static Set<T> operator +(Set<T> set, T value)
         {
@@ -136,9 +133,8 @@ namespace EdgeDB.DataTypes
     {
         int Count { get; }
         bool IsReadOnly { get; }
-
-        internal string? Query { get; }
-        internal IDictionary<string, object?>? Arguments { get; }
+        internal object? QueryBuilder { get; }
         internal bool IsSubQuery { get; }
+        internal Type GetInnerType();
     }
 }

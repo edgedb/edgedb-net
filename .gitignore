@@ -10,6 +10,16 @@
 *.userosscache
 *.sln.docstates
 
+# generated docs
+docs/_build
+docs/_static
+docs/_templates
+docs/Makefile
+docs/make.bat
+
+# vscode
+.vscode
+
 # rider
 .idea/
 

@@ -37,13 +37,13 @@ namespace EdgeDB
 
                 if (
                     (c == ' ' && (next == '{' || next == '}')) ||
-                    (c == ' ' && prevFormatted == ' ')
+                    (c == ' ' && (prevFormatted == ' '))
                 )
                 {
                     continue;
                 }
 
-                if (prevFormatted == '\n' && c != ',' && prev != ' ')
+                if (prevFormatted == '\n' && c != ',' && c != ' ')
                     result += padChar;
                 if (c == ',')
                 {
@@ -62,7 +62,7 @@ namespace EdgeDB
                 else result += c;
             }
 
-            return result;
+            return result.Trim();
         }
     }
 }
