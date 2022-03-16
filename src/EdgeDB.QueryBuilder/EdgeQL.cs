@@ -13,6 +13,9 @@ namespace EdgeDB
         public static object? Var(string name) => default;
 
         [EquivalentOperator(typeof(VariablesReference))]
-        public static TType? Var<TType>(string name) => default;
+        public static TType? Var<TType>(string name)
+        {
+            return QueryBuilder.StaticLiteral<TType>(name, QueryExpressionType.Variable).SubQuery();
+        }
     }
 }

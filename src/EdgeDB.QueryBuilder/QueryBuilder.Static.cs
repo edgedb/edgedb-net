@@ -89,9 +89,14 @@ namespace EdgeDB
                 var name = GetPropertyName(prop);
                 var result = SerializeProperty(prop.PropertyType, prop.GetValue(obj), IsLink(prop), context);
 
+                if (!(context?.IncludeEmptySets ?? true) && result.Property == "{}")
+                    continue;
+
                 propertySet.Add($"{name} := {result.Property}");
                 args = args.Concat(result.Arguments).ToDictionary(x => x.Key, x => x.Value); // TODO: optimize?
             }
+
+
 
             return ($"{{ {string.Join(", ", propertySet)} }}", args);
         }
@@ -704,8 +709,6 @@ namespace EdgeDB
                 (TryGetEnumerableType(info.PropertyType, out var inner) && inner.GetCustomAttribute<EdgeDBType>() != null);
                 
         }
-
-        
 
         internal static Type CreateMockedType(Type mock)
         {

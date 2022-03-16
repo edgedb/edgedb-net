@@ -13,7 +13,7 @@ namespace EdgeDB
         public bool IntrospectObjectIds { get; set; }
         public QueryBuilderContext? Parent { get; set; }
         public List<string> TrackedVariables { get; set; } = new();
-        
+        public bool IncludeEmptySets { get; set; } = true;
         public bool IsVariable { get; set; }
         public string? VariableName { get; set; }
 
@@ -27,7 +27,8 @@ namespace EdgeDB
                 IntrospectObjectIds = IntrospectObjectIds,
                 TrackedVariables = TrackedVariables,
                 IsVariable = IsVariable,
-                VariableName = VariableName
+                VariableName = VariableName,
+                IncludeEmptySets = IncludeEmptySets
             };
 
             modifier(context);

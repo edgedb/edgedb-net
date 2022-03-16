@@ -25,8 +25,8 @@ namespace EdgeDB
 
         public static TType? BuildResult<TType>(Guid typeDescriptorId, object? value)
         {
-            if (value is IDictionary<string, object?>)
-                return BuildResult<TType>(typeDescriptorId, value);
+            if (value is IDictionary<string, object?> raw)
+                return BuildResult<TType>(typeDescriptorId, raw);
 
             return (TType?)ConvertTo(typeDescriptorId, typeof(TType), value);
         }

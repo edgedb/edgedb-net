@@ -13,12 +13,14 @@ var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb
     Logger = Logger.GetLogger<EdgeDBClient>(),
 });
 
-var newQuery = QueryBuilder.With(("ayu", QueryBuilder.Insert(new Person { Email = "ayu@discord.com", Name = "Ayu" })), 
-                                 ("yone", QueryBuilder.Insert(new Person { Name = "Yone", Email = "ceo@discordapi.com" })))
-                           .Update<Person>(x => new Person { BestFriend = EdgeQL.Var<Person>("ayu") })
-                           .Filter(x => x.Name == "yone");
+// insert 2 people named ayu and yone or return them with the `else` clause if they exist already
+var ayu = QueryBuilder.Insert(new Person { Email = "ayu@discord.com", Name = "Ayu" }).UnlessConflictOn(x => x.Email).Else<Person>();
+var yone = QueryBuilder.Insert(new Person { Name = "Yone", Email = "ceo@discordapi.com" }).UnlessConflictOn(x => x.Email).Else<Person>();
 
-var ss = newQuery.ToPrettyString();
+// add them to our with block as variables and set ayu's best friend to yone
+var query = QueryBuilder.With(("ayu", ayu), ("yone", yone)).Update(EdgeQL.Var<Person>("ayu"), x => new Person { BestFriend = EdgeQL.Var<Person>("yone") });
+
+await edgedb.QueryAsync(query.Build());
 
 
 // inset a new person
@@ -29,8 +31,6 @@ var insertQuery = QueryBuilder.Insert(new Person
     BestFriend = QueryBuilder.Select<Person>().Filter(x => x.Name == "Quin").SubQuery(),
     Hobbies = QueryBuilder.Select<Hobby>().Filter(x => x.Name == "Coding").SubQuerySet(),
 }).UnlessConflictOn(x => x.Email);
-
-var str = insertQuery.ToPrettyString();
 
 var result = await edgedb.QueryAsync(insertQuery.Build());
 
