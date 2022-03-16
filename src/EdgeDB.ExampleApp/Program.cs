@@ -13,7 +13,12 @@ var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb
     Logger = Logger.GetLogger<EdgeDBClient>(),
 });
 
+var newQuery = QueryBuilder.With(("ayu", QueryBuilder.Insert(new Person { Email = "ayu@discord.com", Name = "Ayu" })), 
+                                 ("yone", QueryBuilder.Insert(new Person { Name = "Yone", Email = "ceo@discordapi.com" })))
+                           .Update<Person>(x => new Person { BestFriend = EdgeQL.Var<Person>("ayu") })
+                           .Filter(x => x.Name == "yone");
 
+var ss = newQuery.ToPrettyString();
 
 
 // inset a new person
@@ -24,6 +29,8 @@ var insertQuery = QueryBuilder.Insert(new Person
     BestFriend = QueryBuilder.Select<Person>().Filter(x => x.Name == "Quin").SubQuery(),
     Hobbies = QueryBuilder.Select<Hobby>().Filter(x => x.Name == "Coding").SubQuerySet(),
 }).UnlessConflictOn(x => x.Email);
+
+var str = insertQuery.ToPrettyString();
 
 var result = await edgedb.QueryAsync(insertQuery.Build());
 
@@ -65,8 +72,6 @@ removeHobbyBuilder.Update<Person>(x => new Person
 // add a filter
 removeHobbyBuilder.Filter<Person>(x => x.Email == EdgeQL.Var<Person>("liege")!.Email);
 
-var str = removeHobbyBuilder.ToString();
-
 // execute
 await edgedb.QueryAsync(removeHobbyBuilder.Build());
 
@@ -98,26 +103,6 @@ public class Person
     public virtual ComputedValue<long> HobbyCount 
         => QueryBuilder.Select(() => EdgeQL.Count(Hobbies!));
 }
-
-public class TestClass : IQueryResultObject
-{
-    private Guid Id { get; }
-
-    public Guid GetObjectId()
-    {
-        return Id;
-    }
-}
-
-//public class TestClass : IQueryResultObject
-//{
-//    public Guid SomeRandomId { get; set; }
-//    Guid IQueryResultObject.ObjectId
-//    {
-//        get => SomeRandomId;
-//        set => SomeRandomId = value;
-//    }
-//}
 
 [EdgeDBType]
 public class Hobby

@@ -138,6 +138,10 @@ namespace EdgeDB
                     args = args.Concat(result.Parameters).ToDictionary(x => x.Key, x => x.Value);
                     queryValue = $"({result.QueryText})";
                 }
+                else if (value == null)
+                {
+                    queryValue = "{}"; // TODO: change empty set?
+                }
                 else throw new ArgumentException("Unresolved link parser");
             }
             else if (value is ISubQueryType sub)
@@ -150,6 +154,16 @@ namespace EdgeDB
             {
                 // generate a select query
                 queryValue = $"(select {GetTypeName(type)} filter .id = <uuid>\"{obj.GetObjectId()}\")";
+            }
+            else if(value is QueryBuilder builder)
+            {
+                var result = builder.Build(context?.Enter(x => x.UseDetachedSelects = builder.QuerySelectorType == type) ?? new());
+                args = args.Concat(result.Parameters).ToDictionary(x => x.Key, x => x.Value);
+                queryValue = $"({result.QueryText})";
+            }
+            else if (value == null)
+            {
+                queryValue = "{}";// TODO: change empty set?
             }
             else
             {
@@ -698,7 +712,7 @@ namespace EdgeDB
             if (mock.IsValueType || mock.IsSealed)
                 throw new InvalidOperationException($"Cannot create mocked type from {mock}");
 
-            var tb = ReflectionUtils.GetTypeBuilder($"SubQuery{mock.Name}",
+            var tb = ReflectionUtils.GetTypeBuilder($"SubQuery{mock.Name}_{Guid.NewGuid().ToString().Replace("-", "")}",
                    TypeAttributes.Public |
                    TypeAttributes.Class |
                    TypeAttributes.AutoClass |

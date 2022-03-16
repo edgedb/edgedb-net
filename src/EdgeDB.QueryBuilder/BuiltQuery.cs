@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace EdgeDB
@@ -13,56 +14,47 @@ namespace EdgeDB
 
         public string Prettify()
         {
-            int tabIndex = 0;
-            bool escaped = false;
-            var raw = QueryText ?? "";
-            var result = "";
-
-            for (int i = 0; i != raw.Length; i++)
+            // add newlines
+            var result = Regex.Replace(QueryText, @"({|\(|\)|}|,)", m =>
             {
-                var c = raw[i];
-                var prev = i == 0 ? '\0' : raw[i - 1];
-                var prevFormatted = i == 0 ? '\0' : result.Last();
-                var next = i == raw.Length - 1 ? '\0' : raw[i + 1];
-
-                if (c == '\"')
-                    escaped = !escaped;
-                else if (escaped)
+                switch (m.Groups[1].Value)
                 {
-                    result += c;
-                    continue;
+                    case "{" or "(" or ",":
+                        if (m.Groups[1].Value == "{" && QueryText[m.Index + 1] == '}')
+                            return m.Groups[1].Value;
+
+                        return $"{m.Groups[1].Value}\n";
+
+                    default:
+                        return $"{((m.Groups[1].Value == "}" && (QueryText[m.Index - 1] == '{' || QueryText[m.Index - 1] == '}')) ? "" : "\n")}{m.Groups[1].Value}{((QueryText.Length == m.Index + 1 ? false : (QueryText[m.Index + 1] != ',')) ? "\n" : "")}";
+                }
+            }).Trim().Replace("\n ", "\n");
+
+            // clean up newline func
+            result = Regex.Replace(result, "\n\n", m => "\n");
+
+            // add indentation
+            result = Regex.Replace(result, "^", m =>
+            {
+                int indent = 0;
+
+                foreach(var c in result.Substring(0, m.Index))
+                {
+                    if (c == '(' || c == '{')
+                        indent++;
+                    if (c == ')' || c == '}')
+                        indent--;
                 }
 
-                string padChar = "".PadLeft(tabIndex);
+                var next = result.Length != m.Index ? result[m.Index] : '\0';
 
-                if (
-                    (c == ' ' && (next == '{' || next == '}')) ||
-                    (c == ' ' && (prevFormatted == ' '))
-                )
-                {
-                    continue;
-                }
+                if (next == '}' || next == ')')
+                    indent--;
 
-                if (prevFormatted == '\n' && c != ',' && c != ' ')
-                    result += padChar;
-                if (c == ',')
-                {
-                    result += $"{c}\n{padChar}";
-                }
-                else if (c == '{' || c == '(')
-                {
-                    tabIndex += 2;
-                    result += $"{(prevFormatted != ' ' ? " " : "")}{c}\n{"".PadLeft(tabIndex)}";
-                }
-                else if (c == '}' || c == ')')
-                {
-                    tabIndex -= 2;
-                    result += $"{((prevFormatted != ' ' && prevFormatted != '\n') ? $"\n{"".PadLeft(tabIndex)}" : "")}{c}{(next != ',' ? '\n' : "")}";
-                }
-                else result += c;
-            }
+                return "".PadLeft(indent * 2);
+            }, RegexOptions.Multiline);
 
-            return result.Trim();
+            return result;
         }
     }
 }
