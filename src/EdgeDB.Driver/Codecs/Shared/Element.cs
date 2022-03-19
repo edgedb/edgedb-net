@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
-    public struct Element
+    internal struct Element
     {
         public int Reserved { get; set; }
         public int Length { get; set; }

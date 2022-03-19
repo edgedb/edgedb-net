@@ -7,17 +7,33 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
+    /// <summary>
+    ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#preparecomplete">Prepare Complete</see> packet
+    /// </summary>
     public struct PrepareComplete : IReceiveable
     {
-        public ServerMessageTypes Type => ServerMessageTypes.PrepareComplete;
+        /// <inheritdoc/>
+        public ServerMessageType Type => ServerMessageType.PrepareComplete;
 
-        public AllowCapabilities Capabilities { get; set; }
+        /// <summary>
+        ///     Gets the allowed capabilities that the command will actually use.
+        /// </summary>
+        public AllowCapabilities Capabilities { get; private set; }
 
-        public Cardinality Cardinality { get; set; }
+        /// <summary>
+        ///     Gets the cardinality the command will return.
+        /// </summary>
+        public Cardinality Cardinality { get; private set; }
 
-        public Guid InputTypedescId { get; set; }
+        /// <summary>
+        ///     Gets the input type descriptor id.
+        /// </summary>
+        public Guid InputTypedescId { get; private set; }
 
-        public Guid OutputTypedescId { get; set; }
+        /// <summary>
+        ///     Gets the output type descriptor id.
+        /// </summary>
+        public Guid OutputTypedescId { get; private set; }
 
         void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
@@ -33,7 +49,6 @@ namespace EdgeDB.Models
             Cardinality = (Cardinality)reader.ReadByte();
             InputTypedescId = reader.ReadGuid();
             OutputTypedescId = reader.ReadGuid();
-
         }
     }
 }

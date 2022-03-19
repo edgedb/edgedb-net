@@ -6,12 +6,23 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
+    /// <summary>
+    ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#parameterstatus">Parameter Status</see> packet.
+    /// </summary>
     public struct ParameterStatus : IReceiveable
     {
-        public ServerMessageTypes Type => ServerMessageTypes.ParameterStatus;
+        /// <inheritdoc/>
+        public ServerMessageType Type => ServerMessageType.ParameterStatus;
 
-        public string Name { get; set; }
-        public byte[] Value { get; set; }
+        /// <summary>
+        ///     Gets the name of the parameter.
+        /// </summary>
+        public string Name { get; private set; }
+
+        /// <summary>
+        ///     Gets the value of the parameter.
+        /// </summary>
+        public IReadOnlyCollection<byte> Value { get; private set; }
 
         void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {

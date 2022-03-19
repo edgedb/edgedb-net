@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    public struct ObjectShapeDescriptor : ITypeDescriptor
+    internal struct ObjectShapeDescriptor : ITypeDescriptor
     {
         public DescriptorType Type => DescriptorType.ObjectShapeDescriptor;
 
@@ -39,7 +39,7 @@ namespace EdgeDB.Models
         }
     }
 
-    public struct ShapeElement
+    internal struct ShapeElement
     {
         public ShapeElementFlags Flags { get; set; }
         public Cardinality Cardinality { get; set; }
@@ -47,7 +47,7 @@ namespace EdgeDB.Models
         public ushort TypePos { get; set; }
     }
 
-    public enum ShapeElementFlags : uint
+    internal enum ShapeElementFlags : uint
     {
         Implicit = 1 << 0,
         LinkProperty = 1 << 1,

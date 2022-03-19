@@ -6,18 +6,27 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
+    /// <summary>
+    ///     Represents a protocol extension.
+    /// </summary>
     public struct ProtocolExtension
     {
-        public string Name { get; set; }
+        /// <summary>
+        ///     Gets the name of the protocol extension.
+        /// </summary>
+        public string Name { get; private set; }
 
-        public Header[] Headers { get; set; }
+        /// <summary>
+        ///     Gets a collection of headers for this protocol extension.
+        /// </summary>
+        public IReadOnlyCollection<Header> Headers { get; private set; }
 
-        public void Write(PacketWriter writer)
+        internal void Write(PacketWriter writer)
         {
             writer.Write(Name);
         }
 
-        public void Read(PacketReader reader)
+        internal void Read(PacketReader reader)
         {
             Name = reader.ReadString();
             Headers = reader.ReadHeaders();

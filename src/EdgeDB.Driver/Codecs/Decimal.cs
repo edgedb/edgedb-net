@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
-    public class Decimal : IScalarCodec<decimal>
+    internal class Decimal : IScalarCodec<decimal>
     {
         public const decimal NBASE = 10000;
 

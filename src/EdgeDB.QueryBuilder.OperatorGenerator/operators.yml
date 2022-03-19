@@ -553,6 +553,7 @@ numbers:
         return: byte
   
   - expression: Modulo
+    operator: "{0} % {1}"
     name: Modulo
     return: long
     functions: 
@@ -746,8 +747,10 @@ json:
     return: Json
     functions:
       - parameters:
+          - Json
           - long
       - parameters:
+          - Json
           - long
           - long
   

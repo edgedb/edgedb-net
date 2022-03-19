@@ -19,13 +19,17 @@ namespace EdgeDB
         public bool AllowStaticOperators { get; set; } = false;
         public bool IncludeSetOperand { get; set; } = true;
         public QueryBuilderContext? BuilderContext { get; set; }
+        public Type? BindingType { get; set; }
+        
         public bool IsVariableReference
             => Parent?.Body is MethodCallExpression mc && mc.Method.GetCustomAttribute<Operators.EquivalentOperator>()?.Operator?.GetType() == typeof(Operators.VariablesReference);
+        
+        
         public QueryContext() { }
 
-        public virtual QueryContext Enter(Expression x, int? paramIndex = null)
+        public virtual QueryContext Enter(Expression x, int? paramIndex = null, Action<QueryContext>? modifier = null)
         {
-            return new QueryContext()
+            var context = new QueryContext()
             {
                 Body = x,
                 ParameterName = ParameterName,
@@ -35,6 +39,11 @@ namespace EdgeDB
                 Parent = this,
                 BuilderContext = BuilderContext,
             };
+
+            if (modifier != null)
+                modifier(context);
+
+            return context;
         }
     }
 
@@ -48,9 +57,9 @@ namespace EdgeDB
             ParameterName = func.Parameters[0].Name;
         }
 
-        public new QueryContext<TInner, TReturn> Enter(Expression x, int? paramIndex = null)
+        public QueryContext<TInner, TReturn> Enter(Expression x, int? paramIndex = null, Action<QueryContext<TInner, TReturn>>? modifier = null)
         {
-            return new QueryContext<TInner, TReturn>()
+            var context = new QueryContext<TInner, TReturn>()
             {
                 Body = x,
                 ParameterName = ParameterName,
@@ -59,6 +68,11 @@ namespace EdgeDB
                 ParameterIndex = paramIndex,
                 Parent = this
             };
+
+            if (modifier != null)
+                modifier(context);
+
+            return context;
         }
     }
 
@@ -70,7 +84,7 @@ namespace EdgeDB
             Body = func.Body;
         }
 
-        public new QueryContext<TReturn> Enter(Expression x, int? paramIndex = null)
+        public QueryContext<TReturn> Enter(Expression x, int? paramIndex = null)
         {
             return new QueryContext<TReturn>()
             {

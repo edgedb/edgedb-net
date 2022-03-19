@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    public class Execute : Sendable
+    internal class Execute : Sendable
     {
         public override ClientMessageTypes Type => ClientMessageTypes.Execute;
 

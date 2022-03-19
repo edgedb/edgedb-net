@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
-    public class Json : IScalarCodec<DataTypes.Json>
+    internal class Json : IScalarCodec<DataTypes.Json>
     {
         public DataTypes.Json Deserialize(PacketReader reader)
         {

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
-    public class PacketWriter : BinaryWriter
+    internal class PacketWriter : BinaryWriter
     {
         public PacketWriter()
             : base(new MemoryStream())
@@ -23,15 +23,18 @@ namespace EdgeDB
 
         }
 
-        public void Write(IEnumerable<Header> headers)
+        public void Write(IEnumerable<Header>? headers)
         {
             // write length
-            Write((ushort)headers.Count());
+            Write((ushort)(headers?.Count() ?? 0));
 
-            foreach(var header in headers)
+            if(headers != null)
             {
-                Write(header.Code);
-                WriteArray(header.Value);
+                foreach (var header in headers)
+                {
+                    Write(header.Code);
+                    WriteArray(header.Value);
+                }
             }
         }
 

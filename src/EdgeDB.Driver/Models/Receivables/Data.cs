@@ -6,11 +6,18 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
+    /// <summary>
+    ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#data">Data</see> packet
+    /// </summary>
     public struct Data : IReceiveable
     {
-        public ServerMessageTypes Type => ServerMessageTypes.Data;
+        /// <inheritdoc/>
+        public ServerMessageType Type => ServerMessageType.Data;
 
-        public byte[] PayloadData { get; set; }
+        /// <summary>
+        ///     Gets the payload of this data packet
+        /// </summary>
+        public IReadOnlyCollection<byte> PayloadData { get; set; }
 
         void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {

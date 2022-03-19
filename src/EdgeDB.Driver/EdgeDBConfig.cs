@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
+    /// <summary>
+    ///     Represents the configuration options for a <see cref="EdgeDBClient"/> or <see cref="EdgeDBTcpClient"/>
+    /// </summary>
     public class EdgeDBConfig
     {
         /// <summary>

@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
-    public class ObjectBuilder
+    internal class ObjectBuilder
     {
         private static Dictionary<(Guid TypeDescriptor, Guid TypeId), Type> _runtimeTypemap { get; set; } = new();
         private struct EdgeDBPropertyInfo

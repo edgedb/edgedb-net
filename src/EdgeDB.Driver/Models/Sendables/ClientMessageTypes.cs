@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    public enum ClientMessageTypes : sbyte
+	internal enum ClientMessageTypes : sbyte
     {
 		AuthenticationSASLInitialResponse = 0x70,
 		AuthenticationSASLResponse = 0x72,

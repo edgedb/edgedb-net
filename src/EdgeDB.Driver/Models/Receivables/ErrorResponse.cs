@@ -7,17 +7,33 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
+    /// <summary>
+    ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#errorresponse">Error Response</see> packet.
+    /// </summary>
     public struct ErrorResponse : IReceiveable
     {
-        public ServerMessageTypes Type => ServerMessageTypes.ErrorResponse;
+        /// <inheritdoc/>
+        public ServerMessageType Type => ServerMessageType.ErrorResponse;
 
+        /// <summary>
+        ///     Gets the severity of the error.
+        /// </summary>
         public ErrorSeverity Severity { get; private set; }
 
+        /// <summary>
+        ///     Gets the error code.
+        /// </summary>
         public uint ErrorCode { get; private set; }
 
+        /// <summary>
+        ///     Gets the message of the error.
+        /// </summary>
         public string Message { get; private set; }
 
-        public Header[] Headers { get; private set; }
+        /// <summary>
+        ///     Gets a collection of headers sent with this error.
+        /// </summary>
+        public IReadOnlyCollection<Header> Headers { get; private set; }
 
         void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {

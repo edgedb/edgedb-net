@@ -113,7 +113,7 @@ namespace EdgeDB
             {
                 if (value is ISet set && set.IsSubQuery && set.QueryBuilder is QueryBuilder builder)
                 {
-                    var result = builder.Build(context?.Enter(x => x.UseDetachedSelects = type == set.GetInnerType()) ?? new());
+                    var result = builder.Build(context?.Enter(x => x.UseDetached = type == set.GetInnerType()) ?? new());
                     args = args.Concat(result.Parameters).ToDictionary(x => x.Key, x => x.Value);
                     queryValue = $"({result.QueryText})";
                 }
@@ -139,7 +139,7 @@ namespace EdgeDB
                 }
                 else if (value is ISubQueryType sub)
                 {
-                    var result = sub.Builder.Build(context?.Enter(x => x.UseDetachedSelects = type == sub.Builder.QuerySelectorType) ?? new());
+                    var result = sub.Builder.Build(context?.Enter(x => x.UseDetached = type == sub.Builder.QuerySelectorType) ?? new());
                     args = args.Concat(result.Parameters).ToDictionary(x => x.Key, x => x.Value);
                     queryValue = $"({result.QueryText})";
                 }
@@ -151,7 +151,7 @@ namespace EdgeDB
             }
             else if (value is ISubQueryType sub)
             {
-                var result = sub.Builder.Build(context?.Enter(x => x.UseDetachedSelects = sub.Builder.QuerySelectorType == type) ?? new());
+                var result = sub.Builder.Build(context?.Enter(x => x.UseDetached = sub.Builder.QuerySelectorType == type) ?? new());
                 args = args.Concat(result.Parameters).ToDictionary(x => x.Key, x => x.Value);
                 queryValue = $"({result.QueryText})";
             }
@@ -162,7 +162,7 @@ namespace EdgeDB
             }
             else if(value is QueryBuilder builder)
             {
-                var result = builder.Build(context?.Enter(x => x.UseDetachedSelects = builder.QuerySelectorType == type) ?? new());
+                var result = builder.Build(context?.Enter(x => x.UseDetached = builder.QuerySelectorType == type) ?? new());
                 args = args.Concat(result.Parameters).ToDictionary(x => x.Key, x => x.Value);
                 queryValue = $"({result.QueryText})";
             }
@@ -179,23 +179,92 @@ namespace EdgeDB
             return (queryValue, args);
         }
 
-        internal static List<string> ParseShapeDefinition<TInner, TSelect>(bool referenceObject = false, params Expression<Func<TInner, TSelect>>[] shape)
+        internal static List<string> ParseShapeDefinition(object? shape, Type parentType, bool referenceObject = false)
+        {
+            List<string> shapeProps = new();
+
+            if (shape == null)
+                return shapeProps;
+
+            // extract all props
+            var type = shape.GetType();
+
+            var props = type.GetProperties();
+
+            foreach(var prop in props)
+            {
+                var referenceProp = parentType.GetProperty(prop.Name);
+
+                if (referenceProp == null)
+                    continue;
+
+                var propName = GetPropertyName(referenceProp);
+
+                if(prop.PropertyType == typeof(bool))
+                {
+                    if ((bool)prop.GetValue(shape)!)
+                        shapeProps.Add(propName);
+                }
+                else
+                {
+                    // assume anon type
+                    var val = ParseShapeDefinition(prop.GetValue(shape), referenceProp.PropertyType, referenceObject);
+                    shapeProps.Add($"{propName}: {{ {string.Join(", ", val)} }}");
+                }
+            }
+
+            return shapeProps;
+        }
+
+        internal static List<string> ParseShapeDefinition(bool referenceObject = false, params Expression[] shape)
         {
             List<string> props = new();
 
-            foreach (var selector in shape)
+            foreach (var exp in shape)
             {
-                if (selector.Body is MemberExpression mbs)
+                var selector = exp;
+
+                LambdaExpression? lam = null;
+
+                if (selector is LambdaExpression lamd)
                 {
+                    selector = lamd.Body;
+                    lam = lamd;
+                }
+
+                if (selector is MemberExpression mbs)
+                {
+                    List<Expression> innerExpression = new();
+
+                    void AddExp(MemberExpression m)
+                    {
+                        innerExpression.Add(m);
+
+                        if (m.Expression != null && m.Expression is MemberExpression mb)
+                            AddExp(mb);
+                    }
+
+                    AddExp(mbs);
+
+                    innerExpression.Reverse();
+
+                    if(mbs.Type.GetCustomAttribute<EdgeDBType>() != null)
+                    {
+                        props.Add($"{mbs.Member.GetCustomAttribute<EdgeDBProperty>()?.Name ?? mbs.Member.Name}: {{ {string.Join(", ", ParseShapeDefinition(referenceObject, new Expression[] { mbs.Expression! }))} }}");
+                    }
+
                     var name = RecurseNameLookup(mbs);
 
-                    if (referenceObject)
-                        name = name.Substring(selector.Parameters[0].Name!.Length, name.Length - selector.Parameters[0].Name!.Length);
-                    else
-                        name = name.Substring(selector.Parameters[0].Name!.Length + 1, name.Length - 1 - selector.Parameters[0].Name!.Length);
-                    props.Add(name);
+                    if(lam != null)
+                    {
+                        if (referenceObject)
+                            name = name.Substring(lam.Parameters[0].Name!.Length, name.Length - lam.Parameters[0].Name!.Length);
+                        else
+                            name = name.Substring(lam.Parameters[0].Name!.Length + 1, name.Length - 1 - lam.Parameters[0].Name!.Length);
+                        props.Add(name);
+                    }
                 }
-                if(selector.Body is MethodCallExpression mc)
+                if(selector is MethodCallExpression mc)
                 {
                     // allow select only
                     if(mc.Method.Name != "Select")
@@ -219,7 +288,7 @@ namespace EdgeDB
             return props;
         }
 
-        internal static (List<string> Properties, List<KeyValuePair<string, object?>> Arguments) GetTypePropertyNames(Type t, ArgumentAggregationContext? context = null)
+        internal static (List<string> Properties, List<KeyValuePair<string, object?>> Arguments) GetTypePropertyNames(Type t, QueryBuilderContext context, ArgumentAggregationContext? aggregationContext = null)
         {
             List<string> returnProps = new List<string>();
             var props = t.GetProperties().Where(x => x.GetCustomAttribute<EdgeDBIgnore>() == null);
@@ -233,8 +302,10 @@ namespace EdgeDB
 
                 if(ReflectionUtils.IsSubclassOfRawGeneric(typeof(ComputedValue<>), type))
                 {
-                    // its a computed value with a query, expose it
+                    if (!context.AllowComputedValues)
+                        continue;
 
+                    // its a computed value with a query, expose it
                     var val = (IComputedValue)prop.GetValue(instance)!;
                     returnProps.Add($"{name} := ({val.Builder})");
                     args = val.Builder!.Arguments;
@@ -248,12 +319,15 @@ namespace EdgeDB
 
                 if (edgeqlType != null)
                 {
-                    if (type == t && context?.PropertyType == type)
+                    if (type == t && aggregationContext?.PropertyType == type)
                     {
                         continue;
                     }
 
-                    var result = GetTypePropertyNames(type, context?.Enter(type) ?? new ArgumentAggregationContext(type));
+                    if (context.MaxAggregationDepth.HasValue && context.MaxAggregationDepth.Value == aggregationContext?.Depth)
+                        continue;
+
+                    var result = GetTypePropertyNames(type, context, aggregationContext?.Enter(type) ?? new ArgumentAggregationContext(type));
                     args.AddRange(result.Arguments);
                     returnProps.Add($"{name}: {{ {string.Join(", ", result.Properties)} }}");
                 }
@@ -270,10 +344,12 @@ namespace EdgeDB
         {
             public Type PropertyType { get; }
             public ArgumentAggregationContext? Parent { get; private set; }
+            public int Depth { get; set; } = 0;
 
             public ArgumentAggregationContext(Type propType)
             {
                 PropertyType = propType;
+                Depth = 0;
             }
 
             public ArgumentAggregationContext Enter(Type propType)
@@ -281,6 +357,7 @@ namespace EdgeDB
                 return new ArgumentAggregationContext(propType)
                 {
                     Parent = this,
+                    Depth = Depth + 1
                 };
             }
         }
@@ -293,7 +370,7 @@ namespace EdgeDB
                 var result = new List<(string Filter, Dictionary<string, object?> Arguments)>();
                 foreach (MemberAssignment binding in init.Bindings)
                 {
-                    var innerContext = context.Enter(binding.Expression);
+                    var innerContext = context.Enter(binding.Expression, modifier: x => x.BindingType = binding.Member.GetMemberType());
                     var value = ConvertExpression(binding.Expression, innerContext);
                     var name = binding.Member.GetCustomAttribute<EdgeDBProperty>()?.Name ?? binding.Member.Name;
                     result.Add(($"{name}{(innerContext.IncludeSetOperand ? " :=" : "")} {value.Filter}", value.Arguments));
@@ -344,7 +421,13 @@ namespace EdgeDB
                 // check for query builder
                 if(TryResolveQueryBuilder(mc, out var innerBuilder))
                 {
-                    return ($"({innerBuilder})", innerBuilder!.Arguments.ToDictionary(x => x.Key, x => x.Value));
+                    var result = innerBuilder!.Build(context.BuilderContext?.Enter(x =>
+                    {
+                        x.LimitToOne = !TryGetEnumerableType(context.BindingType ?? mc.Type, out var _);
+
+                    }) ?? new());
+
+                    return ($"({result.QueryText})", result.Parameters.ToDictionary(x => x.Key, x => x.Value));
                 }
                 IEdgeQLOperator? op = null;
 

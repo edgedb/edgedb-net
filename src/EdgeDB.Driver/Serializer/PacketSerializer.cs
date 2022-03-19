@@ -17,7 +17,7 @@ namespace EdgeDB
     {
         public static readonly Guid NullCodec = Guid.Empty;
 
-        private static Dictionary<ServerMessageTypes, IReceiveable> _receiveablePayload = new();
+        private static Dictionary<ServerMessageType, IReceiveable> _receiveablePayload = new();
         private static Dictionary<Guid, ICodec> _codecCache = new();
 
         static PacketSerializer()
@@ -47,7 +47,7 @@ namespace EdgeDB
             return val.Key;
         }
 
-        public static IReceiveable? DeserializePacket(ServerMessageTypes type, Stream stream, EdgeDBTcpClient client)
+        public static IReceiveable? DeserializePacket(ServerMessageType type, Stream stream, EdgeDBTcpClient client)
         {
             // read the type
 

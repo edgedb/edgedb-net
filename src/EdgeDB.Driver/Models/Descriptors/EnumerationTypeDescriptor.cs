@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    public struct EnumerationTypeDescriptor : ITypeDescriptor
+    internal struct EnumerationTypeDescriptor : ITypeDescriptor
     {
         public DescriptorType Type => DescriptorType.EnumerationTypeDescriptor;
 

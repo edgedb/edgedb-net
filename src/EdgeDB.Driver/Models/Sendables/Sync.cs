@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    public class Sync : Sendable
+    internal class Sync : Sendable
     {
         public override ClientMessageTypes Type => ClientMessageTypes.Sync;
 

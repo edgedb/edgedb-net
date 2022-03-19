@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    public class ClientHandshake : Sendable
+    internal class ClientHandshake : Sendable
     {
         public override ClientMessageTypes Type => ClientMessageTypes.ClientHandshake;
 

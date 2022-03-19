@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    public enum DescriptorType : byte
+    internal enum DescriptorType : byte
     {
         SetDescriptor = 0x00,
         ObjectShapeDescriptor = 0x01,

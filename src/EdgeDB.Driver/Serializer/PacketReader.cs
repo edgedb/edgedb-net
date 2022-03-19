@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
-    public class PacketReader : BinaryReader
+    internal class PacketReader : BinaryReader
     {
         public PacketReader(Stream input) : base(input, Encoding.UTF8, true)
         {

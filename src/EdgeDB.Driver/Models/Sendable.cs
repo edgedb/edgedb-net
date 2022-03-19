@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    public abstract class Sendable
+    internal abstract class Sendable
     {
         public abstract ClientMessageTypes Type { get;}
 

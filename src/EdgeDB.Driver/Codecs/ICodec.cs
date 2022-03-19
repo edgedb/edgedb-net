@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
-    public interface IArgumentCodec<TType> : IArgumentCodec, ICodec<TType>
+    internal interface IArgumentCodec<TType> : IArgumentCodec, ICodec<TType>
     {
         void SerializeArguments(PacketWriter writer, TType? value);
     }
 
-    public interface IArgumentCodec
+    internal interface IArgumentCodec
     {
         void SerializeArguments(PacketWriter writer, object? value);
         byte[] SerializeArguments(object? value)
@@ -31,7 +31,7 @@ namespace EdgeDB.Codecs
         }
     }
 
-    public interface ICodec<TConverter> : ICodec
+    internal interface ICodec<TConverter> : ICodec
     {
         void Serialize(PacketWriter writer, TConverter? value);
         new TConverter? Deserialize(PacketReader reader);
@@ -66,7 +66,7 @@ namespace EdgeDB.Codecs
         bool ICodec.CanConvert(Type t) => t == typeof(TConverter);
     }
 
-    public interface ICodec
+    internal interface ICodec
     {
         bool CanConvert(Type t);
         Type ConverterType { get; }
@@ -117,5 +117,5 @@ namespace EdgeDB.Codecs
             => (IScalarCodec<TType>?)_codecs.FirstOrDefault(x => x.ConverterType == typeof(TType) || x.CanConvert(typeof(TType)));
     }
 
-    public interface IScalarCodec<TInner> : ICodec<TInner> { }
+    internal interface IScalarCodec<TInner> : ICodec<TInner> { }
 }

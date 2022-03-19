@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    public class DescribeStatement : Sendable
+    internal class DescribeStatement : Sendable
     {
         public override ClientMessageTypes Type => ClientMessageTypes.DescribeStatement;
 
@@ -22,7 +22,7 @@ namespace EdgeDB.Models
         }
     }
 
-    public enum DescribeAspect : byte
+    internal enum DescribeAspect : byte
     {
         DataDescription = 0x54,
     };

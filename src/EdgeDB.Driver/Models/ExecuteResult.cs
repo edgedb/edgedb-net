@@ -8,17 +8,25 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
+    /// <summary>
+    ///     Represents a generic execution result of a command.
+    /// </summary>
     public struct ExecuteResult : IExecuteResult
     {
-        public bool IsSuccess { get; set; }
+        /// <inheritdoc/>
+        public bool IsSuccess { get; private set; }
 
-        public object? Result { get; set; }
+        /// <inheritdoc/>
+        public object? Result { get; private set; }
 
-        public ErrorResponse? Error { get; set; }
+        /// <inheritdoc/>
+        public ErrorResponse? Error { get; private set; }
 
-        public Exception? Exception { get; set; }
+        /// <inheritdoc/>
+        public Exception? Exception { get; private set; }
 
-        public string? ExecutedQuery { get; set; }
+        /// <inheritdoc/>
+        public string? ExecutedQuery { get; private set; }
 
         internal ExecuteResult(bool success, object? result, ErrorResponse? error, Exception? exc, string? executedQuery)
         {
@@ -28,52 +36,36 @@ namespace EdgeDB.Models
             Exception = exc;
             ExecutedQuery = executedQuery;
         }
-
-        //public TType? ResutAs<TType>()
-        //{
-        //    if (Result is IDictionary<string, object?> rawObj)
-        //    {
-        //        return ObjectBuilder.BuildResult<TType>(rawObj);
-        //    }
-        //    else if (typeof(TType).Name == "IReadOnlyCollection`1" && Result is object?[] arr)
-        //    {
-        //        var targetType = typeof(TType).GenericTypeArguments[0];
-
-        //        var m = typeof(ImmutableArray).GetMethods();
-
-        //        var createFunc = typeof(ImmutableArray).GetMethods().First(x => x.Name == "CreateRange" && x.GetParameters().Length == 1)!.MakeGenericMethod(targetType);
-
-        //        var newArr = Array.CreateInstance(targetType, arr.Length);
-
-        //        // convert expando objects
-        //        for (int i = 0; i != arr.Length; i++)
-        //        {
-        //            var obj = arr[i];
-        //            object? convt = obj;
-
-        //            if (obj is IDictionary<string, object?> dict)
-        //            {
-        //                convt = ObjectBuilder.BuildResult(targetType, dict);
-        //            }
-
-        //            newArr.SetValue(convt, i);
-        //        }
-
-        //        return (TType?)createFunc.Invoke(null, new object[] { newArr });
-        //    }
-        //    else if (Result != null)
-        //        return (TType?)Result;
-
-        //    return default(TType);
-        //}
     }
 
+    /// <summary>
+    ///     An interface representing a generic execution result.
+    /// </summary>
     public interface IExecuteResult
     {
+        /// <summary>
+        ///     Gets whether or not the command executed successfully.
+        /// </summary>
         bool IsSuccess { get; }
+
+        /// <summary>
+        ///     Gets the resulting object of the command or <see langword="null"/> if no result.
+        /// </summary>
         object? Result { get; }
+
+        /// <summary>
+        ///     Gets the error (if any) that the command received.
+        /// </summary>
         ErrorResponse? Error { get; }
+
+        /// <summary>
+        ///     Gets the exception (if any) that the command threw when executing.
+        /// </summary>
         Exception? Exception { get; }
+
+        /// <summary>
+        ///     Gets the executed query string.
+        /// </summary>
         string? ExecutedQuery { get; }
     }
 }

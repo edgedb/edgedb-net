@@ -6,9 +6,15 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
+    /// <summary>
+    ///     Represents a generic packet received from the server.
+    /// </summary>
     public interface IReceiveable
     {
-        ServerMessageTypes Type { get; }
+        /// <summary>
+        ///     Gets the type of the message.
+        /// </summary>
+        ServerMessageType Type { get; }
 
         internal void Read(PacketReader reader, uint length, EdgeDBTcpClient client);
     }

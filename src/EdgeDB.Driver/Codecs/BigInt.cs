@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
-    public class BigInt : IScalarCodec<BigInteger>
+    internal class BigInt : IScalarCodec<BigInteger>
     {
         public BigInteger Deserialize(PacketReader reader)
         {

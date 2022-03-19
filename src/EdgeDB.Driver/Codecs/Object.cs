@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
-    public class Object : ICodec<object>, IArgumentCodec<object>
+    internal class Object : ICodec<object>, IArgumentCodec<object>
     {
         private readonly ICodec[] _innerCodecs;
         private readonly string[] _propertyNames;
 
-        public Object(ICodec[] innerCodecs, string[] propertyNames)
+        internal Object(ICodec[] innerCodecs, string[] propertyNames)
         {
             _innerCodecs = innerCodecs;
             _propertyNames = propertyNames;

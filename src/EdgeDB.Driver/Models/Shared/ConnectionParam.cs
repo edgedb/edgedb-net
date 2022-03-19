@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    public struct ConnectionParam
+    internal struct ConnectionParam
     {
         public string Name { get; set; }
         public string Value { get; set; }

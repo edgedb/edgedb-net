@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    public struct ArrayTypeDescriptor : ITypeDescriptor
+    internal struct ArrayTypeDescriptor : ITypeDescriptor
     {
         public DescriptorType Type => DescriptorType.ArrayTypeDescriptor;
 

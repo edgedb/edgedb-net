@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Utils
 {
-    public class ConfigUtils
+    internal class ConfigUtils
     {
         public static string EdgeDBConfigDir
             => Path.Combine(GetEdgeDBBasePath(), "config");

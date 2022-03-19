@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    public class AuthenticationSASLInitialResponse : Sendable
+    internal class AuthenticationSASLInitialResponse : Sendable
     {
         public override ClientMessageTypes Type => ClientMessageTypes.AuthenticationSASLInitialResponse;
 

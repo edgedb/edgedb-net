@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    public interface ITypeDescriptor
+    internal interface ITypeDescriptor
     {
         DescriptorType Type { get; }
         Guid Id { get; }

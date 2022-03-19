@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
-    public class Tuple : ICodec<ITuple>
+    internal class Tuple : ICodec<ITuple>
     {
         private readonly ICodec[] _innerCodecs;
         

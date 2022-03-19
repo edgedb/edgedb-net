@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    public struct TypeAnnotationDescriptor : ITypeDescriptor
+    internal struct TypeAnnotationDescriptor : ITypeDescriptor
     {
         public DescriptorType Type { get; set; }
         public Guid Id { get; set; }

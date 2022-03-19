@@ -16,20 +16,20 @@ namespace EdgeDB
     public class EdgeDBClient
     {
         /// <summary>
-        ///     Fired when a client in the client pool executes a command.
+        ///     Fired when a client in the client pool executes a query.
         /// </summary>
-        public event Func<IExecuteResult, Task> CommandExecuted
+        public event Func<IExecuteResult, Task> QueryExecuted
         {
-            add => _commandExecuted.Add(value);
-            remove => _commandExecuted.Remove(value);
+            add => _queryExecuted.Add(value);
+            remove => _queryExecuted.Remove(value);
         }
 
-        private readonly AsyncEvent<Func<IExecuteResult, Task>> _commandExecuted = new();
+        private readonly AsyncEvent<Func<IExecuteResult, Task>> _queryExecuted = new();
         private readonly EdgeDBConnection _connection;
         private readonly EdgeDBConfig _config;
         private readonly ConcurrentDictionary<int, EdgeDBTcpClient> _clients;
         private bool _isInitialized;
-        private IDictionary<string, object?> _edgedbConfig;
+        private IReadOnlyDictionary<string, object?> _edgedbConfig;
         private int _poolSize;
         private SemaphoreSlim _semaphore;
 
@@ -86,16 +86,28 @@ namespace EdgeDB
             if (_isInitialized)
                 return;
 
-            await using(var client = await GetOrCreateClientAsync().ConfigureAwait(false))
-            {
-                // set the pool size to the recommended
-                _poolSize = client.SuggestedPoolConcurrency;
-                _semaphore = new(_poolSize, _poolSize);
+            var client = await GetOrCreateClientAsync().ConfigureAwait(false);
 
-                _isInitialized = true;
-            }
+            // set the pool size to the recommended
+            _poolSize = client.SuggestedPoolConcurrency;
+            _semaphore = new(_poolSize, _poolSize);
+            _edgedbConfig = client.ServerConfig;
+
+            _isInitialized = true;
         }
 
+        /// <summary>
+        ///     Executes a query and returns the result.
+        /// </summary>
+        /// <typeparam name="TResult">The return type of the query.</typeparam>
+        /// <param name="query">The query string to execute.</param>
+        /// <param name="arguments">Any arguments used in the query.</param>
+        /// <param name="cardinality">The optional cardinality of the query.</param>
+        /// <returns>
+        ///     The result of the query operation as <typeparamref name="TResult"/>.
+        /// </returns>
+        /// <exception cref="EdgeDBErrorException">An error occured within the query and the database returned an error result.</exception>
+        /// <exception cref="EdgeDBException">An error occored when reading, writing, or parsing the results.</exception>
         public async Task<TResult?> QueryAsync<TResult>(string query, IDictionary<string, object?>? arguments = null, Cardinality? cardinality = null)
         {
             await InitializeAsync().ConfigureAwait(false);
@@ -115,14 +127,16 @@ namespace EdgeDB
         }
 
         /// <summary>
-        ///     Executes a given query.
+        ///     Executes a query and returns the result.
         /// </summary>
-        /// <param name="query">The query to execute.</param>
-        /// <param name="arguments">A collection of arguments referenced in the query.</param>
-        /// <param name="cardinality">The cardinality of the query.</param>
+        /// <param name="query">The query string to execute.</param>
+        /// <param name="arguments">Any arguments used in the query.</param>
+        /// <param name="cardinality">The optional cardinality of the query.</param>
         /// <returns>
-        ///     An execute result containing the return value as well as any errors that occured during the query.
+        ///     An execute result containing the result of the query.
         /// </returns>
+        /// <exception cref="EdgeDBErrorException">An error occured within the query and the database returned an error result.</exception>
+        /// <exception cref="EdgeDBException">An error occored when reading, writing, or parsing the results.</exception>
         public async Task<object?> QueryAsync(string query, IDictionary<string, object?>? arguments = null, Cardinality? cardinality = null)
         {
             await InitializeAsync().ConfigureAwait(false);
@@ -173,7 +187,7 @@ namespace EdgeDB
                     return Task.CompletedTask;
                 };
 
-                client.CommandExecuted += (i) => _commandExecuted.InvokeAsync(i);
+                client.QueryExecuted += (i) => _queryExecuted.InvokeAsync(i);
 
                 await client.ConnectAsync().ConfigureAwait(false);
 

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    public struct ScalarTypeDescriptor : ITypeDescriptor
+    internal struct ScalarTypeDescriptor : ITypeDescriptor
     {
         public DescriptorType Type => DescriptorType.ScalarTypeDescriptor;
 

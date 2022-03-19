@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    public struct SetDescriptor : ITypeDescriptor
+    internal struct SetDescriptor : ITypeDescriptor
     {
         public DescriptorType Type => DescriptorType.SetDescriptor;
 

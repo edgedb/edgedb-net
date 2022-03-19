@@ -6,19 +6,43 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
+    /// <summary>
+    ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#commanddatadescription">Command Data Description</see> packet.
+    /// </summary>
     public struct CommandDataDescription : IReceiveable
     {
-        public ServerMessageTypes Type => ServerMessageTypes.CommandDataDescription;
+        /// <inheritdoc/>
+        public ServerMessageType Type => ServerMessageType.CommandDataDescription;
 
-        public Header[] Headers { get; set; }
+        /// <summary>
+        ///     Gets a read-only collection of headers.
+        /// </summary>
+        public IReadOnlyCollection<Header> Headers { get; private set; }
 
-        public Cardinality Cardinality { get; set; }
+        /// <summary>
+        ///     Gets the cardinality of the command.
+        /// </summary>
+        public Cardinality Cardinality { get; private set; }
 
-        public Guid InputTypeDescriptorId { get; set; }
-        public byte[] InputTypeDescriptor { get; set; }
+        /// <summary>
+        ///     Gets the input type descriptor id.
+        /// </summary>
+        public Guid InputTypeDescriptorId { get; private set; }
+
+        /// <summary>
+        ///     Gets the complete input type descriptor.
+        /// </summary>
+        public IReadOnlyCollection<byte> InputTypeDescriptor { get; private set; }
         
-        public Guid OutputTypeDescriptorId { get; set; }
-        public byte[] OutputTypeDescriptor { get; set; }
+        /// <summary>
+        ///     Gets the output type descriptor id.
+        /// </summary>
+        public Guid OutputTypeDescriptorId { get; private set; }
+
+        /// <summary>
+        ///     Gets the complete output type descriptor.
+        /// </summary>
+        public IReadOnlyCollection<byte> OutputTypeDescriptor { get; private set; }
 
         void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {

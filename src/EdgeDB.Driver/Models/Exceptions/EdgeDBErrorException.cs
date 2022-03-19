@@ -9,7 +9,7 @@ namespace EdgeDB
 {
     public sealed class EdgeDBErrorException : EdgeDBException
     {
-        public string Details { get; }
+        public string? Details { get; }
         public string? ServerTraceBack { get; }
         public string? Hint { get; }
         public Models.ErrorResponse ErrorResponse { get; }
@@ -17,7 +17,8 @@ namespace EdgeDB
         public EdgeDBErrorException(Models.ErrorResponse error)
             : base(error.Message)
         {
-            Details = Encoding.UTF8.GetString(error.Headers.FirstOrDefault(x => x.Code == 0x0002).Value);
+            if(error.Headers.Any(x => x.Code == 0x0002))
+                Details = Encoding.UTF8.GetString(error.Headers.FirstOrDefault(x => x.Code == 0x0002).Value);
 
             if (error.Headers.Any(x => x.Code == 0x0101))
                 ServerTraceBack = Encoding.UTF8.GetString(error.Headers.FirstOrDefault(x => x.Code == 0x0101).Value);

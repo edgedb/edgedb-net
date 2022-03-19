@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
-    public enum NumericSign : ushort
+    internal enum NumericSign : ushort
     {
         // Positive value.
         POS = 0x0000,

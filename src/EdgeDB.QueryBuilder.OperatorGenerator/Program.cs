@@ -71,6 +71,45 @@ using (var _ = writer.BeginScope("namespace EdgeDB"))
 
                         foreach(var func in funcs)
                         {
+                            var serializedExpression = Regex.Replace(op.Operator!.Replace("<", "&lt;").Replace(">", "&gt;"), @"({\d+})", m =>
+                            {
+                                var index = int.Parse(m.Groups[1].Value.Replace("{", "").Replace("}", ""));
+                                string param;
+                                if(index >= func.Parameters.Count)
+                                {
+                                    var map = op.ParameterMap.FirstOrDefault(x => x.StartsWith(index.ToString()));
+
+                                    if (map == null)
+                                    {
+                                        // offset by param map length
+                                        index -= op.ParameterMap.Count;
+
+                                        param = func.Parameters[index];
+                                    }
+                                    else
+                                    {
+                                        param = map.Split(':')[1];
+
+                                        return $"<typeparamref name=\"{param}\"/>";
+                                    }
+                                    
+                                }
+                                else param = func.Parameters[index];
+
+                                var name = "";
+
+                                if (param.Contains(' '))
+                                    name = param.Split(' ')[1];
+                                else
+                                    name = $"{ParamaterNames[index]}";
+
+                                return $"<paramref name=\"{name}\"/>";
+                            });
+
+                            writer.AppendLine("/// <summary>");
+                            writer.AppendLine($"///     A function that represents the EdgeQL version of: <code>{serializedExpression}</code>");
+                            writer.AppendLine("/// </summary>");
+
                             writer.AppendLine($"[EquivalentOperator(typeof(EdgeDB.Operators.{operatorName}))]");
                             foreach(var map in op.ParameterMap)
                             {

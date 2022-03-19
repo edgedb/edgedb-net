@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
-    public class Bytes : IScalarCodec<byte[]>
+    internal class Bytes : IScalarCodec<byte[]>
     {
         public byte[] Deserialize(PacketReader reader)
         {

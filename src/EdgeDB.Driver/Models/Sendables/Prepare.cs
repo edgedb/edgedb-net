@@ -10,7 +10,7 @@ namespace EdgeDB.Models
     /// <summary>
     ///     https://www.edgedb.com/docs/reference/protocol/messages#prepare
     /// </summary>
-    public class Prepare : Sendable
+    internal class Prepare : Sendable
     {
         public override ClientMessageTypes Type => ClientMessageTypes.Prepare;
 

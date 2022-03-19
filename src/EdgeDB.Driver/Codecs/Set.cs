@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
-    public class Set<TInner> : ICodec<DataTypes.Set<TInner?>>
+    internal class Set<TInner> : ICodec<DataTypes.Set<TInner?>>
     {
         private readonly ICodec<TInner> _innerCodec;
 

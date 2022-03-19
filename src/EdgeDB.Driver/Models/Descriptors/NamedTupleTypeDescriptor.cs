@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    public struct NamedTupleTypeDescriptor : ITypeDescriptor
+    internal struct NamedTupleTypeDescriptor : ITypeDescriptor
     {
         public DescriptorType Type => DescriptorType.NamedTupleDescriptor;
 
@@ -36,7 +36,7 @@ namespace EdgeDB.Models
         }
     }
 
-    public struct TupleElement
+    internal struct TupleElement
     {
         public string Name { get; set; }
         public short TypePos { get; set; }

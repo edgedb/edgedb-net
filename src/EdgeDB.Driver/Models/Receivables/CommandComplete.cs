@@ -7,13 +7,23 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
+    /// <summary>
+    ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#commandcomplete">Command Complete</see> packet
+    /// </summary>
     public struct CommandComplete : IReceiveable
     {
-        public ServerMessageTypes Type => ServerMessageTypes.CommandComplete;
+        /// <inheritdoc/>
+        public ServerMessageType Type => ServerMessageType.CommandComplete;
 
-        public AllowCapabilities UsedCapabilities { get; set; }
+        /// <summary>
+        ///     Gets the used capabilities within the completed command.
+        /// </summary>
+        public AllowCapabilities UsedCapabilities { get; private set; }
 
-        public string Status { get; set; }
+        /// <summary>
+        ///     Gets the status of the completed command.
+        /// </summary>
+        public string Status { get; private set; }
 
         void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {

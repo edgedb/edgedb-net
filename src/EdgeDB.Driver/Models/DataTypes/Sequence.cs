@@ -6,9 +6,14 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
-    public class Sequence 
+    /// <summary>
+    ///     Represents a <see href="https://www.edgedb.com/docs/datamodel/primitives#sequences">Sequence</see> base type in EdgeDB.
+    /// </summary>
+    public abstract class Sequence 
     {
-        // TODO: not settable?
-        public long Value { get; set; }
+        /// <summary>
+        ///     Gets the value of the sequence.
+        /// </summary>
+        public long Value { get; protected set; }
     }
 }

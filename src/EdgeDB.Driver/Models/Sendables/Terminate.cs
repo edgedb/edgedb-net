@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    public class Terminate : Sendable
+    internal class Terminate : Sendable
     {
         public override ClientMessageTypes Type => ClientMessageTypes.Terminate;
 

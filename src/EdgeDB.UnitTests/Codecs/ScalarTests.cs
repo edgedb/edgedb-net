@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace EdgeDB.UnitTest.Codecs
 {
     [TestClass]
-    public class ScalarTests
+    internal class ScalarTests
     {
         public void TestCodec<TType>(IScalarCodec<TType>? codec, TType expectedValue, byte[] expectedSerializedValue)
         {
