@@ -35,6 +35,8 @@ namespace EdgeDB.Models
         /// </summary>
         public Guid OutputTypedescId { get; private set; }
 
+        ulong IReceiveable.Id { get; set; }
+
         void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             var headers = reader.ReadHeaders();
@@ -50,5 +52,8 @@ namespace EdgeDB.Models
             InputTypedescId = reader.ReadGuid();
             OutputTypedescId = reader.ReadGuid();
         }
+
+        IReceiveable IReceiveable.Clone()
+            => (IReceiveable)MemberwiseClone();
     }
 }

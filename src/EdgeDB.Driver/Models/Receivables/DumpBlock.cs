@@ -51,6 +51,7 @@ namespace EdgeDB.Models
         public IEnumerable<Header> BlockData => Headers.Where(x => x.Code == 112);
 
         internal byte[] Raw { get; private set; }
+        ulong IReceiveable.Id { get; set; }
 
         void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
@@ -65,5 +66,8 @@ namespace EdgeDB.Models
                 Headers = r.ReadHeaders();
             }
         }
+
+        IReceiveable IReceiveable.Clone()
+            => (IReceiveable)MemberwiseClone();
     }
 }

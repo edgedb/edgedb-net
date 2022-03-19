@@ -16,6 +16,9 @@ namespace EdgeDB.Models
         /// </summary>
         ServerMessageType Type { get; }
 
+        internal ulong Id { get; set; }
         internal void Read(PacketReader reader, uint length, EdgeDBTcpClient client);
+
+        internal IReceiveable Clone();
     }
 }

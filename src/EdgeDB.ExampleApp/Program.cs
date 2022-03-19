@@ -12,6 +12,7 @@ var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb
     Logger = Logger.GetLogger<EdgeDBClient>(),
 });
 
+await edgedb.QueryAsync("select \"Hello\"");
 
 // hault the program
 await Task.Delay(-1);

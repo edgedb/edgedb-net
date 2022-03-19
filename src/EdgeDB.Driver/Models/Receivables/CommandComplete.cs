@@ -25,6 +25,8 @@ namespace EdgeDB.Models
         /// </summary>
         public string Status { get; private set; }
 
+        ulong IReceiveable.Id { get; set; }
+
         void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             var headers = reader.ReadHeaders();
@@ -38,5 +40,8 @@ namespace EdgeDB.Models
 
             Status = reader.ReadString();
         }
+
+        IReceiveable IReceiveable.Clone()
+            => (IReceiveable)MemberwiseClone();
     }
 }

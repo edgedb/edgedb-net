@@ -44,6 +44,8 @@ namespace EdgeDB.Models
         /// </summary>
         public IReadOnlyCollection<byte> OutputTypeDescriptor { get; private set; }
 
+        ulong IReceiveable.Id { get; set; }
+
         void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             Headers = reader.ReadHeaders();
@@ -53,5 +55,7 @@ namespace EdgeDB.Models
             OutputTypeDescriptorId = reader.ReadGuid();
             OutputTypeDescriptor = reader.ReadByteArray();
         }
+        IReceiveable IReceiveable.Clone()
+            => (IReceiveable)MemberwiseClone();
     }
 }

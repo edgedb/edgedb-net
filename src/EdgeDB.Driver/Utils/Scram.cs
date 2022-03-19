@@ -86,11 +86,6 @@ namespace EdgeDB.Utils
 
         public byte[] ParseServerFinalMessage(AuthenticationStatus status)
         {
-            if(status.AuthStatus != AuthStatus.AuthenticationSASLFinal)
-            {
-                throw new ArgumentException($"Expected final SASL message but got {status.AuthStatus}");
-            }
-
             var msg = ICodec.GetScalarCodec<string>()!.Deserialize(status.SASLData)!;
 
             var parsed = ParseServerMessage(msg);
@@ -160,7 +155,8 @@ namespace EdgeDB.Utils
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            _clientNonce = null;
+            _rawFirstMessage = null;
         }
     }
 }

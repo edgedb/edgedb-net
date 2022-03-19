@@ -24,10 +24,15 @@ namespace EdgeDB.Models
         /// </summary>
         public TransactionState TransactionState { get; private set; }
 
+        ulong IReceiveable.Id { get; set; }
+
         void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             Headers = reader.ReadHeaders();
             TransactionState = (TransactionState)reader.ReadByte();
         }
+
+        IReceiveable IReceiveable.Clone()
+            => (IReceiveable)MemberwiseClone();
     }
 }

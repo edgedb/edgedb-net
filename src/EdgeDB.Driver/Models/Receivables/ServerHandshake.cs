@@ -29,6 +29,8 @@ namespace EdgeDB.Models.Receivables
         /// </summary>
         public ProtocolExtension[] Extensions { get; set; }
 
+        ulong IReceiveable.Id { get; set; }
+
         void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             MajorVersion = reader.ReadUInt16();
@@ -44,5 +46,8 @@ namespace EdgeDB.Models.Receivables
                 extensions[i] = extension;
             }
         }
+
+        IReceiveable IReceiveable.Clone()
+            => (IReceiveable)MemberwiseClone();
     }
 }

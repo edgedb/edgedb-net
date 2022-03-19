@@ -19,6 +19,8 @@ namespace EdgeDB.Models
         /// </summary>
         public IReadOnlyCollection<byte> PayloadData { get; set; }
 
+        ulong IReceiveable.Id { get; set; }
+
         void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             // skip arary since its always one, errr should be one
@@ -32,5 +34,8 @@ namespace EdgeDB.Models
 
             PayloadData = reader.ReadBytes((int)payloadLength); 
         }
+
+        IReceiveable IReceiveable.Clone()
+            => (IReceiveable)MemberwiseClone();
     }
 }

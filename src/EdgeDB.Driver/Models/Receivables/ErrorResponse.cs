@@ -35,6 +35,8 @@ namespace EdgeDB.Models
         /// </summary>
         public IReadOnlyCollection<Header> Headers { get; private set; }
 
+        ulong IReceiveable.Id { get; set; }
+
         void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             Severity = (ErrorSeverity)reader.ReadByte();
@@ -42,5 +44,8 @@ namespace EdgeDB.Models
             Message = reader.ReadString();
             Headers = reader.ReadHeaders();
         }
+
+        IReceiveable IReceiveable.Clone()
+            => (IReceiveable)MemberwiseClone();
     }
 }

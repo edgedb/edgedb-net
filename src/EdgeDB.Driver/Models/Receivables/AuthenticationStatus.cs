@@ -32,6 +32,8 @@ namespace EdgeDB.Models
         /// </summary>
         public byte[] SASLData { get; private set; }
 
+        ulong IReceiveable.Id { get; set; }
+
         void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             AuthStatus = (AuthStatus)reader.ReadUInt32();
@@ -56,5 +58,8 @@ namespace EdgeDB.Models
                     break;
             }
         }
+        
+        IReceiveable IReceiveable.Clone()
+            => (IReceiveable)MemberwiseClone();
     }
 }

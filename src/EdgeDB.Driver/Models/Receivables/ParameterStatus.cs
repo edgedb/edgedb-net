@@ -24,10 +24,15 @@ namespace EdgeDB.Models
         /// </summary>
         public IReadOnlyCollection<byte> Value { get; private set; }
 
+        ulong IReceiveable.Id { get; set; }
+
         void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             Name = reader.ReadString();
             Value = reader.ReadByteArray();
         }
+
+        IReceiveable IReceiveable.Clone()
+            => (IReceiveable)MemberwiseClone();
     }
 }

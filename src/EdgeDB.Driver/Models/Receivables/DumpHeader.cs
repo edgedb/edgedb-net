@@ -56,7 +56,7 @@ namespace EdgeDB.Models
         public IReadOnlyCollection<DumpObjectDescriptor> Descriptors { get; private set; }
 
         internal byte[] Raw { get; private set; }
-
+        ulong IReceiveable.Id { get; set; }
         void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
         {
             Length = length;
@@ -87,6 +87,9 @@ namespace EdgeDB.Models
                 Descriptors = descriptors;
             }
         }
+
+        IReceiveable IReceiveable.Clone()
+            => (IReceiveable)MemberwiseClone();
     }
 
     /// <summary>

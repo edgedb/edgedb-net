@@ -3,6 +3,7 @@ using EdgeDB.Dumps;
 using EdgeDB.Models;
 using EdgeDB.Utils;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -71,14 +72,17 @@ namespace EdgeDB
         private NetworkStream? _stream;
         private SslStream? _secureStream;
         private CancellationTokenSource _disconnectCancelToken;
-        private TaskCompletionSource<AuthenticationStatus> _authenticationStatusSource;
         private readonly TcpClient _client;
         private readonly EdgeDBConnection _connection;
         private readonly TaskCompletionSource _readySource;
         private readonly CancellationTokenSource _readyCancelTokenSource;
         private readonly SemaphoreSlim _sephamore;
         private readonly EdgeDBConfig _config;
-        
+
+        private ulong _currentMessageId;
+        private readonly ConcurrentStack<IReceiveable> _messageStack;
+        private int _maxMessageStackSize = 25;
+
         /// <summary>
         ///     Creates a new TCP client with the provided conection and config.
         /// </summary>
@@ -92,9 +96,9 @@ namespace EdgeDB
             _disconnectCancelToken = new();
             _connection = connection;
             _client = new();
-            _authenticationStatusSource = new();
             _readySource = new();
             _readyCancelTokenSource = new();
+            _messageStack = new();
             ServerKey = new byte[32];
             ServerConfig = new Dictionary<string, object?>();
         }
@@ -127,7 +131,7 @@ namespace EdgeDB
 
                 while (!complete)
                 {
-                    var msg = await NextMessageAsync(x => true, TimeSpan.FromSeconds(15));
+                    var msg = await NextMessageAsync(x => true, timeout: TimeSpan.FromSeconds(15));
                     switch (msg)
                     {
                         case CommandComplete:
@@ -358,7 +362,7 @@ namespace EdgeDB
 
                     var result = _secureStream.Read(typeBuf);
 
-                    if(result == 0)
+                    if (result == 0)
                     {
                         // disconnected
                         _disconnectCancelToken.Cancel();
@@ -370,7 +374,17 @@ namespace EdgeDB
                     var msg = PacketSerializer.DeserializePacket((ServerMessageType)typeBuf[0], _secureStream, this);
 
                     if (msg != null)
+                    {
+                        msg.Id = _currentMessageId;
+                        _messageStack.Push(msg.Clone());
+
+                        Interlocked.Increment(ref _currentMessageId);
+
+                        while (_messageStack.Count > _maxMessageStackSize && _messageStack.TryPop(out var _))
+                        { }
+
                         await HandlePayloadAsync(msg).ConfigureAwait(false);
+                    }
                 }
             }
             catch (Exception x)
@@ -396,30 +410,8 @@ namespace EdgeDB
                             _readyCancelTokenSource.Cancel();
                     }
                     break;
-                case AuthenticationStatus authStatus:
-                    {
-                        switch (authStatus.AuthStatus)
-                        {
-                            case AuthStatus.AuthenticationRequiredSASLMessage:
-                                {
-                                    _ = Task.Run(async () => await StartSASLAuthenticationAsync(authStatus).ConfigureAwait(false));
-                                }
-                                break;
-                            case AuthStatus.AuthenticationSASLContinue or AuthStatus.AuthenticationSASLFinal:
-                                {
-                                    _authenticationStatusSource.SetResult(authStatus);
-                                    _authenticationStatusSource = new();
-                                }
-                                break;
-                            case AuthStatus.AuthenticationOK:
-                                {
-                                    _authenticationStatusSource.TrySetResult(authStatus);
-                                }
-                                break;
-                            default:
-                                throw new InvalidDataException($"Got unknown auth status: {authStatus.AuthStatus:X}");
-                        }
-                    }
+                case AuthenticationStatus authStatus when authStatus.AuthStatus == AuthStatus.AuthenticationRequiredSASLMessage:
+                    _ = Task.Run(async () => await StartSASLAuthenticationAsync(authStatus).ConfigureAwait(false));
                     break;
                 case ServerKeyData keyData:
                     {
@@ -512,61 +504,70 @@ namespace EdgeDB
             }
 
             await _secureStream.WriteAsync(ms.ToArray()).ConfigureAwait(false);
+
+            Logger.LogDebug("Sent message type {}", message.Type);
         }
 
         private async Task StartSASLAuthenticationAsync(AuthenticationStatus authStatus)
         {
-            using (var scram = new Scram())
+            // steal the sephamore to stop any query attempts.
+            await _sephamore.WaitAsync().ConfigureAwait(false);
+
+            try
             {
-                var method = authStatus.AuthenticationMethods[0];
-
-                if (method != "SCRAM-SHA-256")
+                using (var scram = new Scram())
                 {
-                    // TODO: add converter for string methods?
-                    throw new NotSupportedException("The only supported method is SCRAM-SHA-256");
+                    var method = authStatus.AuthenticationMethods[0];
+
+                    if (method != "SCRAM-SHA-256")
+                    {
+                        // TODO: add converter for string methods?
+                        throw new NotSupportedException("The only supported method is SCRAM-SHA-256");
+                    }
+
+                    var initialMsg = scram.BuildInitialMessage(_connection.Username!, method);
+
+                    await SendMessageAsync(initialMsg).ConfigureAwait(false);
+
+                    // wait for continue or timeout
+                    var initialResult = await WaitForMessageOrError(ServerMessageType.Authentication, from: authStatus, timeout: TimeSpan.FromSeconds(15));
+
+                    if (initialResult is ErrorResponse err)
+                        throw new EdgeDBErrorException(err);
+
+                    if (initialResult is not AuthenticationStatus intiailStatus)
+                        throw new EdgeDBException($"Unexpected message type {initialResult.Type}");
+
+                    // check the continue
+                    var final = scram.BuildFinalMessage(intiailStatus, _connection.Password!);
+
+                    await SendMessageAsync(final.FinalMessage);
+
+                    var finalResult = await WaitForMessageOrError(ServerMessageType.Authentication, from: initialResult, timeout: TimeSpan.FromSeconds(15));
+
+                    if (finalResult is ErrorResponse error)
+                        throw new EdgeDBErrorException(error);
+
+                    if (finalResult is not AuthenticationStatus finalStatus)
+                        throw new EdgeDBException($"Unexpected message type {finalResult.Type}");
+
+                    var key = scram.ParseServerFinalMessage(finalStatus);
+
+                    if (!key.SequenceEqual(final.ExpectedSig))
+                    {
+                        Logger.LogWarning("Received signature didn't match expected scram signature");
+                        await DisconnectAsync();
+                    }
                 }
-
-                var initialMsg = scram.BuildInitialMessage(_connection.Username!, method);
-
-                await SendMessageAsync(initialMsg).ConfigureAwait(false);
-
-                // wait for continue or timeout
-                var timeout = Task.Delay(15000);
-                var result = await Task.WhenAny(_authenticationStatusSource.Task, timeout).ConfigureAwait(false);
-
-                if(result == timeout)
-                {
-                    _readyCancelTokenSource.Cancel();
-                    throw new TimeoutException("SASL handshakes timeout out :(");
-                }
-
-                authStatus = await (Task<AuthenticationStatus>)result;
-
-                // check the continue
-                var final = scram.BuildFinalMessage(authStatus, _connection.Password!);
-
-                await SendMessageAsync(final.FinalMessage);
-
-
-                timeout = Task.Delay(15000);
-                result = await Task.WhenAny(_authenticationStatusSource.Task, timeout).ConfigureAwait(false);
-
-                if (result == timeout)
-                {
-                    _readyCancelTokenSource.Cancel();
-                    throw new TimeoutException("SASL handshakes timeout out :(");
-                }
-
-                authStatus = await (Task<AuthenticationStatus>)result;
-
-                var key = scram.ParseServerFinalMessage(authStatus);
-
-                if (!key.SequenceEqual(final.ExpectedSig))
-                {
-                    Logger.LogWarning("Received signature didn't match expected scram signature");
-                    // disconnect
-                    await DisconnectAsync();
-                }
+            }
+            catch(Exception x)
+            {
+                Logger.LogError(x, "Failed to complete authentication");
+                await DisconnectAsync();
+            }
+            finally
+            {
+                _sephamore.Release();
             }
         }
 
@@ -623,14 +624,16 @@ namespace EdgeDB
             await Task.Run(() => _readySource.Task, _readyCancelTokenSource.Token);
         }
 
-        private Task<IReceiveable> WaitForMessageOrError(ServerMessageType type, CancellationToken? token = null, TimeSpan? timeout = null)
-            => NextMessageAsync(x => x.Type == type || x.Type == ServerMessageType.ErrorResponse, timeout, token: token);
+        private Task<IReceiveable> WaitForMessageOrError(ServerMessageType type, IReceiveable? from = null, CancellationToken? token = null, TimeSpan? timeout = null)
+            => NextMessageAsync(x => x.Type == type || x.Type == ServerMessageType.ErrorResponse, from, timeout, token: token);
 
-        private async Task<TMessage?> WaitForMessageAsync<TMessage>(ServerMessageType type, CancellationToken? token = null, TimeSpan? timeout = null) where TMessage : IReceiveable
-            => (TMessage)(await NextMessageAsync(x => x.Type == type, timeout, token: token));
+        private async Task<TMessage?> WaitForMessageAsync<TMessage>(ServerMessageType type, IReceiveable? from = null, CancellationToken? token = null, TimeSpan? timeout = null) where TMessage : IReceiveable
+            => (TMessage)(await NextMessageAsync(x => x.Type == type, from, timeout, token: token));
 
-        private async Task<IReceiveable> NextMessageAsync(Predicate<IReceiveable> predicate, TimeSpan? timeout = null, CancellationToken? token = null)
+        private async Task<IReceiveable> NextMessageAsync(Predicate<IReceiveable> predicate, IReceiveable? from = null, TimeSpan? timeout = null, CancellationToken? token = null)
         {
+            var fromId = from != null ? from.Id + 1 : _currentMessageId;
+
             var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             IReceiveable? returnValue = default;
             Func<IReceiveable, Task> handler = (msg) =>
@@ -656,11 +659,15 @@ namespace EdgeDB
 
             cancelSource.Token.Register(() => tcs.TrySetCanceled());
 
-            OnMessage += handler;
+            foreach (var msg in _messageStack.Where(x => x.Id >= fromId))
+                await handler(msg);
 
-            await Task.Run(() => tcs.Task, cancelSource.Token).ConfigureAwait(false);
-
-            OnMessage -= handler;
+            if (!tcs.Task.IsCompleted)
+            {
+                OnMessage += handler;
+                await Task.Run(() => tcs.Task, cancelSource.Token).ConfigureAwait(false);
+                OnMessage -= handler;
+            }
 
             return returnValue!;
         }
