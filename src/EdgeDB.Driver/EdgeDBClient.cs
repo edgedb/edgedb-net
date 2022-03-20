@@ -27,14 +27,15 @@ namespace EdgeDB
         private readonly AsyncEvent<Func<IExecuteResult, Task>> _queryExecuted = new();
         private readonly EdgeDBConnection _connection;
         private readonly EdgeDBConfig _config;
-        private readonly ConcurrentDictionary<int, EdgeDBTcpClient> _clients;
+        private ConcurrentStack<(ulong Id, EdgeDBTcpClient Client)> _clients;
         private bool _isInitialized;
         private IReadOnlyDictionary<string, object?> _edgedbConfig;
         private int _poolSize;
         private SemaphoreSlim _semaphore;
 
         private SemaphoreSlim _clientLookupSemaphore;
-        private int _clientIndex;
+        private SemaphoreSlim _initSephamore;
+        private ulong _clientIndex;
 
         /// <summary>
         ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
@@ -74,6 +75,7 @@ namespace EdgeDB
             _clients = new();
             _semaphore = new(config.DefaultPoolSize, config.DefaultPoolSize);
             _clientLookupSemaphore = new(1, 1);
+            _initSephamore = new(1, 1);
             _poolSize = config.DefaultPoolSize;
             _edgedbConfig = new Dictionary<string, object?>();
         }
@@ -86,14 +88,27 @@ namespace EdgeDB
             if (_isInitialized)
                 return;
 
-            var client = await GetOrCreateClientAsync().ConfigureAwait(false);
+            await _initSephamore.WaitAsync().ConfigureAwait(false);
 
-            // set the pool size to the recommended
-            _poolSize = client.SuggestedPoolConcurrency;
-            _semaphore = new(_poolSize, _poolSize);
-            _edgedbConfig = client.ServerConfig;
+            try
+            {
+                if (_isInitialized)
+                    return;
 
-            _isInitialized = true;
+                await using(var client = await GetOrCreateClientAsync().ConfigureAwait(false))
+                {
+                    // set the pool size to the recommended
+                    _poolSize = client.SuggestedPoolConcurrency;
+                    _semaphore = new(_poolSize, _poolSize);
+                    _edgedbConfig = client.ServerConfig;
+
+                    _isInitialized = true;
+                }
+            }
+            finally
+            {
+                _initSephamore.Release();
+            }
         }
 
         /// <summary>
@@ -112,13 +127,16 @@ namespace EdgeDB
         {
             await InitializeAsync().ConfigureAwait(false);
 
-            await _semaphore.WaitAsync().ConfigureAwait(false);
-
             try
             {
-                var client = await GetOrCreateClientAsync().ConfigureAwait(false);
+                await _semaphore.WaitAsync().ConfigureAwait(false);
 
-                return await client.ExecuteAsync<TResult>(query, arguments, cardinality).ConfigureAwait(false);
+                TResult? result = default;
+                await using(var client = await GetOrCreateClientAsync().ConfigureAwait(false))
+                {
+                    result = await client.ExecuteAsync<TResult>(query, arguments, cardinality).ConfigureAwait(false);
+                }
+                return result;
             }
             finally
             {
@@ -141,18 +159,12 @@ namespace EdgeDB
         {
             await InitializeAsync().ConfigureAwait(false);
 
-            await _semaphore.WaitAsync().ConfigureAwait(false);
-
-            try
+            object? result = null;
+            await using(var client = await GetOrCreateClientAsync().ConfigureAwait(false))
             {
-                var client = await GetOrCreateClientAsync().ConfigureAwait(false);
-
-                return await client.ExecuteAsync(query, arguments, cardinality).ConfigureAwait(false);
+                result = await client.ExecuteAsync(query, arguments, cardinality).ConfigureAwait(false);
             }
-            finally
-            {
-                _semaphore.Release();
-            }
+            return result;
         }
 
         /// <summary>
@@ -167,38 +179,41 @@ namespace EdgeDB
         /// </returns>
         public async Task<EdgeDBTcpClient> GetOrCreateClientAsync()
         {
-            await _clientLookupSemaphore.WaitAsync();
-
-            try
+            if(_clients.TryPop(out var result))
             {
-                var unusedClient = _clients.FirstOrDefault(x => x.Value.IsIdle);
-
-                if (unusedClient.Value != null)
-                    return unusedClient.Value;
-
-                // create new clinet
-                var client = new EdgeDBTcpClient(_connection, _config);
-                var index = Interlocked.Increment(ref _clientIndex);
-
-                client.OnDisconnect += () =>
-                {
-                    _clients.TryRemove(index, out var _);
-
-                    return Task.CompletedTask;
-                };
-
-                client.QueryExecuted += (i) => _queryExecuted.InvokeAsync(i);
-
-                await client.ConnectAsync().ConfigureAwait(false);
-
-                _clients.TryAdd(index, client);
-
-                return client;
+                Console.WriteLine($"Found client {result.Id}");
+                return result.Client;
             }
-            finally
+
+            // create new clinet
+            var index = Interlocked.Increment(ref _clientIndex);
+
+            var client = new EdgeDBTcpClient(_connection, _config, index);
+            Console.WriteLine($"Creating client {index}");
+
+
+            client.OnDisconnect += () =>
             {
-                _clientLookupSemaphore.Release();
-            }
+                RemoveClient(index);
+                return Task.CompletedTask;
+            };
+
+            client.QueryExecuted += (i) => _queryExecuted.InvokeAsync(i);
+
+            await client.ConnectAsync().ConfigureAwait(false);
+
+            client.OnDisposed += (c) =>
+            {
+                _clients.Push((c.ClientId, c));
+                return Task.FromResult(false);
+            };
+
+            return client;
+        }
+
+        private void RemoveClient(ulong id)
+        {
+            _clients = new ConcurrentStack<(ulong Id, EdgeDBTcpClient Client)>(_clients.Where(x => x.Id != id));
         }
     }
 }

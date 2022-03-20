@@ -83,6 +83,9 @@ namespace EdgeDB
 
         public static ICodec? BuildCodec(Guid id, PacketReader reader)
         {
+            if (id == NullCodec)
+                return new NullCodec();
+
             List<ICodec> codecs = new();
 
             while (reader.BaseStream.Position != reader.BaseStream.Length)
@@ -147,6 +150,11 @@ namespace EdgeDB
 
                     }
                 }
+            }
+
+            if(codecs.Count == 0)
+            {
+
             }
 
             _codecCache.Add(id, codecs.Last());

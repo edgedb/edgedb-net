@@ -41,6 +41,19 @@ namespace EdgeDB.Utils
             for (int i = 0; i < subscribers.Count; i++)
                 await subscribers[i].Invoke().ConfigureAwait(false);
         }
+
+        public static async Task<T2[]> InvokeAsync<T1, T2>(this AsyncEvent<Func<T1, Task<T2>>> eventHandler, T1 arg)
+        {
+            var subscribers = eventHandler.Subscriptions;
+
+            T2[] arr = new T2[subscribers.Count];
+
+            for (int i = 0; i < subscribers.Count; i++)
+                arr[i] = await subscribers[i].Invoke(arg).ConfigureAwait(false);
+
+            return arr;
+        }
+
         public static async Task InvokeAsync<T>(this AsyncEvent<Func<T, Task>> eventHandler, T arg)
         {
             var subscribers = eventHandler.Subscriptions;

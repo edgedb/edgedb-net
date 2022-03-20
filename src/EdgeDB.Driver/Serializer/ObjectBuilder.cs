@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -12,7 +13,7 @@ namespace EdgeDB
 {
     internal class ObjectBuilder
     {
-        private static Dictionary<(Guid TypeDescriptor, Guid TypeId), Type> _runtimeTypemap { get; set; } = new();
+        private static ConcurrentDictionary<(Guid TypeDescriptor, Guid TypeId), Type> _runtimeTypemap { get; set; } = new();
         private struct EdgeDBPropertyInfo
         {
             public string EdgeDBName { get; set; }
@@ -58,24 +59,22 @@ namespace EdgeDB
 
             string typeName = targetType.GetCustomAttribute<EdgeDBType>()?.Name ?? targetType.Name;
 
-            if (_runtimeTypemap.TryGetValue((typeDescriptorId, targetType.GUID), out var runtimeType))
-                targetType = runtimeType;
-            else
+            targetType = _runtimeTypemap.GetOrAdd((typeDescriptorId, targetType.GUID), ((Guid TypeDescriptor, Guid TypeId) key, Type ttype) =>
             {
-                var builder = ReflectionUtils.GetTypeBuilder($"{targetType.Name}_Runtime_{typeDescriptorId}_{targetType.GUID}");
+                var builder = ReflectionUtils.GetTypeBuilder($"{ttype.Name}_Runtime_{key.TypeDescriptor}_{key.TypeId}");
                 builder.SetCustomAttribute(new CustomAttributeBuilder(typeof(EdgeDBType).GetConstructor(new Type[] { typeof(string) })!, new object[] { typeName }));
-                builder.SetParent(targetType);
+                builder.SetParent(ttype);
                 // add id property if it isn't there with the QueryResult interface
                 builder.AddInterfaceImplementation(typeof(DataTypes.IQueryResultObject));
-                foreach (var item in targetType.GetProperties().Where(x => ShouldCreateSubType(x)))
+                foreach (var item in ttype.GetProperties().Where(x => ShouldCreateSubType(x)))
                 {
-                    var propBuilder = ReflectionUtils.CreateProperty(builder, item.Name, item.PropertyType, targetType.GetMethod($"get_{item.Name}"), newProp: false);
+                    var propBuilder = ReflectionUtils.CreateProperty(builder, item.Name, item.PropertyType, ttype.GetMethod($"get_{item.Name}"), newProp: false);
                 }
 
                 // create the id property
                 var idPropName = Guid.NewGuid().ToString().Replace("-", "");
                 var idProp = ReflectionUtils.CreateProperty(builder, idPropName, typeof(Guid));
-                idProp!.SetCustomAttribute(new CustomAttributeBuilder(typeof(EdgeDBProperty).GetConstructor(new Type[] { typeof(string)})!, new object[] { "id"}));
+                idProp!.SetCustomAttribute(new CustomAttributeBuilder(typeof(EdgeDBProperty).GetConstructor(new Type[] { typeof(string) })!, new object[] { "id" }));
 
                 var getObjectMethodImpl = builder.DefineMethod("EdgeDB.DataTypes.IQueryResultObject.GetObjectId",
                     MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.NewSlot |
@@ -96,9 +95,8 @@ namespace EdgeDB
                 builder.DefineMethodOverride(getObjectMethodImpl, typeof(DataTypes.IQueryResultObject).GetMethod("GetObjectId")!);
 
                 var type = builder.CreateType()!;
-                _runtimeTypemap.Add((typeDescriptorId, targetType.GUID), type);
-                targetType = type;
-            }
+                return type;
+            }, targetType);
 
             foreach (var prop in targetType.GetProperties())
             {

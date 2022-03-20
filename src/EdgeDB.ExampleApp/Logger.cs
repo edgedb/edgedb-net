@@ -31,6 +31,7 @@ namespace Test
     public class Logger : ILogger
     {
         private string _owner;
+        private Severity[] _severities;
 
         private static ConcurrentQueue<LogMessage> _queue = new ConcurrentQueue<LogMessage>();
         private static Dictionary<string, Func<string, Task>> _commands = new Dictionary<string, Func<string, Task>>();
@@ -71,6 +72,9 @@ namespace Test
             => Write(conent, severity, exception, stdErr);
         public void Write(string content, IEnumerable<Severity> severity, Exception? exception = null, bool stdErr = false)
         {
+            if (!_severities.Contains(severity.First()))
+                return;
+
             var type = (stdErr || exception != null) ? StreamType.StandardError : StreamType.StandardOut;
 
             if (exception != null)
@@ -82,9 +86,10 @@ namespace Test
             _taskSource.TrySetResult();
         }
 
-        private Logger(string caller)
+        private Logger(string caller, Severity[] sevs)
         {
             _owner = caller;
+            _severities = sevs;
         }
 
         static Logger()
@@ -138,11 +143,11 @@ namespace Test
             }
         }
 
-        public static Logger GetLogger<TType>()
-            => GetLogger(typeof(TType));
-        public static Logger GetLogger(Type t)
+        public static Logger GetLogger<TType>(params Severity[] sevs)
+            => GetLogger(typeof(TType), sevs);
+        public static Logger GetLogger(Type t, params Severity[] sevs)
         {
-            return new Logger($"{t.Assembly.GetName().Name}:{t.Name}");
+            return new Logger($"{t.Assembly.GetName().Name}:{t.Name}", sevs);
         }
 
         public static void AddStream(Stream stream, StreamType type)
