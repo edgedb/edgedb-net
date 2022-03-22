@@ -87,8 +87,8 @@ namespace EdgeDB
         private TaskCompletionSource _authCompleteSource;
         private Task? _receiveTask;
         private readonly EdgeDBConnection _connection;
-        private readonly SemaphoreSlim _sephamore;
-        private readonly SemaphoreSlim _receiveSephamore;
+        private readonly SemaphoreSlim _semaphore;
+        private readonly SemaphoreSlim _receiveSemaphore;
         private readonly EdgeDBConfig _config;
         private readonly TimeSpan _timeout;
 
@@ -109,8 +109,8 @@ namespace EdgeDB
         {
             _config = config;
             Logger = config.Logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
-            _sephamore = new(1, 1);
-            _receiveSephamore = new(1, 1);
+            _semaphore = new(1, 1);
+            _receiveSemaphore = new(1, 1);
             _disconnectCancelToken = new();
             _connection = connection;
             _client = new();
@@ -138,7 +138,7 @@ namespace EdgeDB
         /// <exception cref="EdgeDBException">The server sent a mismatched packet.</exception>
         public async Task<Stream?> DumpDatabaseAsync()
         {
-            await _sephamore.WaitAsync(_disconnectCancelToken.Token).ConfigureAwait(false);
+            await _semaphore.WaitAsync(_disconnectCancelToken.Token).ConfigureAwait(false);
 
             IsIdle = false;
 
@@ -194,7 +194,67 @@ namespace EdgeDB
             finally
             {
                 IsIdle = true;
-                _sephamore.Release();
+                _semaphore.Release();
+            }
+        }
+
+        /// <summary>
+        ///     Restores the database based on a database dump stream.
+        /// </summary>
+        /// <param name="stream">The stream containing the database dump.</param>
+        /// <returns>The command complete packet received after restoring the database.</returns>
+        /// <exception cref="EdgeDBException">
+        ///     The server sent an invalid packet or the restore operation couldn't proceed 
+        ///     due to the database not being empty.
+        /// </exception>
+        /// <exception cref="EdgeDBErrorException">The server sent an error during the restore operation.</exception>
+        public async Task<CommandComplete> RestoreDatabaseAsync(Stream stream)
+        {
+            var reader = new DumpReader();
+
+            var count = await QueryAsync<long>("select count(schema::Module filter not .builtin and not .name = \"default\") + count(schema::Object filter .name like \"default::%\")");
+
+            // steal semaphore to block any queries
+            await _semaphore.WaitAsync().ConfigureAwait(false);
+
+            try
+            {
+                if (count > 0)
+                    throw new EdgeDBException("Cannot restore: Database isn't empty");
+
+                var packets = reader.ReadDatabaseDump(stream);
+
+                // send restore
+                await SendMessageAsync(packets.Restore);
+
+                var result = await WaitForMessageOrError(ServerMessageType.RestoreReady, timeout: _timeout);
+
+                if (result is ErrorResponse err)
+                    throw new EdgeDBErrorException(err);
+
+                if (result is not RestoreReady)
+                    throw new EdgeDBException($"Got unexpected packet {result.Type}");
+
+                foreach (var block in packets.Blocks)
+                {
+                    await SendMessageAsync(block).ConfigureAwait(false);
+                }
+
+                await SendMessageAsync(new RestoreEOF());
+
+                result = await WaitForMessageOrError(ServerMessageType.CommandComplete, from: result, timeout: _timeout);
+
+                if (result is ErrorResponse error)
+                    throw new EdgeDBErrorException(error);
+
+                if (result is not CommandComplete complete)
+                    throw new EdgeDBException($"Got unexpected packet {result.Type}");
+
+                return complete;
+            }
+            finally
+            {
+                _semaphore.Release();
             }
         }
 
@@ -226,7 +286,7 @@ namespace EdgeDB
         /// <exception cref="EdgeDBException">An error occored when reading, writing, or parsing the results.</exception>
         public async Task<TResult?> QueryAsync<TResult>(string query, IDictionary<string, object?>? arguments = null, Cardinality? card = null)
         {
-            await _sephamore.WaitAsync(_disconnectCancelToken.Token).ConfigureAwait(false);
+            await _semaphore.WaitAsync(_disconnectCancelToken.Token).ConfigureAwait(false);
 
             IsIdle = false;
 
@@ -383,7 +443,7 @@ namespace EdgeDB
             finally
             {
                 IsIdle = true;
-                _sephamore.Release();
+                _semaphore.Release();
             }
         }
 
@@ -423,7 +483,7 @@ namespace EdgeDB
 
                     if (msg != null)
                     {
-                        await _receiveSephamore.WaitAsync().ConfigureAwait(false);
+                        await _receiveSemaphore.WaitAsync().ConfigureAwait(false);
 
                         try
                         {
@@ -441,7 +501,7 @@ namespace EdgeDB
                         }
                         finally
                         {
-                            _receiveSephamore.Release();
+                            _receiveSemaphore.Release();
                         }
 
                     }
@@ -530,7 +590,7 @@ namespace EdgeDB
         private async Task StartSASLAuthenticationAsync(AuthenticationStatus authStatus)
         {
             // steal the sephamore to stop any query attempts.
-            await _sephamore.WaitAsync().ConfigureAwait(false);
+            await _semaphore.WaitAsync().ConfigureAwait(false);
 
             IsIdle = false;
 
@@ -613,7 +673,7 @@ namespace EdgeDB
             }
             finally
             {
-                _sephamore.Release();
+                _semaphore.Release();
                 IsIdle = true;
             }
         }
@@ -638,12 +698,10 @@ namespace EdgeDB
             {
                 case "suggested_pool_concurrency":
                     var str = Encoding.UTF8.GetString(status.Value.ToArray());
-                    if (!int.TryParse(str, out var concurrency))
+                    if (!int.TryParse(str, out SuggestedPoolConcurrency))
                     {
+                        throw new EdgeDBException($"Got bad formatted server setting: suggested_pool_concurrency: {str}");
                     }
-                    else
-                        SuggestedPoolConcurrency = concurrency;
-
                     break;
 
                 case "system_config":
@@ -724,7 +782,7 @@ namespace EdgeDB
                 return Task.CompletedTask;
             };
 
-            await _receiveSephamore.WaitAsync().ConfigureAwait(false);
+            await _receiveSemaphore.WaitAsync().ConfigureAwait(false);
 
             try
             {
@@ -750,7 +808,7 @@ namespace EdgeDB
             }
             finally
             {
-                _receiveSephamore.Release();
+                _receiveSemaphore.Release();
             }
 
             var cancelSource = new CancellationTokenSource();

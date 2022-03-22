@@ -14,39 +14,12 @@ var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb
     Logger = Logger.GetLogger<EdgeDBClient>(Severity.Warning, Severity.Critical, Severity.Error, Severity.Info, Severity.Debug),
 });
 
-//var people = await edgedb.QueryAsync("select Person");
 
-var numTasks = 1000;
+var client = await edgedb.GetOrCreateClientAsync();
 
-Task[] tasks = new Task[numTasks];
+var db = File.OpenRead(@"C:\Users\lynch\source\repos\EdgeDB\src\EdgeDB.ExampleApp\bin\Debug\net6.0\Dump.db");
 
-ConcurrentBag<string> list = new();
-
-for (int i = 0; i != numTasks; i++)
-{
-    var num = i;
-    tasks[i] = Task.Run(async () =>
-    {
-        try
-        {
-            Console.WriteLine($"Task {num} queued");
-
-            var result = await edgedb.QueryAsync<string>("select \"Hello\"");
-            list.Add($"{num}: {result}");
-            Console.WriteLine($"Task {num} completed: {result}");
-        }
-        catch (Exception x)
-        {
-            Console.WriteLine($"ROOT TASK {num}: {x}");
-        }
-    });
-}
-Stopwatch sw = Stopwatch.StartNew();
-
-await Task.WhenAll(tasks).ConfigureAwait(false);
-
-sw.Stop();
-
+await client.RestoreDatabaseAsync(db);
 
 // hault the program
 await Task.Delay(-1);
