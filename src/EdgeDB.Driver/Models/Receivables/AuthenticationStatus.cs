@@ -56,6 +56,9 @@ namespace EdgeDB.Models
                         SASLData = reader.ReadByteArray();
                     }
                     break;
+                default:
+
+                    break;
             }
         }
         

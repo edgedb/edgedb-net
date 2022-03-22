@@ -35,5 +35,20 @@ namespace EdgeDB
         ///     Gets or sets the logger used for logging messages from the driver.
         /// </summary>
         public ILogger? Logger { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the retry mode for connecting new clients.
+        /// </summary>
+        public ConnectionRetryMode RetryMode { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the maximum number of times to retry to connect.
+        /// </summary>
+        public uint MaxConnectionRetries { get; set; } = 5;
+
+        /// <summary>
+        ///     Gets or sets the max amount of miliseconds a client will wait for an expected message.
+        /// </summary>
+        public uint MessageTimeout { get; set; } = 5000;
     }
 }

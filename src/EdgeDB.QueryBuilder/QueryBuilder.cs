@@ -364,9 +364,11 @@ namespace EdgeDB
         {
             EnterRootNode(QueryExpressionType.Insert, (QueryNode node, ref QueryBuilderContext context) =>
             {
-                context.DontSelectProperties = true;
-                context.IncludeEmptySets = false; // TODO: user setting?
-                var obj = SerializeQueryObject(value, context);
+                var obj = SerializeQueryObject(value, context.Enter(x =>
+                {
+                    x.DontSelectProperties = true;
+                    x.IncludeEmptySets = true;
+                }));
                 node.Query = $"insert{(context.UseDetached ? " detached" : "")} {GetTypeName(typeof(TTarget))} {obj.Query}";
                 node.AddArguments(obj.Arguments);
             });
@@ -456,9 +458,10 @@ namespace EdgeDB
             EnterRootNode(QueryExpressionType.Update, (QueryNode node, ref QueryBuilderContext context) =>
             {
                 var serializedObj = ConvertExpression(builder.Body, new QueryContext<TTarget, TTarget>(builder) { AllowStaticOperators = true, BuilderContext = context.Enter(x => x.DontSelectProperties = true) });
-                
+
                 node.Query = $"update {GetTypeName(typeof(TTarget))}";
-                node.SetChild(0, QueryExpressionType.Set, (ref QueryBuilderContext innerContext) =>
+                
+                node.SetChild(node.Children.Any() ? 1 : 0, QueryExpressionType.Set, (ref QueryBuilderContext innerContext) =>
                 {
                     return new BuiltQuery
                     {
@@ -466,6 +469,7 @@ namespace EdgeDB
                         Parameters = serializedObj.Arguments
                     };
                 });
+
             });
 
             return ConvertTo<TTarget>();

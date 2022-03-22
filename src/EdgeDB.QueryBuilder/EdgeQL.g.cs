@@ -1720,8 +1720,8 @@ namespace EdgeDB
 
         internal static Dictionary<string, IEdgeQLOperator> FunctionOperators = new()
         {
-            { "string?.ToLower", new StringToLower()},
-            { "string?.ToUpper", new StringToUpper()},
+            { "String.ToLower", new StringToLower()},
+            { "String.ToUpper", new StringToUpper()},
             { "Enumerable.Concat", new SetsUnion()},
         }
 ;

@@ -635,7 +635,8 @@ namespace EdgeDB
         {
             builder = null;
 
-            var obj = (MethodCallExpression?)mc.Object;
+            if (mc.Object is not MethodCallExpression obj)
+                return false;
 
             while(obj is MethodCallExpression innermc && innermc.Object != null && innermc.Object is MethodCallExpression innerInnermc && (!obj?.Type.IsAssignableTo(typeof(QueryBuilder)) ?? true))
             {

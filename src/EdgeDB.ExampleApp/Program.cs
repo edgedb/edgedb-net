@@ -1,5 +1,6 @@
 ﻿using EdgeDB;
 using EdgeDB.DataTypes;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using Test;
 
@@ -13,41 +14,36 @@ var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb
     Logger = Logger.GetLogger<EdgeDBClient>(Severity.Warning, Severity.Critical, Severity.Error, Severity.Info, Severity.Debug),
 });
 
-var numTasks = 2;
+//var people = await edgedb.QueryAsync("select Person");
 
+var numTasks = 1000;
 
 Task[] tasks = new Task[numTasks];
 
-for(int i = 0; i != numTasks; i++)
+ConcurrentBag<string> list = new();
+
+for (int i = 0; i != numTasks; i++)
 {
     var num = i;
     tasks[i] = Task.Run(async () =>
     {
-    try
-    {
-            if (num == 0)
-                await Task.Delay(1000);
+        try
+        {
             Console.WriteLine($"Task {num} queued");
-            var client = new EdgeDBTcpClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb.toml"), new EdgeDBConfig
-            {
-                Logger = Logger.GetLogger<EdgeDBClient>(Severity.Warning, Severity.Critical, Severity.Error, Severity.Info, Severity.Debug),
-            }, (ulong)num);
 
-            await client.ConnectAsync();
-
-            var result = await client.ExecuteAsync("select \"Hello\"");
+            var result = await edgedb.QueryAsync<string>("select \"Hello\"");
+            list.Add($"{num}: {result}");
             Console.WriteLine($"Task {num} completed: {result}");
         }
-        catch(Exception x)
+        catch (Exception x)
         {
-            Console.WriteLine(x);
+            Console.WriteLine($"ROOT TASK {num}: {x}");
         }
     });
 }
 Stopwatch sw = Stopwatch.StartNew();
 
 await Task.WhenAll(tasks).ConfigureAwait(false);
-
 
 sw.Stop();
 
@@ -73,11 +69,6 @@ public class Person
     // Single link example
     [EdgeDBProperty("bestFriend", IsLink = true)]
     public Person? BestFriend { get; set; }
-
-    //// Computed example
-    //[EdgeDBProperty("hobbyCount", IsComputed = true)]
-    //public virtual ComputedValue<long> HobbyCount 
-    //    => QueryBuilder.Select(() => EdgeQL.Count(Hobbies!));
 }
 
 [EdgeDBType]

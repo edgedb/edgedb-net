@@ -44,7 +44,7 @@ namespace EdgeDB.DotnetTool.Commands
                     });
 
                     await client.ConnectAsync();
-                    var result =  await client.ExecuteAsync($"describe schema as sdl");
+                    var result =  await client.QueryAsync($"describe schema as sdl");
 
                 }).GetAwaiter().GetResult();
             }

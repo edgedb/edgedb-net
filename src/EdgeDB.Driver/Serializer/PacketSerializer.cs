@@ -2,6 +2,7 @@
 using EdgeDB.Models;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
@@ -17,8 +18,8 @@ namespace EdgeDB
     {
         public static readonly Guid NullCodec = Guid.Empty;
 
-        private static Dictionary<ServerMessageType, IReceiveable> _receiveablePayload = new();
-        private static Dictionary<Guid, ICodec> _codecCache = new();
+        private static Dictionary<ServerMessageType, Func<IReceiveable>> _receiveablePayloadFactory = new();
+        private static ConcurrentDictionary<Guid, ICodec> _codecCache = new();
 
         static PacketSerializer()
         {
@@ -27,7 +28,7 @@ namespace EdgeDB
             foreach(var t in types)
             {
                 var inst = (IReceiveable)Activator.CreateInstance(t)!;
-                _receiveablePayload.Add(inst.Type, inst);
+                _receiveablePayloadFactory.Add(inst.Type, () => (IReceiveable)Activator.CreateInstance(t)!);
             }
         }
 
@@ -54,13 +55,13 @@ namespace EdgeDB
             var reader = new PacketReader(stream);
             var length = reader.ReadUInt32() - 4;
 
-            if (_receiveablePayload.ContainsKey(type))
+            if (_receiveablePayloadFactory.ContainsKey(type))
             {
-                var converter = _receiveablePayload[type];
+                var payload = _receiveablePayloadFactory[type]();
 
-                converter.Read(reader, (uint)length, client);
+                payload.Read(reader, length, client);
 
-                return converter;
+                return payload;
             }
             else
             {
@@ -157,7 +158,7 @@ namespace EdgeDB
 
             }
 
-            _codecCache.Add(id, codecs.Last());
+            _codecCache[id] = codecs.Last();
 
             return codecs.Last();
         }

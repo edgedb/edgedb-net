@@ -178,7 +178,7 @@ string:
     return: string?
     name: ToLower
     function_map:
-      - string?.ToLower
+      - String.ToLower
     functions:
       - name: ToLower
         parameters: 
@@ -188,7 +188,7 @@ string:
     return: string?
     name: ToUpper
     function_map:
-      - string?.ToUpper
+      - String.ToUpper
     functions:
       - name: ToUpper
         parameters:
