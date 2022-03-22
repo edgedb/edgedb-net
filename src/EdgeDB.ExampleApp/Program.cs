@@ -14,12 +14,7 @@ var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../edgedb
     Logger = Logger.GetLogger<EdgeDBClient>(Severity.Warning, Severity.Critical, Severity.Error, Severity.Info, Severity.Debug),
 });
 
-
-var client = await edgedb.GetOrCreateClientAsync();
-
-var db = File.OpenRead(@"C:\Users\lynch\source\repos\EdgeDB\src\EdgeDB.ExampleApp\bin\Debug\net6.0\Dump.db");
-
-await client.RestoreDatabaseAsync(db);
+var test = await edgedb.QueryRequiredSingleAsync<Person>("select Person { name, email } filter .email = \"quin@quinch.dev\"");
 
 // hault the program
 await Task.Delay(-1);

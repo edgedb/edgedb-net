@@ -16,7 +16,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents a TCP client used to interact with EdgeDB.
     /// </summary>
-    public sealed class EdgeDBTcpClient : IAsyncDisposable
+    public sealed class EdgeDBTcpClient : IEdgeDBQueryable, IAsyncDisposable
     {
         /// <summary>
         ///     Fired when the client receives a message.
@@ -212,7 +212,7 @@ namespace EdgeDB
         {
             var reader = new DumpReader();
 
-            var count = await QueryAsync<long>("select count(schema::Module filter not .builtin and not .name = \"default\") + count(schema::Object filter .name like \"default::%\")");
+            var count = await QuerySingleAsync<long>("select count(schema::Module filter not .builtin and not .name = \"default\") + count(schema::Object filter .name like \"default::%\")");
 
             // steal semaphore to block any queries
             await _semaphore.WaitAsync().ConfigureAwait(false);
@@ -258,33 +258,7 @@ namespace EdgeDB
             }
         }
 
-        /// <summary>
-        ///     Executes a query and returns the result.
-        /// </summary>
-        /// <param name="query">The query string to execute.</param>
-        /// <param name="arguments">Any arguments used in the query.</param>
-        /// <param name="cardinality">The optional cardinality of the query.</param>
-        /// <returns>
-        ///     An execute result containing the result of the query.
-        /// </returns>
-        /// <exception cref="EdgeDBErrorException">An error occured within the query and the database returned an error result.</exception>
-        /// <exception cref="EdgeDBException">An error occored when reading, writing, or parsing the results.</exception>
-        public Task<object?> QueryAsync(string query, IDictionary<string, object?>? arguments = null, Cardinality? card = null)
-            => QueryAsync<object>(query, arguments, card);
-
-        /// <summary>
-        ///     Executes a query and returns the result.
-        /// </summary>
-        /// <typeparam name="TResult">The return type of the query.</typeparam>
-        /// <param name="query">The query string to execute.</param>
-        /// <param name="arguments">Any arguments used in the query.</param>
-        /// <param name="cardinality">The optional cardinality of the query.</param>
-        /// <returns>
-        ///     The result of the query operation as <typeparamref name="TResult"/>.
-        /// </returns>
-        /// <exception cref="EdgeDBErrorException">An error occured within the query and the database returned an error result.</exception>
-        /// <exception cref="EdgeDBException">An error occored when reading, writing, or parsing the results.</exception>
-        public async Task<TResult?> QueryAsync<TResult>(string query, IDictionary<string, object?>? arguments = null, Cardinality? card = null)
+        private async Task<(PrepareComplete PrepareStatement, ICodec Deserializer, List<Data> Data)> ExecuteInternalAsync(string query, IDictionary<string, object?>? args, Cardinality card)
         {
             await _semaphore.WaitAsync(_disconnectCancelToken.Token).ConfigureAwait(false);
 
@@ -297,7 +271,7 @@ namespace EdgeDB
                     Capabilities = AllowCapabilities.ReadOnly, // TODO: change this
                     Command = query,
                     Format = IOFormat.Binary,
-                    ExpectedCardinality = card ?? Cardinality.Many,
+                    ExpectedCardinality = card,
                     ExplicitObjectIds = true,
                     ImplicitTypeNames = true,
                     ImplicitTypeIds = true,
@@ -319,8 +293,6 @@ namespace EdgeDB
 
                 ulong fromId = ((IReceiveable)readyForCommand).Id;
 
-                card ??= result.Cardinality;
-
                 // get the codec for the return type
                 var outCodec = PacketSerializer.GetCodec(result.OutputTypedescId);
                 var inCodec = PacketSerializer.GetCodec(result.InputTypedescId);
@@ -339,7 +311,7 @@ namespace EdgeDB
 
                     fromId = ((IReceiveable)readyForCommand).Id;
 
-                    if(outCodec == null)
+                    if (outCodec == null)
                     {
                         using (var innerReader = new PacketReader(describer.Value.OutputTypeDescriptor.ToArray()))
                         {
@@ -347,7 +319,7 @@ namespace EdgeDB
                         }
                     }
 
-                    if(inCodec == null)
+                    if (inCodec == null)
                     {
                         using (var innerReader = new PacketReader(describer.Value.InputTypeDescriptor.ToArray()))
                         {
@@ -372,7 +344,7 @@ namespace EdgeDB
                         : Array.Empty<byte>());
 
                 // convert our arguments if any
-                await SendMessageAsync(new Execute() { Capabilities = result.Capabilities, Arguments = argumentCodec.SerializeArguments(arguments) }).ConfigureAwait(false);
+                await SendMessageAsync(new Execute() { Capabilities = result.Capabilities, Arguments = argumentCodec.SerializeArguments(args) }).ConfigureAwait(false);
                 await SendMessageAsync(new Sync()).ConfigureAwait(false);
 
                 List<Data> receivedData = new();
@@ -402,38 +374,7 @@ namespace EdgeDB
                     }
                 }
 
-                object? queryResult = null;
-
-                if (receivedData.Any()) // TODO: optimize?
-                {
-                    if (receivedData.Count == 1 && (card == Cardinality.AtMostOne || card == Cardinality.One))
-                    {
-                        using (var reader = new PacketReader(receivedData[0].PayloadData.ToArray()))
-                        {
-                            queryResult = outCodec.Deserialize(reader);
-                        }
-                    }
-                    else
-                    {
-                        object?[] data = new object[receivedData.Count];
-
-                        for (int i = 0; i != data.Length; i++)
-                        {
-                            using (var reader = new PacketReader(receivedData[i].PayloadData.ToArray()))
-                            {
-                                data[i] = outCodec.Deserialize(reader);
-                            }
-                        }
-
-                        queryResult = data;
-                    }
-                }
-
-                if (!completePacket.HasValue)
-                    throw new EdgeDBException("Failed to complete command: Got null complete state??");
-
-                Logger.LogInformation("Executed query with {}: {}", completePacket.Value.Status, completePacket.Value.UsedCapabilities);
-                return ObjectBuilder.BuildResult<TResult>(result.OutputTypedescId, queryResult);
+                return (result, outCodec, receivedData);
             }
             catch (Exception x)
             {
@@ -445,6 +386,57 @@ namespace EdgeDB
                 IsIdle = true;
                 _semaphore.Release();
             }
+        }
+
+        /// <inheritdoc/>
+        public async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null)
+        {
+            await ExecuteInternalAsync(query, args, Cardinality.Many).ConfigureAwait(false);
+        }
+
+        public async Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null)
+        {
+            var result = await ExecuteInternalAsync(query, args, Cardinality.Many);
+
+            List<TResult?> returnResults = new();
+
+            foreach(var item in result.Data)
+            {
+                var obj = ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(item.PayloadData.ToArray()));
+                returnResults.Add(obj);
+            }
+
+            return returnResults.ToImmutableArray();
+        }
+
+        public async Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
+        {
+            var result = await ExecuteInternalAsync(query, args, Cardinality.AtMostOne);
+
+            if (result.Data.Count > 1)
+                throw new EdgeDBException($"Expected single result but got {result.Data.Count}");
+
+            var queryResult = result.Data.FirstOrDefault();
+
+            if (queryResult.PayloadData == null)
+                return default;
+
+            return ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(queryResult.PayloadData.ToArray()));
+        }
+
+        public async Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
+        {
+            var result = await ExecuteInternalAsync(query, args, Cardinality.AtMostOne);
+
+            if (result.Data.Count > 1 || result.Data.Count == 0)
+                throw new EdgeDBException($"Expected single result but got {result.Data.Count}");
+
+            var queryResult = result.Data.FirstOrDefault();
+
+            if (queryResult.PayloadData == null)
+                throw new EdgeDBException("Got no data for required single query");
+
+            return ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(queryResult.PayloadData.ToArray()))!;
         }
 
         #endregion

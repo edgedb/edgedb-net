@@ -27,7 +27,7 @@ namespace EdgeDB.Models
         One = 0x41,
 
         /// <summary>
-        ///     The command will return aero to infinite results.
+        ///     The command will return zero to infinite results.
         /// </summary>
         Many = 0x6d,
         /// <summary>

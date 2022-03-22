@@ -3,6 +3,7 @@ using EdgeDB.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -13,7 +14,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents a class used to interact with EdgeDB.
     /// </summary>
-    public class EdgeDBClient
+    public sealed class EdgeDBClient : IEdgeDBQueryable
     {
         /// <summary>
         ///     Fired when a client in the client pool executes a query.
@@ -118,49 +119,52 @@ namespace EdgeDB
             }
         }
 
-        /// <summary>
-        ///     Executes a query and returns the result.
-        /// </summary>
-        /// <typeparam name="TResult">The return type of the query.</typeparam>
-        /// <param name="query">The query string to execute.</param>
-        /// <param name="arguments">Any arguments used in the query.</param>
-        /// <param name="cardinality">The optional cardinality of the query.</param>
-        /// <returns>
-        ///     The result of the query operation as <typeparamref name="TResult"/>.
-        /// </returns>
-        /// <exception cref="EdgeDBErrorException">An error occured within the query and the database returned an error result.</exception>
-        /// <exception cref="EdgeDBException">An error occored when reading, writing, or parsing the results.</exception>
-        public async Task<TResult?> QueryAsync<TResult>(string query, IDictionary<string, object?>? arguments = null, Cardinality? cardinality = null)
+        /// <inheritdoc/>
+        public async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null)
+        {
+            await InitializeAsync().ConfigureAwait(false);
+
+            await using (var client = await GetOrCreateClientAsync().ConfigureAwait(false))
+            {
+                await client.ExecuteAsync(query, args).ConfigureAwait(false);
+            }
+        }
+
+        /// <inheritdoc/>
+        public async Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null)
+        {
+            await InitializeAsync().ConfigureAwait(false);
+
+            IReadOnlyCollection<TResult?>? result = ImmutableArray<TResult>.Empty;
+            await using (var client = await GetOrCreateClientAsync().ConfigureAwait(false))
+            {
+                result = await client.QueryAsync<TResult>(query, args).ConfigureAwait(false);
+            }
+            return result;
+        }
+
+        /// <inheritdoc/>
+        public async Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
         {
             await InitializeAsync().ConfigureAwait(false);
 
             TResult? result = default;
             await using (var client = await GetOrCreateClientAsync().ConfigureAwait(false))
             {
-                result = await client.QueryAsync<TResult>(query, arguments, cardinality).ConfigureAwait(false);
+                result = await client.QuerySingleAsync<TResult>(query, args).ConfigureAwait(false);
             }
             return result;
         }
 
-        /// <summary>
-        ///     Executes a query and returns the result.
-        /// </summary>
-        /// <param name="query">The query string to execute.</param>
-        /// <param name="arguments">Any arguments used in the query.</param>
-        /// <param name="cardinality">The optional cardinality of the query.</param>
-        /// <returns>
-        ///     An execute result containing the result of the query.
-        /// </returns>
-        /// <exception cref="EdgeDBErrorException">An error occured within the query and the database returned an error result.</exception>
-        /// <exception cref="EdgeDBException">An error occored when reading, writing, or parsing the results.</exception>
-        public async Task<object?> QueryAsync(string query, IDictionary<string, object?>? arguments = null, Cardinality? cardinality = null)
+        /// <inheritdoc/>
+        public async Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
         {
             await InitializeAsync().ConfigureAwait(false);
 
-            object? result = null;
-            await using(var client = await GetOrCreateClientAsync().ConfigureAwait(false))
+            TResult result;
+            await using (var client = await GetOrCreateClientAsync().ConfigureAwait(false))
             {
-                result = await client.QueryAsync(query, arguments, cardinality).ConfigureAwait(false);
+                result = await client.QueryRequiredSingleAsync<TResult>(query, args).ConfigureAwait(false);
             }
             return result;
         }
