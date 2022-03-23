@@ -12,7 +12,8 @@ Logger.AddStream(Console.OpenStandardError(), StreamType.StandardError);
 // create our client
 var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../../../edgedb.toml"), new EdgeDBConfig
 {
-    Logger = Logger.GetLogger<EdgeDBClient>(Severity.Warning, Severity.Critical, Severity.Error, Severity.Info, Severity.Debug),
+    MessageTimeout = 15000
+    //Logger = Logger.GetLogger<EdgeDBClient>(Severity.Warning, Severity.Critical, Severity.Error, Severity.Info),
 });
 
 var client = await edgedb.GetOrCreateClientAsync();
@@ -25,15 +26,19 @@ client.QueryExecuted += (e) =>
 
 await using (var tx = await client.TransactionAsync())
 {
-    try
-    {
-        var obj = await tx.QuerySingleAsync<string>("selecdt \"Hello\"");
+    var obj = await tx.QuerySingleAsync<string>("select \"Hello\"");
 
-        await Task.Delay(5000);
-    }
-    catch(Exception x)
+    var obj2 = await tx.QuerySingleAsync<string>("select \"World!\"");
+
+    var save1 = tx.SavepointAsync();
+
+    await using(var savepoint = await tx.SavepointAsync())
     {
-        Console.WriteLine(x);
+        var obj3 = await savepoint.QuerySingleAsync<string>("select Person");
+
+        Console.WriteLine(obj3);
+
+        var obj4 = await savepoint.QuerySingleAsync<string>("update Person");
     }
 }
 

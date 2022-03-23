@@ -17,9 +17,6 @@ namespace EdgeDB.Models
         public bool IsSuccess { get; private set; }
 
         /// <inheritdoc/>
-        public object? Result { get; private set; }
-
-        /// <inheritdoc/>
         public ErrorResponse? Error { get; private set; }
 
         /// <inheritdoc/>
@@ -28,10 +25,9 @@ namespace EdgeDB.Models
         /// <inheritdoc/>
         public string? ExecutedQuery { get; private set; }
 
-        internal ExecuteResult(bool success, object? result, ErrorResponse? error, Exception? exc, string? executedQuery)
+        internal ExecuteResult(bool success, ErrorResponse? error, Exception? exc, string? executedQuery)
         {
             IsSuccess = success;
-            Result = result;
             Error = error;
             Exception = exc;
             ExecutedQuery = executedQuery;
@@ -47,11 +43,6 @@ namespace EdgeDB.Models
         ///     Gets whether or not the command executed successfully.
         /// </summary>
         bool IsSuccess { get; }
-
-        /// <summary>
-        ///     Gets the resulting object of the command or <see langword="null"/> if no result.
-        /// </summary>
-        object? Result { get; }
 
         /// <summary>
         ///     Gets the error (if any) that the command received.

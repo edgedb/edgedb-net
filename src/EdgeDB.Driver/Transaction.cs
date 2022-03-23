@@ -10,34 +10,33 @@ namespace EdgeDB
 {
     public class Transaction : IEdgeDBQueryable, IAsyncDisposable
     {
-        protected struct TransactionNode
+        protected class TransactionNode
         {
             public string Query { get; set; }
             public IDictionary<string, object?>? Arguments { get; set; }
             public int Attempts { get; set; }
             public int Errors { get; set; }
-            public EdgeDBErrorException? CurrentError { get; set; }
+            public Exception? CurrentError { get; set; }
             public Func<TransactionNode, EdgeDBTcpClient, Task<object?>> Executor { get; set; }
+
+            public TransactionNode(string query, IDictionary<string, object?>? args, Func<TransactionNode, EdgeDBTcpClient, Task<object?>> exec)
+            {
+                Query = query;
+                Arguments = args;
+                Executor = exec;
+            }
 
             public async Task<(bool Success, object? Result)> ExecuteAsync(EdgeDBTcpClient client)
             {
                 try
                 {
                     var result = await Executor.Invoke(this, client).ConfigureAwait(false);
-
-                    if(result is EdgeDBErrorException err)
-                    {
-                        Errors++;
-                        CurrentError = err;
-                        return (false, null);
-                    }    
-
                     return (true, result);
                 }
-                catch (EdgeDBErrorException err)
+                catch(Exception x)
                 {
                     Errors++;
-                    CurrentError = err;
+                    CurrentError = x;
                     return (false, null);
                 }
                 finally
@@ -56,7 +55,7 @@ namespace EdgeDB
 
         private ConcurrentDictionary<int, TransactionNode> _nodes = new();
         private int _currentStep;
-        
+        private bool _success = true;
 
         internal Transaction(EdgeDBTcpClient client, TransactionSettings? settings)
         {
@@ -108,29 +107,30 @@ namespace EdgeDB
 
         protected virtual TransactionNode AddNode(string query, IDictionary<string, object?>? args, Func<TransactionNode, EdgeDBTcpClient, Task<object?>> func)
         {
-            var node = new TransactionNode
-            {
-                Arguments = args,
-                Query = query,
-                Executor = func
-            };
+            var node = new TransactionNode(query, args, func);
 
             var id = Interlocked.Increment(ref _currentStep);
             _nodes[id] = node;
             return node;
         }
 
-        private async Task RerunNodes()
+        private async Task<object?> RerunNodes()
         {
             bool complete = false;
             await _rootSavePoint!.RollbackAsync().ConfigureAwait(false);
+
+            object? returnResult = null;
+
             while (!complete)
             {
+                rootStart:
+
                 foreach (var node in _nodes.OrderBy(x => x.Key))
                 {
                     if (node.Value.Attempts >= _settings.RetryAttempts)
                     {
                         await RollbackAsync().ConfigureAwait(false);
+                        _success = false;
                         throw new EdgeDBException($"Maximum number of attempts reached within a transaction: query errored {node.Value.Errors}/{node.Value.Attempts}", node.Value.CurrentError);
                     }
 
@@ -139,12 +139,16 @@ namespace EdgeDB
                     if (!result.Success)
                     {
                         await _rootSavePoint.RollbackAsync().ConfigureAwait(false);
-                        break;
+                        goto rootStart;
                     }
+
+                    returnResult = result.Result;
                 }
 
                 complete = true;
             }
+
+            return returnResult;
         }
 
         public async Task<TransactionSavePoint> SavepointAsync()
@@ -161,10 +165,9 @@ namespace EdgeDB
 
             if (!result.Success)
             {
-                await RerunNodes().ConfigureAwait(false);
+                return await RerunNodes().ConfigureAwait(false);
             }
-
-            return result.Result;
+            else return result.Result;
         }
 
         public async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null)
@@ -190,14 +193,7 @@ namespace EdgeDB
         {
             var obj = await ExecuteInternalAsync(query, args, async (node, client) =>
             {
-                try
-                {
-                    return await client.QuerySingleAsync<TResult>(node.Query, node.Arguments).ConfigureAwait(false);
-                }
-                catch(EdgeDBErrorException err)
-                {
-                    return err;
-                }
+                return await client.QuerySingleAsync<TResult>(node.Query, node.Arguments).ConfigureAwait(false);
             }).ConfigureAwait(false);
 
             return (TResult?)obj!;
@@ -216,7 +212,11 @@ namespace EdgeDB
         public virtual async ValueTask DisposeAsync()
         {
             if (Client.TransactionState != TransactionState.NotInTransaction)
-                await CommitAsync().ConfigureAwait(false);
+            {
+                if (_success)
+                    await CommitAsync().ConfigureAwait(false);
+                else await RollbackAsync().ConfigureAwait(false);
+            }
         }
     }
 

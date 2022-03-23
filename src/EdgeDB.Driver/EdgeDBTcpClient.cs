@@ -5,6 +5,7 @@ using EdgeDB.Utils;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
@@ -156,7 +157,7 @@ namespace EdgeDB
                     throw new EdgeDBErrorException(err);
 
                 if (dump is not DumpHeader dumpHeader)
-                    throw new EdgeDBException($"Expected dump header but got {dump.Type}");
+                    throw new UnexpectedMessageException(ServerMessageType.DumpHeader, dump.Type);
 
                 var stream = new MemoryStream();
                 var writer = new DumpWriter(stream);
@@ -183,7 +184,7 @@ namespace EdgeDB
                                 throw new EdgeDBErrorException(error);
                             }
                         default:
-                            throw new EdgeDBException($"Got unexpected message type when dumping: {msg.Type}");
+                            throw new UnexpectedMessageException(msg.Type);
 
                     }
                 }
@@ -192,7 +193,7 @@ namespace EdgeDB
             }
             catch (Exception x) when (x is OperationCanceledException or TaskCanceledException)
             {
-                throw new EdgeDBException("Database dump timed out", x);
+                throw new TimeoutException("Database dump timed out", x);
             }
             finally
             {
@@ -223,7 +224,7 @@ namespace EdgeDB
             try
             {
                 if (count > 0)
-                    throw new EdgeDBException("Cannot restore: Database isn't empty");
+                    throw new InvalidOperationException("Cannot restore: Database isn't empty");
 
                 var packets = reader.ReadDatabaseDump(stream);
 
@@ -236,7 +237,7 @@ namespace EdgeDB
                     throw new EdgeDBErrorException(err);
 
                 if (result is not RestoreReady)
-                    throw new EdgeDBException($"Got unexpected packet {result.Type}");
+                    throw new UnexpectedMessageException(ServerMessageType.RestoreReady, result.Type);
 
                 foreach (var block in packets.Blocks)
                 {
@@ -251,7 +252,7 @@ namespace EdgeDB
                     throw new EdgeDBErrorException(error);
 
                 if (result is not CommandComplete complete)
-                    throw new EdgeDBException($"Got unexpected packet {result.Type}");
+                    throw new UnexpectedMessageException(ServerMessageType.CommandComplete, result.Type);
 
                 return complete;
             }
@@ -276,6 +277,8 @@ namespace EdgeDB
 
             IsIdle = false;
 
+            ExecuteResult? execResult = null;
+
             try
             {
                 var prepareResult = await PrepareAsync(new Prepare
@@ -296,7 +299,7 @@ namespace EdgeDB
 
                 if (prepareResult is not PrepareComplete result)
                 {
-                    throw new EdgeDBException($"Got unexpected result from prepare: {prepareResult.Type}");
+                    throw new UnexpectedMessageException(ServerMessageType.PrepareComplete, prepareResult.Type);
                 }
 
                 ReadyForCommand readyForCommand = default;
@@ -317,9 +320,6 @@ namespace EdgeDB
                     await SendMessageAsync(new Sync()).ConfigureAwait(false);
                     describer = await WaitForMessageAsync<CommandDataDescription>(ServerMessageType.CommandDataDescription, from: readyForCommand).ConfigureAwait(false);
                     readyForCommand = await WaitForMessageAsync<ReadyForCommand>(ServerMessageType.ReadyForCommand, describer, timeout: _timeout).ConfigureAwait(false);
-
-                    if (!describer.HasValue)
-                        throw new EdgeDBException("Failed to get a descriptor");
 
                     fromId = ((IReceiveable)readyForCommand).Id;
 
@@ -382,9 +382,11 @@ namespace EdgeDB
                         case ErrorResponse err:
                             throw new EdgeDBErrorException(err);
                         default:
-                            throw new EdgeDBException($"Got unexpected packet when reading command data: {msg.Type}");
+                            throw new UnexpectedMessageException(msg.Type);
                     }
                 }
+
+                execResult = new ExecuteResult(true, null, null, query);
 
                 return new RawExecuteResult
                 {
@@ -396,11 +398,17 @@ namespace EdgeDB
             }
             catch (Exception x)
             {
+                if (x is EdgeDBErrorException err)
+                    execResult = new ExecuteResult(false, err.ErrorResponse, err, query);
+                else
+                    execResult = new ExecuteResult(false, null, x, query);
+
                 Logger.LogWarning("Failed to execute: {}", x);
                 throw new EdgeDBException($"Failed to execute query: {x}", x);
             }
             finally
             {
+                _ = Task.Run(async () => await _queryExecuted.InvokeAsync(execResult!.Value).ConfigureAwait(false));
                 IsIdle = true;
                 _semaphore.Release();
             }
@@ -432,7 +440,7 @@ namespace EdgeDB
             var result = await ExecuteInternalAsync(query, args, Cardinality.AtMostOne);
 
             if (result.Data.Count > 1)
-                throw new EdgeDBException($"Expected single result but got {result.Data.Count}");
+                throw new ResultCardinalityMismatchException(Cardinality.AtMostOne, Cardinality.Many);
 
             var queryResult = result.Data.FirstOrDefault();
 
@@ -447,12 +455,12 @@ namespace EdgeDB
             var result = await ExecuteInternalAsync(query, args, Cardinality.AtMostOne);
 
             if (result.Data.Count > 1 || result.Data.Count == 0)
-                throw new EdgeDBException($"Expected single result but got {result.Data.Count}");
+                throw new ResultCardinalityMismatchException(Cardinality.One, result.Data.Count > 1 ? Cardinality.Many : Cardinality.AtMostOne);
 
             var queryResult = result.Data.FirstOrDefault();
 
             if (queryResult.PayloadData == null)
-                throw new EdgeDBException("Got no data for required single query");
+                throw new MissingRequiredException();
 
             return ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(queryResult.PayloadData.ToArray()))!;
         }
@@ -612,8 +620,7 @@ namespace EdgeDB
 
                     if (method != "SCRAM-SHA-256")
                     {
-                        // TODO: add converter for string methods?
-                        throw new NotSupportedException("The only supported method is SCRAM-SHA-256");
+                        throw new ProtocolViolationException("The only supported method is SCRAM-SHA-256");
                     }
 
                     var initialMsg = scram.BuildInitialMessage(_connection.Username!, method);
@@ -627,7 +634,7 @@ namespace EdgeDB
                         throw new EdgeDBErrorException(err);
 
                     if (initialResult is not AuthenticationStatus intiailStatus)
-                        throw new EdgeDBException($"Unexpected message type {initialResult.Type}");
+                        throw new UnexpectedMessageException(ServerMessageType.Authentication, initialResult.Type);
 
                     // check the continue
                     var final = scram.BuildFinalMessage(intiailStatus, _connection.Password!);
@@ -640,13 +647,13 @@ namespace EdgeDB
                         throw new EdgeDBErrorException(error);
 
                     if (finalResult is not AuthenticationStatus finalStatus || finalStatus.AuthStatus != AuthStatus.AuthenticationSASLFinal)
-                        throw new EdgeDBException($"Unexpected message type {finalResult.Type}");
+                        throw new UnexpectedMessageException(ServerMessageType.Authentication, finalResult.Type);
 
                     var key = scram.ParseServerFinalMessage(finalStatus);
 
                     if (!key.SequenceEqual(final.ExpectedSig))
                     {
-                        // err
+                        throw new InvalidSignatureException();
                     }
 
                     // ok status
@@ -655,8 +662,8 @@ namespace EdgeDB
                     if (authOk is ErrorResponse er)
                         throw new EdgeDBErrorException(er);
 
-                    if(authOk is not AuthenticationStatus status || status.AuthStatus != AuthStatus.AuthenticationOK)
-                        throw new EdgeDBException($"Unexpected message type {finalResult.Type}");
+                    if (authOk is not AuthenticationStatus status || status.AuthStatus != AuthStatus.AuthenticationOK)
+                        throw new UnexpectedMessageException(ServerMessageType.Authentication, authOk.Type);
 
                     _authCompleteSource.TrySetResult();
                     _currentRetries = 0;
@@ -710,7 +717,7 @@ namespace EdgeDB
                     var str = Encoding.UTF8.GetString(status.Value.ToArray());
                     if (!int.TryParse(str, out SuggestedPoolConcurrency))
                     {
-                        throw new EdgeDBException($"Got bad formatted server setting: suggested_pool_concurrency: {str}");
+                        throw new FormatException("suggested_pool_concurrency type didn't match the expected type of int");
                     }
                     break;
 
@@ -730,7 +737,7 @@ namespace EdgeDB
                                 codec = PacketSerializer.BuildCodec(descriptorId, innerReader);
 
                                 if (codec == null)
-                                    throw new Exception("Failed to build codec for system config");
+                                    throw new MissingCodecException("Failed to build codec for system_config", descriptorId, status.Value.ToArray());
                             }
                         }
 
@@ -748,7 +755,7 @@ namespace EdgeDB
         private Task<IReceiveable> WaitForMessageOrError(ServerMessageType type, IReceiveable? from = null, CancellationToken? token = null, TimeSpan? timeout = null)
             => NextMessageAsync(from, predicate: x => x.Type == type || x.Type == ServerMessageType.ErrorResponse, timeout, token: token);
 
-        private async Task<TMessage?> WaitForMessageAsync<TMessage>(ServerMessageType type, IReceiveable? from, CancellationToken? token = null, TimeSpan? timeout = null) where TMessage : IReceiveable
+        private async Task<TMessage> WaitForMessageAsync<TMessage>(ServerMessageType type, IReceiveable? from, CancellationToken? token = null, TimeSpan? timeout = null) where TMessage : IReceiveable
             => (TMessage)(await NextMessageAsync(from, x => x.Type == type, timeout, token: token));
 
         private Task<IReceiveable> NextMessageAsync(IReceiveable? from, Predicate<IReceiveable>? predicate = null, TimeSpan? timeout = null, CancellationToken? token = null)
