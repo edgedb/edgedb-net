@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -40,8 +41,8 @@ namespace EdgeDB
         private int _poolSize;
 
         private object _clientsLock = new();
-        private SemaphoreSlim _initSephamore;
-        private SemaphoreSlim _clientWaitSephamore;
+        private SemaphoreSlim _initSemaphore;
+        private SemaphoreSlim _clientWaitSemaphore;
 
         private ulong _clientIndex;
         private int _totalClients;
@@ -84,8 +85,8 @@ namespace EdgeDB
             _config = config;
             _connection = connection;
             _availableClients = new();
-            _initSephamore = new(1, 1);
-            _clientWaitSephamore = new(1, 1);
+            _initSemaphore = new(1, 1);
+            _clientWaitSemaphore = new(1, 1);
             _poolSize = config.DefaultPoolSize;
             _edgedbConfig = new Dictionary<string, object?>();
         }
@@ -98,7 +99,7 @@ namespace EdgeDB
             if (_isInitialized)
                 return;
 
-            await _initSephamore.WaitAsync().ConfigureAwait(false);
+            await _initSemaphore.WaitAsync().ConfigureAwait(false);
 
             try
             {
@@ -115,7 +116,7 @@ namespace EdgeDB
             }
             finally
             {
-                _initSephamore.Release();
+                _initSemaphore.Release();
             }
         }
 
@@ -196,25 +197,19 @@ namespace EdgeDB
             
             if(_totalClients >= _poolSize)
             {
-                await _clientWaitSephamore.WaitAsync().ConfigureAwait(false);
+                await _clientWaitSemaphore.WaitAsync().ConfigureAwait(false);
 
                 try
                 {
-                    TaskCompletionSource<EdgeDBTcpClient> tcs = new();
+                    if (SpinWait.SpinUntil(() => _availableClients.TryPop(out result), 15000))
+                        return result!;
+                    else
+                        throw new TimeoutException("Couldn't find a client after 15 seconds");
 
-                    Task handler(EdgeDBTcpClient c) { tcs.TrySetResult(c); return Task.CompletedTask; };
-
-                    ClientReturnedToPool += handler;
-
-                    var client = await tcs.Task.ConfigureAwait(false);
-
-                    ClientReturnedToPool -= handler;
-
-                    return client;
                 }
                 finally
                 {
-                    _clientWaitSephamore.Release();
+                    _clientWaitSemaphore.Release();
                 }
             }
             else

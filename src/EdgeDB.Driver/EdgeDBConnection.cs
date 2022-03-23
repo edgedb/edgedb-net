@@ -102,12 +102,22 @@ namespace EdgeDB
             var projectDir = ConfigUtils.GetInstanceProjectDirectory(dirName);
 
             if (!Directory.Exists(projectDir))
-                throw new DirectoryNotFoundException($"Couldn't find project directory for {path}");
+                throw new DirectoryNotFoundException($"Couldn't find project directory for {path}: {projectDir}");
 
             var instanceName = File.ReadAllText(Path.Combine(projectDir, "instance-name"));
 
             // get credentials
-            return JsonConvert.DeserializeObject<EdgeDBConnection>(File.ReadAllText(Path.Combine(ConfigUtils.CredentialsDir, $"{instanceName}.json")))!;
+            return FromInstanceName(instanceName);
+        }
+
+        public static EdgeDBConnection FromInstanceName(string name)
+        {
+            var configPath = Path.Combine(ConfigUtils.CredentialsDir, $"{name}.json");
+
+            if (!File.Exists(configPath))
+                throw new FileNotFoundException($"Config file couldn't be found at {configPath}");
+
+            return JsonConvert.DeserializeObject<EdgeDBConnection>(File.ReadAllText(configPath))!;
         }
 
         internal static EdgeDBConnection ResolveConnection()

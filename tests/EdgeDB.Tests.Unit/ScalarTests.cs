@@ -7,12 +7,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB.UnitTest.Codecs
+namespace EdgeDB.Tests.Unit.Codecs
 {
     [TestClass]
-    internal class ScalarTests
+    public class ScalarTests
     {
-        public void TestCodec<TType>(IScalarCodec<TType>? codec, TType expectedValue, byte[] expectedSerializedValue)
+        internal void TestCodec<TType>(IScalarCodec<TType>? codec, TType expectedValue, byte[] expectedSerializedValue)
         {
             Assert.IsNotNull(codec);
 
