@@ -130,6 +130,9 @@ namespace EdgeDB
 
         #region Commands/queries
 
+        public Task<Transaction> TransactionAsync(TransactionSettings? settings = null)
+            => Transaction.EnterTransactionAsync(this, settings);
+
         /// <summary>
         ///     Dumps the current database to a stream.
         /// </summary>
@@ -258,7 +261,16 @@ namespace EdgeDB
             }
         }
 
-        private async Task<(PrepareComplete PrepareStatement, ICodec Deserializer, List<Data> Data)> ExecuteInternalAsync(string query, IDictionary<string, object?>? args, Cardinality card)
+        internal struct RawExecuteResult
+        {
+            public PrepareComplete PrepareStatement { get; set; }
+            public ICodec Deserializer { get; set; }
+            public List<Data> Data { get; set; }
+            public CommandComplete CompleteStatus { get; set; }
+        }
+
+        internal async Task<RawExecuteResult> ExecuteInternalAsync(string query, IDictionary<string, object?>? args = null, Cardinality? card = null,
+            AllowCapabilities? capabilities = AllowCapabilities.ReadOnly)
         {
             await _semaphore.WaitAsync(_disconnectCancelToken.Token).ConfigureAwait(false);
 
@@ -268,10 +280,10 @@ namespace EdgeDB
             {
                 var prepareResult = await PrepareAsync(new Prepare
                 {
-                    Capabilities = AllowCapabilities.ReadOnly, // TODO: change this
+                    Capabilities = capabilities,
                     Command = query,
                     Format = IOFormat.Binary,
-                    ExpectedCardinality = card,
+                    ExpectedCardinality = card ?? Cardinality.Many,
                     ExplicitObjectIds = true,
                     ImplicitTypeNames = true,
                     ImplicitTypeIds = true,
@@ -374,7 +386,13 @@ namespace EdgeDB
                     }
                 }
 
-                return (result, outCodec, receivedData);
+                return new RawExecuteResult
+                {
+                    CompleteStatus = completePacket.Value,
+                    Data = receivedData,
+                    Deserializer = outCodec,
+                    PrepareStatement = result
+                };
             }
             catch (Exception x)
             {
