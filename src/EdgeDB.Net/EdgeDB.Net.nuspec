@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>EdgeDB.Net</id>
+    <version>0.1.0$suffix$</version>
+    <title>EdgeDB.Net</title>
+    <authors>quinchs</authors>
+    <owners>quinchs</owners>
+    <description>An asynchronous library for interfacing with EdgeDB</description>
+    <tags>edgedb;database</tags>
+    <projectUrl>https://github.com/quinchs/EdgeDB.Net</projectUrl>
+    <licenseUrl>http://opensource.org/licenses/MIT</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <iconUrl>https://github.com/quinchs/EdgeDB.Net/raw/master/branding/PackageLogo.png</iconUrl>
+    <dependencies>
+        <group targetFramework="net6.0">
+            <dependency id="EdgeDB.Net.Driver" version="0.1.0$suffix$" />
+            <dependency id="EdgeDB.Net.QueryBuilder" version="0.1.0$suffix$" />
+        </group>
+    </dependencies>
+  </metadata>
+</package>

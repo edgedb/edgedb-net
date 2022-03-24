@@ -36,15 +36,16 @@ namespace EdgeDB.DotnetTool.Commands
                 schema = File.ReadAllText(FilePath!);
             else if (ConnectionString != null)
             {
-                Task.Run(async () =>
+                Task.Run(() =>
                 {
-                    var client = new EdgeDBTcpClient(EdgeDBConnection.FromDSN(ConnectionString), new EdgeDBConfig
-                    {
-                        // TODO: config?
-                    });
+                    //var client = new EdgeDBTcpClient(EdgeDBConnection.FromDSN(ConnectionString), new EdgeDBConfig
+                    //{
+                    //    // TODO: config?
+                    //});
 
-                    await client.ConnectAsync();
-                    var result =  await client.QuerySingleAsync<string>($"describe schema as sdl");
+                    //await client.ConnectAsync();
+                    //var result =  await client.QuerySingleAsync<string>($"describe schema as sdl");
+                    return Task.CompletedTask;
 
                 }).GetAwaiter().GetResult();
             }

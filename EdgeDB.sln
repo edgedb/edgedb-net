@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.31903.286
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Driver", "src\EdgeDB.Driver\EdgeDB.Driver.csproj", "{0C1C6233-388F-4FAE-955B-F0A6D33D44C9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Driver", "src\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj", "{0C1C6233-388F-4FAE-955B-F0A6D33D44C9}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.ExampleApp", "src\EdgeDB.ExampleApp\EdgeDB.ExampleApp.csproj", "{B85156A1-66B3-46F1-B238-19B96C4C7729}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.ExampleApp", "examples\EdgeDB.ExampleApp\EdgeDB.ExampleApp.csproj", "{B85156A1-66B3-46F1-B238-19B96C4C7729}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Tests.Unit", "tests\EdgeDB.Tests.Unit\EdgeDB.Tests.Unit.csproj", "{CD4A4B5D-4B67-4E64-A13B-3F7BF770B056}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.QueryBuilder", "src\EdgeDB.QueryBuilder\EdgeDB.QueryBuilder.csproj", "{4CC2101C-D0AB-4F08-A0FD-205F96958196}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.QueryBuilder", "src\EdgeDB.Net.QueryBuilder\EdgeDB.Net.QueryBuilder.csproj", "{4CC2101C-D0AB-4F08-A0FD-205F96958196}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{025AAADF-16AF-4367-9C3D-9E60EDED832F}"
 EndProject
@@ -19,9 +19,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{6F
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{67ED9EF0-7828-44C0-8CB0-DEBD69EC94CA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.QueryBuilder.OperatorGenerator", "src\EdgeDB.QueryBuilder.OperatorGenerator\EdgeDB.QueryBuilder.OperatorGenerator.csproj", "{1557B745-EB4F-449A-9BE7-180C8990AD47}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.QueryBuilder.OperatorGenerator", "tools\EdgeDB.QueryBuilder.OperatorGenerator\EdgeDB.QueryBuilder.OperatorGenerator.csproj", "{1557B745-EB4F-449A-9BE7-180C8990AD47}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.DotnetTool", "src\EdgeDB.DotnetTool\EdgeDB.DotnetTool.csproj", "{74DB9D5E-9BA9-4282-90EA-2F7BDC4C4FBD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.DotnetTool", "tools\EdgeDB.DotnetTool\EdgeDB.DotnetTool.csproj", "{74DB9D5E-9BA9-4282-90EA-2F7BDC4C4FBD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EdgeDB.Tests.Integration", "tests\EdgeDB.Tests.Integration\EdgeDB.Tests.Integration.csproj", "{C189294A-4990-4A06-B120-A0AF03A798C6}"
 EndProject

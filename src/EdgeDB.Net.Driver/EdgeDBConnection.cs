@@ -9,6 +9,9 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
+    /// <summary>
+    ///     Represents a class containing information on how to connect to a edgedb instance.
+    /// </summary>
     public class EdgeDBConnection
     {
         /// <summary>
@@ -70,17 +73,19 @@ namespace EdgeDB
         [JsonProperty("tls_security")]
         public string? TLSSecurity { get; set; }
 
+        /// <inheritdoc/>
         public override string ToString()
         {
             return $"edgedb://{Username}:{Password}@{Hostname}:{Port}/{Database}";
         }
 
-        public static EdgeDBConnection FromDSN(string dsn)
-        {
+
+        //public static EdgeDBConnection FromDSN(string dsn)
+        //{
 
 
-            return new EdgeDBConnection { };
-        }
+        //    return new EdgeDBConnection { };
+        //}
 
         /// <summary>
         ///     Creates a new EdgeDBConnection from a .toml project file.
@@ -110,6 +115,12 @@ namespace EdgeDB
             return FromInstanceName(instanceName);
         }
 
+        /// <summary>
+        ///     Creates a new <see cref="EdgeDBConnection"/> from an instance name.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        /// <exception cref="FileNotFoundException"></exception>
         public static EdgeDBConnection FromInstanceName(string name)
         {
             var configPath = Path.Combine(ConfigUtils.CredentialsDir, $"{name}.json");

@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <Version>0.1.0</Version>
+    <Authors>quinchs</Authors>
+    <Description>An optional extension to the base driver that allows for query building.</Description>
+    <PackageProjectUrl>https://github.com/quinchs/EdgeDB.Net</PackageProjectUrl>
+    <PackageIcon>PackageLogo.png</PackageIcon>
+    <RepositoryUrl>https://github.com/quinchs/EdgeDB.Net</RepositoryUrl>
+    <PackageTags>edgedb;database</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+	<NoWarn>CS1591</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <WarningLevel>5</WarningLevel>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <WarningLevel>5</WarningLevel>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="operators.yml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\branding\PackageLogo.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj" />
+  </ItemGroup>
+
+</Project>

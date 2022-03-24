@@ -181,7 +181,6 @@ namespace EdgeDB
         ///     Disposing the returned client with the <see cref="EdgeDBTcpClient.DisposeAsync"/> method
         ///     will return that client to this client pool.
         /// </remarks>
-        /// <param name="detachFromPool">Whether or not the client should be seperate from this client pool.</param>
         /// <returns>
         ///     A edgedb tcp client.
         /// </returns>
