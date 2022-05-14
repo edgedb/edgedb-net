@@ -19,6 +19,13 @@ namespace EdgeDB
         public bool AllowComputedValues { get; set; } = true;
         public int? MaxAggregationDepth { get; set; } = 10;
         public bool LimitToOne { get; set; } = false;
+        public List<QueryBuilder> TrackedSubQueries { get; set; } = new();
+        public bool ExplicitShapeDefinition { get; set; } = false;
+
+
+        // sub query type info
+        public Type? ParentQueryType { get; set; }
+        public string? ParentQueryTypeName { get; set; }
 
         public QueryBuilderContext Enter(Action<QueryBuilderContext> modifier)
         {
@@ -29,11 +36,14 @@ namespace EdgeDB
                 UseDetached = UseDetached,
                 IntrospectObjectIds = IntrospectObjectIds,
                 TrackedVariables = TrackedVariables,
+                TrackedSubQueries = TrackedSubQueries,
                 IsVariable = IsVariable,
                 VariableName = VariableName,
                 IncludeEmptySets = IncludeEmptySets,
                 AllowComputedValues = AllowComputedValues,
                 MaxAggregationDepth = MaxAggregationDepth,
+                ParentQueryType = ParentQueryType,
+                ParentQueryTypeName = ParentQueryTypeName,
             };
 
             modifier(context);
@@ -46,6 +56,14 @@ namespace EdgeDB
                 Parent.AddTrackedVariable(var);
             else
                 TrackedVariables.Add(var);
+        }
+
+        public void AddTrackedSubQuery(QueryBuilder builder)
+        {
+            if (Parent != null)
+                Parent.AddTrackedSubQuery(builder);
+            else
+                TrackedSubQueries.Add(builder);
         }
     }
 }

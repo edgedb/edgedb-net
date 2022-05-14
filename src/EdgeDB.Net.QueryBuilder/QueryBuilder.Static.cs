@@ -1,4 +1,5 @@
 ﻿using EdgeDB.DataTypes;
+using EdgeDB.Models;
 using EdgeDB.Operators;
 using System;
 using System.Collections;
@@ -33,6 +34,18 @@ namespace EdgeDB
 
             { "String.get_Chars", new StringIndex() },
             { "Sring.Substring", new StringSlice() },
+        };
+
+        private static Dictionary<string, Func<QueryContext, Expression?, Expression?[], QueryBuilder>> _reservedSubQueryFunctions = new()
+        {
+            { "IEnumerable.OrderBy",  (ctx, source, param) => 
+            {
+                var sourceElement = ConvertExpression(source!, ctx);
+
+
+
+                return new QueryBuilder();
+            } }
         };
 
         static QueryBuilder()
@@ -111,13 +124,14 @@ namespace EdgeDB
 
             if (isLink)
             {
-                if (value is ISet set && set.IsSubQuery && set.QueryBuilder is QueryBuilder builder)
-                {
-                    var result = builder.Build(context?.Enter(x => x.UseDetached = type == set.GetInnerType()) ?? new());
-                    args = args.Concat(result.Parameters).ToDictionary(x => x.Key, x => x.Value);
-                    queryValue = $"({result.QueryText})";
-                }
-                else if (value is IEnumerable enm)
+                // removed with set.
+                //if (value is ISet set && set.IsSubQuery && set.QueryBuilder is QueryBuilder builder)
+                //{
+                //    var result = builder.Build(context?.Enter(x => x.UseDetached = type == set.GetInnerType()) ?? new());
+                //    args = args.Concat(result.Parameters).ToDictionary(x => x.Key, x => x.Value);
+                //    queryValue = $"({result.QueryText})";
+                //}
+                if (value is IEnumerable enm)
                 {
                     List<QueryBuilder> values = new();
                     // enumerate object links for mock objects
@@ -191,9 +205,12 @@ namespace EdgeDB
 
             var props = type.GetProperties();
 
-            foreach(var prop in props)
+            foreach (var prop in props)
             {
-                var referenceProp = parentType.GetProperty(prop.Name);
+                // TODO:
+                //var isMultiLink = false; //ReflectionUtils.TryGetRawGeneric(typeof(MultiLink<>), parentType, out var multiLink);
+
+                var referenceProp = parentType.GetProperty(prop.Name) ?? parentType.GetProperty(prop.Name); //(isMultiLink ? multiLink!.GenericTypeArguments[0]!.GetProperty(prop.Name) : ;
 
                 if (referenceProp == null)
                     continue;
@@ -204,6 +221,14 @@ namespace EdgeDB
                 {
                     if ((bool)prop.GetValue(shape)!)
                         shapeProps.Add(propName);
+                }
+                else if (prop.PropertyType.IsAssignableTo(typeof(QueryBuilder))) 
+                {
+                    var val = (QueryBuilder)prop.GetValue(shape)!;
+
+                    var query = val.Build(new QueryBuilderContext().Enter(x => x.ExplicitShapeDefinition = true));
+
+                    shapeProps.Add($"{propName}:{query.QueryText}");
                 }
                 else
                 {
@@ -216,7 +241,53 @@ namespace EdgeDB
             return shapeProps;
         }
 
-        internal static List<string> ParseShapeDefinition(bool referenceObject = false, params Expression[] shape)
+        internal static List<string> ParseShapeDefinition(LambdaExpression lambda, QueryBuilderContext builderContext, bool referenceObject = false)
+        {
+            List<string> props = new();
+
+            var body = lambda.Body;
+
+            if (body is not NewExpression bodyExpression)
+                throw new ArgumentException($"Cannot infer shape from {body.NodeType}");
+
+            var type = lambda.Body.Type;
+
+            var anonProperties = type.GetProperties();
+
+            for(int i = 0; i != anonProperties.Length; i++)
+            {
+                var prop = anonProperties[i];
+                var param = bodyExpression.Arguments[i];
+
+                switch (param)
+                {
+                    case ConstantExpression constant:
+                        // TODO: extend to non booleans in the future?
+
+                        if (constant.Value is not bool val)
+                            throw new InvalidDataException($"Expected boolean but got {constant.Type}");
+
+                        if (val) props.Add($"{GetPropertyName(prop)}");
+                        break;
+                    case MethodCallExpression mce:
+                        // TODO: handle weird method calls
+                        var source = mce.Arguments[0];
+
+                        var exp = ConvertExpression(mce, new QueryContext 
+                        { 
+                            AllowSubQueryGeneration = true,
+                            BuilderContext = builderContext.Enter(x => x.ExplicitShapeDefinition = true),
+                        });
+
+                        break;
+                }
+            }
+
+
+            return props;
+        }
+
+        internal static List<string> ParseShapeDefinition(QueryBuilderContext context, bool referenceObject = false, params Expression[] shape)
         {
             List<string> props = new();
 
@@ -230,6 +301,16 @@ namespace EdgeDB
                 {
                     selector = lamd.Body;
                     lam = lamd;
+
+                    context.ParentQueryTypeName = lamd.Parameters[0].Name;
+                    context.ParentQueryType = lamd.Parameters[0].Type;
+
+                    if (lamd.Body.Type.Name.StartsWith("<>f__AnonymousType"))
+                    {
+                        // anon type: parse that
+                        props.AddRange(ParseShapeDefinition(lamd, context, referenceObject));
+                        continue;
+                    }
                 }
 
                 if (selector is MemberExpression mbs)
@@ -248,14 +329,14 @@ namespace EdgeDB
 
                     innerExpression.Reverse();
 
-                    if(mbs.Type.GetCustomAttribute<EdgeDBType>() != null)
+                    if (mbs.Type.GetCustomAttribute<EdgeDBType>() != null)
                     {
-                        props.Add($"{mbs.Member.GetCustomAttribute<EdgeDBProperty>()?.Name ?? mbs.Member.Name}: {{ {string.Join(", ", ParseShapeDefinition(referenceObject, new Expression[] { mbs.Expression! }))} }}");
+                        props.Add($"{mbs.Member.GetCustomAttribute<EdgeDBProperty>()?.Name ?? mbs.Member.Name}: {{ {string.Join(", ", ParseShapeDefinition(context, referenceObject, new Expression[] { mbs.Expression! }))} }}");
                     }
 
                     var name = RecurseNameLookup(mbs);
 
-                    if(lam != null)
+                    if (lam != null)
                     {
                         if (referenceObject)
                             name = name.Substring(lam.Parameters[0].Name!.Length, name.Length - lam.Parameters[0].Name!.Length);
@@ -264,10 +345,10 @@ namespace EdgeDB
                         props.Add(name);
                     }
                 }
-                if(selector is MethodCallExpression mc)
+                else if (selector is MethodCallExpression mc)
                 {
                     // allow select only
-                    if(mc.Method.Name != "Select")
+                    if (mc.Method.Name != "Select")
                     {
                         throw new ArgumentException("Only Select method is allowed on property selectors");
                     }
@@ -283,6 +364,18 @@ namespace EdgeDB
 
                     props.Add($"{GetTypeName(funcInner)}: {{ {string.Join(", ", (List<string>)method.Invoke(null, new object[] { referenceObject, arr })!)} }}");
                 }
+                else if (selector is UnaryExpression unary && unary.Type == typeof(object) && unary.Operand is MemberExpression mb && lam != null)
+                {
+                    var name = RecurseNameLookup(mb);
+
+                    if (referenceObject && (!name.Contains(".@")))
+                        name = name.Substring(lam.Parameters[0].Name!.Length, name.Length - lam.Parameters[0].Name!.Length);
+                    else
+                        name = name.Substring(lam.Parameters[0].Name!.Length + 1, name.Length - 1 - lam.Parameters[0].Name!.Length);
+
+                    props.Add(name);
+                }
+                else throw new Exception("Cannot resolve converter");
             }
 
             return props;
@@ -454,6 +547,15 @@ namespace EdgeDB
 
                     // check for parameter map
                     parameterMap = new Dictionary<long, string>(mc.Method.GetCustomAttributes<ParameterMap>().ToDictionary(x => x.Index, x => x.Name));
+                }
+                else if(_reservedSubQueryFunctions.TryGetValue($"{mc.Method.DeclaringType!.Name}.{mc.Method.Name}", out var factory))
+                {
+                    // get source
+                    var source = mc.Arguments[0];
+                    var builder = factory(context, source, mc.Arguments.Skip(1).ToArray());
+
+                    var subQuery = builder.Build(context.BuilderContext!);
+                    return (subQuery.QueryText, subQuery.Parameters.ToDictionary(x => x.Key, x => x.Value)); // TODO: dict init
                 }
 
                 if (op == null)
@@ -685,7 +787,7 @@ namespace EdgeDB
             List<string?> tree = new();
 
             if(!skipStart)
-                tree.Add(expression.Member.GetCustomAttribute<EdgeDBProperty>()?.Name ?? expression.Member.Name);
+                tree.Add(GetPropertyName(expression.Member));
 
             if (expression.Expression is MemberExpression innerExp)
                 tree.Add(RecurseNameLookup(innerExp));
@@ -749,8 +851,17 @@ namespace EdgeDB
         internal static string GetTypeName(Type t)
             => t.GetCustomAttribute<EdgeDBType>()?.Name ?? t.Name;
 
-        internal static string GetPropertyName(PropertyInfo t)
-            => t.GetCustomAttribute<EdgeDBProperty>()?.Name ?? t.Name;
+        internal static string GetPropertyName(MemberInfo t)
+        {
+            var name = t.GetCustomAttribute<EdgeDBProperty>()?.Name ?? t.Name;
+
+            //if (ReflectionUtils.IsSubclassOfRawGeneric(typeof(MultiLink<>), t.DeclaringType))
+            //{
+            //    name = $"@{name}";
+            //}
+
+            return name;
+        }
 
         internal static string GetTypePrefix(Type t)
         {

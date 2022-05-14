@@ -33,7 +33,7 @@ namespace EdgeDB
                     var result = await Executor.Invoke(this, client).ConfigureAwait(false);
                     return (true, result);
                 }
-                catch(Exception x)
+                catch(EdgeDBException x) when (x.ShouldRetry)
                 {
                     Errors++;
                     CurrentError = x;
@@ -161,13 +161,20 @@ namespace EdgeDB
         private async Task<object?> ExecuteInternalAsync(string query, IDictionary<string, object?>? args, Func<TransactionNode, EdgeDBTcpClient, Task<object?>> func)
         {
             var node = AddNode(query, args, func);
-            var result = await node.ExecuteAsync(Client);
-
-            if (!result.Success)
+            try
             {
-                return await RerunNodes().ConfigureAwait(false);
+                var result = await node.ExecuteAsync(Client);
+                if (!result.Success)
+                {
+                    return await RerunNodes().ConfigureAwait(false);
+                }
+                else return result.Result;
             }
-            else return result.Result;
+            catch(EdgeDBException x) when(!x.ShouldRetry)
+            {
+                _success = false;
+                throw;
+            }
         }
 
         public async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null)

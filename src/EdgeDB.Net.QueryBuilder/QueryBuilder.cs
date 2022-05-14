@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace EdgeDB
-{ 
+{
     public partial class QueryBuilder
     {
         internal virtual Type QuerySelectorType => typeof(object);
@@ -21,7 +21,20 @@ namespace EdgeDB
             => CurrentRootNode.Children.LastOrDefault().Type;
 
         internal QueryNode CurrentRootNode
-            => QueryNodes.LastOrDefault() ?? new QueryNode() { Type = QueryExpressionType.Start };
+        {
+            get
+            {
+                var lastNode = QueryNodes.LastOrDefault();
+
+                if(lastNode == null)
+                {
+                    lastNode = new QueryNode() { Type = QueryExpressionType.Start };
+                    QueryNodes.Add(lastNode);
+                }
+
+                return lastNode;
+            }
+        }
 
         public List<KeyValuePair<string, object?>> Arguments { get; set; } = new();
 
@@ -82,7 +95,7 @@ namespace EdgeDB
             return new QueryBuilder<object>().With(variables);
         }
 
-        public static QueryBuilder<TType> For<TType>(Set<TType> set, Expression<Func<QueryBuilder<TType>, QueryBuilder>> iterator) 
+        public static QueryBuilder<TType> For<TType>(IEnumerable<TType> set, Expression<Func<QueryBuilder<TType>, QueryBuilder>> iterator) 
         {
             return new QueryBuilder<TType>().For(set, iterator);
         }
@@ -182,7 +195,7 @@ namespace EdgeDB
                 List<string> parsedShape;
 
                 if(shape.Length > 0)
-                    parsedShape = ParseShapeDefinition(shape: shape);
+                    parsedShape = ParseShapeDefinition(context, shape: shape);
                 else
                 {
                     var result = GetTypePropertyNames(typeof(TTarget), context.Enter(x =>
@@ -222,7 +235,8 @@ namespace EdgeDB
                 if (context.DontSelectProperties)
                     return null;
 
-                return (ParseShapeDefinition(shape: shape), null);
+
+                return (ParseShapeDefinition(context, shape: shape), null);
             });
         }
 
@@ -259,7 +273,7 @@ namespace EdgeDB
                 IEnumerable<string>? properties = selectArgs?.Properties;
                 IEnumerable<KeyValuePair<string, object?>>? args = selectArgs?.Arguments;
 
-                node.Query = $"select {(context.UseDetached ? "detached " : "")}{GetTypeName(typeof(TTarget))}{(properties != null && properties.Count() != 0 ? $" {{ {string.Join(", ", properties)} }}" : "")}";
+                node.Query = $"{(!context.ExplicitShapeDefinition ? $"select {(context.UseDetached ? "detached " : "")}{GetTypeName(typeof(TTarget))} " : "")}{(properties != null && properties.Count() != 0 ? $"{{ {string.Join(", ", properties)} }}" : "")}";
                 if (context.LimitToOne || (context.UseDetached && PreviousNodeType != QueryExpressionType.Limit))
                     node.AddChild(QueryExpressionType.Limit, (ref QueryBuilderContext _) => new BuiltQuery { QueryText = "limit 1" });
                 
@@ -296,10 +310,9 @@ namespace EdgeDB
 
         internal QueryBuilder<TType> OrderByInternal(string direction, Expression<Func<TType, object?>> selector, NullPlacement? nullPlacement = null)
         {
-            AssertValid(QueryExpressionType.OrderBy);
             EnterNode(QueryExpressionType .OrderBy, (ref QueryBuilderContext context) =>
             {
-                var builtSelector = ParseShapeDefinition(true, selector).FirstOrDefault();
+                var builtSelector = ParseShapeDefinition(context, true, selector).FirstOrDefault();
                 string orderByExp = "";
                 if (CurrentRootNode.Type == QueryExpressionType.OrderBy)
                     orderByExp += $"then {builtSelector} {direction}";
@@ -342,7 +355,7 @@ namespace EdgeDB
             return this;
         }
 
-        public QueryBuilder<TType> For(Set<TType> set, Expression<Func<QueryBuilder<TType>, QueryBuilder>> iterator)
+        public QueryBuilder<TType> For(IEnumerable<TType> set, Expression<Func<QueryBuilder<TType>, QueryBuilder>> iterator)
         {
             EnterRootNode(QueryExpressionType.For, (QueryNode node, ref QueryBuilderContext context) =>
             {
@@ -380,7 +393,7 @@ namespace EdgeDB
         {
             EnterNode(QueryExpressionType.UnlessConflictOn, (ref QueryBuilderContext innerContext) =>
             {
-                var props = ParseShapeDefinition(true, selectors);
+                var props = ParseShapeDefinition(innerContext, true, selectors);
 
                 return new BuiltQuery
                 {
@@ -648,12 +661,12 @@ namespace EdgeDB
             
         };
 
-        public static implicit operator Set<TType>(QueryBuilder<TType> v) => new Set<TType>(v);
+        //public static implicit operator Set<TType>(QueryBuilder<TType> v) => new Set<TType>(v);
         public static implicit operator ComputedValue<TType>(QueryBuilder<TType> v) => new ComputedValue<TType>(default, v);
         public static implicit operator TType(QueryBuilder<TType> v) => v.SubQuery();
 
-        public Set<TType> SubQuerySet()
-            => (Set<TType>)this;
+        //public Set<TType> SubQuerySet()
+        //    => (Set<TType>)this;
 
         public TType SubQuery()
         {

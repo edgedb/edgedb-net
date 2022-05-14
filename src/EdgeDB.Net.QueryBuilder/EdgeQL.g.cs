@@ -296,7 +296,7 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code>re_match_all(<paramref name="pattern"/>, <paramref name="input"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.StringMatchAll))]
-        public static Set<string[]> MatchAll(string? pattern, string? input) { return default!; }
+        public static IEnumerable<string[]> MatchAll(string? pattern, string? input) { return default!; }
         #endregion
 
         #region Replace
@@ -672,32 +672,32 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code>sum(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersSum))]
-        public static long Sum(Set<long> a) { return default!; }
+        public static long Sum(IEnumerable<long> a) { return default!; }
         /// <summary>
         ///     A function that represents the EdgeQL version of: <code>sum(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersSum))]
-        public static long Sum(Set<int> a) { return default!; }
+        public static long Sum(IEnumerable<int> a) { return default!; }
         /// <summary>
         ///     A function that represents the EdgeQL version of: <code>sum(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersSum))]
-        public static decimal Sum(Set<decimal> a) { return default!; }
+        public static decimal Sum(IEnumerable<decimal> a) { return default!; }
         /// <summary>
         ///     A function that represents the EdgeQL version of: <code>sum(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersSum))]
-        public static float Sum(Set<float> a) { return default!; }
+        public static float Sum(IEnumerable<float> a) { return default!; }
         /// <summary>
         ///     A function that represents the EdgeQL version of: <code>sum(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersSum))]
-        public static double Sum(Set<double> a) { return default!; }
+        public static double Sum(IEnumerable<double> a) { return default!; }
         /// <summary>
         ///     A function that represents the EdgeQL version of: <code>sum(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersSum))]
-        public static BigInteger Sum(Set<BigInteger> a) { return default!; }
+        public static BigInteger Sum(IEnumerable<BigInteger> a) { return default!; }
         #endregion
 
         #region Round
@@ -881,7 +881,7 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code>json_array_unpack(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.JsonUnpackJsonArray))]
-        public static Set<Json> UnpackJsonArray(Json a) { return default!; }
+        public static IEnumerable<Json> UnpackJsonArray(Json a) { return default!; }
         #endregion
 
         #region JsonGet
@@ -897,7 +897,7 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code>json_object_unpack(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.JsonUnpackJsonObject))]
-        public static Set<Tuple<string, Json>> UnpackJsonObject(Json a) { return default!; }
+        public static IEnumerable<Tuple<string, Json>> UnpackJsonObject(Json a) { return default!; }
         #endregion
 
         #region JsonTypeof
@@ -1239,7 +1239,7 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code>array_agg(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.ArrayAggregate))]
-        public static IEnumerable<TType> Aggregate<TType>(Set<TType> a) { return default!; }
+        public static IEnumerable<TType> Aggregate<TType>(IEnumerable<TType> a) { return default!; }
         #endregion
 
         #region IndexOrDefault<TType>
@@ -1255,7 +1255,7 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code>array_unpack(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.ArrayUnpackArray))]
-        public static Set<TType> UnpackArray<TType>(IEnumerable<TType> a) { return default!; }
+        public static IEnumerable<TType> UnpackArray<TType>(IEnumerable<TType> a) { return default!; }
         #endregion
 
         #region Join
@@ -1275,7 +1275,7 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code>distinct <paramref name="a"/></code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.SetsDistinct))]
-        public static Set<TType> Distinct<TType>(Set<TType> a) { return default!; }
+        public static IEnumerable<TType> Distinct<TType>(IEnumerable<TType> a) { return default!; }
         #endregion
 
         #region Contains<TType>
@@ -1283,7 +1283,7 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code><paramref name="element"/> in <paramref name="a"/></code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.SetsContains))]
-        public static bool Contains<TType>(Set<TType> a, TType element) { return default!; }
+        public static bool Contains<TType>(IEnumerable<TType> a, TType element) { return default!; }
         #endregion
 
         #region Union<TType>
@@ -1291,7 +1291,7 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> union <paramref name="b"/></code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.SetsUnion))]
-        public static Set<TType> Union<TType>(Set<TType> a, Set<TType> b) { return default!; }
+        public static IEnumerable<TType> Union<TType>(IEnumerable<TType> a, IEnumerable<TType> b) { return default!; }
         #endregion
 
         #region Conditional<TType>
@@ -1340,7 +1340,7 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code>assert_distinct(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.SetsAssertDistinct))]
-        public static Set<TType> AssertDistinct<TType>(Set<TType> a) { return default!; }
+        public static IEnumerable<TType> AssertDistinct<TType>(IEnumerable<TType> a) { return default!; }
         #endregion
 
         #region AssertSingle<TType>
@@ -1348,7 +1348,7 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code>assert_single(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.SetsAssertSingle))]
-        public static TType AssertSingle<TType>(Set<TType> a) { return default!; }
+        public static TType AssertSingle<TType>(IEnumerable<TType> a) { return default!; }
         #endregion
 
         #region AssertNotNull<TType>
@@ -1364,11 +1364,6 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code>count(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.SetsCount))]
-        public static long Count<TType>(Set<TType> a) { return default!; }
-        /// <summary>
-        ///     A function that represents the EdgeQL version of: <code>count(<paramref name="a"/>)</code>
-        /// </summary>
-        [EquivalentOperator(typeof(EdgeDB.Operators.SetsCount))]
         public static long Count<TType>(IEnumerable<TType> a) { return default!; }
         #endregion
 
@@ -1377,7 +1372,7 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code>enumerate(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.SetsEnumerate))]
-        public static Set<Tuple<long, TType>> Enumerate<TType>(Set<TType> a) { return default!; }
+        public static IEnumerable<Tuple<long, TType>> Enumerate<TType>(IEnumerable<TType> a) { return default!; }
         #endregion
 
         #region Min<TType>
@@ -1385,7 +1380,7 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code>min(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.SetsMin))]
-        public static TType Min<TType>(Set<TType> a) { return default!; }
+        public static TType Min<TType>(IEnumerable<TType> a) { return default!; }
         #endregion
 
         #region Max<TType>
@@ -1393,7 +1388,7 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code>max(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.SetsMax))]
-        public static TType Max<TType>(Set<TType> a) { return default!; }
+        public static TType Max<TType>(IEnumerable<TType> a) { return default!; }
         #endregion
 
         #endregion sets
@@ -1607,17 +1602,17 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code>math::mean(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.MathMean))]
-        public static double Mean(Set<long> a) { return default!; }
+        public static double Mean(IEnumerable<long> a) { return default!; }
         /// <summary>
         ///     A function that represents the EdgeQL version of: <code>math::mean(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.MathMean))]
-        public static double Mean(Set<double> a) { return default!; }
+        public static double Mean(IEnumerable<double> a) { return default!; }
         /// <summary>
         ///     A function that represents the EdgeQL version of: <code>math::mean(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.MathMean))]
-        public static decimal Mean(Set<decimal> a) { return default!; }
+        public static decimal Mean(IEnumerable<decimal> a) { return default!; }
         #endregion
 
         #region StandardDeviation
@@ -1625,17 +1620,17 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code>math::stddev(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.MathStandardDeviation))]
-        public static double StandardDeviation(Set<long> a) { return default!; }
+        public static double StandardDeviation(IEnumerable<long> a) { return default!; }
         /// <summary>
         ///     A function that represents the EdgeQL version of: <code>math::stddev(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.MathStandardDeviation))]
-        public static double StandardDeviation(Set<double> a) { return default!; }
+        public static double StandardDeviation(IEnumerable<double> a) { return default!; }
         /// <summary>
         ///     A function that represents the EdgeQL version of: <code>math::stddev(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.MathStandardDeviation))]
-        public static decimal StandardDeviation(Set<decimal> a) { return default!; }
+        public static decimal StandardDeviation(IEnumerable<decimal> a) { return default!; }
         #endregion
 
         #region StandardDeviationPop
@@ -1643,17 +1638,17 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code>math::stddev_pop(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.MathStandardDeviationPop))]
-        public static double StandardDeviationPop(Set<long> a) { return default!; }
+        public static double StandardDeviationPop(IEnumerable<long> a) { return default!; }
         /// <summary>
         ///     A function that represents the EdgeQL version of: <code>math::stddev_pop(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.MathStandardDeviationPop))]
-        public static double StandardDeviationPop(Set<double> a) { return default!; }
+        public static double StandardDeviationPop(IEnumerable<double> a) { return default!; }
         /// <summary>
         ///     A function that represents the EdgeQL version of: <code>math::stddev_pop(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.MathStandardDeviationPop))]
-        public static decimal StandardDeviationPop(Set<decimal> a) { return default!; }
+        public static decimal StandardDeviationPop(IEnumerable<decimal> a) { return default!; }
         #endregion
 
         #region Variance
@@ -1661,17 +1656,17 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code>math::var(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.MathVariance))]
-        public static double Variance(Set<long> a) { return default!; }
+        public static double Variance(IEnumerable<long> a) { return default!; }
         /// <summary>
         ///     A function that represents the EdgeQL version of: <code>math::var(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.MathVariance))]
-        public static double Variance(Set<double> a) { return default!; }
+        public static double Variance(IEnumerable<double> a) { return default!; }
         /// <summary>
         ///     A function that represents the EdgeQL version of: <code>math::var(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.MathVariance))]
-        public static decimal Variance(Set<decimal> a) { return default!; }
+        public static decimal Variance(IEnumerable<decimal> a) { return default!; }
         #endregion
 
         #region VariancePop
@@ -1679,17 +1674,17 @@ namespace EdgeDB
         ///     A function that represents the EdgeQL version of: <code>math::var_pop(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.MathVariancePop))]
-        public static double VariancePop(Set<long> a) { return default!; }
+        public static double VariancePop(IEnumerable<long> a) { return default!; }
         /// <summary>
         ///     A function that represents the EdgeQL version of: <code>math::var_pop(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.MathVariancePop))]
-        public static double VariancePop(Set<double> a) { return default!; }
+        public static double VariancePop(IEnumerable<double> a) { return default!; }
         /// <summary>
         ///     A function that represents the EdgeQL version of: <code>math::var_pop(<paramref name="a"/>)</code>
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.MathVariancePop))]
-        public static decimal VariancePop(Set<decimal> a) { return default!; }
+        public static decimal VariancePop(IEnumerable<decimal> a) { return default!; }
         #endregion
 
         #endregion math

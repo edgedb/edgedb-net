@@ -150,7 +150,7 @@ namespace EdgeDB
         {
             if (value == null)
             {
-                return GetDefault(type);
+                return ReflectionUtils.GetDefault(type);
             }
 
             var valueType = value.GetType();
@@ -162,14 +162,8 @@ namespace EdgeDB
             if (type.GetCustomAttribute<EdgeDBType>() != null && value is IDictionary<string, object?> dict)
                 return BuildResult(descriptorId, type, dict);
 
-            // check for sets
-            if (valueType.Name == typeof(DataTypes.Set<>).Name) // TODO: better compare
-            {
-                return ConvertCollection(descriptorId, type, valueType, value);
-            }
-
-            // check for arrays
-            if (valueType.IsArray)
+            // check for arrays or sets
+            if (valueType.IsArray || valueType.IsAssignableTo(typeof(IEnumerable)))
             {
                 return ConvertCollection(descriptorId, type, valueType, value);
             }
@@ -191,7 +185,7 @@ namespace EdgeDB
             {
                 try
                 {
-                    return DynamicCast(value, type);
+                    return ReflectionUtils.DynamicCast(value, type);
                 }
                 catch { return value; }
             }
@@ -223,35 +217,19 @@ namespace EdgeDB
                         var l = typeof(List<>).MakeGenericType(strongInnerType ?? valueType.GenericTypeArguments[0]);
                         return Activator.CreateInstance(l, arr);
                     }
-                case Type when targetType.IsArray:
+                case Type when targetType.IsArray || targetType.IsAssignableTo(typeof(IEnumerable)):
                     {
                         return arr;
-                    }
-                case Type when targetType.Name == typeof(DataTypes.Set<>).Name:
-                    {
-                        var l = typeof(DataTypes.Set<>).MakeGenericType(strongInnerType ?? valueType.GenericTypeArguments[0]);
-                        return Activator.CreateInstance(l, arr, true);
                     }
                 default:
                     {
                         if (arr.GetType().IsAssignableTo(targetType))
-                            return DynamicCast(arr, targetType);
+                            return ReflectionUtils.DynamicCast(arr, targetType);
 
                         throw new EdgeDBException($"Couldn't convert {valueType} to {targetType}");
                     }
             }
         }
-
-        private static object? DynamicCast(object? entity, Type to)
-            => typeof(ObjectBuilder).GetMethod("Cast", BindingFlags.Static | BindingFlags.NonPublic)!.MakeGenericMethod(to).Invoke(null, new object?[] { entity });
-
-        private static T? Cast<T>(object? entity)
-            => (T?)entity;
-
-        private static object? GetDefault(Type t)
-            => typeof(ObjectBuilder).GetMethod("GetDefaultGeneric", BindingFlags.Static | BindingFlags.NonPublic)!.MakeGenericMethod(t).Invoke(null, null);
-
-        private static object? GetDefaultGeneric<T>() => default(T);
 
         private static bool IsValidProperty(PropertyInfo type)
         {

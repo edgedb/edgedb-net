@@ -20,7 +20,8 @@ namespace EdgeDB
         public bool IncludeSetOperand { get; set; } = true;
         public QueryBuilderContext? BuilderContext { get; set; }
         public Type? BindingType { get; set; }
-        
+        public bool AllowSubQueryGeneration { get; set; } = false;
+
         public bool IsVariableReference
             => Parent?.Body is MethodCallExpression mc && mc.Method.GetCustomAttribute<Operators.EquivalentOperator>()?.Operator?.GetType() == typeof(Operators.VariablesReference);
         

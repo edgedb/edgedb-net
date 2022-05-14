@@ -91,7 +91,8 @@ namespace EdgeDB
         private readonly SemaphoreSlim _semaphore;
         private readonly SemaphoreSlim _receiveSemaphore;
         private readonly EdgeDBConfig _config;
-        private readonly TimeSpan _timeout;
+        private readonly TimeSpan _messageTimeout;
+        private readonly TimeSpan _connectionTimeout;
 
         private ulong _currentMessageId;
         private readonly ConcurrentQueue<IReceiveable> _messageStack;
@@ -121,7 +122,8 @@ namespace EdgeDB
             _messageStack = new();
             ServerKey = new byte[32];
             ServerConfig = new Dictionary<string, object?>();
-            _timeout = TimeSpan.FromMilliseconds(config.MessageTimeout);
+            _messageTimeout = TimeSpan.FromMilliseconds(config.MessageTimeout);
+            _connectionTimeout = TimeSpan.FromMilliseconds(config.ConnectionTimeout);
         }
 
         public EdgeDBTcpClient(EdgeDBConnection connection, EdgeDBConfig config, ulong clientId) : this(connection, config)
@@ -151,7 +153,7 @@ namespace EdgeDB
                 await SendMessageAsync(new Dump());
                 await SendMessageAsync(new Sync());
 
-                var dump = await WaitForMessageOrError(ServerMessageType.DumpHeader, timeout: _timeout);
+                var dump = await WaitForMessageOrError(ServerMessageType.DumpHeader, timeout: _messageTimeout);
 
                 if (dump is ErrorResponse err)
                     throw new EdgeDBErrorException(err);
@@ -168,7 +170,7 @@ namespace EdgeDB
 
                 while (!complete)
                 {
-                    var msg = await NextMessageAsync(x => true, timeout: _timeout);
+                    var msg = await NextMessageAsync(x => true, timeout: _messageTimeout);
                     switch (msg)
                     {
                         case CommandComplete:
@@ -231,7 +233,7 @@ namespace EdgeDB
                 // send restore
                 await SendMessageAsync(packets.Restore);
 
-                var result = await WaitForMessageOrError(ServerMessageType.RestoreReady, timeout: _timeout);
+                var result = await WaitForMessageOrError(ServerMessageType.RestoreReady, timeout: _messageTimeout);
 
                 if (result is ErrorResponse err)
                     throw new EdgeDBErrorException(err);
@@ -246,7 +248,7 @@ namespace EdgeDB
 
                 await SendMessageAsync(new RestoreEOF());
 
-                result = await WaitForMessageOrError(ServerMessageType.CommandComplete, from: result, timeout: _timeout);
+                result = await WaitForMessageOrError(ServerMessageType.CommandComplete, from: result, timeout: _messageTimeout);
 
                 if (result is ErrorResponse error)
                     throw new EdgeDBErrorException(error);
@@ -304,7 +306,7 @@ namespace EdgeDB
 
                 ReadyForCommand readyForCommand = default;
 
-                readyForCommand = await WaitForMessageAsync<ReadyForCommand>(ServerMessageType.ReadyForCommand, result, timeout: _timeout).ConfigureAwait(false);
+                readyForCommand = await WaitForMessageAsync<ReadyForCommand>(ServerMessageType.ReadyForCommand, result, timeout: _messageTimeout).ConfigureAwait(false);
 
                 ulong fromId = ((IReceiveable)readyForCommand).Id;
 
@@ -319,7 +321,7 @@ namespace EdgeDB
                     await SendMessageAsync(new DescribeStatement()).ConfigureAwait(false);
                     await SendMessageAsync(new Sync()).ConfigureAwait(false);
                     describer = await WaitForMessageAsync<CommandDataDescription>(ServerMessageType.CommandDataDescription, from: readyForCommand).ConfigureAwait(false);
-                    readyForCommand = await WaitForMessageAsync<ReadyForCommand>(ServerMessageType.ReadyForCommand, describer, timeout: _timeout).ConfigureAwait(false);
+                    readyForCommand = await WaitForMessageAsync<ReadyForCommand>(ServerMessageType.ReadyForCommand, describer, timeout: _messageTimeout).ConfigureAwait(false);
 
                     fromId = ((IReceiveable)readyForCommand).Id;
 
@@ -367,7 +369,7 @@ namespace EdgeDB
 
                 while (completePacket == null)
                 {
-                    var msg = await NextMessageAsync(from: fromId, timeout: _timeout);
+                    var msg = await NextMessageAsync(from: fromId, timeout: _messageTimeout);
                     prevFrom = fromId;
                     fromId = msg.Id;
 
@@ -552,11 +554,10 @@ namespace EdgeDB
                     }
                     break;
                 case AuthenticationStatus authStatus:
-                    msg += $":{authStatus.AuthStatus}";
-                    if (authStatus.SASLData != null)
-                        msg += $":{HexConverter.ToHex(authStatus.SASLData)}:{Encoding.UTF8.GetString(authStatus.SASLData)}";
-                    if(authStatus.AuthStatus == AuthStatus.AuthenticationRequiredSASLMessage)
+                    if (authStatus.AuthStatus == AuthStatus.AuthenticationRequiredSASLMessage)
                         _ = Task.Run(async () => await StartSASLAuthenticationAsync(authStatus).ConfigureAwait(false));
+                    else if (authStatus.AuthStatus == AuthStatus.AuthenticationOK)
+                        _authCompleteSource.TrySetResult();
 
                     break;
                 case ServerKeyData keyData:
@@ -628,7 +629,7 @@ namespace EdgeDB
                     await SendMessageAsync(initialMsg).ConfigureAwait(false);
 
                     // wait for continue or timeout
-                    var initialResult = await WaitForMessageOrError(ServerMessageType.Authentication, from: authStatus, timeout: _timeout);
+                    var initialResult = await WaitForMessageOrError(ServerMessageType.Authentication, from: authStatus, timeout: _messageTimeout);
 
                     if (initialResult is ErrorResponse err)
                         throw new EdgeDBErrorException(err);
@@ -641,7 +642,7 @@ namespace EdgeDB
 
                     await SendMessageAsync(final.FinalMessage);
 
-                    var finalResult = await WaitForMessageOrError(ServerMessageType.Authentication, from: initialResult, timeout: _timeout);
+                    var finalResult = await WaitForMessageOrError(ServerMessageType.Authentication, from: initialResult, timeout: _messageTimeout);
 
                     if (finalResult is ErrorResponse error)
                         throw new EdgeDBErrorException(error);
@@ -657,7 +658,7 @@ namespace EdgeDB
                     }
 
                     // ok status
-                    var authOk = await WaitForMessageOrError(ServerMessageType.Authentication, from: finalResult, timeout: _timeout);
+                    var authOk = await WaitForMessageOrError(ServerMessageType.Authentication, from: finalResult, timeout: _messageTimeout);
 
                     if (authOk is ErrorResponse er)
                         throw new EdgeDBErrorException(er);
@@ -701,7 +702,7 @@ namespace EdgeDB
             await SendMessageAsync(packet).ConfigureAwait(false);
             await SendMessageAsync(new Sync()).ConfigureAwait(false);
 
-            var result = await WaitForMessageOrError(ServerMessageType.PrepareComplete, from: next, timeout: _timeout).ConfigureAwait(false);
+            var result = await WaitForMessageOrError(ServerMessageType.PrepareComplete, from: next, timeout: _messageTimeout).ConfigureAwait(false);
 
             if (result is ErrorResponse err)
                 throw new EdgeDBErrorException(err);
@@ -750,17 +751,17 @@ namespace EdgeDB
             }
         }
 
-        private Task<IReceiveable> WaitForMessageOrError(ServerMessageType type, ulong from, CancellationToken? token = null, TimeSpan? timeout = null)
+        private Task<IReceiveable> WaitForMessageOrError(ServerMessageType type, ulong from, CancellationToken token = default, TimeSpan? timeout = null)
             => NextMessageAsync(x => x.Type == type || x.Type == ServerMessageType.ErrorResponse, from, timeout, token: token);
-        private Task<IReceiveable> WaitForMessageOrError(ServerMessageType type, IReceiveable? from = null, CancellationToken? token = null, TimeSpan? timeout = null)
+        private Task<IReceiveable> WaitForMessageOrError(ServerMessageType type, IReceiveable? from = null, CancellationToken token = default, TimeSpan? timeout = null)
             => NextMessageAsync(from, predicate: x => x.Type == type || x.Type == ServerMessageType.ErrorResponse, timeout, token: token);
 
-        private async Task<TMessage> WaitForMessageAsync<TMessage>(ServerMessageType type, IReceiveable? from, CancellationToken? token = null, TimeSpan? timeout = null) where TMessage : IReceiveable
+        private async Task<TMessage> WaitForMessageAsync<TMessage>(ServerMessageType type, IReceiveable? from, CancellationToken token = default, TimeSpan? timeout = null) where TMessage : IReceiveable
             => (TMessage)(await NextMessageAsync(from, x => x.Type == type, timeout, token: token));
 
-        private Task<IReceiveable> NextMessageAsync(IReceiveable? from, Predicate<IReceiveable>? predicate = null, TimeSpan? timeout = null, CancellationToken? token = null)
+        private Task<IReceiveable> NextMessageAsync(IReceiveable? from, Predicate<IReceiveable>? predicate = null, TimeSpan? timeout = null, CancellationToken token = default)
             => NextMessageAsync(predicate: predicate, from: from?.Id, timeout, token);
-        private async Task<IReceiveable> NextMessageAsync(Predicate<IReceiveable>? predicate = null, ulong? from = null, TimeSpan? timeout = null, CancellationToken? token = null)
+        private async Task<IReceiveable> NextMessageAsync(Predicate<IReceiveable>? predicate = null, ulong? from = null, TimeSpan? timeout = null, CancellationToken token = default)
         {
             var targetId = from.HasValue ? from.Value + 1 : _currentMessageId;
 
@@ -828,12 +829,7 @@ namespace EdgeDB
                 _receiveSemaphore.Release();
             }
 
-            var cancelSource = new CancellationTokenSource();
-
-            if (token.HasValue)
-                token.Value.Register(() => cancelSource.Cancel());
-
-            _disconnectCancelToken.Token.Register(() => cancelSource.Cancel());
+            var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectCancelToken.Token);
 
             if (timeout.HasValue)
                 cancelSource.CancelAfter(timeout.Value);
@@ -844,7 +840,7 @@ namespace EdgeDB
 
             if (!tcs.Task.IsCompleted)
             {
-                await Task.Run(() => tcs.Task, cancelSource.Token).ConfigureAwait(false);
+                await tcs.Task.ConfigureAwait(false);
             }
 
             OnMessage -= handler;
@@ -876,42 +872,67 @@ namespace EdgeDB
 
         private async Task ConnectInternalAsync()
         {
-            _disconnectCancelToken?.Cancel();
-            _disconnectCancelToken = new();
-            //_messageStack.Clear();
-            _currentMessageId = 0;
-            _client = new TcpClient();
-
-
-            await _client.ConnectAsync(_connection.Hostname!, _connection.Port).ConfigureAwait(false);
-
-            _stream = _client.GetStream();
-
-            _secureStream = new SslStream(_stream, false, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
-
-            var options = new SslClientAuthenticationOptions()
+            try
             {
-                AllowRenegotiation = true,
-                ApplicationProtocols = new List<SslApplicationProtocol>
+                _disconnectCancelToken?.Cancel();
+                _disconnectCancelToken = new();
+                _client = new TcpClient();
+
+                var timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(_disconnectCancelToken.Token);
+
+                timeoutToken.CancelAfter(_connectionTimeout);
+
+                try
                 {
-                    new SslApplicationProtocol("edgedb-binary")
-                },
-                TargetHost = _connection.Hostname,
-                EnabledSslProtocols = System.Security.Authentication.SslProtocols.None,
-                CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
-            };
-
-            await _secureStream.AuthenticateAsClientAsync(options).ConfigureAwait(false);
-
-            _receiveTask = Task.Run(async () => await ReceiveAsync().ConfigureAwait(false));
-
-            // send handshake
-            await SendMessageAsync(new ClientHandshake
-            {
-                MajorVersion = 1,
-                MinorVersion = 0,
-                ConnectionParameters = new ConnectionParam[]
+                    await _client.ConnectAsync(_connection.Hostname!, _connection.Port, timeoutToken.Token).ConfigureAwait(false);
+                }
+                catch(OperationCanceledException x) when (timeoutToken.IsCancellationRequested)
                 {
+                    throw new TimeoutException("The connection timed out", x);
+                }
+                catch (SocketException x)
+                {
+                    switch (x.SocketErrorCode)
+                    {
+                        case SocketError.ConnectionRefused
+                            or SocketError.ConnectionAborted
+                            or SocketError.ConnectionReset
+                            or SocketError.HostNotFound
+                            or SocketError.NotInitialized:
+                            throw new ConnectionFailedTemporarilyException();
+
+                        default:
+                            throw;
+                    }
+                }
+
+                _stream = _client.GetStream();
+
+                _secureStream = new SslStream(_stream, false, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
+
+                var options = new SslClientAuthenticationOptions()
+                {
+                    AllowRenegotiation = true,
+                    ApplicationProtocols = new List<SslApplicationProtocol>
+                    {
+                        new SslApplicationProtocol("edgedb-binary")
+                    },
+                    TargetHost = _connection.Hostname,
+                    EnabledSslProtocols = System.Security.Authentication.SslProtocols.None,
+                    CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
+                };
+
+                await _secureStream.AuthenticateAsClientAsync(options).ConfigureAwait(false);
+
+                _receiveTask = Task.Run(async () => await ReceiveAsync().ConfigureAwait(false));
+
+                // send handshake
+                await SendMessageAsync(new ClientHandshake
+                {
+                    MajorVersion = 1,
+                    MinorVersion = 0,
+                    ConnectionParameters = new ConnectionParam[]
+                    {
                     new ConnectionParam
                     {
                         Name = "user",
@@ -922,8 +943,19 @@ namespace EdgeDB
                         Name = "database",
                         Value = _connection.Database!
                     }
+                    }
+                }).ConfigureAwait(false);
+            }
+            catch (EdgeDBException x) when (x.ShouldReconnect)
+            {
+                if(_currentRetries == _config.MaxConnectionRetries)
+                {
+                    throw;
                 }
-            }).ConfigureAwait(false);
+
+                _currentRetries++;
+                await ConnectInternalAsync().ConfigureAwait(false);
+            }
         }
 
         private async Task ReconnectAsync()
@@ -944,28 +976,35 @@ namespace EdgeDB
 
         private bool ValidateServerCertificate(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
         {
-            if (!_config.RequireCertificateMatch)
+            if (_connection.TLSSecurity == TLSSecurityMode.Insecure)
                 return true;
 
-            var rawCert = _connection.TLSCertData!;
-            var cleaned = rawCert.Replace("\n", "").Replace("\r", "");
-            var certData = Regex.Match(cleaned, @"-----BEGIN CERTIFICATE-----(.*?)-----END CERTIFICATE-----");
+            if (_connection.TLSCertificateAuthority != null)
+            {
+                var rawCert = _connection.TLSCertData!;
+                var cleaned = rawCert.Replace("\n", "").Replace("\r", "");
+                var certData = Regex.Match(cleaned, @"-----BEGIN CERTIFICATE-----(.*?)-----END CERTIFICATE-----");
 
-            if (!certData.Success)
-                return false;
+                if (!certData.Success)
+                    return false;
 
-            var cert = new X509Certificate2(Encoding.ASCII.GetBytes(_connection.TLSCertData!));
+                var cert = new X509Certificate2(Encoding.ASCII.GetBytes(_connection.TLSCertData!));
 
-            X509Chain chain2 = new X509Chain();
-            chain2.ChainPolicy.ExtraStore.Add(cert);
-            chain2.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
-            chain2.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                X509Chain chain2 = new X509Chain();
+                chain2.ChainPolicy.ExtraStore.Add(cert);
+                chain2.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+                chain2.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
 
-            bool isValid = chain2.Build(new X509Certificate2(certificate!));
-            var chainRoot = chain2.ChainElements[chain2.ChainElements.Count - 1].Certificate;
-            isValid = isValid && chainRoot.RawData.SequenceEqual(cert.RawData);
+                bool isValid = chain2.Build(new X509Certificate2(certificate!));
+                var chainRoot = chain2.ChainElements[chain2.ChainElements.Count - 1].Certificate;
+                isValid = isValid && chainRoot.RawData.SequenceEqual(cert.RawData);
 
-            return isValid;
+                return isValid;
+            }
+            else
+            {
+                return sslPolicyErrors == SslPolicyErrors.None;
+            }            
         }
 
         #endregion

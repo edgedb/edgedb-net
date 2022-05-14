@@ -284,7 +284,7 @@ string:
   
   - operator: "re_match_all({0}, {1})"
     name: MatchAll
-    return: Set<string[]>
+    return: IEnumerable<string[]>
     functions:
       - parameters:
           - string? pattern
@@ -624,20 +624,20 @@ numbers:
     return: long
     functions:
       - parameters:
-          -  Set<long>
+          -  IEnumerable<long>
       - parameters:
-          -  Set<int>
+          -  IEnumerable<int>
       - parameters:
-          -  Set<decimal>
+          -  IEnumerable<decimal>
         return: decimal
       - parameters:
-          -  Set<float>
+          -  IEnumerable<float>
         return: float
       - parameters:
-          -  Set<double>
+          -  IEnumerable<double>
         return: double
       - parameters:
-          -  Set<BigInteger>
+          -  IEnumerable<BigInteger>
         return: BigInteger
   
   - operator: "round({0}, {1?})"
@@ -779,7 +779,7 @@ json:
   
   - operator: "json_array_unpack({0})"
     name: UnpackJsonArray
-    return: Set<Json>
+    return: IEnumerable<Json>
     functions:
       - parameters:
           - Json
@@ -794,7 +794,7 @@ json:
   
   - operator: "json_object_unpack({0})"
     name: UnpackJsonObject
-    return: Set<Tuple<string, Json>>
+    return: IEnumerable<Tuple<string, Json>>
     functions:
       - parameters:
           - Json
@@ -1100,7 +1100,7 @@ array:
     return: IEnumerable<TType>
     functions:
       - parameters:
-          - Set<TType>
+          - IEnumerable<TType>
   
   - operator: "array_get({0}, {1}, <default := {2?}>)"
     name: IndexOrDefault<TType>
@@ -1113,7 +1113,7 @@ array:
   
   - operator: "array_unpack({0})"
     name: UnpackArray<TType>
-    return: Set<TType>
+    return: IEnumerable<TType>
     functions:
       - parameters:
           - IEnumerable<TType>
@@ -1129,28 +1129,28 @@ array:
 sets:
   - operator: "distinct {0}"
     name: Distinct<TType>
-    return: Set<TType>
+    return: IEnumerable<TType>
     functions:
       - parameters:
-          - Set<TType>
+          - IEnumerable<TType>
   
   - operator: "{1} in {0}"
     name: Contains<TType>
     return: bool
     functions:
       - parameters:
-          - Set<TType>
+          - IEnumerable<TType>
           - TType element
   
   - operator: "{0} union {1}"
     name: Union<TType>
-    return: Set<TType>
+    return: IEnumerable<TType>
     function_map:
       - Enumerable.Concat
     functions:
       - parameters:
-          - Set<TType>
-          - Set<TType>
+          - IEnumerable<TType>
+          - IEnumerable<TType>
           
   - expression: Conditional
     operator: "{1} if {0} else {2}"
@@ -1197,17 +1197,17 @@ sets:
   
   - operator: "assert_distinct({0})"
     name: AssertDistinct<TType>
-    return: Set<TType>
+    return: IEnumerable<TType>
     functions:
       - parameters:
-          - Set<TType>
+          - IEnumerable<TType>
   
   - operator: "assert_single({0})"
     name: AssertSingle<TType>
     return: TType
     functions:
       - parameters:
-          - Set<TType>
+          - IEnumerable<TType>
 
   - operator: "assert_exists({0})"
     name: AssertNotNull<TType>
@@ -1221,30 +1221,28 @@ sets:
     return: long
     functions:
       - parameters:
-          - Set<TType>
-      - parameters:
           - IEnumerable<TType>
 
   - operator: "enumerate({0})"
     name: Enumerate<TType>
-    return: Set<Tuple<long, TType>>
+    return: IEnumerable<Tuple<long, TType>>
     functions:
       - parameters:
-          - Set<TType>
+          - IEnumerable<TType>
 
   - operator: "min({0})"
     name: Min<TType>
     return: TType
     functions:
       - parameters:
-          - Set<TType>
+          - IEnumerable<TType>
   
   - operator: "max({0})"
     name: Max<TType>
     return: TType
     functions:
       - parameters:
-          - Set<TType>
+          - IEnumerable<TType>
 
 types:
   - operator: "{0} is {1}"
@@ -1400,11 +1398,11 @@ math:
     return: double
     functions:
       - parameters:
-          - Set<long>
+          - IEnumerable<long>
       - parameters:
-          - Set<double>
+          - IEnumerable<double>
       - parameters:
-          - Set<decimal>
+          - IEnumerable<decimal>
         return: decimal
   
   - operator: "math::stddev({0})"
@@ -1412,11 +1410,11 @@ math:
     return: double
     functions:
       - parameters:
-          - Set<long>
+          - IEnumerable<long>
       - parameters:
-          - Set<double>
+          - IEnumerable<double>
       - parameters:
-          - Set<decimal>
+          - IEnumerable<decimal>
         return: decimal
   
   - operator: "math::stddev_pop({0})"
@@ -1424,11 +1422,11 @@ math:
     return: double
     functions:
       - parameters:
-          - Set<long>
+          - IEnumerable<long>
       - parameters:
-          - Set<double>
+          - IEnumerable<double>
       - parameters:
-          - Set<decimal>
+          - IEnumerable<decimal>
         return: decimal
 
   - operator: "math::var({0})"
@@ -1436,11 +1434,11 @@ math:
     return: double
     functions:
       - parameters:
-          - Set<long>
+          - IEnumerable<long>
       - parameters:
-          - Set<double>
+          - IEnumerable<double>
       - parameters:
-          - Set<decimal>
+          - IEnumerable<decimal>
         return: decimal
   
   - operator: "math::var_pop({0})"
@@ -1448,11 +1446,11 @@ math:
     return: double
     functions:
       - parameters:
-          - Set<long>
+          - IEnumerable<long>
       - parameters:
-          - Set<double>
+          - IEnumerable<double>
       - parameters:
-          - Set<decimal>
+          - IEnumerable<decimal>
         return: decimal
 
 links:

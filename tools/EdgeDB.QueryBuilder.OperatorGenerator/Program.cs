@@ -5,8 +5,8 @@ using YamlDotNet.Serialization.NamingConventions;
 using EdgeDB.QueryBuilder.OperatorGenerator;
 using System.Text.RegularExpressions;
 
-const string OperatorsOutputDir = "../../../../EdgeDB.QueryBuilder/Operators";
-const string EdgeQLOutput = "../../../../EdgeDB.QueryBuilder";
+const string OperatorsOutputDir = "../../../../EdgeDB.Net.QueryBuilder/Operators";
+const string EdgeQLOutput = "../../../../../src/EdgeDB.Net.QueryBuilder";
 const string OperatorDefinitionFile = "../../../operators.yml";
 const string ParamaterNames = "abcdefghijklmnopqrstuvwxyz";
 

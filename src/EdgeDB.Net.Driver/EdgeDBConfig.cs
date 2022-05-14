@@ -13,20 +13,6 @@ namespace EdgeDB
     public class EdgeDBConfig
     {
         /// <summary>
-        ///     Gets or sets whether or not to allow an unsecure connection when connecting over TCP.
-        /// </summary>
-        public bool AllowUnsecureConnection { get; set; } = false;
-
-        /// <summary>
-        ///     Gets or sets whether or not the servers signature has to match the <see cref="EdgeDBConnection.TLSCertData"/> 
-        ///     and <see cref="EdgeDBConnection.TLSCA"/>.
-        /// </summary>
-        /// <remarks>
-        ///     This option is by default <see langword="true"/>.
-        /// </remarks>
-        public bool RequireCertificateMatch { get; set; } = true;
-
-        /// <summary>
         ///     Gets or sets the default client pool size.
         /// </summary>
         public int DefaultPoolSize { get; set; } = 50;
@@ -45,6 +31,12 @@ namespace EdgeDB
         ///     Gets or sets the maximum number of times to retry to connect.
         /// </summary>
         public uint MaxConnectionRetries { get; set; } = 5;
+
+        /// <summary>
+        ///     Gets or sets the number of miliseconds a client will wait for a connection to be 
+        ///     established with the server.
+        /// </summary>
+        public uint ConnectionTimeout { get; set; } = 5000;
 
         /// <summary>
         ///     Gets or sets the max amount of miliseconds a client will wait for an expected message.

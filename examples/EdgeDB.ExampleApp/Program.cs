@@ -9,36 +9,32 @@ using Test;
 Logger.AddStream(Console.OpenStandardOutput(), StreamType.StandardOut);
 Logger.AddStream(Console.OpenStandardError(), StreamType.StandardError);
 
-// create our client
-var edgedb = new EdgeDBClient(EdgeDBConnection.FromProjectFile(@"../../../../../edgedb.toml"), new EdgeDBConfig
+// create a client
+
+// The edgedb.toml file gets resolved by working up the directoy chain.
+var edgedb = new EdgeDBClient();
+
+// Transactions
+// Transactions are ran from a single client instance, we can execute a full transaction like so
+await using (var client = await edgedb.GetOrCreateClientAsync())
+await using(var tx = await client.TransactionAsync())
 {
-    MessageTimeout = 15000
-    //Logger = Logger.GetLogger<EdgeDBClient>(Severity.Warning, Severity.Critical, Severity.Error, Severity.Info),
-});
+    // Here we can execute our queries. Much like the typescript client there are "retryable"
+    // errors and "non-retryable" errors, the transaction will only re-execute if a "retryable"
+    // error is thrown.
+    var hello = await tx.QueryRequiredSingleAsync<string>("select \"Hello EdgeDB!\"");
 
-var client = await edgedb.GetOrCreateClientAsync();
+    var test = await tx.QueryRequiredSingleAsync<string>($"select \"{hello}\"");
 
-client.QueryExecuted += (e) =>
-{
-    Console.WriteLine($"Query executed {(e.IsSuccess ? "OK" : "FAIL")}: {e.ExecutedQuery}");
-    return Task.CompletedTask;
-};
-
-await using (var tx = await client.TransactionAsync())
-{
-    var obj = await tx.QuerySingleAsync<string>("select \"Hello\"");
-
-    var obj2 = await tx.QuerySingleAsync<string>("select \"World!\"");
-
-    var save1 = tx.SavepointAsync();
-
-    await using(var savepoint = await tx.SavepointAsync())
+    // Example of a non-retryable error, this throws in the calling thread so we need to try-catch this
+    // to prevent our program from dying
+    try
     {
-        var obj3 = await savepoint.QuerySingleAsync<string>("select Person");
-
-        Console.WriteLine(obj3);
-
-        var obj4 = await savepoint.QuerySingleAsync<string>("update Person");
+        await tx.QueryRequiredSingleAsync<string>("select not valid syntax");
+    }
+    catch(Exception x) 
+    {
+        Console.WriteLine($"Transaction failed: {x}");
     }
 }
 
@@ -59,7 +55,7 @@ public class Person
 
     // Multi link example
     [EdgeDBProperty("hobbies", IsLink = true)]
-    public Set<Hobby>? Hobbies { get; set; }
+    public IEnumerable<Hobby>? Hobbies { get; set; }
 
     // Single link example
     [EdgeDBProperty("bestFriend", IsLink = true)]

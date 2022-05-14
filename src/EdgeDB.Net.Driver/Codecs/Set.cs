@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Codecs
 {
-    internal class Set<TInner> : ICodec<DataTypes.Set<TInner?>>
+    internal class Set<TInner> : ICodec<IEnumerable<TInner?>>
     {
         private readonly ICodec<TInner> _innerCodec;
 
@@ -15,19 +15,19 @@ namespace EdgeDB.Codecs
             _innerCodec = innerCodec;
         }
 
-        public DataTypes.Set<TInner?>? Deserialize(PacketReader reader)
+        public IEnumerable<TInner?>? Deserialize(PacketReader reader)
         {
             if (_innerCodec is Array<TInner>)
                 return DecodeSetOfArrays(reader);
             else return DecodeSet(reader);
         }
 
-        public void Serialize(PacketWriter writer, DataTypes.Set<TInner?>? value)
+        public void Serialize(PacketWriter writer, IEnumerable<TInner?>? value)
         {
             throw new NotImplementedException();
         }
 
-        private DataTypes.Set<TInner?>? DecodeSetOfArrays(PacketReader reader)
+        private IEnumerable<TInner?>? DecodeSetOfArrays(PacketReader reader)
         {
             var dimensions = reader.ReadInt32();
 
@@ -36,7 +36,7 @@ namespace EdgeDB.Codecs
 
             if(dimensions == 0)
             {
-                return new DataTypes.Set<TInner?>();
+                return Array.Empty<TInner>();
             }
 
             if(dimensions != 1)
@@ -67,10 +67,10 @@ namespace EdgeDB.Codecs
                 result[i] = _innerCodec.Deserialize(reader);
             }
 
-            return new DataTypes.Set<TInner?>(result, true);
+            return result;
         }
 
-        private DataTypes.Set<TInner?>? DecodeSet(PacketReader reader)
+        private IEnumerable<TInner?>? DecodeSet(PacketReader reader)
         {
             var dimensions = reader.ReadInt32();
 
@@ -79,7 +79,7 @@ namespace EdgeDB.Codecs
 
             if (dimensions == 0)
             {
-                return new DataTypes.Set<TInner?>();
+                return Array.Empty<TInner>();
             }
 
             if (dimensions != 1)
@@ -104,7 +104,7 @@ namespace EdgeDB.Codecs
                     result[i] = _innerCodec.Deserialize(reader);
             }
 
-            return new DataTypes.Set<TInner?>(result, true);
+            return result;
         }
     }
 }

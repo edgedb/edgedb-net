@@ -60,10 +60,14 @@ namespace EdgeDB
 
         public override void Write(string value)
         {
-            Write((uint)value.Length);
-
-            if(value.Length != 0)
+            if (value == null)
+                Write((uint)0);
+            else
+            {
+                Write((uint)value.Length);
                 Write(Encoding.UTF8.GetBytes(value));
+            }
+
         }
 
         public override void Write(double value)

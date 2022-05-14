@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>quinchs</Authors>
     <Company />
     <Description>A core driver to interface with EdgeDB</Description>
