@@ -8,81 +8,26 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
-    public class Transaction : IEdgeDBQueryable, IAsyncDisposable
+    public class Transaction : IEdgeDBQueryable
     {
-        protected class TransactionNode
+        public TransactionState State
+            => _client.TransactionState;
+
+        private readonly EdgeDBTcpClient _client;
+        private readonly TransactionSettings _settings;
+        private readonly object _lock = new object();
+
+        internal Transaction(EdgeDBTcpClient client, TransactionSettings settings)
         {
-            public string Query { get; set; }
-            public IDictionary<string, object?>? Arguments { get; set; }
-            public int Attempts { get; set; }
-            public int Errors { get; set; }
-            public Exception? CurrentError { get; set; }
-            public Func<TransactionNode, EdgeDBTcpClient, Task<object?>> Executor { get; set; }
-
-            public TransactionNode(string query, IDictionary<string, object?>? args, Func<TransactionNode, EdgeDBTcpClient, Task<object?>> exec)
-            {
-                Query = query;
-                Arguments = args;
-                Executor = exec;
-            }
-
-            public async Task<(bool Success, object? Result)> ExecuteAsync(EdgeDBTcpClient client)
-            {
-                try
-                {
-                    var result = await Executor.Invoke(this, client).ConfigureAwait(false);
-                    return (true, result);
-                }
-                catch(EdgeDBException x) when (x.ShouldRetry)
-                {
-                    Errors++;
-                    CurrentError = x;
-                    return (false, null);
-                }
-                finally
-                {
-                    Attempts++;
-                }
-            }
+            _client = client;
+            _settings = settings;
         }
 
-        public TransactionState TransactionState
-            => Client.TransactionState;
-
-        protected EdgeDBTcpClient Client;
-        private TransactionSettings _settings;
-        private TransactionSavePoint? _rootSavePoint;
-
-        private ConcurrentDictionary<int, TransactionNode> _nodes = new();
-        private int _currentStep;
-        private bool _success = true;
-
-        internal Transaction(EdgeDBTcpClient client, TransactionSettings? settings)
-        {
-            _settings = settings ?? TransactionSettings.Default;
-            Client = client;
-            _rootSavePoint = new(this);
-        }
-
-        protected Transaction(Transaction tx) 
-        {
-            Client = tx.Client;
-            _settings = tx._settings;
-        }
-
-        public static async Task<Transaction> EnterTransactionAsync(EdgeDBTcpClient client, TransactionSettings? settings = null)
-        {
-            var transaction = new Transaction(client, settings);
-            await transaction.StartAsync().ConfigureAwait(false);
-            return transaction;
-        }
-
-        protected virtual async Task StartAsync()
+        internal async Task StartAsync()
         {
             var isolation = _settings.Isolation switch
             {
                 Isolation.Serializable => "serializable",
-                Isolation.RepeatableRead => "repeatable read",
                 _ => throw new EdgeDBException("Unknown isolation mode")
             };
 
@@ -90,183 +35,101 @@ namespace EdgeDB
 
             var deferMode = $"{(!_settings.Deferrable ? "not " : "")}deferrable";
 
-            await Client.ExecuteInternalAsync($"start transaction isolation {isolation}, {readMode}, {deferMode}", capabilities: null).ConfigureAwait(false);
-
-            await _rootSavePoint!.StartAsync();
+            await _client.ExecuteInternalAsync($"start transaction isolation {isolation}, {readMode}, {deferMode}", capabilities: null).ConfigureAwait(false);
         }
 
-        protected virtual async Task CommitAsync()
+        internal async Task CommitAsync()
         {
-            await Client.ExecuteInternalAsync($"commit", capabilities: null).ConfigureAwait(false);
+            await _client.ExecuteInternalAsync($"commit", capabilities: null).ConfigureAwait(false);
         }
 
-        protected virtual async Task RollbackAsync()
+        internal async Task RollbackAsync()
         {
-            await Client.ExecuteInternalAsync($"rollback", capabilities: null).ConfigureAwait(false);
+            await _client.ExecuteInternalAsync($"rollback", capabilities: null).ConfigureAwait(false);
         }
 
-        protected virtual TransactionNode AddNode(string query, IDictionary<string, object?>? args, Func<TransactionNode, EdgeDBTcpClient, Task<object?>> func)
+        internal async Task ExecuteInternalAsync(Func<Task> func)
         {
-            var node = new TransactionNode(query, args, func);
-
-            var id = Interlocked.Increment(ref _currentStep);
-            _nodes[id] = node;
-            return node;
-        }
-
-        private async Task<object?> RerunNodes()
-        {
-            bool complete = false;
-            await _rootSavePoint!.RollbackAsync().ConfigureAwait(false);
-
-            object? returnResult = null;
-
-            while (!complete)
+            lock (_lock)
             {
-                rootStart:
-
-                foreach (var node in _nodes.OrderBy(x => x.Key))
+                if (State != TransactionState.InTransaction)
                 {
-                    if (node.Value.Attempts >= _settings.RetryAttempts)
-                    {
-                        await RollbackAsync().ConfigureAwait(false);
-                        _success = false;
-                        throw new EdgeDBException($"Maximum number of attempts reached within a transaction: query errored {node.Value.Errors}/{node.Value.Attempts}", node.Value.CurrentError);
-                    }
-
-                    var result = await node.Value.ExecuteAsync(Client);
-
-                    if (!result.Success)
-                    {
-                        await _rootSavePoint.RollbackAsync().ConfigureAwait(false);
-                        goto rootStart;
-                    }
-
-                    returnResult = result.Result;
+                    throw new TransactionException($"Cannot preform query; this transaction {(State == TransactionState.InFailedTransaction ? "has failed" : "no longer exists")}.");
                 }
-
-                complete = true;
             }
 
-            return returnResult;
-        }
+            EdgeDBException? innerException = null;
 
-        public async Task<TransactionSavePoint> SavepointAsync()
-        {
-            var sp = new TransactionSavePoint(this);
-            await sp.StartAsync().ConfigureAwait(false);
-            return sp;
-        }
-
-        private async Task<object?> ExecuteInternalAsync(string query, IDictionary<string, object?>? args, Func<TransactionNode, EdgeDBTcpClient, Task<object?>> func)
-        {
-            var node = AddNode(query, args, func);
-            try
+            for (int i = 0; i != _settings.RetryAttempts; i++)
             {
-                var result = await node.ExecuteAsync(Client);
-                if (!result.Success)
+                try
                 {
-                    return await RerunNodes().ConfigureAwait(false);
+                    await func().ConfigureAwait(false);
                 }
-                else return result.Result;
+                catch (EdgeDBException x) when (x.ShouldRetry)
+                {
+                    innerException = x;
+                }
             }
-            catch(EdgeDBException x) when(!x.ShouldRetry)
+
+            throw new TransactionException($"Transaction failed {_settings.RetryAttempts} time(s)", innerException);
+        }
+
+        internal async Task<TResult> ExecuteInternalAsync<TResult>(Func<Task<TResult>> func)
+        {
+            lock (_lock)
             {
-                _success = false;
-                throw;
+                if(State != TransactionState.InTransaction)
+                {
+                    throw new TransactionException($"Cannot preform query; this transaction {(State == TransactionState.InFailedTransaction ? "has failed" : "no longer exists")}.");
+                }
             }
-        }
 
-        public async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null)
-        {
-            await ExecuteInternalAsync(query, args, async (node, client) =>
+            EdgeDBException? innerException = null;
+
+            for(int i = 0; i != _settings.RetryAttempts; i++)
             {
-                await client.ExecuteAsync(node.Query, node.Arguments).ConfigureAwait(false);
-                return null;
-            }).ConfigureAwait(false);
-        }
-
-        public async Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null)
-        {
-            var obj = await ExecuteInternalAsync(query, args, async (node, client) =>
-            {
-                return await client.QueryAsync<TResult>(node.Query, node.Arguments).ConfigureAwait(false);
-            }).ConfigureAwait(false);
-
-            return (IReadOnlyCollection<TResult?>)obj!;
-        }
-
-        public async Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
-        {
-            var obj = await ExecuteInternalAsync(query, args, async (node, client) =>
-            {
-                return await client.QuerySingleAsync<TResult>(node.Query, node.Arguments).ConfigureAwait(false);
-            }).ConfigureAwait(false);
-
-            return (TResult?)obj!;
-        }
-
-        public async Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
-        {
-            var obj = await ExecuteInternalAsync(query, args, async (node, client) =>
-            {
-                return await client.QueryRequiredSingleAsync<TResult>(node.Query, node.Arguments).ConfigureAwait(false);
-            }).ConfigureAwait(false);
-
-            return (TResult)obj!;
-        }
-
-        public virtual async ValueTask DisposeAsync()
-        {
-            if (Client.TransactionState != TransactionState.NotInTransaction)
-            {
-                if (_success)
-                    await CommitAsync().ConfigureAwait(false);
-                else await RollbackAsync().ConfigureAwait(false);
+                try
+                {
+                    return await func().ConfigureAwait(false);
+                }
+                catch (EdgeDBException x) when (x.ShouldRetry) 
+                {
+                    innerException = x;
+                }
             }
-        }
-    }
 
-    public sealed class TransactionSavePoint : Transaction
-    {
-        private readonly string _name;
-
-        internal TransactionSavePoint(Transaction tx) : base(tx)
-        {
-            var rng = new Random();
-            _name = new string(Enumerable.Repeat("abcdefghijklmnopqrstuvwxyz", 15).Select(x => x[rng.Next(26)]).ToArray());
+            throw new TransactionException($"Transaction failed {_settings.RetryAttempts} time(s)", innerException);
         }
 
-        protected override async Task StartAsync()
-        {
-            await Client.ExecuteInternalAsync($"declare savepoint {_name}", capabilities: null).ConfigureAwait(false);
-        }
+        public Task ExecuteAsync(string query, IDictionary<string, object?>? args = null)
+            => ExecuteInternalAsync(() => _client.ExecuteAsync(query, args));
 
-        protected override async Task RollbackAsync()
-        {
-            await Client.ExecuteInternalAsync($"rollback to savepoint {_name}", capabilities: null);
-        }
+        public Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null)
+            => ExecuteInternalAsync(() => _client.QueryAsync<TResult>(query, args));
 
-        protected override async Task CommitAsync()
-        {
-            await Client.ExecuteInternalAsync($"release savepoint {_name}", capabilities: null);
-        }
+        public Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
+            => ExecuteInternalAsync(() => _client.QuerySingleAsync<TResult>(query, args));
 
-        public override async ValueTask DisposeAsync()
-        {
-            await CommitAsync();
-        }
+        public Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
+            => ExecuteInternalAsync(() => _client.QueryRequiredSingleAsync<TResult>(query, args));
+
+
+        public static Task CreateAsync(EdgeDBTcpClient client, Func<Transaction, Task> func)
+            => func(new Transaction(client, TransactionSettings.Default));
+        public static Task CreateAsync(EdgeDBTcpClient client, TransactionSettings settings, Func<Transaction, Task> func)
+            => func(new Transaction(client, settings));
     }
 
     public sealed class TransactionSettings
     {
         public static TransactionSettings Default
-            => new TransactionSettings();
+            => new();
 
         /// <summary>
         ///     Gets or sets the isolation within the transaction.
         /// </summary>
-        public Isolation Isolation { get; set; } = Isolation.RepeatableRead;
+        public Isolation Isolation { get; set; } = Isolation.Serializable;
 
         /// <summary>
         ///     Gets or sets whether or not the transaction is read-only. 

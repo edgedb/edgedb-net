@@ -120,6 +120,58 @@ namespace EdgeDB
             }
         }
 
+        #region Transactions
+        /// <summary>
+        ///     Creates a transaction and executes a callback with the transaction object.
+        /// </summary>
+        /// <param name="func">The callback to pass the transaction into.</param>
+        /// <returns>
+        ///     A task that proxies the passed in callbacks awaiter.
+        /// </returns>
+        public async Task TransactionAsync(Func<Transaction, Task> func)
+        {
+            await using var client = await GetOrCreateClientAsync().ConfigureAwait(false);
+            await client.TransactionAsync(func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        ///     Creates a transaction and executes a callback with the transaction object.
+        /// </summary>
+        /// <typeparam name="TResult">The return result of the task.</typeparam>
+        /// <param name="func">The callback to pass the transaction into.</param>
+        /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
+        public async Task<TResult?> TransactionAsync<TResult>(Func<Transaction, Task<TResult>> func)
+        {
+            await using var client = await GetOrCreateClientAsync().ConfigureAwait(false);
+            return await client.TransactionAsync(func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        ///     Creates a transaction and executes a callback with the transaction object.
+        /// </summary>
+        /// <param name="settings">The transactions settings.</param>
+        /// <param name="func">The callback to pass the transaction into.</param>
+        /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
+        public async Task TransactionAsync(TransactionSettings settings, Func<Transaction, Task> func)
+        {
+            await using var client = await GetOrCreateClientAsync().ConfigureAwait(false);
+            await client.TransactionAsync(settings, func).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        ///     Creates a transaction and executes a callback with the transaction object.
+        /// </summary>
+        /// <typeparam name="TResult">The return result of the task.</typeparam>
+        /// <param name="settings">The transactions settings.</param>
+        /// <param name="func">The callback to pass the transaction into.</param>
+        /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
+        public async Task<TResult?> TransactionAsync<TResult>(TransactionSettings settings, Func<Transaction, Task<TResult>> func)
+        {
+            await using var client = await GetOrCreateClientAsync().ConfigureAwait(false);
+            return await client.TransactionAsync(settings, func).ConfigureAwait(false);
+        }
+        #endregion
+
         /// <inheritdoc/>
         public async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null)
         {
@@ -184,7 +236,7 @@ namespace EdgeDB
         /// <returns>
         ///     A edgedb tcp client.
         /// </returns>
-        public async Task<EdgeDBTcpClient> GetOrCreateClientAsync()
+        public async ValueTask<EdgeDBTcpClient> GetOrCreateClientAsync()
         {
             if(_availableClients.TryPop(out var result))
             {

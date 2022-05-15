@@ -26,6 +26,7 @@ namespace EdgeDB.Models
         ///     before the first query or data-modification statement was executed in 
         ///     this transaction.
         /// </summary>
+        [Obsolete("1.3> no longer supports this", true)]
         RepeatableRead,
     }
 }

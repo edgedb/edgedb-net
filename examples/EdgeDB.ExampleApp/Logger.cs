@@ -7,9 +7,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace Test
+namespace EdgeDB.ExampleApp
 {
-    public enum Severity
+    public enum LogPostfix
     {
         Debug,
         Verbose,
@@ -19,6 +19,10 @@ namespace Test
         Warning,
         Error,
         Critical,
+
+        // sources
+        Examples,
+        EdgeDB
     }
 
     public enum StreamType
@@ -31,7 +35,7 @@ namespace Test
     public class Logger : ILogger
     {
         private string _owner;
-        private Severity[] _severities;
+        private LogPostfix[] _postFixs;
 
         private static ConcurrentQueue<LogMessage> _queue = new ConcurrentQueue<LogMessage>();
         private static Dictionary<string, Func<string, Task>> _commands = new Dictionary<string, Func<string, Task>>();
@@ -42,37 +46,39 @@ namespace Test
         private static List<StreamWriter> _stdErr => _streams.Where(x => x.Type == StreamType.StandardError).Select(x => new StreamWriter(x.Stream)).ToList();
         private static List<StreamReader> _stdIn => _streams.Where(x => x.Type == StreamType.StandardIn).Select(x => new StreamReader(x.Stream)).ToList();
 
-        private static Dictionary<Severity, ConsoleColor> _severityColors = new Dictionary<Severity, ConsoleColor>()
-    {
-        { Severity.Log, ConsoleColor.Green },
-        { Severity.Error, ConsoleColor.Red },
-        { Severity.Warning, ConsoleColor.Yellow },
-        { Severity.Critical, ConsoleColor.DarkRed },
-        { Severity.Debug, ConsoleColor.Gray },
-        { Severity.Verbose, ConsoleColor.DarkCyan },
-        { Severity.Info, ConsoleColor.White },
-        { Severity.Trace, ConsoleColor.Yellow },
-
-    };
-        public void Trace(string content, Severity severity = Severity.Log, Exception? exception = null, bool stdErr = false)
-            => Write(content, exception, stdErr, severity, Severity.Trace);
-        public void Log(string content, Severity severity = Severity.Log, Exception? exception = null, bool stdErr = false)
-            => Write(content, exception, stdErr, severity, Severity.Log);
-        public void Warn(string content, Severity severity = Severity.Log, Exception? exception = null, bool stdErr = false)
-            => Write(content, exception, stdErr, severity, Severity.Warning);
-        public void Error(string content, Severity severity = Severity.Log, Exception? exception = null, bool stdErr = false)
-            => Write(content, exception, stdErr, severity, Severity.Error);
-        public void Critical(string content, Severity severity = Severity.Log, Exception? exception = null, bool stdErr = false)
-            => Write(content, exception, stdErr, severity, Severity.Critical);
-        public void Debug(string content, Severity severity = Severity.Log, Exception? exception = null, bool stdErr = false)
-            => Write(content, exception, stdErr, severity, Severity.Debug);
-        public void Info(string content, Severity severity = Severity.Log, Exception? exception = null, bool stdErr = false)
-            => Write(content, exception, stdErr, severity, Severity.Info);
-        public void Write(string conent, Exception? exception, bool stdErr = false, params Severity[] severity)
-            => Write(conent, severity, exception, stdErr);
-        public void Write(string content, IEnumerable<Severity> severity, Exception? exception = null, bool stdErr = false)
+        private static Dictionary<LogPostfix, ConsoleColor> _postfixColors = new Dictionary<LogPostfix, ConsoleColor>()
         {
-            if (!_severities.Contains(severity.First()))
+            { LogPostfix.Log, ConsoleColor.Green },
+            { LogPostfix.Error, ConsoleColor.Red },
+            { LogPostfix.Warning, ConsoleColor.Yellow },
+            { LogPostfix.Critical, ConsoleColor.DarkRed },
+            { LogPostfix.Debug, ConsoleColor.Gray },
+            { LogPostfix.Verbose, ConsoleColor.DarkCyan },
+            { LogPostfix.Info, ConsoleColor.White },
+            { LogPostfix.Trace, ConsoleColor.Yellow },
+            { LogPostfix.Examples, ConsoleColor.Yellow },
+            { LogPostfix.EdgeDB, ConsoleColor.Cyan }
+
+        };
+        public void Trace(string content, LogPostfix postfix = LogPostfix.Log, Exception? exception = null, bool stdErr = false)
+            => Write(content, exception, stdErr, postfix, LogPostfix.Trace);
+        public void Log(string content, LogPostfix postfix = LogPostfix.Log, Exception? exception = null, bool stdErr = false)
+            => Write(content, exception, stdErr, postfix, LogPostfix.Log);
+        public void Warn(string content, LogPostfix postfix = LogPostfix.Log, Exception? exception = null, bool stdErr = false)
+            => Write(content, exception, stdErr, postfix, LogPostfix.Warning);
+        public void Error(string content, LogPostfix postfix = LogPostfix.Log, Exception? exception = null, bool stdErr = false)
+            => Write(content, exception, stdErr, postfix, LogPostfix.Error);
+        public void Critical(string content, LogPostfix postfix = LogPostfix.Log, Exception? exception = null, bool stdErr = false)
+            => Write(content, exception, stdErr, postfix, LogPostfix.Critical);
+        public void Debug(string content, LogPostfix postfix = LogPostfix.Log, Exception? exception = null, bool stdErr = false)
+            => Write(content, exception, stdErr, postfix, LogPostfix.Debug);
+        public void Info(string content, LogPostfix postfix = LogPostfix.Log, Exception? exception = null, bool stdErr = false)
+            => Write(content, exception, stdErr, postfix, LogPostfix.Info);
+        public void Write(string conent, Exception? exception, bool stdErr = false, params LogPostfix[] postfix)
+            => Write(conent, postfix, exception, stdErr);
+        public void Write(string content, IEnumerable<LogPostfix> postfix, Exception? exception = null, bool stdErr = false)
+        {
+            if (_postFixs.Length > 0 && !_postFixs.Contains(postfix.First()))
                 return;
 
             var type = (stdErr || exception != null) ? StreamType.StandardError : StreamType.StandardOut;
@@ -80,16 +86,16 @@ namespace Test
             if (exception != null)
                 content += $" Exception: {exception}";
 
-            var msg = CreateLogMessage(severity, content, type);
+            var msg = CreateLogMessage(postfix, content, type);
 
             _queue.Enqueue(msg);
             _taskSource.TrySetResult();
         }
 
-        private Logger(string caller, Severity[] sevs)
+        private Logger(string caller, LogPostfix[] postfixs)
         {
             _owner = caller;
-            _severities = sevs;
+            _postFixs = postfixs;
         }
 
         static Logger()
@@ -143,11 +149,11 @@ namespace Test
             }
         }
 
-        public static Logger GetLogger<TType>(params Severity[] sevs)
-            => GetLogger(typeof(TType), sevs);
-        public static Logger GetLogger(Type t, params Severity[] sevs)
+        public static Logger GetLogger<TType>(params LogPostfix[] postfixs)
+            => GetLogger(typeof(TType), postfixs);
+        public static Logger GetLogger(Type t, params LogPostfix[] postfixs)
         {
-            return new Logger($"{t.Assembly.GetName().Name}:{t.Name}", sevs);
+            return new Logger($"{t.Assembly.GetName().Name}:{t.Name}", postfixs);
         }
 
         public static void AddStream(Stream stream, StreamType type)
@@ -160,15 +166,15 @@ namespace Test
             _commands.TryAdd(commandName, commandResult);
         }
 
-        private LogMessage CreateLogMessage(IEnumerable<Severity> severities, string message, StreamType type)
+        private LogMessage CreateLogMessage(IEnumerable<LogPostfix> severities, string message, StreamType type)
         {
             var enumsWithColors = "";
             foreach (var item in severities)
             {
                 if (enumsWithColors == "")
-                    enumsWithColors = $"<{(int)_severityColors[item]}>{item}</{(int)_severityColors[item]}>";
+                    enumsWithColors = $"<{(int)_postfixColors[item]}>{item}</{(int)_postfixColors[item]}>";
                 else
-                    enumsWithColors += $" -> <{(int)_severityColors[item]}>{item}</{(int)_severityColors[item]}>";
+                    enumsWithColors += $" -> <{(int)_postfixColors[item]}>{item}</{(int)_postfixColors[item]}>";
             }
 
             var items = ProcessColors($"\u001b[38;5;249m{DateTime.UtcNow.ToString("O")} <Green>{_owner}</Green> " + $"\u001b[1m[{enumsWithColors}]\u001b[0m - \u001b[37;1m{message}");
@@ -304,17 +310,17 @@ namespace Test
                 return;
             var lvl = logLevel switch
             {
-                LogLevel.Debug => Severity.Debug,
-                LogLevel.Critical => Severity.Critical,
-                LogLevel.Error => Severity.Error,
-                LogLevel.Information => Severity.Info,
-                LogLevel.None => Severity.Log,
-                LogLevel.Trace => Severity.Trace,
-                LogLevel.Warning => Severity.Warning,
-                _ => Severity.Log
+                LogLevel.Debug => LogPostfix.Debug,
+                LogLevel.Critical => LogPostfix.Critical,
+                LogLevel.Error => LogPostfix.Error,
+                LogLevel.Information => LogPostfix.Info,
+                LogLevel.None => LogPostfix.Log,
+                LogLevel.Trace => LogPostfix.Trace,
+                LogLevel.Warning => LogPostfix.Warning,
+                _ => LogPostfix.Log
             };
 
-            Write(state.ToString()!, exception, severity: lvl);
+            Write(state.ToString()!, exception, postfix: lvl);
         }
 
         public bool IsEnabled(LogLevel logLevel)

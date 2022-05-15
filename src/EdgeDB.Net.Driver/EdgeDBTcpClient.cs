@@ -31,7 +31,7 @@ namespace EdgeDB
         /// <summary>
         ///     Fired when a query is executed.
         /// </summary>
-        public event Func<ExecuteResult, Task> QueryExecuted 
+        public event Func<ExecuteResult, Task> QueryExecuted
         {
             add => _queryExecuted.Add(value);
             remove => _queryExecuted.Remove(value);
@@ -133,8 +133,99 @@ namespace EdgeDB
 
         #region Commands/queries
 
-        public Task<Transaction> TransactionAsync(TransactionSettings? settings = null)
-            => Transaction.EnterTransactionAsync(this, settings);
+        /// <summary>
+        ///     Creates a transaction and executes a callback with the transaction object.
+        /// </summary>
+        /// <param name="func">The callback to pass the transaction into.</param>
+        /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
+        public Task TransactionAsync(Func<Transaction, Task> func)
+            => TransactionInternalAsync(TransactionSettings.Default, func);
+
+        /// <summary>
+        ///     Creates a transaction and executes a callback with the transaction object.
+        /// </summary>
+        /// <typeparam name="TResult">The return result of the task.</typeparam>
+        /// <param name="func">The callback to pass the transaction into.</param>
+        /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
+        public async Task<TResult?> TransactionAsync<TResult>(Func<Transaction, Task<TResult>> func)
+        {
+            TResult? result = default;
+
+            await TransactionInternalAsync(TransactionSettings.Default, async (t) =>
+            {
+                result = await func(t).ConfigureAwait(false);
+            });
+
+            return result;
+        }
+
+        /// <summary>
+        ///     Creates a transaction and executes a callback with the transaction object.
+        /// </summary>
+        /// <param name="settings">The transactions settings.</param>
+        /// <param name="func">The callback to pass the transaction into.</param>
+        /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
+        public Task TransactionAsync(TransactionSettings settings, Func<Transaction, Task> func)
+            => TransactionInternalAsync(settings, func);
+
+        /// <summary>
+        ///     Creates a transaction and executes a callback with the transaction object.
+        /// </summary>
+        /// <typeparam name="TResult">The return result of the task.</typeparam>
+        /// <param name="settings">The transactions settings.</param>
+        /// <param name="func">The callback to pass the transaction into.</param>
+        /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
+        public async Task<TResult?> TransactionAsync<TResult>(TransactionSettings settings, Func<Transaction, Task<TResult>> func)
+        {
+            TResult? result = default;
+
+            await TransactionInternalAsync(settings, async (t) =>
+            {
+                result = await func(t).ConfigureAwait(false);
+            });
+
+            return result;
+        }
+
+        internal async Task TransactionInternalAsync(TransactionSettings settings, Func<Transaction, Task> func)
+        {
+            var transaction = new Transaction(this, settings);
+
+            await transaction.StartAsync().ConfigureAwait(false);
+
+            bool commitFailed = false;
+
+            try
+            {
+                await func(transaction).ConfigureAwait(false);
+
+                try
+                {
+                    await transaction.CommitAsync();
+                }
+                catch
+                {
+                    commitFailed = true;
+                    throw;
+                }
+            }
+            catch(Exception)
+            {
+                if (!commitFailed)
+                {
+                    try
+                    {
+                        await transaction.RollbackAsync().ConfigureAwait(false);
+                    }
+                    catch(Exception rollbackErr) when (rollbackErr is not EdgeDBException) // see https://github.com/edgedb/edgedb-js/blob/f170b5f53eab605454704e869e083c2afc693ada/src/client.ts#L142
+                    {
+                        throw;
+                    }
+                }
+
+                throw;
+            }
+        }
 
         /// <summary>
         ///     Dumps the current database to a stream.
@@ -761,6 +852,8 @@ namespace EdgeDB
 
         private Task<IReceiveable> NextMessageAsync(IReceiveable? from, Predicate<IReceiveable>? predicate = null, TimeSpan? timeout = null, CancellationToken token = default)
             => NextMessageAsync(predicate: predicate, from: from?.Id, timeout, token);
+        
+        // TODO: improve?
         private async Task<IReceiveable> NextMessageAsync(Predicate<IReceiveable>? predicate = null, ulong? from = null, TimeSpan? timeout = null, CancellationToken token = default)
         {
             var targetId = from.HasValue ? from.Value + 1 : _currentMessageId;
