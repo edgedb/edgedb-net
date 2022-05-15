@@ -27,7 +27,7 @@ namespace EdgeDB.Models
 
         ulong IReceiveable.Id { get; set; }
 
-        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
+        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBBinaryClient client)
         {
             var headers = reader.ReadHeaders();
 

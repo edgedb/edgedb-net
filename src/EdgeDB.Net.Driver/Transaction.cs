@@ -7,38 +7,24 @@ namespace EdgeDB
         public TransactionState State
             => _client.TransactionState;
 
-        private readonly EdgeDBTcpClient _client;
+        private readonly ITransactibleClient _client;
         private readonly TransactionSettings _settings;
         private readonly object _lock = new();
 
-        internal Transaction(EdgeDBTcpClient client, TransactionSettings settings)
+        internal Transaction(ITransactibleClient client, TransactionSettings settings)
         {
             _client = client;
             _settings = settings;
         }
 
-        internal async Task StartAsync()
-        {
-#pragma warning disable IDE0072 // Add missing cases
-            var isolation = _settings.Isolation switch
-            {
-                Isolation.Serializable => "serializable",
-                _ => throw new EdgeDBException("Unknown isolation mode")
-            };
-#pragma warning restore IDE0072 // Add missing cases
+        internal Task StartAsync()
+            => _client.StartTransactionAsync(_settings.Isolation, _settings.ReadOnly, _settings.Deferrable);
 
-            var readMode = _settings.ReadOnly ? "read only" : "read write";
+        internal Task CommitAsync()
+            => _client.CommitAsync();
 
-            var deferMode = $"{(!_settings.Deferrable ? "not " : "")}deferrable";
-
-            await _client.ExecuteInternalAsync($"start transaction isolation {isolation}, {readMode}, {deferMode}", capabilities: null).ConfigureAwait(false);
-        }
-
-        internal async Task CommitAsync()
-            => await _client.ExecuteInternalAsync($"commit", capabilities: null).ConfigureAwait(false);
-
-        internal async Task RollbackAsync()
-            => await _client.ExecuteInternalAsync($"rollback", capabilities: null).ConfigureAwait(false);
+        internal Task RollbackAsync()
+            => _client.RollbackAsync();
 
         internal async Task ExecuteInternalAsync(Func<Task> func)
         {

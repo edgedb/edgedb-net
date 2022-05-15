@@ -48,7 +48,7 @@ namespace EdgeDB.Models
         internal byte[] Raw { get; private set; }
         ulong IReceiveable.Id { get; set; }
 
-        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
+        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBBinaryClient client)
         {
             Length = length;
 

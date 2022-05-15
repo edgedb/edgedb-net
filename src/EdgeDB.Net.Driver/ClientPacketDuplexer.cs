@@ -5,7 +5,7 @@ namespace EdgeDB
     internal class ClientPacketDuplexer
     {
         public bool Connected
-            => _stream != null && (_client?.TcpClient.Connected ?? false);
+            => _stream != null && (_client?.IsConnected ?? false);
 
         public bool IsReading
             => _readTask != null && _readTask.Status == TaskStatus.Running;
@@ -27,14 +27,14 @@ namespace EdgeDB
 
         private Stream? _stream;
         private Task? _readTask;
-        private readonly EdgeDBTcpClient _client;
+        private readonly EdgeDBBinaryClient _client;
         private readonly CancellationTokenSource _disconnectTokenSource;
         private readonly AsyncEvent<Func<Task>> _onDisconnected = new();
         private readonly AsyncEvent<Func<IReceiveable, Task>> _onMessage = new();
         private readonly SemaphoreSlim _duplexLock;
         private readonly SemaphoreSlim _onMessageLock;
 
-        public ClientPacketDuplexer(EdgeDBTcpClient client)
+        public ClientPacketDuplexer(EdgeDBBinaryClient client)
         {
             _client = client;
             _disconnectTokenSource = new();
@@ -48,7 +48,7 @@ namespace EdgeDB
             _readTask = Task.Run(async () => await ReadAsync());
         }
 
-        public async Task DisconnectAsync()
+        public async ValueTask DisconnectAsync()
         {
             await SendAsync(packets: new Terminate()).ConfigureAwait(false);
             _disconnectTokenSource.Cancel();

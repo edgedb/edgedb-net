@@ -9,7 +9,7 @@
         public ConnectionParam[] ConnectionParameters { get; set; } = Array.Empty<ConnectionParam>();
         public ProtocolExtension[] Extensions { get; set; } = Array.Empty<ProtocolExtension>();
 
-        protected override void BuildPacket(PacketWriter writer, EdgeDBTcpClient client)
+        protected override void BuildPacket(PacketWriter writer, EdgeDBBinaryClient client)
         {
             writer.Write(MajorVersion);
             writer.Write(MinorVersion);

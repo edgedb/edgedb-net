@@ -10,7 +10,7 @@ namespace EdgeDB.Models
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#errorresponse">Error Response</see> packet.
     /// </summary>
-    public struct ErrorResponse : IReceiveable
+    public struct ErrorResponse : IReceiveable, IExecuteError
     {
         /// <inheritdoc/>
         public ServerMessageType Type => ServerMessageType.ErrorResponse;
@@ -37,7 +37,7 @@ namespace EdgeDB.Models
 
         ulong IReceiveable.Id { get; set; }
 
-        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
+        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBBinaryClient client)
         {
             Severity = (ErrorSeverity)reader.ReadByte();
             ErrorCode = reader.ReadUInt32();
@@ -47,5 +47,9 @@ namespace EdgeDB.Models
 
         IReceiveable IReceiveable.Clone()
             => (IReceiveable)MemberwiseClone();
+
+        string? IExecuteError.Message => Message;
+
+        uint IExecuteError.ErrorCode => ErrorCode;
     }
 }

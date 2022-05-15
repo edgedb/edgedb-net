@@ -16,7 +16,7 @@ namespace EdgeDB.Models
 
         public byte[]? HeaderData { get; set; }
 
-        protected override void BuildPacket(PacketWriter writer, EdgeDBTcpClient client)
+        protected override void BuildPacket(PacketWriter writer, EdgeDBBinaryClient client)
         {
             writer.Write(Headers);
             writer.Write(Jobs);

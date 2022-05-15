@@ -24,6 +24,9 @@
             Exception = exc;
             ExecutedQuery = executedQuery;
         }
+
+        IExecuteError? IExecuteResult.ExecutionError => ErrorResponse ?? null;
+
     }
 
     /// <summary>
@@ -39,7 +42,7 @@
         /// <summary>
         ///     Gets the error (if any) that the command received.
         /// </summary>
-        ErrorResponse? ErrorResponse { get; }
+        IExecuteError? ExecutionError { get; }
 
         /// <summary>
         ///     Gets the exception (if any) that the command threw when executing.
@@ -50,5 +53,11 @@
         ///     Gets the executed query string.
         /// </summary>
         string? ExecutedQuery { get; }
+    }
+
+    public interface IExecuteError
+    {
+        string? Message { get; }
+        uint ErrorCode { get; }
     }
 }

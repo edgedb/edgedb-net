@@ -16,7 +16,7 @@ namespace EdgeDB.Models
 
         public byte[]? Arguments { get; set; }
 
-        protected override void BuildPacket(PacketWriter writer, EdgeDBTcpClient client)
+        protected override void BuildPacket(PacketWriter writer, EdgeDBBinaryClient client)
         {
             writer.Write((ushort)1);
 

@@ -10,6 +10,6 @@ namespace EdgeDB.Models
     {
         public override ClientMessageTypes Type => ClientMessageTypes.Terminate;
 
-        protected override void BuildPacket(PacketWriter writer, EdgeDBTcpClient client) { } // no data
+        protected override void BuildPacket(PacketWriter writer, EdgeDBBinaryClient client) { } // no data
     }
 }

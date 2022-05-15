@@ -4,6 +4,11 @@ namespace EdgeDB
 {
     public static class ClientPoolExtensions
     {
+        public static bool SupportsTransactions(this EdgeDBClient client)
+        {
+            return client.ClientType == EdgeDBClientType.Tcp;
+        }
+
         #region Transactions
         /// <summary>
         ///     Creates a transaction and executes a callback with the transaction object.
@@ -15,7 +20,7 @@ namespace EdgeDB
         /// </returns>
         public static async Task TransactionAsync(this EdgeDBClient pool, Func<Transaction, Task> func)
         {
-            await using var client = await pool.GetOrCreateClientAsync().ConfigureAwait(false);
+            await using var client = await pool.GetTransactibleClientAsync();
             await client.TransactionAsync(func).ConfigureAwait(false);
         }
 
@@ -28,7 +33,7 @@ namespace EdgeDB
         /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
         public static async Task<TResult?> TransactionAsync<TResult>(this EdgeDBClient pool, Func<Transaction, Task<TResult>> func)
         {
-            await using var client = await pool.GetOrCreateClientAsync().ConfigureAwait(false);
+            await using var client = await pool.GetTransactibleClientAsync();
             return await client.TransactionAsync(func).ConfigureAwait(false);
         }
 
@@ -41,7 +46,7 @@ namespace EdgeDB
         /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
         public static async Task TransactionAsync(this EdgeDBClient pool, TransactionSettings settings, Func<Transaction, Task> func)
         {
-            await using var client = await pool.GetOrCreateClientAsync().ConfigureAwait(false);
+            await using var client = await pool.GetTransactibleClientAsync().ConfigureAwait(false);
             await client.TransactionAsync(settings, func).ConfigureAwait(false);
         }
 
@@ -55,9 +60,23 @@ namespace EdgeDB
         /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
         public static async Task<TResult?> TransactionAsync<TResult>(this EdgeDBClient pool, TransactionSettings settings, Func<Transaction, Task<TResult>> func)
         {
-            await using var client = await pool.GetOrCreateClientAsync().ConfigureAwait(false);
+            await using var client = await pool.GetTransactibleClientAsync().ConfigureAwait(false);
             return await client.TransactionAsync(settings, func).ConfigureAwait(false);
         }
+
+        private static async Task<ITransactibleClient> GetTransactibleClientAsync(this EdgeDBClient pool)
+        {
+            if (!pool.SupportsTransactions())
+                throw new EdgeDBException($"Cannot use transactions with {pool.ClientType} clients");
+
+            var client = await pool.GetOrCreateClientAsync().ConfigureAwait(false);
+
+            if (client is not ITransactibleClient tranactibleClient)
+                throw new EdgeDBException($"Cannot use transactions with {pool.ClientType} clients");
+
+            return tranactibleClient;
+        }
+
         #endregion
 
         #region Dump/Restore
@@ -72,7 +91,11 @@ namespace EdgeDB
         public static async Task<Stream?> DumpDatabaseAsync(this EdgeDBClient pool, CancellationToken token = default)
         {
             await using var client = await pool.GetOrCreateClientAsync();
-            return await client.DumpDatabaseAsync(token).ConfigureAwait(false);
+
+            if(client is not EdgeDBBinaryClient binaryClient)
+                throw new EdgeDBException($"Cannot dump database with {pool.ClientType} clients");
+
+            return await binaryClient.DumpDatabaseAsync(token).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -90,7 +113,11 @@ namespace EdgeDB
         public static async Task<CommandComplete> RestoreDatabaseAsync(this EdgeDBClient pool, Stream stream, CancellationToken token = default)
         {
             await using var client = await pool.GetOrCreateClientAsync();
-            return await client.RestoreDatabaseAsync(stream, token).ConfigureAwait(false);
+
+            if (client is not EdgeDBBinaryClient binaryClient)
+                throw new EdgeDBException($"Cannot restore database with {pool.ClientType} clients");
+
+            return await binaryClient.RestoreDatabaseAsync(stream, token).ConfigureAwait(false);
         }
         #endregion
     }

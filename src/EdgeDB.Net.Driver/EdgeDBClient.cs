@@ -27,16 +27,19 @@ namespace EdgeDB
         public IReadOnlyDictionary<string, object?> ServerConfig
             => _edgedbConfig.ToImmutableDictionary();
 
-        internal event Func<EdgeDBTcpClient, Task> ClientReturnedToPool
+        internal event Func<BaseEdgeDBClient, Task> ClientReturnedToPool
         {
             add => _clientReturnedToPool.Add(value);
             remove => _clientReturnedToPool.Remove(value);
         }
 
+        internal EdgeDBClientType ClientType
+            => _config.ClientType;
+
         private readonly AsyncEvent<Func<IExecuteResult, Task>> _queryExecuted = new();
         private readonly EdgeDBConnection _connection;
-        private readonly EdgeDBConfig _config;
-        private ConcurrentStack<EdgeDBTcpClient> _availableClients;
+        private readonly EdgeDBClientPoolConfig _config;
+        private ConcurrentStack<BaseEdgeDBClient> _availableClients;
         private bool _isInitialized;
         private Dictionary<string, object?> _edgedbConfig;
         private int _poolSize;
@@ -48,7 +51,7 @@ namespace EdgeDB
         private ulong _clientIndex;
         private int _totalClients;
 
-        private readonly AsyncEvent<Func<EdgeDBTcpClient, Task>> _clientReturnedToPool = new();
+        private readonly AsyncEvent<Func<BaseEdgeDBClient, Task>> _clientReturnedToPool = new();
 
         /// <summary>
         ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
@@ -57,7 +60,7 @@ namespace EdgeDB
         ///     This constructor uses the default config and will attempt to find your EdgeDB project toml file in the current working directory. If 
         ///     no file is found this method will throw a <see cref="FileNotFoundException"/>.
         /// </remarks>
-        public EdgeDBClient() : this(EdgeDBConnection.ResolveConnection(), new EdgeDBConfig()) { }
+        public EdgeDBClient() : this(EdgeDBConnection.ResolveConnection(), new EdgeDBClientPoolConfig()) { }
 
         /// <summary>
         ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
@@ -67,20 +70,20 @@ namespace EdgeDB
         ///     no file is found this method will throw a <see cref="FileNotFoundException"/>.
         /// </remarks>
         /// <param name="config">The config for this client pool.</param>
-        public EdgeDBClient(EdgeDBConfig config) : this(EdgeDBConnection.ResolveConnection(), config) { }
+        public EdgeDBClient(EdgeDBClientPoolConfig config) : this(EdgeDBConnection.ResolveConnection(), config) { }
 
         /// <summary>
         ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
         /// </summary>
         /// <param name="connection">The connection parameters used to create new clients.</param>
-        public EdgeDBClient(EdgeDBConnection connection) : this(connection, new EdgeDBConfig()) { }
+        public EdgeDBClient(EdgeDBConnection connection) : this(connection, new EdgeDBClientPoolConfig()) { }
 
         /// <summary>
         ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
         /// </summary>
         /// <param name="connection">The connection parameters used to create new clients.</param>
         /// <param name="config">The config for this client pool.</param>
-        public EdgeDBClient(EdgeDBConnection connection, EdgeDBConfig config)
+        public EdgeDBClient(EdgeDBConnection connection, EdgeDBClientPoolConfig config)
         {
             _isInitialized = false;
             _config = config;
@@ -108,9 +111,14 @@ namespace EdgeDB
                     return;
 
                 await using var client = await GetOrCreateClientAsync().ConfigureAwait(false);
-                // set the pool size to the recommended
-                _poolSize = client.SuggestedPoolConcurrency;
-                _edgedbConfig = client.RawServerConfig;
+                
+                if(client is EdgeDBTcpClient tcpClient)
+                {
+                    // set the pool size to the recommended
+                    _poolSize = tcpClient.SuggestedPoolConcurrency;
+                    _edgedbConfig = tcpClient.RawServerConfig;
+                }
+
                 _isInitialized = true;
             }
             finally
@@ -181,7 +189,7 @@ namespace EdgeDB
         /// <returns>
         ///     A edgedb tcp client.
         /// </returns>
-        public async ValueTask<EdgeDBTcpClient> GetOrCreateClientAsync()
+        public async ValueTask<BaseEdgeDBClient> GetOrCreateClientAsync()
         {
             if (_availableClients.TryPop(out var result))
             {
@@ -189,7 +197,7 @@ namespace EdgeDB
             }
 
             // create new clinet
-            var index = Interlocked.Increment(ref _clientIndex);
+            var clientIndex = Interlocked.Increment(ref _clientIndex);
 
             if (_totalClients >= _poolSize)
             {
@@ -200,7 +208,6 @@ namespace EdgeDB
                     return SpinWait.SpinUntil(() => _availableClients.TryPop(out result), 15000)
                         ? result!
                         : throw new TimeoutException("Couldn't find a client after 15 seconds");
-
                 }
                 finally
                 {
@@ -211,30 +218,60 @@ namespace EdgeDB
             {
                 var numClients = Interlocked.Increment(ref _totalClients);
 
-                var client = new EdgeDBTcpClient(_connection, _config, index);
+                return await GetClientAsync(clientIndex);
+            }
+        }
 
+        private async ValueTask<BaseEdgeDBClient> GetClientAsync(ulong id)
+        {
+            switch (_config.ClientType)
+            {
+                case EdgeDBClientType.Tcp:
+                    {
+                        var client = new EdgeDBTcpClient(_connection, _config, id);
 
-                client.OnDisconnect += () =>
-                {
-                    Interlocked.Decrement(ref _totalClients);
-                    RemoveClient(index);
-                    return Task.CompletedTask;
-                };
+                        client.OnDisconnect += () =>
+                        {
+                            Interlocked.Decrement(ref _totalClients);
+                            RemoveClient(id);
+                            return Task.CompletedTask;
+                        };
 
-                client.QueryExecuted += (i) => _queryExecuted.InvokeAsync(i);
+                        client.QueryExecuted += (i) => _queryExecuted.InvokeAsync(i);
 
-                await client.ConnectAsync().ConfigureAwait(false);
+                        await client.ConnectAsync().ConfigureAwait(false);
 
-                client.OnDisposed += async (c) =>
-                {
-                    if (_clientReturnedToPool.HasSubscribers)
-                        await _clientReturnedToPool.InvokeAsync(c).ConfigureAwait(false);
-                    else
-                        _availableClients.Push(c);
-                    return false;
-                };
+                        client.OnDisposed += async (c) =>
+                        {
+                            if (_clientReturnedToPool.HasSubscribers)
+                                await _clientReturnedToPool.InvokeAsync(c).ConfigureAwait(false);
+                            else
+                                _availableClients.Push(c);
+                            return false;
+                        };
 
-                return client;
+                        return client;
+                    }
+                case EdgeDBClientType.Http:
+                    {
+                        var client = new EdgeDBHttpClient(_connection, _config, id);
+
+                        client.QueryExecuted += (i) => _queryExecuted.InvokeAsync(i);
+
+                        client.OnDisposed += async (c) =>
+                        {
+                            if (_clientReturnedToPool.HasSubscribers)
+                                await _clientReturnedToPool.InvokeAsync(c).ConfigureAwait(false);
+                            else
+                                _availableClients.Push(c);
+                            return false;
+                        };
+
+                        return client;
+                    }
+
+                default:
+                    throw new EdgeDBException($"No client found for type {_config.ClientType}");
             }
         }
 
@@ -242,7 +279,7 @@ namespace EdgeDB
         {
             lock (_clientsLock)
             {
-                _availableClients = new ConcurrentStack<EdgeDBTcpClient>(_availableClients.Where(x => x.ClientId != id).ToArray());
+                _availableClients = new ConcurrentStack<BaseEdgeDBClient>(_availableClients.Where(x => x.ClientId != id).ToArray());
             }
         }
     }

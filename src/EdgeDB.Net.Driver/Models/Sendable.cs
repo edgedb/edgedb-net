@@ -10,9 +10,9 @@ namespace EdgeDB.Models
     {
         public abstract ClientMessageTypes Type { get;}
 
-        protected abstract void BuildPacket(PacketWriter writer, EdgeDBTcpClient client);
+        protected abstract void BuildPacket(PacketWriter writer, EdgeDBBinaryClient client);
 
-        public void Write(PacketWriter writer, EdgeDBTcpClient client)
+        public void Write(PacketWriter writer, EdgeDBBinaryClient client)
         {
             using var stream = new MemoryStream();
 

@@ -38,7 +38,7 @@ namespace EdgeDB
             return val.Key;
         }
 
-        public static IReceiveable? DeserializePacket(ServerMessageType type, Stream stream, EdgeDBTcpClient client)
+        public static IReceiveable? DeserializePacket(ServerMessageType type, Stream stream, EdgeDBBinaryClient client)
         {
             // read the type
 

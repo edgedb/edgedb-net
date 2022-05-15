@@ -1,10 +1,11 @@
-﻿using System;
+﻿using EdgeDB.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB.Models
+namespace EdgeDB
 {
     /// <summary>
     ///     Represents a object that can be used to query a EdgeDB instance.

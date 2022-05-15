@@ -15,7 +15,7 @@
 
         ulong IReceiveable.Id { get; set; }
 
-        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
+        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBBinaryClient client)
         {
             // skip arary since its always one, errr should be one
             var numElements = reader.ReadUInt16();

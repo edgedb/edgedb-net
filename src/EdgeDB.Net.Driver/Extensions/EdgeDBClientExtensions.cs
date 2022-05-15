@@ -3,7 +3,7 @@ using EdgeDB.Models;
 
 namespace EdgeDB
 {
-    public static class EdgeDBTcpClientExtensions
+    public static class EdgeDBClientExtensions
     {
         #region Transactions
         /// <summary>
@@ -12,7 +12,7 @@ namespace EdgeDB
         /// <param name="client">The TCP client to preform the transaction with.</param>
         /// <param name="func">The callback to pass the transaction into.</param>
         /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
-        public static Task TransactionAsync(this EdgeDBTcpClient client, Func<Transaction, Task> func)
+        public static Task TransactionAsync(this ITransactibleClient client, Func<Transaction, Task> func)
             => TransactionInternalAsync(client, TransactionSettings.Default, func);
 
         /// <summary>
@@ -22,7 +22,7 @@ namespace EdgeDB
         /// <param name="client">The TCP client to preform the transaction with.</param>
         /// <param name="func">The callback to pass the transaction into.</param>
         /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
-        public static async Task<TResult?> TransactionAsync<TResult>(this EdgeDBTcpClient client, Func<Transaction, Task<TResult>> func)
+        public static async Task<TResult?> TransactionAsync<TResult>(this ITransactibleClient client, Func<Transaction, Task<TResult>> func)
         {
             TResult? result = default;
 
@@ -41,7 +41,7 @@ namespace EdgeDB
         /// <param name="settings">The transactions settings.</param>
         /// <param name="func">The callback to pass the transaction into.</param>
         /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
-        public static Task TransactionAsync(this EdgeDBTcpClient client, TransactionSettings settings, Func<Transaction, Task> func)
+        public static Task TransactionAsync(this ITransactibleClient client, TransactionSettings settings, Func<Transaction, Task> func)
             => TransactionInternalAsync(client, settings, func);
 
         /// <summary>
@@ -52,7 +52,7 @@ namespace EdgeDB
         /// <param name="settings">The transactions settings.</param>
         /// <param name="func">The callback to pass the transaction into.</param>
         /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
-        public static async Task<TResult?> TransactionAsync<TResult>(this EdgeDBTcpClient client, TransactionSettings settings, Func<Transaction, Task<TResult>> func)
+        public static async Task<TResult?> TransactionAsync<TResult>(this ITransactibleClient client, TransactionSettings settings, Func<Transaction, Task<TResult>> func)
         {
             TResult? result = default;
 
@@ -64,7 +64,7 @@ namespace EdgeDB
             return result;
         }
 
-        internal static async Task TransactionInternalAsync(EdgeDBTcpClient client, TransactionSettings settings, Func<Transaction, Task> func)
+        internal static async Task TransactionInternalAsync(ITransactibleClient client, TransactionSettings settings, Func<Transaction, Task> func)
         {
             var transaction = new Transaction(client, settings);
 
@@ -115,7 +115,7 @@ namespace EdgeDB
         /// <returns>A stream containing the entire dumped database.</returns>
         /// <exception cref="EdgeDBErrorException">The server sent an error message during the dumping process.</exception>
         /// <exception cref="EdgeDBException">The server sent a mismatched packet.</exception>
-        public static async Task<Stream?> DumpDatabaseAsync(this EdgeDBTcpClient client, CancellationToken token = default)
+        public static async Task<Stream?> DumpDatabaseAsync(this EdgeDBBinaryClient client, CancellationToken token = default)
         {
             using var cmdLock = await client.AquireCommandLockAsync(token).ConfigureAwait(false);
 
@@ -194,7 +194,7 @@ namespace EdgeDB
         ///     due to the database not being empty.
         /// </exception>
         /// <exception cref="EdgeDBErrorException">The server sent an error during the restore operation.</exception>
-        public static async Task<CommandComplete> RestoreDatabaseAsync(this EdgeDBTcpClient client, Stream stream, CancellationToken token = default)
+        public static async Task<CommandComplete> RestoreDatabaseAsync(this EdgeDBBinaryClient client, Stream stream, CancellationToken token = default)
         {
             using var cmdLock = await client.AquireCommandLockAsync(token).ConfigureAwait(false);
 

@@ -24,7 +24,7 @@ namespace EdgeDB.Models
         /// </summary>
         public ushort Jobs { get; private set; }
 
-        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBTcpClient client)
+        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBBinaryClient client)
         {
             Headers = reader.ReadHeaders();
             Jobs = reader.ReadUInt16();

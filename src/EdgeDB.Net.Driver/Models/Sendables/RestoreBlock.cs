@@ -12,7 +12,7 @@ namespace EdgeDB.Models
 
         public byte[]? BlockData { get; set; }
 
-        protected override void BuildPacket(PacketWriter writer, EdgeDBTcpClient client)
+        protected override void BuildPacket(PacketWriter writer, EdgeDBBinaryClient client)
         {
             writer.WriteArray(BlockData!);
         }

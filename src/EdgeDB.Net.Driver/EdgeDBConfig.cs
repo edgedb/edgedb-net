@@ -2,6 +2,27 @@
 
 namespace EdgeDB
 {
+    public class EdgeDBClientPoolConfig : EdgeDBConfig
+    {
+        /// <summary>
+        ///     Gets or sets the client type the pool will use.
+        /// </summary>
+        public EdgeDBClientType ClientType { get; set; }
+    }
+
+    public enum EdgeDBClientType
+    {
+        /// <summary>
+        ///     The client pool will use <see cref="EdgeDBTcpClient"/>s
+        /// </summary>
+        Tcp,
+
+        /// <summary>
+        ///     The client pool will use <see cref="EdgeDBHttpClient"/>s
+        /// </summary>
+        Http
+    }
+
     /// <summary>
     ///     Represents the configuration options for a <see cref="EdgeDBClient"/> or <see cref="EdgeDBTcpClient"/>
     /// </summary>

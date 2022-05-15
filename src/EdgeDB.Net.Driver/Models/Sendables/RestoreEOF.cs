@@ -10,7 +10,7 @@ namespace EdgeDB.Models
     {
         public override ClientMessageTypes Type => ClientMessageTypes.RestoreEOF;
 
-        protected override void BuildPacket(PacketWriter writer, EdgeDBTcpClient client)
+        protected override void BuildPacket(PacketWriter writer, EdgeDBBinaryClient client)
         {
             // write nothing
         }
