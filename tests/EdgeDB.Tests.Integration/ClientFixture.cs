@@ -17,7 +17,7 @@ namespace EdgeDB.Tests.Integration
             EdgeDBConnection conn;
             try
             {
-                conn = EdgeDBConnection.FromInstanceName("EdgeDB_Dotnet_Test");
+                conn = EdgeDBConnection.FromInstanceName("edgedb_dotnet");
             }
             catch
             {
