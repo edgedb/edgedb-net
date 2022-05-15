@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Reflection;
 
 namespace EdgeDB.Codecs
 {
@@ -17,16 +12,14 @@ namespace EdgeDB.Codecs
         void SerializeArguments(PacketWriter writer, object? value);
         byte[] SerializeArguments(object? value)
         {
-            using (var writer = new PacketWriter())
-            {
-                SerializeArguments(writer, value);
+            using var writer = new PacketWriter();
+            SerializeArguments(writer, value);
 
-                writer.BaseStream.Position = 0;
-                using (var ms = new MemoryStream())
-                {
-                    writer.BaseStream.CopyTo(ms);
-                    return ms.ToArray();
-                }
+            writer.BaseStream.Position = 0;
+            using (var ms = new MemoryStream())
+            {
+                writer.BaseStream.CopyTo(ms);
+                return ms.ToArray();
             }
         }
     }
@@ -75,7 +68,7 @@ namespace EdgeDB.Codecs
 
         object? Deserialize(byte[] buffer)
         {
-            using(var reader = new PacketReader(buffer))
+            using (var reader = new PacketReader(buffer))
             {
                 return Deserialize(reader);
             }
@@ -83,7 +76,7 @@ namespace EdgeDB.Codecs
 
         byte[] Serialize(object? value)
         {
-            using(var writer = new PacketWriter())
+            using (var writer = new PacketWriter())
             {
                 Serialize(writer, value);
 
@@ -104,7 +97,7 @@ namespace EdgeDB.Codecs
 
             var codecs = Assembly.GetExecutingAssembly().GetTypes().Where(x => x.GetInterfaces().Any(x => x.Name == "IScalarCodec`1"));
 
-            foreach(var codec in codecs)
+            foreach (var codec in codecs)
             {
                 // create instance
                 var inst = (ICodec)Activator.CreateInstance(codec)!;

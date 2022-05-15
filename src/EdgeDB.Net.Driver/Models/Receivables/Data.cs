@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EdgeDB.Models
+﻿namespace EdgeDB.Models
 {
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#data">Data</see> packet
@@ -27,12 +21,12 @@ namespace EdgeDB.Models
             var numElements = reader.ReadUInt16();
             if (numElements != 1)
             {
-                throw new Exception($"Expected one element array for data, got {numElements}");
+                throw new ArgumentOutOfRangeException(nameof(reader), $"Expected one element array for data, got {numElements}");
             }
 
             var payloadLength = reader.ReadUInt32();
 
-            PayloadData = reader.ReadBytes((int)payloadLength); 
+            PayloadData = reader.ReadBytes((int)payloadLength);
         }
 
         IReceiveable IReceiveable.Clone()

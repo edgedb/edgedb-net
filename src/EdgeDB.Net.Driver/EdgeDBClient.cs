@@ -1,14 +1,6 @@
 ﻿using EdgeDB.Models;
-using EdgeDB.Utils;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EdgeDB
 {
@@ -26,6 +18,15 @@ namespace EdgeDB
             remove => _queryExecuted.Remove(value);
         }
 
+        /// <summary>
+        ///     Gets the EdgeDB server config.
+        /// </summary>
+        /// <remarks>
+        ///     The returned dictionary can be empty if the client pool hasn't connected any clients.
+        /// </remarks>
+        public IReadOnlyDictionary<string, object?> ServerConfig
+            => _edgedbConfig.ToImmutableDictionary();
+
         internal event Func<EdgeDBTcpClient, Task> ClientReturnedToPool
         {
             add => _clientReturnedToPool.Add(value);
@@ -37,17 +38,17 @@ namespace EdgeDB
         private readonly EdgeDBConfig _config;
         private ConcurrentStack<EdgeDBTcpClient> _availableClients;
         private bool _isInitialized;
-        private IReadOnlyDictionary<string, object?> _edgedbConfig;
+        private Dictionary<string, object?> _edgedbConfig;
         private int _poolSize;
 
-        private object _clientsLock = new();
-        private SemaphoreSlim _initSemaphore;
-        private SemaphoreSlim _clientWaitSemaphore;
+        private readonly object _clientsLock = new();
+        private readonly SemaphoreSlim _initSemaphore;
+        private readonly SemaphoreSlim _clientWaitSemaphore;
 
         private ulong _clientIndex;
         private int _totalClients;
 
-        private AsyncEvent<Func<EdgeDBTcpClient, Task>> _clientReturnedToPool = new();
+        private readonly AsyncEvent<Func<EdgeDBTcpClient, Task>> _clientReturnedToPool = new();
 
         /// <summary>
         ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
@@ -106,13 +107,11 @@ namespace EdgeDB
                 if (_isInitialized)
                     return;
 
-                await using(var client = await GetOrCreateClientAsync().ConfigureAwait(false))
-                {
-                    // set the pool size to the recommended
-                    _poolSize = client.SuggestedPoolConcurrency;
-                    _edgedbConfig = client.ServerConfig;
-                    _isInitialized = true;
-                }
+                await using var client = await GetOrCreateClientAsync().ConfigureAwait(false);
+                // set the pool size to the recommended
+                _poolSize = client.SuggestedPoolConcurrency;
+                _edgedbConfig = client.RawServerConfig;
+                _isInitialized = true;
             }
             finally
             {
@@ -120,67 +119,13 @@ namespace EdgeDB
             }
         }
 
-        #region Transactions
-        /// <summary>
-        ///     Creates a transaction and executes a callback with the transaction object.
-        /// </summary>
-        /// <param name="func">The callback to pass the transaction into.</param>
-        /// <returns>
-        ///     A task that proxies the passed in callbacks awaiter.
-        /// </returns>
-        public async Task TransactionAsync(Func<Transaction, Task> func)
-        {
-            await using var client = await GetOrCreateClientAsync().ConfigureAwait(false);
-            await client.TransactionAsync(func).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        ///     Creates a transaction and executes a callback with the transaction object.
-        /// </summary>
-        /// <typeparam name="TResult">The return result of the task.</typeparam>
-        /// <param name="func">The callback to pass the transaction into.</param>
-        /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
-        public async Task<TResult?> TransactionAsync<TResult>(Func<Transaction, Task<TResult>> func)
-        {
-            await using var client = await GetOrCreateClientAsync().ConfigureAwait(false);
-            return await client.TransactionAsync(func).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        ///     Creates a transaction and executes a callback with the transaction object.
-        /// </summary>
-        /// <param name="settings">The transactions settings.</param>
-        /// <param name="func">The callback to pass the transaction into.</param>
-        /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
-        public async Task TransactionAsync(TransactionSettings settings, Func<Transaction, Task> func)
-        {
-            await using var client = await GetOrCreateClientAsync().ConfigureAwait(false);
-            await client.TransactionAsync(settings, func).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        ///     Creates a transaction and executes a callback with the transaction object.
-        /// </summary>
-        /// <typeparam name="TResult">The return result of the task.</typeparam>
-        /// <param name="settings">The transactions settings.</param>
-        /// <param name="func">The callback to pass the transaction into.</param>
-        /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
-        public async Task<TResult?> TransactionAsync<TResult>(TransactionSettings settings, Func<Transaction, Task<TResult>> func)
-        {
-            await using var client = await GetOrCreateClientAsync().ConfigureAwait(false);
-            return await client.TransactionAsync(settings, func).ConfigureAwait(false);
-        }
-        #endregion
-
         /// <inheritdoc/>
         public async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null)
         {
             await InitializeAsync().ConfigureAwait(false);
 
-            await using (var client = await GetOrCreateClientAsync().ConfigureAwait(false))
-            {
-                await client.ExecuteAsync(query, args).ConfigureAwait(false);
-            }
+            await using var client = await GetOrCreateClientAsync().ConfigureAwait(false);
+            await client.ExecuteAsync(query, args).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
@@ -238,24 +183,23 @@ namespace EdgeDB
         /// </returns>
         public async ValueTask<EdgeDBTcpClient> GetOrCreateClientAsync()
         {
-            if(_availableClients.TryPop(out var result))
+            if (_availableClients.TryPop(out var result))
             {
                 return result;
             }
 
             // create new clinet
             var index = Interlocked.Increment(ref _clientIndex);
-            
-            if(_totalClients >= _poolSize)
+
+            if (_totalClients >= _poolSize)
             {
                 await _clientWaitSemaphore.WaitAsync().ConfigureAwait(false);
 
                 try
                 {
-                    if (SpinWait.SpinUntil(() => _availableClients.TryPop(out result), 15000))
-                        return result!;
-                    else
-                        throw new TimeoutException("Couldn't find a client after 15 seconds");
+                    return SpinWait.SpinUntil(() => _availableClients.TryPop(out result), 15000)
+                        ? result!
+                        : throw new TimeoutException("Couldn't find a client after 15 seconds");
 
                 }
                 finally
@@ -283,9 +227,9 @@ namespace EdgeDB
 
                 client.OnDisposed += async (c) =>
                 {
-                    if(_clientReturnedToPool.HasSubscribers)
+                    if (_clientReturnedToPool.HasSubscribers)
                         await _clientReturnedToPool.InvokeAsync(c).ConfigureAwait(false);
-                    else 
+                    else
                         _availableClients.Push(c);
                     return false;
                 };

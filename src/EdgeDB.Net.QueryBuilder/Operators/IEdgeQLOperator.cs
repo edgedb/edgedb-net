@@ -1,28 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Text;
+﻿using System.Linq.Expressions;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace EdgeDB.Operators
 {
     public interface IEdgeQLOperator
     {
-        ExpressionType? Operator { get; }
+        ExpressionType? ExpressionType { get; }
         string EdgeQLOperator { get; }
 
         string Build(params object[] args)
         {
-            if (Regex.IsMatch(EdgeQLOperator, @".+?\(.*?\)")) 
+            if (Regex.IsMatch(EdgeQLOperator, @".+?\(.*?\)"))
             {
                 // extract arguments
                 return Regex.Replace(EdgeQLOperator, @"\((.*?)\)", (rootMatch) =>
                 {
                     var param = string.Join(", ", Regex.Matches(rootMatch.Groups[1].Value, @"<(.*?{(\d|\d\?)+?})>|{(\d|\d\?)+?}").Select(m =>
                     {
-                        if(!m.Groups[1].Success)
+                        if (!m.Groups[1].Success)
                         {
                             // value is 3rd group
 
@@ -88,7 +83,7 @@ namespace EdgeDB.Operators
                         return args.Length < i ? $"{args[i]}" : "";
                     }
 
-                    if(Regex.IsMatch(m.Groups[1].Value, @".+?:\d+?\+"))
+                    if (Regex.IsMatch(m.Groups[1].Value, @".+?:\d+?\+"))
                     {
                         var split = m.Groups[1].Value.Split(":");
                         var indexAfter = int.Parse(Regex.Match(split[1], @"(\d+)").Groups[1].Value);

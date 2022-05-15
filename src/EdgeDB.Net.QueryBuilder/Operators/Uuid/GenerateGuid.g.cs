@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class UuidGenerateGuid : IEdgeQLOperator
     {
-        public ExpressionType? Operator => null;
+        public ExpressionType? ExpressionType => null;
         public string EdgeQLOperator => "uuid_generate_v1mc()";
     }
 }

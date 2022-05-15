@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EdgeDB
 {
@@ -15,17 +10,16 @@ namespace EdgeDB
         public Expression? Body { get; set; }
         public QueryContext? Parent { get; set; }
         public int? ParameterIndex { get; set; }
-        public bool IsCharContext { get; set; } = false;
-        public bool AllowStaticOperators { get; set; } = false;
+        public bool IsCharContext { get; set; }
+        public bool AllowStaticOperators { get; set; }
         public bool IncludeSetOperand { get; set; } = true;
         public QueryBuilderContext? BuilderContext { get; set; }
         public Type? BindingType { get; set; }
-        public bool AllowSubQueryGeneration { get; set; } = false;
+        public bool AllowSubQueryGeneration { get; set; }
 
         public bool IsVariableReference
             => Parent?.Body is MethodCallExpression mc && mc.Method.GetCustomAttribute<Operators.EquivalentOperator>()?.Operator?.GetType() == typeof(Operators.VariablesReference);
-        
-        
+
         public QueryContext() { }
 
         public virtual QueryContext Enter(Expression x, int? paramIndex = null, Action<QueryContext>? modifier = null)
@@ -41,8 +35,7 @@ namespace EdgeDB
                 BuilderContext = BuilderContext,
             };
 
-            if (modifier != null)
-                modifier(context);
+            modifier?.Invoke(context);
 
             return context;
         }
@@ -70,8 +63,7 @@ namespace EdgeDB
                 Parent = this
             };
 
-            if (modifier != null)
-                modifier(context);
+            modifier?.Invoke(context);
 
             return context;
         }

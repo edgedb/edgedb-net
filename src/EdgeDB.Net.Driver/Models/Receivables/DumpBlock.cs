@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Security.Cryptography;
 
 namespace EdgeDB.Models
 {
@@ -61,7 +56,7 @@ namespace EdgeDB.Models
 
             Hash = SHA1.Create().ComputeHash(Raw);
 
-            using(var r = new PacketReader(Raw))
+            using (var r = new PacketReader(Raw))
             {
                 Headers = r.ReadHeaders();
             }

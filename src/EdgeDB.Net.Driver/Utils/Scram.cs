@@ -1,12 +1,8 @@
 ﻿using EdgeDB.Codecs;
 using EdgeDB.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace EdgeDB.Utils
 {
@@ -17,16 +13,13 @@ namespace EdgeDB.Utils
         private byte[]? _clientNonce;
         private string? _rawFirstMessage;
 
-        private string SanitizeString(string str)
-        {
-            return str.Normalize(NormalizationForm.FormKC);
-        }
+        private static string SanitizeString(string str) => str.Normalize(NormalizationForm.FormKC);
 
-        private byte[] GenerateNonce()
+        private static byte[] GenerateNonce()
         {
             var bytes = new byte[NonceLength];
-            
-            using(var random = RandomNumberGenerator.Create())
+
+            using (var random = RandomNumberGenerator.Create())
             {
                 random.GetBytes(bytes);
             }
@@ -55,15 +48,15 @@ namespace EdgeDB.Utils
 
             var parsedMessage = ParseServerMessage(msg);
 
-            if(parsedMessage.Count < 3)
+            if (parsedMessage.Count < 3)
             {
                 throw new FormatException("Received malformed scram message");
             }
 
             var serverNonce = Convert.FromBase64String(parsedMessage["r"]);
             var salt = Convert.FromBase64String(parsedMessage["s"]);
-            
-            if(!int.TryParse(parsedMessage["i"], out var iterations))
+
+            if (!int.TryParse(parsedMessage["i"], out var iterations))
             {
                 throw new FormatException("Received malformed scram message");
             }
@@ -84,7 +77,7 @@ namespace EdgeDB.Utils
             return (new AuthenticationSASLResponse(ICodec.GetScalarCodec<string>()!.Serialize($"{final},p={Convert.ToBase64String(clientProof)}")), serverProof);
         }
 
-        public byte[] ParseServerFinalMessage(AuthenticationStatus status)
+        public static byte[] ParseServerFinalMessage(AuthenticationStatus status)
         {
             var msg = ICodec.GetScalarCodec<string>()!.Deserialize(status.SASLData)!;
 
@@ -93,24 +86,24 @@ namespace EdgeDB.Utils
             return Convert.FromBase64String(parsed["v"]);
         }
 
-        private Dictionary<string, string> ParseServerMessage(string msg)
+        private static Dictionary<string, string> ParseServerMessage(string msg)
         {
             var matches = Regex.Matches(msg, @"(.{1})=(.+?)(?>,|$)");
 
             return matches.ToDictionary(x => x.Groups[1].Value, x => x.Groups[2].Value);
         }
 
-        private byte[] SaltPassword(string password, byte[] salt, int iterations)
+        private static byte[] SaltPassword(string password, byte[] salt, int iterations)
         {
             var pdb = new Rfc2898DeriveBytes(password, salt, iterations, HashAlgorithmName.SHA256);
 
             return pdb.GetBytes(32);
         }
 
-        private byte[] ComputeHMACHash(byte[] data, string key)
+        private static byte[] ComputeHMACHash(byte[] data, string key)
             => ComputeHMACHash(data, Encoding.UTF8.GetBytes(key));
 
-        private byte[] ComputeHMACHash(byte[] data, byte[] key)
+        private static byte[] ComputeHMACHash(byte[] data, byte[] key)
         {
             using (var hmac = new HMACSHA256(data))
             {
@@ -118,10 +111,10 @@ namespace EdgeDB.Utils
             }
         }
 
-        private byte[] GetClientKey(byte[] password)
+        private static byte[] GetClientKey(byte[] password)
             => ComputeHMACHash(password, "Client Key");
 
-        private byte[] GetServerKey(byte[] password)
+        private static byte[] GetServerKey(byte[] password)
             => ComputeHMACHash(password, "Server Key");
 
         //private byte[] HMAC(byte[] key, string val)
@@ -132,20 +125,20 @@ namespace EdgeDB.Utils
         //    var db = new Rfc2898DeriveBytes()
         //}
 
-        private byte[] Hash(byte[] input)
+        private static byte[] Hash(byte[] input)
         {
-            using(var hs = SHA256.Create())
+            using (var hs = SHA256.Create())
             {
                 return hs.ComputeHash(input);
             }
         }
 
-        private byte[] XOR(byte[] b1, byte[] b2)
+        private static byte[] XOR(byte[] b1, byte[] b2)
         {
             var length = b1.Length;
 
             byte[] result = new byte[length];
-            for(int i = 0; i < length; i++)
+            for (int i = 0; i < length; i++)
             {
                 result[i] = (byte)(b1[i] ^ b2[i]);
             }

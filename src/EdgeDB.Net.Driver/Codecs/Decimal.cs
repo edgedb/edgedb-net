@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EdgeDB.Codecs
+﻿namespace EdgeDB.Codecs
 {
     internal class Decimal : IScalarCodec<decimal>
     {
@@ -24,14 +18,14 @@ namespace EdgeDB.Codecs
 
             int d;
 
-            if(weight < 0)
+            if (weight < 0)
             {
                 d = weight + 1;
                 value += "0";
             }
             else
             {
-                for(d = 0; d <= weight; d++)
+                for (d = 0; d <= weight; d++)
                 {
                     var digit = d < numDigits ? reader.ReadUInt16() : 0;
                     var sdigit = $"{digit}";
@@ -41,7 +35,7 @@ namespace EdgeDB.Codecs
                 }
             }
 
-            if(displayScale > 0)
+            if (displayScale > 0)
             {
                 value += ".";
                 var end = value.Length + displayScale;
@@ -51,12 +45,13 @@ namespace EdgeDB.Codecs
                     value += digit.ToString().PadLeft(4, '0');
                 }
 
-                value = value.Substring(0, end);
+                value = value[..end];
             }
 
             return decimal.Parse(value);
         }
 
+#pragma warning disable IDE0022 // Use expression body for methods
         public void Serialize(PacketWriter writer, decimal value)
         {
             // TODO https://www.edgedb.com/docs/reference/protocol/dataformats#std-decimal
@@ -95,7 +90,6 @@ namespace EdgeDB.Codecs
             //    writer.Write(digits[i]);
             //}
         }
-
-       
+#pragma warning restore IDE0022 // Use expression body for methods
     }
 }

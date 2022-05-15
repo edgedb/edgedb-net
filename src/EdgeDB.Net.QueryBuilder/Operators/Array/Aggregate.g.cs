@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class ArrayAggregate : IEdgeQLOperator
     {
-        public ExpressionType? Operator => null;
+        public ExpressionType? ExpressionType => null;
         public string EdgeQLOperator => "array_agg({0})";
     }
 }

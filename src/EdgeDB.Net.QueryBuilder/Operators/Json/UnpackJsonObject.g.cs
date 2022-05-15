@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class JsonUnpackJsonObject : IEdgeQLOperator
     {
-        public ExpressionType? Operator => null;
+        public ExpressionType? ExpressionType => null;
         public string EdgeQLOperator => "json_object_unpack({0})";
     }
 }

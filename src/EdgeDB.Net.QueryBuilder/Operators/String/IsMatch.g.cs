@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class StringIsMatch : IEdgeQLOperator
     {
-        public ExpressionType? Operator => null;
+        public ExpressionType? ExpressionType => null;
         public string EdgeQLOperator => "re_test({0}, {1})";
     }
 }

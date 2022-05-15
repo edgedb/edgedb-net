@@ -1,16 +1,8 @@
 ﻿using EdgeDB.Codecs;
 using EdgeDB.Models;
-using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
 using System.Numerics;
 using System.Reflection;
-using System.Reflection.Emit;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EdgeDB
 {
@@ -18,14 +10,14 @@ namespace EdgeDB
     {
         public static readonly Guid NullCodec = Guid.Empty;
 
-        private static Dictionary<ServerMessageType, Func<IReceiveable>> _receiveablePayloadFactory = new();
-        private static ConcurrentDictionary<Guid, ICodec> _codecCache = new();
+        private static readonly Dictionary<ServerMessageType, Func<IReceiveable>> _receiveablePayloadFactory = new();
+        private static readonly ConcurrentDictionary<Guid, ICodec> _codecCache = new();
 
         static PacketSerializer()
         {
             var types = Assembly.GetExecutingAssembly().GetTypes().Where(x => x.GetTypeInfo().ImplementedInterfaces.Any(y => y == typeof(IReceiveable)));
 
-            foreach(var t in types)
+            foreach (var t in types)
             {
                 var inst = (IReceiveable)Activator.CreateInstance(t)!;
                 _receiveablePayloadFactory.Add(inst.Type, () => (IReceiveable)Activator.CreateInstance(t)!);
@@ -36,9 +28,7 @@ namespace EdgeDB
         {
             if (t.Name == "Nullable`1")
                 t = t.GenericTypeArguments[0];
-            if (_scalarTypeMap.TryGetValue(t, out var result))
-                return result;
-            return null;
+            return _scalarTypeMap.TryGetValue(t, out var result) ? result : null;
         }
 
         public static Type? GetDotnetType(string? t)
@@ -69,18 +59,13 @@ namespace EdgeDB
 
                 stream.Read(new byte[length], 0, (int)length);
 
-                client.Logger.LogWarning("No converter found for message type 0x{} ({})", $"{type:X}", type);
+                client.Logger.UnknownPacket(type.ToString("X"));
                 return null;
             }
         }
 
         public static ICodec? GetCodec(Guid id)
-        {
-            if (_codecCache.TryGetValue(id, out var codec))
-                return codec;
-
-            return GetScalarCodec(id);
-        }
+            => _codecCache.TryGetValue(id, out var codec) ? codec : GetScalarCodec(id);
 
         public static ICodec? BuildCodec(Guid id, PacketReader reader)
         {
@@ -134,7 +119,7 @@ namespace EdgeDB
                                 var innerCodec = codecs[array.TypePos];
 
                                 // create the array codec with reflection
-                                var codecType = typeof(Codecs.Array<>).MakeGenericType(innerCodec.ConverterType);
+                                var codecType = typeof(Array<>).MakeGenericType(innerCodec.ConverterType);
                                 codec = (ICodec)Activator.CreateInstance(codecType, innerCodec)!;
                                 codecs.Add(codec);
                             }
@@ -149,13 +134,10 @@ namespace EdgeDB
                             }
                             break;
 
+                        default:
+                            break;
                     }
                 }
-            }
-
-            if(codecs.Count == 0)
-            {
-
             }
 
             _codecCache[id] = codecs.Last();
@@ -165,18 +147,18 @@ namespace EdgeDB
 
         public static ICodec? GetScalarCodec(Guid typeId)
         {
-            if(_defaultCodecs.TryGetValue(typeId, out var codec))
+            if (_defaultCodecs.TryGetValue(typeId, out var codec))
             {
                 // construct the codec
-
-                return (ICodec)Activator.CreateInstance(codec)!;
-
+                var builtCodec = (ICodec)Activator.CreateInstance(codec)!;
+                _codecCache[typeId] = builtCodec;
+                return builtCodec;
             }
 
             return null;
         }
 
-        private static Dictionary<Guid, Type> _defaultCodecs = new Dictionary<Guid, Type>
+        private static readonly Dictionary<Guid, Type> _defaultCodecs = new()
         {
             { NullCodec, typeof(NullCodec) },
             { new Guid("00000000-0000-0000-0000-000000000100"), typeof(UUID) },
@@ -200,28 +182,28 @@ namespace EdgeDB
 
         };
 
-        private static Dictionary<Type, string> _scalarTypeMap = new()
+        private static readonly Dictionary<Type, string> _scalarTypeMap = new()
         {
             { typeof(string), "str" },
-            { typeof(IEnumerable<char>), "str"},
+            { typeof(IEnumerable<char>), "str" },
             { typeof(bool), "bool" },
             { typeof(short), "int16" },
             { typeof(ushort), "int16" },
             { typeof(int), "int32" },
             { typeof(uint), "int32" },
-            { typeof(long), "int64"},
-            { typeof(ulong), "int64"},
-            { typeof(float), "float32"},
-            { typeof(double), "float64"},
+            { typeof(long), "int64" },
+            { typeof(ulong), "int64" },
+            { typeof(float), "float32" },
+            { typeof(double), "float64" },
             { typeof(BigInteger), "bigint" },
-            { typeof(decimal), "decimal"},
-            { typeof(DataTypes.Json), "json"},
-            { typeof(Guid), "uuid"},
-            { typeof(byte[]), "bytes"},
+            { typeof(decimal), "decimal" },
+            { typeof(DataTypes.Json), "json" },
+            { typeof(Guid), "uuid" },
+            { typeof(byte[]), "bytes" },
             { typeof(DateTime), "local_datetime" },
-            { typeof(DateTimeOffset), "datetime"},
-            { typeof(TimeSpan), "duration"},
-            { typeof(Sequence), "sequence"}
+            { typeof(DateTimeOffset), "datetime" },
+            { typeof(TimeSpan), "duration" },
+            { typeof(Sequence), "sequence" }
         };
     }
 }

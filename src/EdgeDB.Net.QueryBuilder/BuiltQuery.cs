@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+﻿using System.Text.RegularExpressions;
 
 namespace EdgeDB
 {
@@ -26,7 +21,7 @@ namespace EdgeDB
                         return $"{m.Groups[1].Value}\n";
 
                     default:
-                        return $"{((m.Groups[1].Value == "}" && (QueryText[m.Index - 1] == '{' || QueryText[m.Index - 1] == '}')) ? "" : "\n")}{m.Groups[1].Value}{((QueryText.Length == m.Index + 1 ? false : (QueryText[m.Index + 1] != ',')) ? "\n" : "")}";
+                        return $"{((m.Groups[1].Value == "}" && (QueryText[m.Index - 1] == '{' || QueryText[m.Index - 1] == '}')) ? "" : "\n")}{m.Groups[1].Value}{((QueryText.Length != m.Index + 1 && (QueryText[m.Index + 1] != ',')) ? "\n" : "")}";
                 }
             }).Trim().Replace("\n ", "\n");
 
@@ -38,17 +33,17 @@ namespace EdgeDB
             {
                 int indent = 0;
 
-                foreach(var c in result.Substring(0, m.Index))
+                foreach (var c in result[..m.Index])
                 {
-                    if (c == '(' || c == '{')
+                    if (c is '(' or '{')
                         indent++;
-                    if (c == ')' || c == '}')
+                    if (c is ')' or '}')
                         indent--;
                 }
 
                 var next = result.Length != m.Index ? result[m.Index] : '\0';
 
-                if (next == '}' || next == ')')
+                if (next is '}' or ')')
                     indent--;
 
                 return "".PadLeft(indent * 2);

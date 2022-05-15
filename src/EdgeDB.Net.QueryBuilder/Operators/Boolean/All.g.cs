@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class BooleanAll : IEdgeQLOperator
     {
-        public ExpressionType? Operator => null;
+        public ExpressionType? ExpressionType => null;
         public string EdgeQLOperator => "all({0})";
     }
 }

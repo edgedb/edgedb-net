@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EdgeDB.Models
+﻿namespace EdgeDB.Models
 {
     /// <summary>
     ///     An enum representing the transaction mode within a <see cref="Transaction"/>.

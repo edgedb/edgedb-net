@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class JsonJsonGet : IEdgeQLOperator
     {
-        public ExpressionType? Operator => null;
+        public ExpressionType? ExpressionType => null;
         public string EdgeQLOperator => "json_get({0}, {1})";
     }
 }

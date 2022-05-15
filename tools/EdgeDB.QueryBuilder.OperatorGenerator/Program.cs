@@ -69,13 +69,13 @@ using (var _ = writer.BeginScope("namespace EdgeDB"))
                         if (funcs.Count == 0)
                             funcs.Add(rootFunc);
 
-                        foreach(var func in funcs)
+                        foreach (var func in funcs)
                         {
                             var serializedExpression = Regex.Replace(op.Operator!.Replace("<", "&lt;").Replace(">", "&gt;"), @"({\d+})", m =>
                             {
                                 var index = int.Parse(m.Groups[1].Value.Replace("{", "").Replace("}", ""));
                                 string param;
-                                if(index >= func.Parameters.Count)
+                                if (index >= func.Parameters.Count)
                                 {
                                     var map = op.ParameterMap.FirstOrDefault(x => x.StartsWith(index.ToString()));
 
@@ -92,17 +92,10 @@ using (var _ = writer.BeginScope("namespace EdgeDB"))
 
                                         return $"<typeparamref name=\"{param}\"/>";
                                     }
-                                    
                                 }
                                 else param = func.Parameters[index];
 
-                                var name = "";
-
-                                if (param.Contains(' '))
-                                    name = param.Split(' ')[1];
-                                else
-                                    name = $"{ParamaterNames[index]}";
-
+                                var name = param.Contains(' ') ? param.Split(' ')[1] : $"{ParamaterNames[index]}";
                                 return $"<paramref name=\"{name}\"/>";
                             });
 
@@ -111,7 +104,7 @@ using (var _ = writer.BeginScope("namespace EdgeDB"))
                             writer.AppendLine("/// </summary>");
 
                             writer.AppendLine($"[EquivalentOperator(typeof(EdgeDB.Operators.{operatorName}))]");
-                            foreach(var map in op.ParameterMap)
+                            foreach (var map in op.ParameterMap)
                             {
                                 var split = map.Split(":");
 
@@ -132,7 +125,7 @@ using (var _ = writer.BeginScope("namespace EdgeDB"))
         // write the property and function map
         if (propertyMap.Any())
         {
-            using(var ___ = writer.BeginScope("internal static Dictionary<string, IEdgeQLOperator> PropertyOperators = new()"))
+            using (var ___ = writer.BeginScope("internal static Dictionary<string, IEdgeQLOperator> PropertyOperators = new()"))
             {
                 propertyMap.ForEach(x => writer.AppendLine($"{{ \"{x.CSName}\", new {x.OperatorName}()}}"));
             }
@@ -162,7 +155,7 @@ void WriteEnums(EdgeQLOperator[] enums)
     {
         var writer = new CodeWriter();
 
-        using(var _ = writer.BeginScope("namespace EdgeDB"))
+        using (var _ = writer.BeginScope("namespace EdgeDB"))
         {
             if (en.SerializeMethod != null)
                 writer.AppendLine($"[EnumSerializer(SerializationMethod.{en.SerializeMethod})]");
@@ -206,19 +199,22 @@ void BuildSingleOperator(string section, EdgeQLOperator op)
     File.WriteAllText(Path.Combine(OperatorsOutputDir, $"{FirstCharToUpper(section)}", $"{cleanedName}.g.cs"), writer.ToString());
 }
 
-string FirstCharToUpper(string input) =>
-input switch
+string FirstCharToUpper(string input)
 {
-    null => throw new ArgumentNullException(nameof(input)),
-    "" => throw new ArgumentException($"{nameof(input)} cannot be empty", nameof(input)),
-    _ => input[0].ToString().ToUpper() + input.Substring(1)
-};
+    return input switch
+    {
+        null => throw new ArgumentNullException(nameof(input)),
+        "" => throw new ArgumentException($"{nameof(input)} cannot be empty", nameof(input)),
+        _ => string.Concat(input[0].ToString().ToUpper(), input.AsSpan(1))
+    };
+}
 
 List<string> Replace(string r, int i, List<string> arr)
 {
-    var l = new List<string>(arr);
-
-    l[i] = r;
+    var l = new List<string>(arr)
+    {
+        [i] = r
+    };
 
     return l;
 }
@@ -229,18 +225,18 @@ List<EdgeQLFunction> GenerateFunctions(EdgeQLFunction func)
 {
     var ret = new List<EdgeQLFunction>();
 
-    for(int i = 0; i != func.Parameters.Count; i++)
+    for (int i = 0; i != func.Parameters.Count; i++)
     {
         var param = func.Parameters[i];
-        if(param == "anyint")
+        if (param == "anyint")
         {
-            ret.Add(new EdgeQLFunction { Name = func.Name, Return = func.Return ?? "short", Parameters = Replace("short", i, func.Parameters)});
-            ret.Add(new EdgeQLFunction { Name = func.Name, Return = func.Return ?? "int", Parameters = Replace("int", i, func.Parameters)});
-            ret.Add(new EdgeQLFunction { Name = func.Name, Return = func.Return ?? "long", Parameters = Replace("long", i, func.Parameters)});
+            ret.Add(new EdgeQLFunction { Name = func.Name, Return = func.Return ?? "short", Parameters = Replace("short", i, func.Parameters) });
+            ret.Add(new EdgeQLFunction { Name = func.Name, Return = func.Return ?? "int", Parameters = Replace("int", i, func.Parameters) });
+            ret.Add(new EdgeQLFunction { Name = func.Name, Return = func.Return ?? "long", Parameters = Replace("long", i, func.Parameters) });
 
             ret.AddRange(ret.Select(x => GenerateFunctions(x)).SelectMany(x => x));
         }
-        if(param == "anyfloat")
+        if (param == "anyfloat")
         {
             ret.Add(new EdgeQLFunction { Name = func.Name, Return = func.Return ?? "float", Parameters = Replace("float", i, func.Parameters) });
             ret.Add(new EdgeQLFunction { Name = func.Name, Return = func.Return ?? "double", Parameters = Replace("double", i, func.Parameters) });
@@ -258,7 +254,7 @@ List<EdgeQLFunction> GenerateFunctions(EdgeQLFunction func)
         }
     }
 
-    ret.RemoveAll(x => x.Parameters.Any(x => x == "anyreal" || x == "anyfloat" || x == "anyint"));
+    ret.RemoveAll(x => x.Parameters.Any(x => x is "anyreal" or "anyfloat" or "anyint"));
 
     return ret;
 }

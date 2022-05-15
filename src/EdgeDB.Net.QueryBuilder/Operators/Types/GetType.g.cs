@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class TypesGetType : IEdgeQLOperator
     {
-        public ExpressionType? Operator => null;
+        public ExpressionType? ExpressionType => null;
         public string EdgeQLOperator => "introspect (typeof {0})";
     }
 }

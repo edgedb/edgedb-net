@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class SetsMax : IEdgeQLOperator
     {
-        public ExpressionType? Operator => null;
+        public ExpressionType? ExpressionType => null;
         public string EdgeQLOperator => "max({0})";
     }
 }

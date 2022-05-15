@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EdgeDB.Models
+﻿namespace EdgeDB.Models
 {
     internal class ClientHandshake : Sendable
     {
@@ -12,8 +6,8 @@ namespace EdgeDB.Models
 
         public short MajorVersion { get; set; }
         public short MinorVersion { get; set; }
-        public ConnectionParam[] ConnectionParameters { get; set; } = new ConnectionParam[0];
-        public ProtocolExtension[] Extensions { get; set; } = new ProtocolExtension[0];
+        public ConnectionParam[] ConnectionParameters { get; set; } = Array.Empty<ConnectionParam>();
+        public ProtocolExtension[] Extensions { get; set; } = Array.Empty<ProtocolExtension>();
 
         protected override void BuildPacket(PacketWriter writer, EdgeDBTcpClient client)
         {
@@ -21,7 +15,7 @@ namespace EdgeDB.Models
             writer.Write(MinorVersion);
 
             writer.Write((ushort)ConnectionParameters.Length);
-            foreach(var param in ConnectionParameters)
+            foreach (var param in ConnectionParameters)
             {
                 param.Write(writer);
             }

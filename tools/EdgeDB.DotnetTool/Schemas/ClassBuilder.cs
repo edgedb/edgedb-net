@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
+﻿using System.Globalization;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace EdgeDB.DotnetTool
 {
@@ -13,7 +8,7 @@ namespace EdgeDB.DotnetTool
         private readonly string _outputDir;
         private readonly string _generatedNamespace;
 
-        private readonly TextInfo _textInfo = new CultureInfo("en-US",false).TextInfo;
+        private readonly TextInfo _textInfo = new CultureInfo("en-US", false).TextInfo;
 
 
         public ClassBuilder(string outputDir, string generatedNamespace)
@@ -36,7 +31,7 @@ namespace EdgeDB.DotnetTool
 
             context.OutputDir = folder;
 
-            foreach(var type in module.Types)
+            foreach (var type in module.Types)
             {
                 if (context.BuiltTypes.Contains(type))
                     continue;
@@ -52,7 +47,7 @@ namespace EdgeDB.DotnetTool
         {
             var writer = new CodeWriter();
 
-            writer.AppendLine($"// Generated on {DateTimeOffset.UtcNow.ToString("O")}");
+            writer.AppendLine($"// Generated on {DateTimeOffset.UtcNow:O}");
             writer.AppendLine("using EdgeDB;");
 
             string? name = t.Name;
@@ -60,24 +55,21 @@ namespace EdgeDB.DotnetTool
             if (name != null && Regex.IsMatch(name, @"^[`'](.*?)[`']$"))
                 name = Regex.Match(name, @"^[`'](.*?)[`']$").Groups[1].Value;
 
-            using(var _ = writer.BeginScope($"namespace {_generatedNamespace}"))
+            using (var _ = writer.BeginScope($"namespace {_generatedNamespace}"))
             {
-                if (!IsValidDotnetName(name))
-                {
-                    name = context.NameCallback($"{context.Module?.Name}::{name ?? "null"}");
-                }
-                else
-                    name = PascalUtils.ToPascalCase(name);
+                name = !IsValidDotnetName(name)
+                    ? context.NameCallback($"{context.Module?.Name}::{name ?? "null"}")
+                    : PascalUtils.ToPascalCase(name);
 
                 t.BuiltName = name;
 
                 if (IsEnum(t))
                 {
                     writer.AppendLine("[EnumSerializer(SerializationMethod.Lower)]");
-                    using(var __ = writer.BeginScope($"public enum {name}"))
+                    using (var __ = writer.BeginScope($"public enum {name}"))
                     {
                         // extract values
-                        foreach(Match match in Regex.Matches(t.Extending!, @"(?><| )(.*?)(?>,|>)"))
+                        foreach (Match match in Regex.Matches(t.Extending!, @"(?><| )(.*?)(?>,|>)"))
                         {
                             writer.AppendLine($"{match.Groups[1].Value},");
                         }
@@ -87,9 +79,9 @@ namespace EdgeDB.DotnetTool
                 {
                     // generate class
                     writer.AppendLine($"[EdgeDBType(\"{t.Name}\")]");
-                    using(var __ = writer.BeginScope($"public{(t.IsAbstract ? " abstract" : "")} class {name} : {ResolveTypename(context!, t.Extending) ?? "BaseObject"}"))
+                    using (var __ = writer.BeginScope($"public{(t.IsAbstract ? " abstract" : "")} class {name} : {ResolveTypename(context!, t.Extending) ?? "BaseObject"}"))
                     {
-                        foreach(var prop in t.Properties)
+                        foreach (var prop in t.Properties)
                         {
                             if (context.BuildProperties.Contains(prop))
                                 continue;
@@ -120,12 +112,9 @@ namespace EdgeDB.DotnetTool
             // convert to pascal case for name
             var name = prop.Name;
 
-            if (!IsValidDotnetName(name))
-            {
-                name = context.NameCallback($"{context.Module?.Name}::{context.Type?.Name}.{name ?? "null"}");
-            }
-            else
-                name = PascalUtils.ToPascalCase(name);
+            name = !IsValidDotnetName(name)
+                ? context.NameCallback($"{context.Module?.Name}::{context.Type?.Name}.{name ?? "null"}")
+                : PascalUtils.ToPascalCase(name);
 
             prop.BuiltName = name;
 
@@ -146,10 +135,7 @@ namespace EdgeDB.DotnetTool
 
                     var match = Regex.Match(computed, @"\[is (.+?)\]");
 
-                    if (match.Success)
-                        type = ResolveTypename(context, match.Groups[1].Value);
-                    else
-                        type = "BaseObject";
+                    type = match.Success ? ResolveTypename(context, match.Groups[1].Value) : "BaseObject";
                 }
                 else
                 {
@@ -194,10 +180,10 @@ namespace EdgeDB.DotnetTool
 
         }
 
-        public System.Type? ResolveScalar(string? t)
-        {
-            return t == null ? null : PacketSerializer.GetDotnetType(Regex.Replace(t, @".+?::", m => ""));
-        }
+        public static System.Type? ResolveScalar(string? t)
+            => t == null
+                ? null
+                : PacketSerializer.GetDotnetType(Regex.Replace(t, @".+?::", m => ""));
 
         private string? ResolveTypename(ClassBuilderContext context, string? name)
         {
@@ -205,14 +191,14 @@ namespace EdgeDB.DotnetTool
                 return null;
 
             if (name.StartsWith($"{context.Module!.Name}::"))
-                name = name.Substring(context.Module.Name!.Length + 2);
+                name = name[(context.Module.Name!.Length + 2)..];
 
             // check our built types
-            if(context.BuiltTypes.Any(x => x.Name == name))
+            if (context.BuiltTypes.Any(x => x.Name == name))
             {
                 return context.BuiltTypes.FirstOrDefault(x => x.Name == name)!.BuiltName;
             }
-            else if(context.Module.Types.Any(x => x.Name == name)) // try building it if it has a name ref
+            else if (context.Module.Types.Any(x => x.Name == name)) // try building it if it has a name ref
             {
                 var type = context.Module.Types.FirstOrDefault(x => x.Name == name)!;
                 GenerateType(type, context.OutputDir!, context);
@@ -231,9 +217,9 @@ namespace EdgeDB.DotnetTool
             return Regex.IsMatch(name, @"^[a-zA-Z@_](?>\w|@)+?$");
         }
 
-        private string Lower(bool val)
+        private static string Lower(bool val)
             => val.ToString().ToLower();
-        private bool IsEnum(Type t)
+        private static bool IsEnum(Type t)
             => t.IsScalar && (t.Extending?.StartsWith("enum") ?? false);
     }
 }

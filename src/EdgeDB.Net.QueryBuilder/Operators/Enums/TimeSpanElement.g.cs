@@ -1,6 +1,6 @@
 namespace EdgeDB
 {
-    [EnumSerializer(SerializationMethod.Lower)]
+    [EnumSerializerAttribute(SerializationMethod.Lower)]
     public enum TimeSpanElement
     {
         MidnightSeconds,

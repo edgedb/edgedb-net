@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class TemporalTruncateTimeSpan : IEdgeQLOperator
     {
-        public ExpressionType? Operator => null;
+        public ExpressionType? ExpressionType => null;
         public string EdgeQLOperator => "duration_truncate({0}, {1})";
     }
 }

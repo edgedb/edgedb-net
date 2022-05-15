@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EdgeDB.DataTypes
+﻿namespace EdgeDB.DataTypes
 {
     /// <summary>
     ///     Represents an abstract type result from a query.

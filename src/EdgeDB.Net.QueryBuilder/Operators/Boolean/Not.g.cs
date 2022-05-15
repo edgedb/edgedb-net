@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class BooleanNot : IEdgeQLOperator
     {
-        public ExpressionType? Operator => ExpressionType.Not;
+        public ExpressionType? ExpressionType => System.Linq.Expressions.ExpressionType.Not;
         public string EdgeQLOperator => "not {0}";
     }
 }

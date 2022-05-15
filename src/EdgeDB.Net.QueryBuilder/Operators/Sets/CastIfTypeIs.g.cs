@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class SetsCastIfTypeIs : IEdgeQLOperator
     {
-        public ExpressionType? Operator => ExpressionType.TypeIs;
+        public ExpressionType? ExpressionType => System.Linq.Expressions.ExpressionType.TypeIs;
         public string EdgeQLOperator => "{0}[is {1}]";
     }
 }

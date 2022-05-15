@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class StringSplit : IEdgeQLOperator
     {
-        public ExpressionType? Operator => null;
+        public ExpressionType? ExpressionType => null;
         public string EdgeQLOperator => "str_split({0}, {1})";
     }
 }

@@ -1,16 +1,11 @@
 ﻿using EdgeDB.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EdgeDB.Dumps
 {
     internal class DumpReader
     {
-        public (Restore Restore, IEnumerable<RestoreBlock> Blocks) ReadDatabaseDump(Stream stream)
+        public static (Restore Restore, IEnumerable<RestoreBlock> Blocks) ReadDatabaseDump(Stream stream)
         {
             if (!stream.CanRead)
                 throw new ArgumentException($"Cannot read from {nameof(stream)}");
@@ -32,7 +27,7 @@ namespace EdgeDB.Dumps
                 if (version > DumpWriter.DumpVersion)
                     throw new ArgumentException($"Unsupported dump version {version}");
 
-                while(stream.Position < stream.Length)
+                while (stream.Position < stream.Length)
                 {
                     var packet = ReadPacket(reader);
 
@@ -57,23 +52,16 @@ namespace EdgeDB.Dumps
             return (restore!, blocks);
         }
 
-        private IReceiveable ReadPacket(PacketReader reader)
+        private static IReceiveable ReadPacket(PacketReader reader)
         {
             var type = reader.ReadChar();
 
-            IReceiveable packet;
-
-            switch (type)
+            IReceiveable packet = type switch
             {
-                case 'H':
-                    packet = new DumpHeader();
-                    break;
-                case 'D':
-                    packet = new DumpBlock();
-                    break;
-                default:
-                    throw new ArgumentException($"Unknown packet format {type}");
-            }
+                'H' => new DumpHeader(),
+                'D' => new DumpBlock(),
+                _ => throw new ArgumentException($"Unknown packet format {type}"),
+            };
 
             // read hash
             var hash = reader.ReadBytes(20);
@@ -83,22 +71,21 @@ namespace EdgeDB.Dumps
             var packetData = reader.ReadBytes((int)length);
 
             // check hash
-            using(var alg = SHA1.Create())
+            using (var alg = SHA1.Create())
             {
                 if (!alg.ComputeHash(packetData).SequenceEqual(hash))
                     throw new ArgumentException("Hash did not match");
             }
 
-            using(var innerReader = new PacketReader(packetData))
+            using (var innerReader = new PacketReader(packetData))
             {
                 packet.Read(innerReader, length, null!);
             }
 
-
             return packet;
         }
 
-        private void ThrowIfEndOfStream(bool readSuccess)
+        private static void ThrowIfEndOfStream(bool readSuccess)
         {
             if (!readSuccess)
                 throw new EndOfStreamException();

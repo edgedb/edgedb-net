@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EdgeDB.DotnetTool
+﻿namespace EdgeDB.DotnetTool
 {
     internal class Property
     {
@@ -34,7 +28,7 @@ namespace EdgeDB.DotnetTool
 
     public enum PropertyCardinality
     {
-        Single,
+        One,
         Multi
     }
 }

@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class GenericNotEqual : IEdgeQLOperator
     {
-        public ExpressionType? Operator => ExpressionType.NotEqual;
+        public ExpressionType? ExpressionType => System.Linq.Expressions.ExpressionType.NotEqual;
         public string EdgeQLOperator => "{0} ?!= {1}";
     }
 }

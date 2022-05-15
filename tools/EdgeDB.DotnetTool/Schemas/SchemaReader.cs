@@ -1,9 +1,4 @@
 ﻿using EdgeDB.DotnetTool.Lexer;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EdgeDB.DotnetTool
 {
@@ -75,8 +70,8 @@ namespace EdgeDB.DotnetTool
                     {
                         // skip, useless 
                         // Colin 03-04-2022
-                        var a = _lexer.ReadToken(); // read value
-                        var b = _lexer.ReadToken(); // skip semicolon
+                        _ = _lexer.ReadToken(); // read value
+                        _ = _lexer.ReadToken(); // skip semicolon
                         return null;
                     }
                 case TokenType.Constraint when isAbstract:
@@ -118,7 +113,7 @@ namespace EdgeDB.DotnetTool
                 IsLink = isLink,
             };
 
-            if(_lexer.PeekToken().Type == TokenType.Semicolon)
+            if (_lexer.PeekToken().Type == TokenType.Semicolon)
             {
                 // empty shape?
                 _lexer.Expect(TokenType.Semicolon);
@@ -160,7 +155,7 @@ namespace EdgeDB.DotnetTool
 
                                 if (_lexer.PeekToken().Type == TokenType.Comma)
                                 {
-                                    while(_lexer.PeekToken().Type != TokenType.BeginBrace)
+                                    while (_lexer.PeekToken().Type != TokenType.BeginBrace)
                                     {
                                         _lexer.ReadToken(); // comma
                                         var a = _lexer.ReadToken();
@@ -172,17 +167,17 @@ namespace EdgeDB.DotnetTool
                             }
                         }
                     default:
-                        throw new Exception($"Unexpected token type {other.Type} at {other.StartLine}:{other.StartPos}");
+                        throw new FormatException($"Unexpected token type {other.Type} at {other.StartLine}:{other.StartPos}");
                 }
             }
 
-            endLabel:
+        endLabel:
 
-            if(_lexer.PeekToken().Type == TokenType.BeginBrace)
+            if (_lexer.PeekToken().Type == TokenType.BeginBrace)
             {
                 _lexer.Expect(TokenType.BeginBrace);
                 // read inner
-                while(_lexer.PeekToken().Type != TokenType.EndBrace)
+                while (_lexer.PeekToken().Type != TokenType.EndBrace)
                 {
                     ret.Properties.Add(ReadProperty(ret));
                 }
@@ -197,7 +192,7 @@ namespace EdgeDB.DotnetTool
         {
             var prop = new Property() { Parent = type };
 
-            while(_lexer.PeekToken().Type != TokenType.Property && _lexer.PeekToken().Type != TokenType.Link)
+            while (_lexer.PeekToken().Type is not TokenType.Property and not TokenType.Link)
             {
                 var token = _lexer.ReadToken();
 
@@ -207,7 +202,7 @@ namespace EdgeDB.DotnetTool
                         prop.Required = true;
                         break;
                     case TokenType.Single:
-                        prop.Cardinality = PropertyCardinality.Single;
+                        prop.Cardinality = PropertyCardinality.One;
                         break;
                     case TokenType.Multi:
                         prop.Cardinality = PropertyCardinality.Multi;
@@ -245,7 +240,7 @@ namespace EdgeDB.DotnetTool
                 prop.IsComputed = true;
                 prop.ComputedValue = propertyDeclarerToken.Value;
             }
-            else if(propertyDeclarerToken.Type == TokenType.Extending)
+            else if (propertyDeclarerToken.Type == TokenType.Extending)
             {
                 // read the extending value until type assignment
                 var typeAssignment = _lexer.Expect(TokenType.TypeArrow);
@@ -253,7 +248,7 @@ namespace EdgeDB.DotnetTool
                 prop.Type = typeAssignment.Value;
             }
             else
-                throw new Exception($"Expected type arrow or assignment but got {propertyDeclarerToken.Type} at {propertyDeclarerToken.StartLine}:{propertyDeclarerToken.StartPos}");
+                throw new FormatException($"Expected type arrow or assignment but got {propertyDeclarerToken.Type} at {propertyDeclarerToken.StartLine}:{propertyDeclarerToken.StartPos}");
 
 
             // check for body
@@ -289,7 +284,7 @@ namespace EdgeDB.DotnetTool
                             break;
 
                         default:
-                            throw new Exception($"Unexpected token, expected constraint or annotation but got {peeked.Type} at {peeked.StartLine}:{peeked.StartPos}");
+                            throw new FormatException($"Unexpected token, expected constraint or annotation but got {peeked.Type} at {peeked.StartLine}:{peeked.StartPos}");
                     }
                 }
 
@@ -305,7 +300,7 @@ namespace EdgeDB.DotnetTool
         {
             var constraint = _lexer.Expect(TokenType.Constraint);
 
-            if(_lexer.PeekToken().Type == TokenType.On && constraint.Value == "expression")
+            if (_lexer.PeekToken().Type == TokenType.On && constraint.Value == "expression")
             {
                 //var val = "";
                 _lexer.Expect(TokenType.BeginParenthesis);
@@ -319,17 +314,14 @@ namespace EdgeDB.DotnetTool
             if (_lexer.PeekToken().Type == TokenType.Semicolon)
                 _lexer.ReadToken();
 
-            return new Constraint 
+            return new Constraint
             {
                 IsExpression = false,
                 Value = constraint.Value
             };
         }
 
-        private Annotation ReadAnnotation()
-        {
-            return new Annotation() { };
-        }
+        private static Annotation ReadAnnotation() => new() { };
 
         private void ExpectEndOfBody()
         {

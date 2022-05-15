@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class NumbersToDouble : IEdgeQLOperator
     {
-        public ExpressionType? Operator => null;
+        public ExpressionType? ExpressionType => null;
         public string EdgeQLOperator => "to_float64({0}, {1?})";
     }
 }

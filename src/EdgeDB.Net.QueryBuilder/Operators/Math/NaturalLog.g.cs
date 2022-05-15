@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class MathNaturalLog : IEdgeQLOperator
     {
-        public ExpressionType? Operator => null;
+        public ExpressionType? ExpressionType => null;
         public string EdgeQLOperator => "math::ln({0})";
     }
 }

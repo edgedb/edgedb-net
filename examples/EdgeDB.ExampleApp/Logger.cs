@@ -1,11 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace EdgeDB.ExampleApp
 {
@@ -34,19 +29,18 @@ namespace EdgeDB.ExampleApp
 
     public class Logger : ILogger
     {
-        private string _owner;
-        private LogPostfix[] _postFixs;
+        private readonly string _owner;
+        private readonly LogPostfix[] _postFixs;
 
-        private static ConcurrentQueue<LogMessage> _queue = new ConcurrentQueue<LogMessage>();
-        private static Dictionary<string, Func<string, Task>> _commands = new Dictionary<string, Func<string, Task>>();
-        private static object _lock = new object();
+        private static readonly ConcurrentQueue<LogMessage> _queue = new();
+        private static readonly Dictionary<string, Func<string, Task>> _commands = new();
+        private static readonly object _lock = new();
         private static TaskCompletionSource _taskSource;
-        private static List<(StreamType Type, Stream Stream)> _streams;
-        private static List<StreamWriter> _stdOut => _streams.Where(x => x.Type == StreamType.StandardOut).Select(x => new StreamWriter(x.Stream)).ToList();
-        private static List<StreamWriter> _stdErr => _streams.Where(x => x.Type == StreamType.StandardError).Select(x => new StreamWriter(x.Stream)).ToList();
-        private static List<StreamReader> _stdIn => _streams.Where(x => x.Type == StreamType.StandardIn).Select(x => new StreamReader(x.Stream)).ToList();
+        private static readonly List<(StreamType Type, Stream Stream)> _streams;
+        private static List<StreamWriter> StdOut => _streams.Where(x => x.Type == StreamType.StandardOut).Select(x => new StreamWriter(x.Stream)).ToList();
+        private static List<StreamWriter> StdErr => _streams.Where(x => x.Type == StreamType.StandardError).Select(x => new StreamWriter(x.Stream)).ToList();
 
-        private static Dictionary<LogPostfix, ConsoleColor> _postfixColors = new Dictionary<LogPostfix, ConsoleColor>()
+        private static readonly Dictionary<LogPostfix, ConsoleColor> _postfixColors = new()
         {
             { LogPostfix.Log, ConsoleColor.Green },
             { LogPostfix.Error, ConsoleColor.Red },
@@ -135,10 +129,10 @@ namespace EdgeDB.ExampleApp
         }
 
         private static Task WriteStdOutAsync(string msg)
-            => WriteToStreamsAsync(msg, _stdOut);
+            => WriteToStreamsAsync(msg, StdOut);
 
         private static Task WriteStdErrAsync(string msg)
-            => WriteToStreamsAsync(msg, _stdErr);
+            => WriteToStreamsAsync(msg, StdErr);
 
         private static async Task WriteToStreamsAsync(string msg, IEnumerable<StreamWriter> writers)
         {
@@ -152,19 +146,11 @@ namespace EdgeDB.ExampleApp
         public static Logger GetLogger<TType>(params LogPostfix[] postfixs)
             => GetLogger(typeof(TType), postfixs);
         public static Logger GetLogger(Type t, params LogPostfix[] postfixs)
-        {
-            return new Logger($"{t.Assembly.GetName().Name}:{t.Name}", postfixs);
-        }
+            => new($"{t.Assembly.GetName().Name}:{t.Name}", postfixs);
 
-        public static void AddStream(Stream stream, StreamType type)
-        {
-            _streams.Add((type, stream));
-        }
+        public static void AddStream(Stream stream, StreamType type) => _streams.Add((type, stream));
 
-        public static void RegisterCommand(string commandName, Func<string, Task> commandResult)
-        {
-            _commands.TryAdd(commandName, commandResult);
-        }
+        public static void RegisterCommand(string commandName, Func<string, Task> commandResult) => _commands.TryAdd(commandName, commandResult);
 
         private LogMessage CreateLogMessage(IEnumerable<LogPostfix> severities, string message, StreamType type)
         {
@@ -177,7 +163,7 @@ namespace EdgeDB.ExampleApp
                     enumsWithColors += $" -> <{(int)_postfixColors[item]}>{item}</{(int)_postfixColors[item]}>";
             }
 
-            var items = ProcessColors($"\u001b[38;5;249m{DateTime.UtcNow.ToString("O")} <Green>{_owner}</Green> " + $"\u001b[1m[{enumsWithColors}]\u001b[0m - \u001b[37;1m{message}");
+            var items = ProcessColors($"\u001b[38;5;249m{DateTime.UtcNow:O} <Green>{_owner}</Green> " + $"\u001b[1m[{enumsWithColors}]\u001b[0m - \u001b[37;1m{message}");
 
             string content = $"{string.Join("", items.Select(item => $"{ConsoleColorToANSI(item.color)}{item.value}\u001b[0m"))}";
 
@@ -189,7 +175,7 @@ namespace EdgeDB.ExampleApp
             };
         }
 
-        private static Regex ColorRegex = new Regex(@"<(.*)>(.*?)<\/\1>");
+        private static readonly Regex ColorRegex = new(@"<(.*)>(.*?)<\/\1>");
         private static List<(ConsoleColor color, string value)> ProcessColors(string input)
         {
             var returnData = new List<(ConsoleColor color, string value)>();
@@ -240,58 +226,35 @@ namespace EdgeDB.ExampleApp
         }
         private static ConsoleColor? GetColor(string tag)
         {
-            if (Enum.TryParse(typeof(ConsoleColor), tag, true, out var res))
-            {
-                return (ConsoleColor?)res;
-            }
-            else if (int.TryParse(tag, out var r))
-            {
-                return (ConsoleColor)r;
-            }
-            else return null;
+            return Enum.TryParse(typeof(ConsoleColor), tag, true, out var res)
+                ? (ConsoleColor?)res
+                : int.TryParse(tag, out var r) ? (ConsoleColor)r : null;
         }
 
         private static string ConsoleColorToANSI(ConsoleColor color)
         {
-            int ansiConverter(ConsoleColor c)
+            static int ansiConverter(ConsoleColor c)
             {
-                switch (c)
+                return c switch
                 {
-                    case ConsoleColor.Black:
-                        return 0;
-                    case ConsoleColor.DarkRed:
-                        return 1;
-                    case ConsoleColor.DarkGreen:
-                        return 2;
-                    case ConsoleColor.DarkYellow:
-                        return 3;
-                    case ConsoleColor.DarkBlue:
-                        return 4;
-                    case ConsoleColor.DarkMagenta:
-                        return 5;
-                    case ConsoleColor.DarkCyan:
-                        return 6;
-                    case ConsoleColor.Gray:
-                        return 7;
-                    case ConsoleColor.DarkGray:
-                        return 8;
-                    case ConsoleColor.Red:
-                        return 9;
-                    case ConsoleColor.Green:
-                        return 10;
-                    case ConsoleColor.Yellow:
-                        return 11;
-                    case ConsoleColor.Blue:
-                        return 12;
-                    case ConsoleColor.Magenta:
-                        return 13;
-                    case ConsoleColor.Cyan:
-                        return 14;
-                    case ConsoleColor.White:
-                        return 15;
-                    default:
-                        return (int)c;
-                }
+                    ConsoleColor.Black => 0,
+                    ConsoleColor.DarkRed => 1,
+                    ConsoleColor.DarkGreen => 2,
+                    ConsoleColor.DarkYellow => 3,
+                    ConsoleColor.DarkBlue => 4,
+                    ConsoleColor.DarkMagenta => 5,
+                    ConsoleColor.DarkCyan => 6,
+                    ConsoleColor.Gray => 7,
+                    ConsoleColor.DarkGray => 8,
+                    ConsoleColor.Red => 9,
+                    ConsoleColor.Green => 10,
+                    ConsoleColor.Yellow => 11,
+                    ConsoleColor.Blue => 12,
+                    ConsoleColor.Magenta => 13,
+                    ConsoleColor.Cyan => 14,
+                    ConsoleColor.White => 15,
+                    _ => (int)c,
+                };
             }
 
             return $"\u001b[38;5;{ansiConverter(color)}m";
@@ -299,10 +262,7 @@ namespace EdgeDB.ExampleApp
 
         public static string BuildColoredString(object? s, ConsoleColor color)
             => BuildColoredString(s?.ToString(), color);
-        public static string BuildColoredString(string? s, ConsoleColor color)
-        {
-            return $"<{color}>{s}</{color}>";
-        }
+        public static string BuildColoredString(string? s, ConsoleColor color) => $"<{color}>{s}</{color}>";
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
@@ -323,17 +283,13 @@ namespace EdgeDB.ExampleApp
             Write(state.ToString()!, exception, postfix: lvl);
         }
 
-        public bool IsEnabled(LogLevel logLevel)
-        {
-            return true;
-        }
+        public bool IsEnabled(LogLevel logLevel) => true;
 
-        public IDisposable BeginScope<TState>(TState state)
-        {
+        public IDisposable BeginScope<TState>(TState state) =>
 #pragma warning disable CS8603 // Possible null reference return.
-            return null;
+            null;
 #pragma warning restore CS8603 // Possible null reference return.
-        }
+
 
         private struct LogMessage
         {

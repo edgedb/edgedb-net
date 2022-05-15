@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EdgeDB
+﻿namespace EdgeDB
 {
     /// <summary>
     ///     Thrown when the current method would result in a invalid query being constructed
@@ -19,10 +12,10 @@ namespace EdgeDB
             : base(message)
         {
             Expression = expression;
-            ExpressionValidAfter = new QueryExpressionType[0];
+            ExpressionValidAfter = Array.Empty<QueryExpressionType>();
         }
 
-        public InvalidQueryOperationException(QueryExpressionType expression, QueryExpressionType[] validAfter) 
+        public InvalidQueryOperationException(QueryExpressionType expression, QueryExpressionType[] validAfter)
             : base($"Expression {expression} is only valid after {string.Join(", ", validAfter)}")
         {
             Expression = expression;

@@ -1,10 +1,4 @@
 ﻿using EdgeDB.Models;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EdgeDB
 {
@@ -15,7 +9,7 @@ namespace EdgeDB
 
         private readonly EdgeDBTcpClient _client;
         private readonly TransactionSettings _settings;
-        private readonly object _lock = new object();
+        private readonly object _lock = new();
 
         internal Transaction(EdgeDBTcpClient client, TransactionSettings settings)
         {
@@ -25,11 +19,13 @@ namespace EdgeDB
 
         internal async Task StartAsync()
         {
+#pragma warning disable IDE0072 // Add missing cases
             var isolation = _settings.Isolation switch
             {
                 Isolation.Serializable => "serializable",
                 _ => throw new EdgeDBException("Unknown isolation mode")
             };
+#pragma warning restore IDE0072 // Add missing cases
 
             var readMode = _settings.ReadOnly ? "read only" : "read write";
 
@@ -39,14 +35,10 @@ namespace EdgeDB
         }
 
         internal async Task CommitAsync()
-        {
-            await _client.ExecuteInternalAsync($"commit", capabilities: null).ConfigureAwait(false);
-        }
+            => await _client.ExecuteInternalAsync($"commit", capabilities: null).ConfigureAwait(false);
 
         internal async Task RollbackAsync()
-        {
-            await _client.ExecuteInternalAsync($"rollback", capabilities: null).ConfigureAwait(false);
-        }
+            => await _client.ExecuteInternalAsync($"rollback", capabilities: null).ConfigureAwait(false);
 
         internal async Task ExecuteInternalAsync(Func<Task> func)
         {
@@ -79,7 +71,7 @@ namespace EdgeDB
         {
             lock (_lock)
             {
-                if(State != TransactionState.InTransaction)
+                if (State != TransactionState.InTransaction)
                 {
                     throw new TransactionException($"Cannot preform query; this transaction {(State == TransactionState.InFailedTransaction ? "has failed" : "no longer exists")}.");
                 }
@@ -87,13 +79,13 @@ namespace EdgeDB
 
             EdgeDBException? innerException = null;
 
-            for(int i = 0; i != _settings.RetryAttempts; i++)
+            for (int i = 0; i != _settings.RetryAttempts; i++)
             {
                 try
                 {
                     return await func().ConfigureAwait(false);
                 }
-                catch (EdgeDBException x) when (x.ShouldRetry) 
+                catch (EdgeDBException x) when (x.ShouldRetry)
                 {
                     innerException = x;
                 }
@@ -136,7 +128,7 @@ namespace EdgeDB
         ///     Any data modifications with insert, update, or delete are 
         ///     disallowed. Schema mutations via DDL are also disallowed.
         /// </summary>
-        public bool ReadOnly { get; set; } = false;
+        public bool ReadOnly { get; set; }
 
         /// <summary>
         ///     Gets or sets whether or not the transaction is deferrable.
@@ -153,7 +145,7 @@ namespace EdgeDB
         ///     by a serialization failure. This mode is well suited for long-running 
         ///     reports or backups.
         /// </remarks>
-        public bool Deferrable { get; set; } = false;
+        public bool Deferrable { get; set; }
 
         /// <summary>
         ///     Gets or sets the number of attempts to retry the transaction before throwing.

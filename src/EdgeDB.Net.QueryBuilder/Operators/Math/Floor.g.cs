@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class MathFloor : IEdgeQLOperator
     {
-        public ExpressionType? Operator => null;
+        public ExpressionType? ExpressionType => null;
         public string EdgeQLOperator => "math::floor({0})";
     }
 }

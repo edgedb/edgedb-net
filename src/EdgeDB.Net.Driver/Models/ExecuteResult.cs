@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Dynamic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EdgeDB.Models
+﻿namespace EdgeDB.Models
 {
     /// <summary>
     ///     Represents a generic execution result of a command.
@@ -17,7 +9,7 @@ namespace EdgeDB.Models
         public bool IsSuccess { get; private set; }
 
         /// <inheritdoc/>
-        public ErrorResponse? Error { get; private set; }
+        public ErrorResponse? ErrorResponse { get; private set; }
 
         /// <inheritdoc/>
         public Exception? Exception { get; private set; }
@@ -28,7 +20,7 @@ namespace EdgeDB.Models
         internal ExecuteResult(bool success, ErrorResponse? error, Exception? exc, string? executedQuery)
         {
             IsSuccess = success;
-            Error = error;
+            ErrorResponse = error;
             Exception = exc;
             ExecutedQuery = executedQuery;
         }
@@ -47,7 +39,7 @@ namespace EdgeDB.Models
         /// <summary>
         ///     Gets the error (if any) that the command received.
         /// </summary>
-        ErrorResponse? Error { get; }
+        ErrorResponse? ErrorResponse { get; }
 
         /// <summary>
         ///     Gets the exception (if any) that the command threw when executing.

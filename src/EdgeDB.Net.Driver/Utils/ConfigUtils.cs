@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace EdgeDB.Utils
 {
@@ -63,11 +58,6 @@ namespace EdgeDB.Utils
             }
 
             return Path.Combine(GetEdgeDBBasePath(), "config", "projects", $"{baseName}-{hash.ToLower()}");
-        }
-
-        public static string GetProjectCredentialsFile(string projectName)
-        {
-            return "";
         }
     }
 }

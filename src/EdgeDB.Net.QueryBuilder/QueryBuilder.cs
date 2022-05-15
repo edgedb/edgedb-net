@@ -1,13 +1,5 @@
 ﻿using EdgeDB.DataTypes;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
-using System.Reflection.Emit;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace EdgeDB
 {
@@ -26,7 +18,7 @@ namespace EdgeDB
             {
                 var lastNode = QueryNodes.LastOrDefault();
 
-                if(lastNode == null)
+                if (lastNode == null)
                 {
                     lastNode = new QueryNode() { Type = QueryExpressionType.Start };
                     QueryNodes.Add(lastNode);
@@ -39,76 +31,27 @@ namespace EdgeDB
         public List<KeyValuePair<string, object?>> Arguments { get; set; } = new();
 
         #region Static keyword proxies
-        public static QueryBuilder<TResult> Select<TResult>(object shape)
-        {
-            return new QueryBuilder<TResult>().Select<TResult>(shape);
+        public static QueryBuilder<TResult> Select<TResult>(object shape) => new QueryBuilder<TResult>().Select<TResult>(shape);
+        public static QueryBuilder<TResult> Select<TResult>(Expression<Func<TResult>> selector) => new QueryBuilder<TResult>().Select(selector);
+        public static QueryBuilder<TType> Select<TType>() => new QueryBuilder<TType>().Select<TType>();
+        public static QueryBuilder<TType> Select<TType>(params Expression<Func<TType, object?>>[] properties) => new QueryBuilder<TType>().Select(properties);
+        public static QueryBuilder<TType> Select<TType>(QueryBuilder<TType> value, params Expression<Func<TType, object?>>[] shape) => new QueryBuilder<TType>().Select(value, shape);
 
-        }
-        public static QueryBuilder<TResult> Select<TResult>(Expression<Func<TResult>> selector)
-        {
-            return new QueryBuilder<TResult>().Select(selector);   
-        }
-        public static QueryBuilder<TType> Select<TType>() 
-        {
-            return new QueryBuilder<TType>().Select<TType>();
-        }
-        public static QueryBuilder<TType> Select<TType>(params Expression<Func<TType, object?>>[] properties)
-        {
-            return new QueryBuilder<TType>().Select(properties);
-        }
-        public static QueryBuilder<TType> Select<TType>(QueryBuilder<TType> value, params Expression<Func<TType, object?>>[] shape)
-        {
-            return new QueryBuilder<TType>().Select(value, shape);
-        }
+        public static QueryBuilder<TType> Insert<TType>(TType value) => new QueryBuilder<TType>().Insert(value);
+        public static QueryBuilder<TType> Update<TType>(TType obj) => new QueryBuilder<TType>().Update(obj);
+        public static QueryBuilder<TType> Update<TType>(Expression<Func<TType, TType>> builder) => new QueryBuilder<TType>().Update(builder);
+        public static QueryBuilder<TType> Update<TType>(TType? reference, Expression<Func<TType, TType>> builder) => new QueryBuilder<TType>().Update(reference, builder);
 
-        public static QueryBuilder<TType> Insert<TType>(TType value) 
-        {
-            return new QueryBuilder<TType>().Insert(value);
-        }
-        public static QueryBuilder<TType> Update<TType>(TType obj) 
-        {
-            return new QueryBuilder<TType>().Update(obj);
-        }
-        public static QueryBuilder<TType> Update<TType>(Expression<Func<TType, TType>> builder)
-        {
-            return new QueryBuilder<TType>().Update(builder);
-        }
-        public static QueryBuilder<TType> Update<TType>(TType? reference, Expression<Func<TType, TType>> builder)
-        {
-            return new QueryBuilder<TType>().Update(reference, builder);
-        }
+        public static QueryBuilder<TType> Delete<TType>() => new QueryBuilder<TType>().Delete();
+        public static QueryBuilder<TType> With<TType>(string moduleName) => new QueryBuilder<TType>().With(moduleName);
+        public static QueryBuilder<TType> With<TType>(string name, TType value) => new QueryBuilder<TType>().With(name, value);
+        public static QueryBuilder<object> With(params (string Name, object? Value)[] variables) => new QueryBuilder<object>().With(variables);
 
-        public static QueryBuilder<TType> Delete<TType>() 
-        {
-            return new QueryBuilder<TType>().Delete();
-        }
-        public static QueryBuilder<TType> With<TType>(string moduleName) 
-        {
-            return new QueryBuilder<TType>().With(moduleName);
-        }
-        public static QueryBuilder<TType> With<TType>(string name, TType value)
-        {
-            return new QueryBuilder<TType>().With(name, value);
-        }
-        public static QueryBuilder<object> With(params (string Name, object? Value)[] variables)
-        {
-            return new QueryBuilder<object>().With(variables);
-        }
+        public static QueryBuilder<TType> For<TType>(Expression<Func<QueryBuilder<TType>, QueryBuilder>> iterator) => new QueryBuilder<TType>().For(iterator);
 
-        public static QueryBuilder<TType> For<TType>(IEnumerable<TType> set, Expression<Func<QueryBuilder<TType>, QueryBuilder>> iterator) 
-        {
-            return new QueryBuilder<TType>().For(set, iterator);
-        }
+        internal static QueryBuilder StaticLiteral(string query, QueryExpressionType type) => new QueryBuilder().Literal(query, type);
 
-        internal static QueryBuilder StaticLiteral(string query, QueryExpressionType type)
-        {
-            return new QueryBuilder().Literal(query, type);
-        }
-
-        internal static QueryBuilder<TType> StaticLiteral<TType>(string query, QueryExpressionType type)
-        {
-            return new QueryBuilder<TType>().Literal<TType>(query, type);
-        }
+        internal static QueryBuilder<TType> StaticLiteral<TType>(string query, QueryExpressionType type) => new QueryBuilder<TType>().Literal<TType>(query, type);
 
         internal QueryBuilder Literal(string query, QueryExpressionType type)
         {
@@ -127,25 +70,16 @@ namespace EdgeDB
         ///     Turns this query builder into a edgeql representation.
         /// </summary>
         /// <returns>A edgeql query.</returns>
-        public override string? ToString()
-        {
-            return Build().QueryText;
-        }
+        public override string? ToString() => Build().QueryText;
 
         /// <summary>
         ///     Turns this query builder into a edgeql representation where each 
         ///     statement is seperated by newlines.
         /// </summary>
         /// <returns>A prettified version of the current query.</returns>
-        public string ToPrettyString()
-        {
-            return Build().Prettify();
-        }
+        public string ToPrettyString() => Build().Prettify();
 
-        public BuiltQuery Build()
-        {
-            return Build(new());
-        }
+        public BuiltQuery Build() => Build(new());
 
         internal BuiltQuery Build(QueryBuilderContext config)
         {
@@ -170,20 +104,13 @@ namespace EdgeDB
         }
 
         internal QueryBuilder<TTarget> ConvertTo<TTarget>()
-        {
-            if (typeof(TTarget) == typeof(TType))
-                return (this as QueryBuilder<TTarget>)!;
-            return new QueryBuilder<TTarget>(QueryNodes);
-        }
+            => typeof(TTarget) == typeof(TType) ? (this as QueryBuilder<TTarget>)! : new QueryBuilder<TTarget>(QueryNodes);
 
         public new QueryBuilder<TTarget> Select<TTarget>(object shape)
         {
             return SelectInternal<TTarget>(context =>
             {
-                if (context.DontSelectProperties)
-                    return null;
-
-                return (ParseShapeDefinition(shape, typeof(TTarget), false), null);
+                return context.DontSelectProperties ? null : (ParseShapeDefinition(shape, typeof(TTarget), false), null);
             });
         }
 
@@ -194,7 +121,7 @@ namespace EdgeDB
                 var innerQuery = value.Build(context);
                 List<string> parsedShape;
 
-                if(shape.Length > 0)
+                if (shape.Length > 0)
                     parsedShape = ParseShapeDefinition(context, shape: shape);
                 else
                 {
@@ -218,32 +145,23 @@ namespace EdgeDB
         {
             EnterRootNode(QueryExpressionType.Select, (QueryNode node, ref QueryBuilderContext context) =>
             {
-                var query = ConvertExpression(selector.Body, new QueryContext<TTarget>(selector) { BuilderContext = context});
+                var query = ConvertExpression(selector.Body, new QueryContext<TTarget>(selector) { BuilderContext = context });
                 node.Query = $"select {query.Filter}";
                 node.AddArguments(query.Arguments);
             });
 
-            if (typeof(TTarget) == typeof(TType))
-                return (this as QueryBuilder<TTarget>)!;
-            return ConvertTo<TTarget>();
+            return typeof(TTarget) == typeof(TType) ? (this as QueryBuilder<TTarget>)! : ConvertTo<TTarget>();
         }
 
         public new QueryBuilder<TTarget> Select<TTarget>(params Expression<Func<TTarget, object?>>[] shape)
         {
             return SelectInternal<TTarget>(context =>
             {
-                if (context.DontSelectProperties)
-                    return null;
-
-
-                return (ParseShapeDefinition(context, shape: shape), null);
+                return context.DontSelectProperties ? null : (ParseShapeDefinition(context, shape: shape), null);
             });
         }
 
-        public QueryBuilder<TType> Select()
-        {
-            return Select<TType>();
-        }
+        public QueryBuilder<TType> Select() => Select<TType>();
 
         public new QueryBuilder<TTarget> Select<TTarget>()
         {
@@ -273,10 +191,10 @@ namespace EdgeDB
                 IEnumerable<string>? properties = selectArgs?.Properties;
                 IEnumerable<KeyValuePair<string, object?>>? args = selectArgs?.Arguments;
 
-                node.Query = $"{(!context.ExplicitShapeDefinition ? $"select {(context.UseDetached ? "detached " : "")}{GetTypeName(typeof(TTarget))} " : "")}{(properties != null && properties.Count() != 0 ? $"{{ {string.Join(", ", properties)} }}" : "")}";
+                node.Query = $"{(!context.ExplicitShapeDefinition ? $"select {(context.UseDetached ? "detached " : "")}{GetTypeName(typeof(TTarget))} " : "")}{(properties != null && properties.Any() ? $"{{ {string.Join(", ", properties)} }}" : "")}";
                 if (context.LimitToOne || (context.UseDetached && PreviousNodeType != QueryExpressionType.Limit))
                     node.AddChild(QueryExpressionType.Limit, (ref QueryBuilderContext _) => new BuiltQuery { QueryText = "limit 1" });
-                
+
                 if (args != null)
                     node.AddArguments(args);
             });
@@ -310,7 +228,7 @@ namespace EdgeDB
 
         internal QueryBuilder<TType> OrderByInternal(string direction, Expression<Func<TType, object?>> selector, NullPlacement? nullPlacement = null)
         {
-            EnterNode(QueryExpressionType .OrderBy, (ref QueryBuilderContext context) =>
+            EnterNode(QueryExpressionType.OrderBy, (ref QueryBuilderContext context) =>
             {
                 var builtSelector = ParseShapeDefinition(context, true, selector).FirstOrDefault();
                 string orderByExp = "";
@@ -333,7 +251,7 @@ namespace EdgeDB
         public QueryBuilder<TType> Offset(ulong count)
         {
             AssertValid(QueryExpressionType.Offset);
-            EnterNode(QueryExpressionType .Offset, (ref QueryBuilderContext context) =>
+            EnterNode(QueryExpressionType.Offset, (ref QueryBuilderContext context) =>
             {
                 return new BuiltQuery
                 {
@@ -355,7 +273,7 @@ namespace EdgeDB
             return this;
         }
 
-        public QueryBuilder<TType> For(IEnumerable<TType> set, Expression<Func<QueryBuilder<TType>, QueryBuilder>> iterator)
+        public QueryBuilder<TType> For(Expression<Func<QueryBuilder<TType>, QueryBuilder>> iterator)
         {
             EnterRootNode(QueryExpressionType.For, (QueryNode node, ref QueryBuilderContext context) =>
             {
@@ -440,7 +358,7 @@ namespace EdgeDB
                             var result = sub.Builder.Build(context);
                             node.AddArguments(result.Parameters);
                             refName = $"({result.QueryText})";
-                        }    
+                        }
                         break;
                     case IQueryResultObject obj:
                         refName = $"(select {GetTypeName(typeof(TTarget))} filter .id = <uuid>\"{obj.GetObjectId()}\" limit 1)";
@@ -473,7 +391,7 @@ namespace EdgeDB
                 var serializedObj = ConvertExpression(builder.Body, new QueryContext<TTarget, TTarget>(builder) { AllowStaticOperators = true, BuilderContext = context.Enter(x => x.DontSelectProperties = true) });
 
                 node.Query = $"update {GetTypeName(typeof(TTarget))}";
-                
+
                 node.SetChild(node.Children.Any() ? 1 : 0, QueryExpressionType.Set, (ref QueryBuilderContext innerContext) =>
                 {
                     return new BuiltQuery
@@ -513,16 +431,16 @@ namespace EdgeDB
                 List<string> statements = new();
 
                 context.IntrospectObjectIds = true;
-                foreach (var item in variables)
+                foreach (var (Name, Value) in variables)
                 {
-                    var converted = SerializeProperty(item.Value?.GetType() ?? typeof(object), item.Value, false, context.Enter(x =>
+                    var converted = SerializeProperty(Value?.GetType() ?? typeof(object), Value, false, context.Enter(x =>
                     {
                         x.IsVariable = true;
-                        x.VariableName = item.Name;
+                        x.VariableName = Name;
                     }));
                     node.AddArguments(converted.Arguments);
 
-                    statements.Add($"{item.Name} := {converted.Property}");
+                    statements.Add($"{Name} := {converted.Property}");
                 }
 
                 node.Query = $"with {string.Join(", ", statements)}";
@@ -533,7 +451,7 @@ namespace EdgeDB
 
         public new QueryBuilder<TTarget> With<TTarget>(string name, TTarget value)
         {
-            if(PreviousNodeType == QueryExpressionType.With)
+            if (PreviousNodeType == QueryExpressionType.With)
             {
                 EnterNode(QueryExpressionType.With, (ref QueryBuilderContext context) =>
                 {
@@ -625,18 +543,7 @@ namespace EdgeDB
             return node;
         }
 
-        private void EnterNode(QueryExpressionType type, ChildNodeBuilder builder)
-        {
-            CurrentRootNode.AddChild(type, builder);
-        }
-
-        private string ToEnumString<TEnum>(TEnum value) where TEnum : notnull
-        {
-            return Regex.Replace(value.ToString()!, @"(.[A-Z])", m =>
-            {
-                return $"{m.Groups[1].Value[0]} {m.Groups[1].Value[1]}";
-            }).ToLower();
-        }
+        private void EnterNode(QueryExpressionType type, ChildNodeBuilder builder) => CurrentRootNode.AddChild(type, builder);
 
         private void AssertValid(QueryExpressionType currentExpression)
         {
@@ -646,24 +553,30 @@ namespace EdgeDB
             }
         }
 
-        private Dictionary<QueryExpressionType, QueryExpressionType[]> _validExpressions = new()
+        private readonly Dictionary<QueryExpressionType, QueryExpressionType[]> _validExpressions = new()
         {
             { QueryExpressionType.With, new QueryExpressionType[] { QueryExpressionType.With, QueryExpressionType.Start } },
-            { QueryExpressionType.Select, new QueryExpressionType[] { QueryExpressionType.Else, QueryExpressionType.With, QueryExpressionType.Start} },
-            { QueryExpressionType.OrderBy, new QueryExpressionType[] { QueryExpressionType.Delete, QueryExpressionType.Filter, QueryExpressionType.Select} },
+            { QueryExpressionType.Select, new QueryExpressionType[] { QueryExpressionType.Else, QueryExpressionType.With, QueryExpressionType.Start } },
+            { QueryExpressionType.OrderBy, new QueryExpressionType[] { QueryExpressionType.Delete, QueryExpressionType.Filter, QueryExpressionType.Select } },
             { QueryExpressionType.Offset, new QueryExpressionType[] { QueryExpressionType.Delete, QueryExpressionType.OrderBy, QueryExpressionType.Select, QueryExpressionType.Filter } },
             { QueryExpressionType.Limit, new QueryExpressionType[] { QueryExpressionType.Delete, QueryExpressionType.OrderBy, QueryExpressionType.Select, QueryExpressionType.Filter, QueryExpressionType.Offset } },
-            { QueryExpressionType.For, new QueryExpressionType[] { QueryExpressionType.Else, QueryExpressionType.With, QueryExpressionType.Start} },
-            { QueryExpressionType.Insert, new QueryExpressionType[] { QueryExpressionType.Else, QueryExpressionType.With, QueryExpressionType.Start} },
-            { QueryExpressionType.Update, new QueryExpressionType[] { QueryExpressionType.Else, QueryExpressionType.With, QueryExpressionType.Start} },
-            { QueryExpressionType.Delete, new QueryExpressionType[] { QueryExpressionType.Else, QueryExpressionType.With, QueryExpressionType.Start} },
-            { QueryExpressionType.Transaction, new QueryExpressionType[] { QueryExpressionType.Start} }
-            
+            { QueryExpressionType.For, new QueryExpressionType[] { QueryExpressionType.Else, QueryExpressionType.With, QueryExpressionType.Start } },
+            { QueryExpressionType.Insert, new QueryExpressionType[] { QueryExpressionType.Else, QueryExpressionType.With, QueryExpressionType.Start } },
+            { QueryExpressionType.Update, new QueryExpressionType[] { QueryExpressionType.Else, QueryExpressionType.With, QueryExpressionType.Start } },
+            { QueryExpressionType.Delete, new QueryExpressionType[] { QueryExpressionType.Else, QueryExpressionType.With, QueryExpressionType.Start } },
+            { QueryExpressionType.Transaction, new QueryExpressionType[] { QueryExpressionType.Start } }
         };
 
         //public static implicit operator Set<TType>(QueryBuilder<TType> v) => new Set<TType>(v);
-        public static implicit operator ComputedValue<TType>(QueryBuilder<TType> v) => new ComputedValue<TType>(default, v);
-        public static implicit operator TType(QueryBuilder<TType> v) => v.SubQuery();
+        public static implicit operator ComputedValue<TType>(QueryBuilder<TType> v)
+        {
+            return new ComputedValue<TType>(default, v);
+        }
+
+        public static implicit operator TType(QueryBuilder<TType> v)
+        {
+            return v.SubQuery();
+        }
 
         //public Set<TType> SubQuerySet()
         //    => (Set<TType>)this;
@@ -722,7 +635,7 @@ namespace EdgeDB
             // remove current arguments incase of building twice
             Arguments = new Dictionary<string, object?>();
 
-            if(_builder != null)
+            if (_builder != null)
                 _builder.Invoke(this, ref config);
 
             var result = $"{Query}";
@@ -742,8 +655,8 @@ namespace EdgeDB
         }
     }
 
-    public enum QueryExpressionType 
-    { 
+    public enum QueryExpressionType
+    {
         Start,
         Select,
         Insert,

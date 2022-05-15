@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EdgeDB.Operators
+﻿namespace EdgeDB.Operators
 {
+    [AttributeUsage(AttributeTargets.Method)]
     internal class EquivalentOperator : Attribute
     {
         public readonly IEdgeQLOperator Operator;

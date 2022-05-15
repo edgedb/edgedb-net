@@ -1,10 +1,6 @@
 ﻿using EdgeDB.Models;
 using EdgeDB.Utils;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace EdgeDB
 {
@@ -23,7 +19,7 @@ namespace EdgeDB
         public byte[] ConsumeByteArray()
         {
             byte[] buff = new byte[1024];
-            
+
             var l = base.BaseStream.Read(buff, 0, buff.Length);
 
             return buff.Take(l).ToArray();
@@ -139,7 +135,7 @@ namespace EdgeDB
             var length = ReadUInt32();
             byte[] data = new byte[length];
 
-            for(int i = 0; i != length; i++)
+            for (int i = 0; i != length; i++)
             {
                 data[i] = ReadByte();
             }

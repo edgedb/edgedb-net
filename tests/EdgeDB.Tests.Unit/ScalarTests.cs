@@ -1,18 +1,14 @@
 ﻿using EdgeDB.Codecs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EdgeDB.Tests.Unit.Codecs
 {
     [TestClass]
     public class ScalarTests
     {
-        internal void TestCodec<TType>(IScalarCodec<TType>? codec, TType expectedValue, byte[] expectedSerializedValue)
+        internal static void TestCodec<TType>(IScalarCodec<TType>? codec, TType expectedValue, byte[] expectedSerializedValue)
         {
             Assert.IsNotNull(codec);
 

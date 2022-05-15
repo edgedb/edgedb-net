@@ -1,19 +1,13 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EdgeDB
 {
     internal class ObjectBuilder
     {
-        private static ConcurrentDictionary<(Guid TypeDescriptor, Guid TypeId), Type> _runtimeTypemap { get; set; } = new();
+        private static readonly ConcurrentDictionary<(Guid TypeDescriptor, Guid TypeId), Type> _runtimeTypemap = new();
         private struct EdgeDBPropertyInfo
         {
             public string EdgeDBName { get; set; }
@@ -57,12 +51,12 @@ namespace EdgeDB
             // build our type properties
             List<EdgeDBPropertyInfo> properties = new();
 
-            string typeName = targetType.GetCustomAttribute<EdgeDBType>()?.Name ?? targetType.Name;
+            string typeName = targetType.GetCustomAttribute<EdgeDBTypeAttribute>()?.Name ?? targetType.Name;
 
             targetType = _runtimeTypemap.GetOrAdd((typeDescriptorId, targetType.GUID), ((Guid TypeDescriptor, Guid TypeId) key, Type ttype) =>
             {
                 var builder = ReflectionUtils.GetTypeBuilder($"{ttype.Name}_Runtime_{key.TypeDescriptor}_{key.TypeId}");
-                builder.SetCustomAttribute(new CustomAttributeBuilder(typeof(EdgeDBType).GetConstructor(new Type[] { typeof(string) })!, new object[] { typeName }));
+                builder.SetCustomAttribute(new CustomAttributeBuilder(typeof(EdgeDBTypeAttribute).GetConstructor(new Type[] { typeof(string) })!, new object[] { typeName }));
                 builder.SetParent(ttype);
                 // add id property if it isn't there with the QueryResult interface
                 builder.AddInterfaceImplementation(typeof(DataTypes.IQueryResultObject));
@@ -74,7 +68,7 @@ namespace EdgeDB
                 // create the id property
                 var idPropName = Guid.NewGuid().ToString().Replace("-", "");
                 var idProp = ReflectionUtils.CreateProperty(builder, idPropName, typeof(Guid));
-                idProp!.SetCustomAttribute(new CustomAttributeBuilder(typeof(EdgeDBProperty).GetConstructor(new Type[] { typeof(string) })!, new object[] { "id" }));
+                idProp!.SetCustomAttribute(new CustomAttributeBuilder(typeof(EdgeDBPropertyAttribute).GetConstructor(new Type[] { typeof(string) })!, new object[] { "id" }));
 
                 var getObjectMethodImpl = builder.DefineMethod("EdgeDB.DataTypes.IQueryResultObject.GetObjectId",
                     MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.NewSlot |
@@ -104,7 +98,7 @@ namespace EdgeDB
                 if (!IsValidProperty(prop) && !shouldMakeSubType)
                     continue;
 
-                var name = prop.GetCustomAttribute<EdgeDBProperty>()?.Name ?? prop.Name;
+                var name = prop.GetCustomAttribute<EdgeDBPropertyAttribute>()?.Name ?? prop.Name;
 
                 //properties.Add(name, (type, obj) => type.SetValue(instance, ConvertTo(type.PropertyType, obj)));
                 var propInfo = new EdgeDBPropertyInfo
@@ -159,7 +153,7 @@ namespace EdgeDB
                 return value;
 
             // check for edgeql types
-            if (type.GetCustomAttribute<EdgeDBType>() != null && value is IDictionary<string, object?> dict)
+            if (type.GetCustomAttribute<EdgeDBTypeAttribute>() != null && value is IDictionary<string, object?> dict)
                 return BuildResult(descriptorId, type, dict);
 
             // check for arrays or sets
@@ -233,15 +227,13 @@ namespace EdgeDB
 
         private static bool IsValidProperty(PropertyInfo type)
         {
-            var shouldIgnore = type.GetCustomAttribute<EdgeDBIgnore>() != null;
+            var shouldIgnore = type.GetCustomAttribute<EdgeDBIgnoreAttribute>() != null;
 
             return !shouldIgnore && type.GetSetMethod() != null;
         }
 
-        private static bool IsValidTargetType(Type type)
-        {
+        private static bool IsValidTargetType(Type type) =>
             // TODO: check constructor
-            return type.IsPublic && (type.IsClass || type.IsValueType) && !type.IsSealed;
-        }
+            type.IsPublic && (type.IsClass || type.IsValueType) && !type.IsSealed;
     }
 }

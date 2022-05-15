@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class StringIndex : IEdgeQLOperator
     {
-        public ExpressionType? Operator => ExpressionType.Index;
+        public ExpressionType? ExpressionType => System.Linq.Expressions.ExpressionType.Index;
         public string EdgeQLOperator => "{0}[{1}]";
     }
 }

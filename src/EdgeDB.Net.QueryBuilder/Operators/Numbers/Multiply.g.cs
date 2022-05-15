@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class NumbersMultiply : IEdgeQLOperator
     {
-        public ExpressionType? Operator => ExpressionType.Multiply;
+        public ExpressionType? ExpressionType => System.Linq.Expressions.ExpressionType.Multiply;
         public string EdgeQLOperator => "{0} * {1}";
     }
 }

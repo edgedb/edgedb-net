@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EdgeDB
+﻿namespace EdgeDB
 {
     public struct ComputedValue<TInner> : IComputedValue
     {
@@ -23,7 +17,10 @@ namespace EdgeDB
             Builder = builder;
         }
 
-        public static implicit operator ComputedValue<TInner>(TInner? value) => new(value);
+        public static implicit operator ComputedValue<TInner>(TInner? value)
+        {
+            return new(value);
+        }
 
         object? IComputedValue.Value => Value;
         QueryBuilder? IComputedValue.Builder => Builder;

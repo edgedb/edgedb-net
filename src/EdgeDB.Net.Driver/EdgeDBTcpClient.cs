@@ -1,10 +1,9 @@
 ﻿using EdgeDB.Codecs;
-using EdgeDB.Dumps;
 using EdgeDB.Models;
 using EdgeDB.Utils;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Dynamic;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -12,7 +11,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace EdgeDB 
+namespace EdgeDB
 {
     /// <summary>
     ///     Represents a TCP client used to interact with EdgeDB.
@@ -60,7 +59,11 @@ namespace EdgeDB
         /// <summary>
         ///     Gets the raw server config.
         /// </summary>
-        public IReadOnlyDictionary<string, object?> ServerConfig;
+        /// <remarks>
+        ///     This dictionary can be empty if the client hasn't connected to the database.
+        /// </remarks>
+        public IReadOnlyDictionary<string, object?> ServerConfig
+            => RawServerConfig.ToImmutableDictionary();
 
         /// <summary>
         ///     Gets this clients transaction state.
@@ -70,9 +73,12 @@ namespace EdgeDB
         internal byte[] ServerKey;
         internal int SuggestedPoolConcurrency;
         internal ILogger Logger;
+        internal TcpClient TcpClient;
+        internal Dictionary<string, object?> RawServerConfig = new();
+        internal readonly ClientPacketDuplexer Duplexer;
+        internal readonly TimeSpan MessageTimeout;
 
-        internal ulong ClientId
-            => _clientId;
+        internal ulong ClientId { get; }
 
         private readonly AsyncEvent<Func<Task>> _onDisconnect = new();
         private readonly AsyncEvent<Func<EdgeDBTcpClient, Task<bool>>> _onDisposed = new();
@@ -81,26 +87,17 @@ namespace EdgeDB
 
         private NetworkStream? _stream;
         private SslStream? _secureStream;
-        private CancellationTokenSource _disconnectCancelToken;
-        private TcpClient _client;
-        private TaskCompletionSource _readySource;
-        private CancellationTokenSource _readyCancelTokenSource;
+        private CancellationToken DisconnectCancelToken
+            => Duplexer.DisconnectToken;
+        private readonly TaskCompletionSource _readySource;
+        private readonly CancellationTokenSource _readyCancelTokenSource;
         private TaskCompletionSource _authCompleteSource;
-        private Task? _receiveTask;
         private readonly EdgeDBConnection _connection;
         private readonly SemaphoreSlim _semaphore;
-        private readonly SemaphoreSlim _receiveSemaphore;
+        private readonly SemaphoreSlim _commandSemaphore;
         private readonly EdgeDBConfig _config;
-        private readonly TimeSpan _messageTimeout;
         private readonly TimeSpan _connectionTimeout;
-
-        private ulong _currentMessageId;
-        private readonly ConcurrentQueue<IReceiveable> _messageStack;
-        private int _maxMessageStackSize = 25;
-
-        private readonly ulong _clientId;
-        private bool _isDisposed = false;
-        private uint _currentRetries = 0;
+        private uint _currentRetries;
 
         /// <summary>
         ///     Creates a new TCP client with the provided conection and config.
@@ -112,248 +109,24 @@ namespace EdgeDB
             _config = config;
             Logger = config.Logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
             _semaphore = new(1, 1);
-            _receiveSemaphore = new(1, 1);
-            _disconnectCancelToken = new();
+            _commandSemaphore = new(1, 1);
             _connection = connection;
-            _client = new();
+            TcpClient = new();
             _readySource = new();
             _readyCancelTokenSource = new();
             _authCompleteSource = new();
-            _messageStack = new();
             ServerKey = new byte[32];
-            ServerConfig = new Dictionary<string, object?>();
-            _messageTimeout = TimeSpan.FromMilliseconds(config.MessageTimeout);
+            MessageTimeout = TimeSpan.FromMilliseconds(config.MessageTimeout);
             _connectionTimeout = TimeSpan.FromMilliseconds(config.ConnectionTimeout);
+            Duplexer = new ClientPacketDuplexer(this);
         }
 
         public EdgeDBTcpClient(EdgeDBConnection connection, EdgeDBConfig config, ulong clientId) : this(connection, config)
         {
-            _clientId = clientId;
+            ClientId = clientId;
         }
 
         #region Commands/queries
-
-        /// <summary>
-        ///     Creates a transaction and executes a callback with the transaction object.
-        /// </summary>
-        /// <param name="func">The callback to pass the transaction into.</param>
-        /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
-        public Task TransactionAsync(Func<Transaction, Task> func)
-            => TransactionInternalAsync(TransactionSettings.Default, func);
-
-        /// <summary>
-        ///     Creates a transaction and executes a callback with the transaction object.
-        /// </summary>
-        /// <typeparam name="TResult">The return result of the task.</typeparam>
-        /// <param name="func">The callback to pass the transaction into.</param>
-        /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
-        public async Task<TResult?> TransactionAsync<TResult>(Func<Transaction, Task<TResult>> func)
-        {
-            TResult? result = default;
-
-            await TransactionInternalAsync(TransactionSettings.Default, async (t) =>
-            {
-                result = await func(t).ConfigureAwait(false);
-            });
-
-            return result;
-        }
-
-        /// <summary>
-        ///     Creates a transaction and executes a callback with the transaction object.
-        /// </summary>
-        /// <param name="settings">The transactions settings.</param>
-        /// <param name="func">The callback to pass the transaction into.</param>
-        /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
-        public Task TransactionAsync(TransactionSettings settings, Func<Transaction, Task> func)
-            => TransactionInternalAsync(settings, func);
-
-        /// <summary>
-        ///     Creates a transaction and executes a callback with the transaction object.
-        /// </summary>
-        /// <typeparam name="TResult">The return result of the task.</typeparam>
-        /// <param name="settings">The transactions settings.</param>
-        /// <param name="func">The callback to pass the transaction into.</param>
-        /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
-        public async Task<TResult?> TransactionAsync<TResult>(TransactionSettings settings, Func<Transaction, Task<TResult>> func)
-        {
-            TResult? result = default;
-
-            await TransactionInternalAsync(settings, async (t) =>
-            {
-                result = await func(t).ConfigureAwait(false);
-            });
-
-            return result;
-        }
-
-        internal async Task TransactionInternalAsync(TransactionSettings settings, Func<Transaction, Task> func)
-        {
-            var transaction = new Transaction(this, settings);
-
-            await transaction.StartAsync().ConfigureAwait(false);
-
-            bool commitFailed = false;
-
-            try
-            {
-                await func(transaction).ConfigureAwait(false);
-
-                try
-                {
-                    await transaction.CommitAsync();
-                }
-                catch
-                {
-                    commitFailed = true;
-                    throw;
-                }
-            }
-            catch(Exception)
-            {
-                if (!commitFailed)
-                {
-                    try
-                    {
-                        await transaction.RollbackAsync().ConfigureAwait(false);
-                    }
-                    catch(Exception rollbackErr) when (rollbackErr is not EdgeDBException) // see https://github.com/edgedb/edgedb-js/blob/f170b5f53eab605454704e869e083c2afc693ada/src/client.ts#L142
-                    {
-                        throw;
-                    }
-                }
-
-                throw;
-            }
-        }
-
-        /// <summary>
-        ///     Dumps the current database to a stream.
-        /// </summary>
-        /// <returns>A stream containing the entire dumped database.</returns>
-        /// <exception cref="EdgeDBErrorException">The server sent an error message during the dumping process.</exception>
-        /// <exception cref="EdgeDBException">The server sent a mismatched packet.</exception>
-        public async Task<Stream?> DumpDatabaseAsync()
-        {
-            await _semaphore.WaitAsync(_disconnectCancelToken.Token).ConfigureAwait(false);
-
-            IsIdle = false;
-
-            try
-            {
-                await SendMessageAsync(new Dump());
-                await SendMessageAsync(new Sync());
-
-                var dump = await WaitForMessageOrError(ServerMessageType.DumpHeader, timeout: _messageTimeout);
-
-                if (dump is ErrorResponse err)
-                    throw new EdgeDBErrorException(err);
-
-                if (dump is not DumpHeader dumpHeader)
-                    throw new UnexpectedMessageException(ServerMessageType.DumpHeader, dump.Type);
-
-                var stream = new MemoryStream();
-                var writer = new DumpWriter(stream);
-
-                writer.WriteDumpHeader(dumpHeader);
-
-                bool complete = false;
-
-                while (!complete)
-                {
-                    var msg = await NextMessageAsync(x => true, timeout: _messageTimeout);
-                    switch (msg)
-                    {
-                        case CommandComplete:
-                            complete = true;
-                            break;
-                        case DumpBlock block:
-                            {
-                                writer.WriteDumpBlock(block);
-                            }
-                            break;
-                        case ErrorResponse error:
-                            {
-                                throw new EdgeDBErrorException(error);
-                            }
-                        default:
-                            throw new UnexpectedMessageException(msg.Type);
-
-                    }
-                }
-                stream.Position = 0;
-                return stream;
-            }
-            catch (Exception x) when (x is OperationCanceledException or TaskCanceledException)
-            {
-                throw new TimeoutException("Database dump timed out", x);
-            }
-            finally
-            {
-                IsIdle = true;
-                _semaphore.Release();
-            }
-        }
-
-        /// <summary>
-        ///     Restores the database based on a database dump stream.
-        /// </summary>
-        /// <param name="stream">The stream containing the database dump.</param>
-        /// <returns>The command complete packet received after restoring the database.</returns>
-        /// <exception cref="EdgeDBException">
-        ///     The server sent an invalid packet or the restore operation couldn't proceed 
-        ///     due to the database not being empty.
-        /// </exception>
-        /// <exception cref="EdgeDBErrorException">The server sent an error during the restore operation.</exception>
-        public async Task<CommandComplete> RestoreDatabaseAsync(Stream stream)
-        {
-            var reader = new DumpReader();
-
-            var count = await QuerySingleAsync<long>("select count(schema::Module filter not .builtin and not .name = \"default\") + count(schema::Object filter .name like \"default::%\")");
-
-            // steal semaphore to block any queries
-            await _semaphore.WaitAsync().ConfigureAwait(false);
-
-            try
-            {
-                if (count > 0)
-                    throw new InvalidOperationException("Cannot restore: Database isn't empty");
-
-                var packets = reader.ReadDatabaseDump(stream);
-
-                // send restore
-                await SendMessageAsync(packets.Restore);
-
-                var result = await WaitForMessageOrError(ServerMessageType.RestoreReady, timeout: _messageTimeout);
-
-                if (result is ErrorResponse err)
-                    throw new EdgeDBErrorException(err);
-
-                if (result is not RestoreReady)
-                    throw new UnexpectedMessageException(ServerMessageType.RestoreReady, result.Type);
-
-                foreach (var block in packets.Blocks)
-                {
-                    await SendMessageAsync(block).ConfigureAwait(false);
-                }
-
-                await SendMessageAsync(new RestoreEOF());
-
-                result = await WaitForMessageOrError(ServerMessageType.CommandComplete, from: result, timeout: _messageTimeout);
-
-                if (result is ErrorResponse error)
-                    throw new EdgeDBErrorException(error);
-
-                if (result is not CommandComplete complete)
-                    throw new UnexpectedMessageException(ServerMessageType.CommandComplete, result.Type);
-
-                return complete;
-            }
-            finally
-            {
-                _semaphore.Release();
-            }
-        }
 
         internal struct RawExecuteResult
         {
@@ -366,7 +139,7 @@ namespace EdgeDB
         internal async Task<RawExecuteResult> ExecuteInternalAsync(string query, IDictionary<string, object?>? args = null, Cardinality? card = null,
             AllowCapabilities? capabilities = AllowCapabilities.ReadOnly)
         {
-            await _semaphore.WaitAsync(_disconnectCancelToken.Token).ConfigureAwait(false);
+            await _semaphore.WaitAsync(DisconnectCancelToken).ConfigureAwait(false);
 
             IsIdle = false;
 
@@ -374,6 +147,8 @@ namespace EdgeDB
 
             try
             {
+                var readyTask = Duplexer.NextAsync(x => x.Type == ServerMessageType.ReadyForCommand);
+
                 var prepareResult = await PrepareAsync(new Prepare
                 {
                     Capabilities = capabilities,
@@ -395,11 +170,7 @@ namespace EdgeDB
                     throw new UnexpectedMessageException(ServerMessageType.PrepareComplete, prepareResult.Type);
                 }
 
-                ReadyForCommand readyForCommand = default;
-
-                readyForCommand = await WaitForMessageAsync<ReadyForCommand>(ServerMessageType.ReadyForCommand, result, timeout: _messageTimeout).ConfigureAwait(false);
-
-                ulong fromId = ((IReceiveable)readyForCommand).Id;
+                ReadyForCommand readyForCommand = (ReadyForCommand)await readyTask.ConfigureAwait(false);
 
                 // get the codec for the return type
                 var outCodec = PacketSerializer.GetCodec(result.OutputTypedescId);
@@ -409,27 +180,18 @@ namespace EdgeDB
                 // if its not cached or we dont have a default one for it, ask the server to describe it for us
                 if (outCodec == null || inCodec == null)
                 {
-                    await SendMessageAsync(new DescribeStatement()).ConfigureAwait(false);
-                    await SendMessageAsync(new Sync()).ConfigureAwait(false);
-                    describer = await WaitForMessageAsync<CommandDataDescription>(ServerMessageType.CommandDataDescription, from: readyForCommand).ConfigureAwait(false);
-                    readyForCommand = await WaitForMessageAsync<ReadyForCommand>(ServerMessageType.ReadyForCommand, describer, timeout: _messageTimeout).ConfigureAwait(false);
-
-                    fromId = ((IReceiveable)readyForCommand).Id;
+                    describer = (CommandDataDescription)await Duplexer.DuplexAndSyncAsync(new DescribeStatement(), x => x.Type == ServerMessageType.CommandDataDescription);
 
                     if (outCodec == null)
                     {
-                        using (var innerReader = new PacketReader(describer.Value.OutputTypeDescriptor.ToArray()))
-                        {
-                            outCodec ??= PacketSerializer.BuildCodec(describer.Value.OutputTypeDescriptorId, innerReader);
-                        }
+                        using var innerReader = new PacketReader(describer.Value.OutputTypeDescriptor.ToArray());
+                        outCodec ??= PacketSerializer.BuildCodec(describer.Value.OutputTypeDescriptorId, innerReader);
                     }
 
                     if (inCodec == null)
                     {
-                        using (var innerReader = new PacketReader(describer.Value.InputTypeDescriptor.ToArray()))
-                        {
-                            inCodec ??= PacketSerializer.BuildCodec(describer.Value.InputTypeDescriptorId, innerReader);
-                        }
+                        using var innerReader = new PacketReader(describer.Value.InputTypeDescriptor.ToArray());
+                        inCodec ??= PacketSerializer.BuildCodec(describer.Value.InputTypeDescriptorId, innerReader);
                     }
                 }
 
@@ -448,21 +210,13 @@ namespace EdgeDB
                         ? describer!.Value.InputTypeDescriptor.ToArray()
                         : Array.Empty<byte>());
 
-                // convert our arguments if any
-                await SendMessageAsync(new Execute() { Capabilities = result.Capabilities, Arguments = argumentCodec.SerializeArguments(args) }).ConfigureAwait(false);
-                await SendMessageAsync(new Sync()).ConfigureAwait(false);
-
                 List<Data> receivedData = new();
 
-                CommandComplete? completePacket = null;
-
-                var prevFrom = fromId;
-
-                while (completePacket == null)
+                bool complete = false;
+                bool handler(IReceiveable msg)
                 {
-                    var msg = await NextMessageAsync(from: fromId, timeout: _messageTimeout);
-                    prevFrom = fromId;
-                    fromId = msg.Id;
+                    if (complete)
+                        return true;
 
                     switch (msg)
                     {
@@ -470,20 +224,30 @@ namespace EdgeDB
                             receivedData.Add(data);
                             break;
                         case CommandComplete comp:
-                            completePacket = comp;
-                            break;
+                            complete = true;
+                            return true;
                         case ErrorResponse err:
                             throw new EdgeDBErrorException(err);
                         default:
                             throw new UnexpectedMessageException(msg.Type);
                     }
+                    return false;
                 }
+
+                readyTask = Duplexer.NextAsync(x => x.Type == ServerMessageType.ReadyForCommand);
+
+                var completePacket = (CommandComplete)await Duplexer.DuplexAndSyncAsync(new Execute() { Capabilities = result.Capabilities, Arguments = argumentCodec.SerializeArguments(args) }, handler);
+
+                // update transaction state
+                readyForCommand = (ReadyForCommand)await readyTask.ConfigureAwait(false);
+
+                TransactionState = readyForCommand.TransactionState;
 
                 execResult = new ExecuteResult(true, null, null, query);
 
                 return new RawExecuteResult
                 {
-                    CompleteStatus = completePacket.Value,
+                    CompleteStatus = completePacket,
                     Data = receivedData,
                     Deserializer = outCodec,
                     PrepareStatement = result
@@ -491,12 +255,11 @@ namespace EdgeDB
             }
             catch (Exception x)
             {
-                if (x is EdgeDBErrorException err)
-                    execResult = new ExecuteResult(false, err.ErrorResponse, err, query);
-                else
-                    execResult = new ExecuteResult(false, null, x, query);
+                execResult = x is EdgeDBErrorException err
+                    ? (ExecuteResult?)new ExecuteResult(false, err.ErrorResponse, err, query)
+                    : (ExecuteResult?)new ExecuteResult(false, null, x, query);
 
-                Logger.LogWarning("Failed to execute: {}", x);
+                Logger.InternalExecuteFailed(x);
                 throw new EdgeDBException($"Failed to execute query: {x}", x);
             }
             finally
@@ -509,9 +272,7 @@ namespace EdgeDB
 
         /// <inheritdoc/>
         public async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null)
-        {
-            await ExecuteInternalAsync(query, args, Cardinality.Many).ConfigureAwait(false);
-        }
+            => await ExecuteInternalAsync(query, args, Cardinality.Many).ConfigureAwait(false);
 
         public async Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null)
         {
@@ -519,7 +280,7 @@ namespace EdgeDB
 
             List<TResult?> returnResults = new();
 
-            foreach(var item in result.Data)
+            foreach (var item in result.Data)
             {
                 var obj = ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(item.PayloadData.ToArray()));
                 returnResults.Add(obj);
@@ -537,108 +298,36 @@ namespace EdgeDB
 
             var queryResult = result.Data.FirstOrDefault();
 
-            if (queryResult.PayloadData == null)
-                return default;
-
-            return ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(queryResult.PayloadData.ToArray()));
+            return queryResult.PayloadData == null
+                ? default
+                : ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(queryResult.PayloadData.ToArray()));
         }
 
         public async Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
         {
             var result = await ExecuteInternalAsync(query, args, Cardinality.AtMostOne);
 
-            if (result.Data.Count > 1 || result.Data.Count == 0)
+            if (result.Data.Count is > 1 or 0)
                 throw new ResultCardinalityMismatchException(Cardinality.One, result.Data.Count > 1 ? Cardinality.Many : Cardinality.AtMostOne);
 
             var queryResult = result.Data.FirstOrDefault();
 
-            if (queryResult.PayloadData == null)
-                throw new MissingRequiredException();
-
-            return ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(queryResult.PayloadData.ToArray()))!;
+            return queryResult.PayloadData == null
+                ? throw new MissingRequiredException()
+                : ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(queryResult.PayloadData.ToArray()))!;
         }
 
         #endregion
 
         #region Receive/Send packet functions
-        private async Task ReceiveAsync()
-        {
-            try
-            {
-                byte[] buffer = new byte[1024];
-
-                while (true)
-                {
-                    if (!_client.Connected)
-                        return;
-
-                    if (_disconnectCancelToken.IsCancellationRequested)
-                        return;
-
-                    if (_secureStream == null)
-                        return;
-
-                    var typeBuf = new byte[1];
-
-                    var result = await _secureStream.ReadAsync(typeBuf, _disconnectCancelToken.Token).ConfigureAwait(false);
-
-                    if (result == 0)
-                    {
-                        // disconnected
-                        _readyCancelTokenSource?.Cancel();
-                        await _onDisconnect.InvokeAsync().ConfigureAwait(false);
-                        return;
-                    }
-
-                    var msg = PacketSerializer.DeserializePacket((ServerMessageType)typeBuf[0], _secureStream, this);
-
-                    if (msg != null)
-                    {
-                        await _receiveSemaphore.WaitAsync().ConfigureAwait(false);
-
-                        try
-                        {
-                            msg.Id = _currentMessageId;
-                            _messageStack.Enqueue(msg.Clone());
-
-
-
-                            Interlocked.Increment(ref _currentMessageId);
-
-                            while (_messageStack.Count > _maxMessageStackSize && _messageStack.TryDequeue(out var _))
-                            { }
-
-                            await HandlePayloadAsync(msg).ConfigureAwait(false);
-                        }
-                        finally
-                        {
-                            _receiveSemaphore.Release();
-                        }
-
-                    }
-                }
-            }
-            catch (OperationCanceledException) { } // disconnect
-            catch (IOException) { } // disconnect
-            catch (Exception x)
-            {
-                Logger.LogCritical("Failed to read and deserialize packet: {}", x);
-            }
-        }
 
         private async Task HandlePayloadAsync(IReceiveable payload)
         {
-            var msg = "[ {} ] Got message type {}";
-
-
             switch (payload)
             {
                 case ErrorResponse err:
                     {
-                        Logger.LogError("Got error level: {}\nMessage: {}\nHeaders:\n{}",
-                            err.Severity,
-                            err.Message,
-                            string.Join("\n", err.Headers.Select(x => $"  0x{BitConverter.ToString(BitConverter.GetBytes(x.Code).Reverse().ToArray()).Replace("-", "")}: {x}")));
+                        Logger.ErrorResponseReceived(err.Severity, err.Message);
 
                         if (!_readyCancelTokenSource.IsCancellationRequested)
                             _readyCancelTokenSource.Cancel();
@@ -663,9 +352,12 @@ namespace EdgeDB
                     TransactionState = cmd.TransactionState;
                     _readySource.TrySetResult();
                     break;
+
+                default:
+                    break;
             }
 
-            Logger.LogDebug(msg, _clientId, payload.Type);
+            Logger.MessageReceived(ClientId, payload.Type);
 
             try
             {
@@ -673,24 +365,8 @@ namespace EdgeDB
             }
             catch (Exception x)
             {
-                Logger.LogCritical("Exception in message handler: {}", x);
+                Logger.EventHandlerError(x);
             }
-        }
-
-        private async Task SendMessageAsync<T>(T message) where T : Sendable
-        {
-            if (_secureStream == null)
-                throw new EdgeDBException("Cannot send message to a closed connection");
-
-            using var ms = new MemoryStream();
-            using (var writer = new PacketWriter(ms))
-            {
-                message.Write(writer, this);
-            }
-
-            await _secureStream.WriteAsync(ms.ToArray()).ConfigureAwait(false);
-
-            Logger.LogDebug("[ {} ] Sent message type {}", _clientId, message.Type);
         }
 
         #endregion
@@ -717,10 +393,7 @@ namespace EdgeDB
 
                     var initialMsg = scram.BuildInitialMessage(_connection.Username!, method);
 
-                    await SendMessageAsync(initialMsg).ConfigureAwait(false);
-
-                    // wait for continue or timeout
-                    var initialResult = await WaitForMessageOrError(ServerMessageType.Authentication, from: authStatus, timeout: _messageTimeout);
+                    var initialResult = await Duplexer.DuplexAsync(x => x.Type == ServerMessageType.Authentication, packets: initialMsg).ConfigureAwait(false);
 
                     if (initialResult is ErrorResponse err)
                         throw new EdgeDBErrorException(err);
@@ -729,11 +402,9 @@ namespace EdgeDB
                         throw new UnexpectedMessageException(ServerMessageType.Authentication, initialResult.Type);
 
                     // check the continue
-                    var final = scram.BuildFinalMessage(intiailStatus, _connection.Password!);
+                    var (FinalMessage, ExpectedSig) = scram.BuildFinalMessage(intiailStatus, _connection.Password!);
 
-                    await SendMessageAsync(final.FinalMessage);
-
-                    var finalResult = await WaitForMessageOrError(ServerMessageType.Authentication, from: initialResult, timeout: _messageTimeout);
+                    var finalResult = await Duplexer.DuplexAsync(x => x.Type == ServerMessageType.Authentication, packets: FinalMessage).ConfigureAwait(false);
 
                     if (finalResult is ErrorResponse error)
                         throw new EdgeDBErrorException(error);
@@ -741,15 +412,15 @@ namespace EdgeDB
                     if (finalResult is not AuthenticationStatus finalStatus || finalStatus.AuthStatus != AuthStatus.AuthenticationSASLFinal)
                         throw new UnexpectedMessageException(ServerMessageType.Authentication, finalResult.Type);
 
-                    var key = scram.ParseServerFinalMessage(finalStatus);
+                    var key = Scram.ParseServerFinalMessage(finalStatus);
 
-                    if (!key.SequenceEqual(final.ExpectedSig))
+                    if (!key.SequenceEqual(ExpectedSig))
                     {
                         throw new InvalidSignatureException();
                     }
 
                     // ok status
-                    var authOk = await WaitForMessageOrError(ServerMessageType.Authentication, from: finalResult, timeout: _messageTimeout);
+                    var authOk = await Duplexer.NextAsync(x => x.Type == ServerMessageType.Authentication);
 
                     if (authOk is ErrorResponse er)
                         throw new EdgeDBErrorException(er);
@@ -761,22 +432,22 @@ namespace EdgeDB
                     _currentRetries = 0;
                 }
             }
-            catch(Exception x)
+            catch (Exception x)
             {
                 if (_config.RetryMode == ConnectionRetryMode.AlwaysRetry)
                 {
                     if (_currentRetries < _config.MaxConnectionRetries)
                     {
                         _currentRetries++;
-                        Logger.LogWarning(x, "Attempting to reconnect, {}/{}", _currentRetries, _config.MaxConnectionRetries);
+                        Logger.AttemptToReconnect(_currentRetries, _config.MaxConnectionRetries);
                         await ReconnectAsync();
                     }
                     else
-                        Logger.LogError(x, "Max connection attemts reached");
+                        Logger.MaxConnectionRetries(_config.MaxConnectionRetries);
                 }
                 else
                 {
-                    Logger.LogError(x, "Failed to complete authentication");
+                    Logger.AuthenticationFailed(x);
                     throw;
                 }
             }
@@ -789,157 +460,62 @@ namespace EdgeDB
 
         private async Task<IReceiveable> PrepareAsync(Prepare packet)
         {
-            var next = _currentMessageId;
-            await SendMessageAsync(packet).ConfigureAwait(false);
-            await SendMessageAsync(new Sync()).ConfigureAwait(false);
+            var result = await Duplexer.DuplexAndSyncAsync(packet, x => x.Type == ServerMessageType.PrepareComplete);
 
-            var result = await WaitForMessageOrError(ServerMessageType.PrepareComplete, from: next, timeout: _messageTimeout).ConfigureAwait(false);
-
-            if (result is ErrorResponse err)
-                throw new EdgeDBErrorException(err);
-
-            return (PrepareComplete)result;
+            return result is ErrorResponse err ? throw new EdgeDBErrorException(err) : (IReceiveable)(PrepareComplete)result;
         }
 
         private void ParseServerSettings(ParameterStatus status)
         {
-            switch (status.Name)
-            {
-                case "suggested_pool_concurrency":
-                    var str = Encoding.UTF8.GetString(status.Value.ToArray());
-                    if (!int.TryParse(str, out SuggestedPoolConcurrency))
-                    {
-                        throw new FormatException("suggested_pool_concurrency type didn't match the expected type of int");
-                    }
-                    break;
-
-                case "system_config":
-                    using (var reader = new PacketReader(status.Value.ToArray()))
-                    {
-                        var length = reader.ReadInt32() - 16;
-                        var descriptorId = reader.ReadGuid();
-                        var typeDesc = reader.ReadBytes(length);
-
-                        ICodec? codec = PacketSerializer.GetCodec(descriptorId);
-
-                        if (codec == null)
-                        {
-                            using (var innerReader = new PacketReader(typeDesc))
-                            {
-                                codec = PacketSerializer.BuildCodec(descriptorId, innerReader);
-
-                                if (codec == null)
-                                    throw new MissingCodecException("Failed to build codec for system_config", descriptorId, status.Value.ToArray());
-                            }
-                        }
-
-                        // disard length
-                        reader.ReadUInt32();
-
-                        ServerConfig = ImmutableDictionary.CreateRange((codec.Deserialize(reader) as IDictionary<string, object?>)!);
-                    }
-                    break;
-            }
-        }
-
-        private Task<IReceiveable> WaitForMessageOrError(ServerMessageType type, ulong from, CancellationToken token = default, TimeSpan? timeout = null)
-            => NextMessageAsync(x => x.Type == type || x.Type == ServerMessageType.ErrorResponse, from, timeout, token: token);
-        private Task<IReceiveable> WaitForMessageOrError(ServerMessageType type, IReceiveable? from = null, CancellationToken token = default, TimeSpan? timeout = null)
-            => NextMessageAsync(from, predicate: x => x.Type == type || x.Type == ServerMessageType.ErrorResponse, timeout, token: token);
-
-        private async Task<TMessage> WaitForMessageAsync<TMessage>(ServerMessageType type, IReceiveable? from, CancellationToken token = default, TimeSpan? timeout = null) where TMessage : IReceiveable
-            => (TMessage)(await NextMessageAsync(from, x => x.Type == type, timeout, token: token));
-
-        private Task<IReceiveable> NextMessageAsync(IReceiveable? from, Predicate<IReceiveable>? predicate = null, TimeSpan? timeout = null, CancellationToken token = default)
-            => NextMessageAsync(predicate: predicate, from: from?.Id, timeout, token);
-        
-        // TODO: improve?
-        private async Task<IReceiveable> NextMessageAsync(Predicate<IReceiveable>? predicate = null, ulong? from = null, TimeSpan? timeout = null, CancellationToken token = default)
-        {
-            var targetId = from.HasValue ? from.Value + 1 : _currentMessageId;
-
-            var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            IReceiveable? returnValue = default;
-            bool found = false;
-            Func<IReceiveable, Task> handler = (msg) =>
-            {
-                if (predicate == null)
-                {
-                    if (msg.Id == targetId)
-                    {
-                        if (!found)
-                            returnValue = msg;
-                        found = true;
-                        tcs.TrySetResult();
-                    }
-                    else if (msg.Id > targetId)
-                    {
-                        // get the target and return
-                        if (!found)
-                            returnValue = _messageStack.First(x => x.Id == targetId);
-                        found = true;
-                        tcs.TrySetResult();
-                    }
-
-                }
-                else if (predicate(msg))
-                {
-                    if (!found)
-                        returnValue = msg;
-                    found = true;
-                    tcs.TrySetResult();
-                }
-
-                return Task.CompletedTask;
-            };
-
-            await _receiveSemaphore.WaitAsync().ConfigureAwait(false);
-
             try
             {
-                if (predicate != null)
+                switch (status.Name)
                 {
-                    var col = _messageStack.Where(x => x.Id >= targetId).OrderBy(x => x.Id).ToArray();
+                    case "suggested_pool_concurrency":
+                        var str = Encoding.UTF8.GetString(status.Value.ToArray());
+                        if (!int.TryParse(str, out SuggestedPoolConcurrency))
+                        {
+                            throw new FormatException("suggested_pool_concurrency type didn't match the expected type of int");
+                        }
+                        break;
 
-                    foreach (var msg in col)
-                    {
-                        await handler(msg);
-                        if (returnValue != null)
-                            break;
-                    }
+                    case "system_config":
+                        using (var reader = new PacketReader(status.Value.ToArray()))
+                        {
+                            var length = reader.ReadInt32() - 16;
+                            var descriptorId = reader.ReadGuid();
+                            var typeDesc = reader.ReadBytes(length);
+
+                            ICodec? codec = PacketSerializer.GetCodec(descriptorId);
+
+                            if (codec == null)
+                            {
+                                using (var innerReader = new PacketReader(typeDesc))
+                                {
+                                    codec = PacketSerializer.BuildCodec(descriptorId, innerReader);
+
+                                    if (codec == null)
+                                        throw new MissingCodecException("Failed to build codec for system_config", descriptorId, status.Value.ToArray());
+                                }
+                            }
+
+                            // disard length
+                            reader.ReadUInt32();
+
+                            var obj = codec.Deserialize(reader)!;
+
+                            RawServerConfig = ((ExpandoObject)obj).ToDictionary(x => x.Key, x => x.Value);
+                        }
+                        break;
+
+                    default:
+                        break;
                 }
-                else
-                {
-                    var msg = _messageStack.FirstOrDefault(x => x.Id == targetId);
-                    if (msg != null)
-                        return msg;
-                }
-
-                OnMessage += handler;
             }
-            finally
+            catch (Exception x)
             {
-                _receiveSemaphore.Release();
+                Logger.ServerSettingsParseFailed(x);
             }
-
-            var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectCancelToken.Token);
-
-            if (timeout.HasValue)
-                cancelSource.CancelAfter(timeout.Value);
-
-            cancelSource.Token.Register(() => tcs.TrySetCanceled());
-
-            _disconnectCancelToken.Token.ThrowIfCancellationRequested();
-
-            if (!tcs.Task.IsCompleted)
-            {
-                await tcs.Task.ConfigureAwait(false);
-            }
-
-            OnMessage -= handler;
-
-
-            return returnValue!;
         }
 
         #endregion
@@ -951,15 +527,11 @@ namespace EdgeDB
         /// </summary>
         public async Task ConnectAsync()
         {
-            _disconnectCancelToken?.Cancel();
-            
-            _disconnectCancelToken = new();
             _authCompleteSource = new();
 
             await ConnectInternalAsync();
 
             // wait for auth promise
-            
             await Task.Run(() => Task.WhenAll(_readySource.Task, _authCompleteSource.Task), _readyCancelTokenSource.Token).ConfigureAwait(false);
         }
 
@@ -967,19 +539,17 @@ namespace EdgeDB
         {
             try
             {
-                _disconnectCancelToken?.Cancel();
-                _disconnectCancelToken = new();
-                _client = new TcpClient();
+                TcpClient = new TcpClient();
 
-                var timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(_disconnectCancelToken.Token);
+                var timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(DisconnectCancelToken);
 
                 timeoutToken.CancelAfter(_connectionTimeout);
 
                 try
                 {
-                    await _client.ConnectAsync(_connection.Hostname!, _connection.Port, timeoutToken.Token).ConfigureAwait(false);
+                    await TcpClient.ConnectAsync(_connection.Hostname!, _connection.Port, timeoutToken.Token).ConfigureAwait(false);
                 }
-                catch(OperationCanceledException x) when (timeoutToken.IsCancellationRequested)
+                catch (OperationCanceledException x) when (timeoutToken.IsCancellationRequested)
                 {
                     throw new TimeoutException("The connection timed out", x);
                 }
@@ -999,7 +569,7 @@ namespace EdgeDB
                     }
                 }
 
-                _stream = _client.GetStream();
+                _stream = TcpClient.GetStream();
 
                 _secureStream = new SslStream(_stream, false, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
 
@@ -1017,31 +587,33 @@ namespace EdgeDB
 
                 await _secureStream.AuthenticateAsClientAsync(options).ConfigureAwait(false);
 
-                _receiveTask = Task.Run(async () => await ReceiveAsync().ConfigureAwait(false));
+                Duplexer.Start(_secureStream);
+
+                Duplexer.OnMessage += HandlePayloadAsync;
 
                 // send handshake
-                await SendMessageAsync(new ClientHandshake
+                await Duplexer.SendAsync(new ClientHandshake
                 {
                     MajorVersion = 1,
                     MinorVersion = 0,
                     ConnectionParameters = new ConnectionParam[]
                     {
-                    new ConnectionParam
-                    {
-                        Name = "user",
-                        Value = _connection.Username!
-                    },
-                    new ConnectionParam
-                    {
-                        Name = "database",
-                        Value = _connection.Database!
-                    }
+                        new ConnectionParam
+                        {
+                            Name = "user",
+                            Value = _connection.Username!
+                        },
+                        new ConnectionParam
+                        {
+                            Name = "database",
+                            Value = _connection.Database!
+                        }
                     }
                 }).ConfigureAwait(false);
             }
             catch (EdgeDBException x) when (x.ShouldReconnect)
             {
-                if(_currentRetries == _config.MaxConnectionRetries)
+                if (_currentRetries == _config.MaxConnectionRetries)
                 {
                     throw;
                 }
@@ -1062,9 +634,8 @@ namespace EdgeDB
         /// </summary>
         public async Task DisconnectAsync()
         {
-            await SendMessageAsync(new Terminate()).ConfigureAwait(false);
-            _client.Close();
-            _disconnectCancelToken.Cancel();
+            await Duplexer.DisconnectAsync().ConfigureAwait(false);
+            TcpClient.Close();
         }
 
         private bool ValidateServerCertificate(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
@@ -1083,13 +654,13 @@ namespace EdgeDB
 
                 var cert = new X509Certificate2(Encoding.ASCII.GetBytes(_connection.TLSCertData!));
 
-                X509Chain chain2 = new X509Chain();
+                X509Chain chain2 = new();
                 chain2.ChainPolicy.ExtraStore.Add(cert);
                 chain2.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
                 chain2.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
 
                 bool isValid = chain2.Build(new X509Certificate2(certificate!));
-                var chainRoot = chain2.ChainElements[chain2.ChainElements.Count - 1].Certificate;
+                var chainRoot = chain2.ChainElements[^1].Certificate;
                 isValid = isValid && chainRoot.RawData.SequenceEqual(cert.RawData);
 
                 return isValid;
@@ -1097,7 +668,33 @@ namespace EdgeDB
             else
             {
                 return sslPolicyErrors == SslPolicyErrors.None;
-            }            
+            }
+        }
+
+        #endregion
+
+        #region Command locks
+
+        internal async Task<IDisposable> AquireCommandLockAsync(CancellationToken token = default)
+        {
+            var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(DisconnectCancelToken, token);
+
+            await _commandSemaphore.WaitAsync(linkedToken.Token).ConfigureAwait(false);
+
+            return new CommandLock(() => { _commandSemaphore.Release(); });
+        }
+
+        private class CommandLock : IDisposable
+        {
+            private readonly Action _onDispose;
+
+            public CommandLock(Action onDispose)
+            {
+                _onDispose = onDispose;
+            }
+
+            public void Dispose()
+                => _onDispose();
         }
 
         #endregion
@@ -1106,9 +703,6 @@ namespace EdgeDB
 
         public async ValueTask DisposeAsync()
         {
-            if (_isDisposed)
-                return;
-
             bool shouldDispose = true;
 
             if (_onDisposed.HasSubscribers)

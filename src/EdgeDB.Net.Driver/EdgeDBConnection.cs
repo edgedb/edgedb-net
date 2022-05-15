@@ -1,12 +1,6 @@
 ﻿using EdgeDB.Utils;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Data.Common;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Web;
 
 namespace EdgeDB
@@ -111,7 +105,7 @@ namespace EdgeDB
         /// <exception cref="KeyNotFoundException">An enviorment variable couldn't be found.</exception>
         public static EdgeDBConnection FromDSN(string dsn)
         {
-            if(!Regex.IsMatch(dsn, @"^[a-z]+:\/\/"))
+            if (!Regex.IsMatch(dsn, @"^[a-z]+:\/\/"))
                 throw new ArgumentException("DSN doesn't match the format \"edgedb://\"");
 
             string? database = null, username = null, port = null, host = null, password = null;
@@ -132,7 +126,7 @@ namespace EdgeDB
             {
                 var parsed = HttpUtility.ParseQueryString(queryParams.Groups[1].Value.Remove(0, 1));
 
-                if(parsed.AllKeys.Length >= 1 && parsed.AllKeys[0] != null)
+                if (parsed.AllKeys.Length >= 1 && parsed.AllKeys[0] != null)
                 {
                     args = parsed.AllKeys.ToDictionary(x => x!, x => parsed[x]!);
 
@@ -151,7 +145,7 @@ namespace EdgeDB
 
             var sub2 = formattedDsn.Split('@');
 
-            if(sub2.Length == 2)
+            if (sub2.Length == 2)
             {
                 var right = sub2[1].Split(':');
 
@@ -182,7 +176,7 @@ namespace EdgeDB
                     host = spl[0];
                     port = spl[1];
                 }
-                else if(!string.IsNullOrEmpty(spl[0]))
+                else if (!string.IsNullOrEmpty(spl[0]))
                     host = spl[0];
             }
 
@@ -227,25 +221,25 @@ namespace EdgeDB
                         }
                         break;
                     case "host":
-                        if(host != null)
+                        if (host != null)
                             throw new ArgumentException("Port ambiguity mismatch");
 
                         conn.Hostname = value;
                         break;
                     case "database":
-                        if(database != null)
+                        if (database != null)
                             throw new ArgumentException("Port ambiguity mismatch");
 
                         conn.Database = value;
                         break;
                     case "user":
-                        if(username != null)
+                        if (username != null)
                             throw new ArgumentException("Port ambiguity mismatch");
 
                         conn.Username = value;
                         break;
                     case "password":
-                        if(password != null)
+                        if (password != null)
                             throw new ArgumentException("Port ambiguity mismatch");
 
                         conn.Password = value;
@@ -336,10 +330,9 @@ namespace EdgeDB
         {
             var configPath = Path.Combine(ConfigUtils.CredentialsDir, $"{name}.json");
 
-            if (!File.Exists(configPath))
-                throw new FileNotFoundException($"Config file couldn't be found at {configPath}");
-
-            return JsonConvert.DeserializeObject<EdgeDBConnection>(File.ReadAllText(configPath))!;
+            return !File.Exists(configPath)
+                ? throw new FileNotFoundException($"Config file couldn't be found at {configPath}")
+                : JsonConvert.DeserializeObject<EdgeDBConnection>(File.ReadAllText(configPath))!;
         }
 
         /// <summary>
@@ -353,7 +346,7 @@ namespace EdgeDB
 
             while (true)
             {
-                if(File.Exists(Path.Combine(dir!, "edgedb.toml")))
+                if (File.Exists(Path.Combine(dir!, "edgedb.toml")))
                     return FromProjectFile(Path.Combine(dir!, "edgedb.toml"));
 
                 var parent = Directory.GetParent(dir!);

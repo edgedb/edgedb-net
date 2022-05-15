@@ -1,13 +1,8 @@
 ﻿using EdgeDB.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EdgeDB.Dumps
 {
-    internal class DumpWriter
+    internal class DumpWriter : IDisposable
     {
         public const long DumpVersion = 1;
 
@@ -27,7 +22,7 @@ namespace EdgeDB.Dumps
             0x00,
         };
 
-        private byte[] _version
+        private static byte[] Version
             => BitConverter.GetBytes((long)1).Reverse().ToArray();
 
         private readonly Stream _stream;
@@ -38,7 +33,7 @@ namespace EdgeDB.Dumps
             _writer = new PacketWriter(_stream);
 
             _writer.Write(FileFormat);
-            _writer.Write(_version);
+            _writer.Write(Version);
         }
 
         public void WriteDumpHeader(DumpHeader header)
@@ -60,5 +55,7 @@ namespace EdgeDB.Dumps
 
             _writer.Flush();
         }
+
+        public void Dispose() => _writer.Dispose();
     }
 }

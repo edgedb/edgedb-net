@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class StringLength : IEdgeQLOperator
     {
-        public ExpressionType? Operator => null;
+        public ExpressionType? ExpressionType => null;
         public string EdgeQLOperator => "len({0})";
     }
 }

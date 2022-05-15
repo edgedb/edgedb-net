@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class NumbersNegative : IEdgeQLOperator
     {
-        public ExpressionType? Operator => ExpressionType.Negate;
+        public ExpressionType? ExpressionType => System.Linq.Expressions.ExpressionType.Negate;
         public string EdgeQLOperator => "-{0}";
     }
 }

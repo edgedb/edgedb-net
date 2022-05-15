@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class TypesCast : IEdgeQLOperator
     {
-        public ExpressionType? Operator => ExpressionType.Convert;
+        public ExpressionType? ExpressionType => System.Linq.Expressions.ExpressionType.Convert;
         public string EdgeQLOperator => "<{0}>{1}";
     }
 }

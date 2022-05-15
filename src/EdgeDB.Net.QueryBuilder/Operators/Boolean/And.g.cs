@@ -4,7 +4,7 @@ namespace EdgeDB.Operators
 {
     internal class BooleanAnd : IEdgeQLOperator
     {
-        public ExpressionType? Operator => ExpressionType.And;
+        public ExpressionType? ExpressionType => System.Linq.Expressions.ExpressionType.And;
         public string EdgeQLOperator => "{0} and {1}";
     }
 }

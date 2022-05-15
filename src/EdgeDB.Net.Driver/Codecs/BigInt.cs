@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Numerics;
 
 namespace EdgeDB.Codecs
 {
@@ -23,7 +18,7 @@ namespace EdgeDB.Codecs
             string result = sign == NumericSign.NEG ? "-" : "";
 
             int i = weight, d = 0;
-           
+
             while (i >= 0)
             {
                 if (i <= weight && d < numDigits)
@@ -42,9 +37,6 @@ namespace EdgeDB.Codecs
             return BigInteger.Parse(result);
         }
 
-        public void Serialize(PacketWriter writer, BigInteger value)
-        {
-            throw new NotImplementedException();
-        }
+        public void Serialize(PacketWriter writer, BigInteger value) => throw new NotImplementedException();
     }
 }

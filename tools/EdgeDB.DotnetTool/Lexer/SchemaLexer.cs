@@ -1,38 +1,32 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EdgeDB.DotnetTool.Lexer
+﻿namespace EdgeDB.DotnetTool.Lexer
 {
     internal class SchemaLexer
     {
-        private readonly Dictionary<string, TokenType> _tokens = new Dictionary<string, TokenType>
+        private readonly Dictionary<string, TokenType> _tokens = new()
         {
-            {"module", TokenType.Module },
-            {"{", TokenType.BeginBrace },
-            {"}", TokenType.EndBrace },
-            {"required", TokenType.Required },
-            {"property", TokenType.Property },
-            {"constraint", TokenType.Constraint },
-            {"->", TokenType.TypeArrow },
-            {"multi", TokenType.Multi },
-            {"single", TokenType.Single },
-            {"link", TokenType.Link },
-            {"abstract", TokenType.Abstract },
-            {";", TokenType.Semicolon },
-            {":=", TokenType.Assignment },
-            {"on", TokenType.On },
-            {"extending", TokenType.Extending },
-            {",", TokenType.Comma },
-            {"(", TokenType.BeginParenthesis },
-            {")", TokenType.EndParenthesis },
-            {"annotation", TokenType.Annotation },
-            {"type", TokenType.Type },
-            {"index", TokenType.Index },
-            {"scalar", TokenType.Scalar },
-            {"function", TokenType.Function },
+            { "module", TokenType.Module },
+            { "{", TokenType.BeginBrace },
+            { "}", TokenType.EndBrace },
+            { "required", TokenType.Required },
+            { "property", TokenType.Property },
+            { "constraint", TokenType.Constraint },
+            { "->", TokenType.TypeArrow },
+            { "multi", TokenType.Multi },
+            { "single", TokenType.Single },
+            { "link", TokenType.Link },
+            { "abstract", TokenType.Abstract },
+            { ";", TokenType.Semicolon },
+            { ":=", TokenType.Assignment },
+            { "on", TokenType.On },
+            { "extending", TokenType.Extending },
+            { ",", TokenType.Comma },
+            { "(", TokenType.BeginParenthesis },
+            { ")", TokenType.EndParenthesis },
+            { "annotation", TokenType.Annotation },
+            { "type", TokenType.Type },
+            { "index", TokenType.Index },
+            { "scalar", TokenType.Scalar },
+            { "function", TokenType.Function },
         };
 
         private readonly SchemaBuffer _reader;
@@ -66,9 +60,9 @@ namespace EdgeDB.DotnetTool.Lexer
 
             var elArr = _tokens.Select(x => x.Key.Length).Distinct();
 
-            foreach(var item in elArr)
+            foreach (var item in elArr)
             {
-                if(_tokens.TryGetValue(_reader.Peek(item), out var token))
+                if (_tokens.TryGetValue(_reader.Peek(item), out var token))
                 {
                     _reader.Read(item);
 
@@ -135,7 +129,7 @@ namespace EdgeDB.DotnetTool.Lexer
                                 func += ReadValue();
                                 func += ReadWhitespace();
                                 // check if its a bracket function
-                                if(_reader.Peek(1) == "{")
+                                if (_reader.Peek(1) == "{")
                                 {
                                     var depth = 1;
                                     _reader.Read(1);
@@ -157,7 +151,7 @@ namespace EdgeDB.DotnetTool.Lexer
 
                                     return NewToken(TokenType.Function, func);
                                 }
-                                else if(_reader.Peek(5) == "using")
+                                else if (_reader.Peek(5) == "using")
                                 {
                                     // assume its a parentheses block?
                                     func += _reader.Read(5); // read using
@@ -197,7 +191,7 @@ namespace EdgeDB.DotnetTool.Lexer
 
             var st = _reader.Peek(1);
 
-            if(st == null || st.Length == 0)
+            if (st == null || st.Length == 0)
             {
                 // end of file
                 return NewToken(TokenType.EndOfFile);
@@ -209,8 +203,6 @@ namespace EdgeDB.DotnetTool.Lexer
             var val = ReadValue(false, ';');
 
             return NewToken(TokenType.Identifier, val);
-
-            throw new Exception("No token");
         }
 
         private string ReadValue(bool ignoreSpace = false, params char[] delimiters)
@@ -219,10 +211,10 @@ namespace EdgeDB.DotnetTool.Lexer
             bool isEscaped = false;
             return _reader.ReadWhile(x =>
             {
-                if (x == "'" || x == "\"" || x == "[" || x == "]" || x == "`" || x == "<" || x == ">")
+                if (x is "'" or "\"" or "[" or "]" or "`" or "<" or ">")
                     isEscaped = !isEscaped;
 
-                return isEscaped || ((ignoreSpace || !char.IsWhiteSpace(x, 0)) && (delimiters.Length > 0 ? !delimiters.Contains(x[0]) : true));
+                return isEscaped || ((ignoreSpace || !char.IsWhiteSpace(x, 0)) && (delimiters.Length == 0 || !delimiters.Contains(x[0])));
             });
         }
 
@@ -230,13 +222,13 @@ namespace EdgeDB.DotnetTool.Lexer
         {
             var t = PeekToken();
 
-            if(type == TokenType.EndOfFile)
+            if (type == TokenType.EndOfFile)
             {
-                throw new Exception("Unexpected end of file");
+                throw new EndOfStreamException("Unexpected end of file");
             }
 
             if (t.Type != type)
-                throw new Exception($"Unexpected token! Expected {type} but got {t.Type} at {t.StartLine}:{t.StartPos}");
+                throw new ArgumentException($"Unexpected token! Expected {type} but got {t.Type} at {t.StartLine}:{t.StartPos}", nameof(type));
 
             return ReadToken();
         }

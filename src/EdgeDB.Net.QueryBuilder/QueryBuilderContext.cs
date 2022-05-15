@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EdgeDB
+﻿namespace EdgeDB
 {
     internal class QueryBuilderContext
     {
@@ -18,9 +12,9 @@ namespace EdgeDB
         public string? VariableName { get; set; }
         public bool AllowComputedValues { get; set; } = true;
         public int? MaxAggregationDepth { get; set; } = 10;
-        public bool LimitToOne { get; set; } = false;
+        public bool LimitToOne { get; set; }
         public List<QueryBuilder> TrackedSubQueries { get; set; } = new();
-        public bool ExplicitShapeDefinition { get; set; } = false;
+        public bool ExplicitShapeDefinition { get; set; }
 
 
         // sub query type info
