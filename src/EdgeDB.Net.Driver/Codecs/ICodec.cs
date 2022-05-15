@@ -16,11 +16,9 @@ namespace EdgeDB.Codecs
             SerializeArguments(writer, value);
 
             writer.BaseStream.Position = 0;
-            using (var ms = new MemoryStream())
-            {
-                writer.BaseStream.CopyTo(ms);
-                return ms.ToArray();
-            }
+            using var ms = new MemoryStream();
+            writer.BaseStream.CopyTo(ms);
+            return ms.ToArray();
         }
     }
 
@@ -31,25 +29,19 @@ namespace EdgeDB.Codecs
 
         new TConverter? Deserialize(byte[] buffer)
         {
-            using (var reader = new PacketReader(buffer))
-            {
-                return Deserialize(reader);
-            }
+            using var reader = new PacketReader(buffer);
+            return Deserialize(reader);
         }
 
         byte[] Serialize(TConverter? value)
         {
-            using (var writer = new PacketWriter())
-            {
-                Serialize(writer, value);
+            using var writer = new PacketWriter();
+            Serialize(writer, value);
 
-                writer.BaseStream.Position = 0;
-                using (var ms = new MemoryStream())
-                {
-                    writer.BaseStream.CopyTo(ms);
-                    return ms.ToArray();
-                }
-            }
+            writer.BaseStream.Position = 0;
+            using var ms = new MemoryStream();
+            writer.BaseStream.CopyTo(ms);
+            return ms.ToArray();
         }
 
         // ICodec
@@ -68,25 +60,19 @@ namespace EdgeDB.Codecs
 
         object? Deserialize(byte[] buffer)
         {
-            using (var reader = new PacketReader(buffer))
-            {
-                return Deserialize(reader);
-            }
+            using var reader = new PacketReader(buffer);
+            return Deserialize(reader);
         }
 
         byte[] Serialize(object? value)
         {
-            using (var writer = new PacketWriter())
-            {
-                Serialize(writer, value);
+            using var writer = new PacketWriter();
+            Serialize(writer, value);
 
-                writer.BaseStream.Position = 0;
-                using (var ms = new MemoryStream())
-                {
-                    writer.BaseStream.CopyTo(ms);
-                    return ms.ToArray();
-                }
-            }
+            writer.BaseStream.Position = 0;
+            using var ms = new MemoryStream();
+            writer.BaseStream.CopyTo(ms);
+            return ms.ToArray();
         }
 
         private static readonly List<ICodec> _codecs;

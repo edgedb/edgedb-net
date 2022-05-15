@@ -51,7 +51,6 @@
             return decimal.Parse(value);
         }
 
-#pragma warning disable IDE0022 // Use expression body for methods
         public void Serialize(PacketWriter writer, decimal value)
         {
             // TODO https://www.edgedb.com/docs/reference/protocol/dataformats#std-decimal
@@ -90,6 +89,5 @@
             //    writer.Write(digits[i]);
             //}
         }
-#pragma warning restore IDE0022 // Use expression body for methods
     }
 }

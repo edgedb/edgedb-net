@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EdgeDB.Codecs
+﻿namespace EdgeDB.Codecs
 {
     internal class Memory : IScalarCodec<DataTypes.Memory>
     {

@@ -105,12 +105,7 @@ namespace EdgeDB
 
             try
             {
-                var readyTcs = new TaskCompletionSource();
-                // start receiving before sending
-                // note: no need to use the linked token as both the NextAsync and SendAsync task link it.
-                var receiveTask = Task.Run(() => NextAsync(predicate, () => { readyTcs.TrySetResult(); }, token));
-
-                await readyTcs.Task.ConfigureAwait(false);
+                var receiveTask = NextAsync(predicate, token: token);
 
                 await SendAsync(token, packets).ConfigureAwait(false);
 

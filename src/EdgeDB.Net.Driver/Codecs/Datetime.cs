@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EdgeDB.Codecs
+﻿namespace EdgeDB.Codecs
 {
     internal class Datetime : IScalarCodec<DateTimeOffset> // std::datetime
     {
-        public static readonly DateTimeOffset EdgedbEpoc = new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        public static readonly DateTimeOffset EdgedbEpoc = new(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
         public DateTimeOffset Deserialize(PacketReader reader)
         {
@@ -27,7 +21,7 @@ namespace EdgeDB.Codecs
 
     internal class LocalDateTime : IScalarCodec<DateTime> // std::local_datetime
     {
-        public static readonly DateTime EdgedbEpoc = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
+        public static readonly DateTime EdgedbEpoc = new(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
 
         public DateTime Deserialize(PacketReader reader)
         {
@@ -46,7 +40,7 @@ namespace EdgeDB.Codecs
 
     internal class LocalDate : IScalarCodec<DateTime>
     {
-        public static readonly DateTime EdgedbEpoc = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
+        public static readonly DateTime EdgedbEpoc = new(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
 
         public void Serialize(PacketWriter writer, DateTime value)
         {

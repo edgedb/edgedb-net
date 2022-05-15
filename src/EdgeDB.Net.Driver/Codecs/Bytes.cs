@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EdgeDB.Codecs
+﻿namespace EdgeDB.Codecs
 {
     internal class Bytes : IScalarCodec<byte[]>
     {
@@ -15,7 +9,7 @@ namespace EdgeDB.Codecs
 
         public void Serialize(PacketWriter writer, byte[]? value)
         {
-            if(value != null)
+            if (value != null)
                 writer.Write(value);
         }
     }
