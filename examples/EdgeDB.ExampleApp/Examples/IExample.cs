@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using Microsoft.Extensions.Logging;
+using System.Reflection;
 
 namespace EdgeDB.ExampleApp
 {
@@ -8,29 +9,27 @@ namespace EdgeDB.ExampleApp
 
         Task ExecuteAsync(EdgeDBClient client);
 
-        static async Task ExecuteAllAsync(EdgeDBClient client)
+        static async Task ExecuteAllAsync(EdgeDBClient client, ILogger logger)
         {
-            var log = Logger.GetLogger<IExample>();
-
             var examples = Assembly.GetExecutingAssembly().GetTypes().Where(x => x.IsAssignableTo(typeof(IExample)) && x != typeof(IExample));
 
             foreach (var example in examples)
             {
-                log.Log($"Running {example.Name}...", LogPostfix.Examples);
+                logger.LogInformation("Running {example}..", $"{example.Name}.cs");
                 try
                 {
                     var inst = (IExample)Activator.CreateInstance(example)!;
                     inst.Logger = Logger.GetLogger(example);
                     await inst.ExecuteAsync(client).ConfigureAwait(false);
-                    log.Log($"{example.Name} complete!", LogPostfix.Examples);
+                    logger.LogInformation("{example} complete!", $"{example.Name}.cs");
                 }
                 catch (Exception x)
                 {
-                    log.Error($"Example {example.Name} failed", LogPostfix.Examples, x);
+                    logger.LogError(x, "Example {example} failed", $"{example.Name}.cs");
                 }
             }
 
-            log.Info("Examples complete", LogPostfix.Examples);
+            logger.LogInformation("Examples complete!");
         }
     }
 }

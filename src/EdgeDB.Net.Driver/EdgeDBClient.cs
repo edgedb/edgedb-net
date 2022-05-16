@@ -89,6 +89,9 @@ namespace EdgeDB
             if (config.ClientType == EdgeDBClientType.Custom && config.ClientFactory == null)
                 throw new CustomClientException("You must specify a client factory in order to use custom clients");
 
+            if (config.DefaultPoolSize < 1)
+                throw new ArgumentOutOfRangeException(nameof(config.DefaultPoolSize), "Pool size must be above zero");
+
             _clientFactory = config.ClientFactory;
 
             _isInitialized = false;

@@ -27,12 +27,12 @@ namespace EdgeDB
             _errorResponseReceived = LoggerMessage.Define<ErrorSeverity, string>(
                 LogLevel.Error,
                 new EventId(2, nameof(ErrorResponseReceived)),
-                "Got error level: {} Message: {}");
+                "Got error level: {ErrorLevel} Message: {Message}");
 
             _messageReceived = LoggerMessage.Define<ulong, ServerMessageType>(
                 LogLevel.Debug,
                 new EventId(3, nameof(MessageReceived)),
-                "Client {}: {}");
+                "Client {ClientId}: {MessageType}");
 
             _eventHandlerException = LoggerMessage.Define(
                 LogLevel.Error,
@@ -42,12 +42,12 @@ namespace EdgeDB
             _connectionRetry = LoggerMessage.Define<uint, uint>(
                 LogLevel.Warning,
                 new EventId(5, nameof(AttemptToReconnect)),
-                "Attempting to reconnect {}/{}");
+                "Attempting to reconnect {CurrentAttempts}/{MaxAttempts}");
 
             _maxConnectionRetryReached = LoggerMessage.Define<uint>(
                 LogLevel.Error,
                 new EventId(6, nameof(MaxConnectionRetries)),
-                "Max number of connection retries reached ({})");
+                "Max number of connection retries reached ({MaxAttempts})");
 
             _authenticationFailed = LoggerMessage.Define(
                 LogLevel.Error,
@@ -62,7 +62,7 @@ namespace EdgeDB
             _unknownPacket = LoggerMessage.Define<string>(
                 LogLevel.Critical,
                 new EventId(9, nameof(UnknownPacket)),
-                "No reader found for packet {}. Please file a bug report");
+                "No reader found for packet {PacketId}. Please file a bug report");
         }
 
         public static void InternalExecuteFailed(this ILogger logger, Exception x)

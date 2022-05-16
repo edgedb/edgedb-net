@@ -1,23 +1,37 @@
 ﻿using EdgeDB;
 using EdgeDB.ExampleApp;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Serilog;
 
-// Initialize our logger
-Logger.AddStream(Console.OpenStandardOutput(), StreamType.StandardOut);
-Logger.AddStream(Console.OpenStandardError(), StreamType.StandardError);
+Log.Logger = new LoggerConfiguration()
+    .Enrich.FromLogContext()
+    .MinimumLevel.Debug()
+    .WriteTo.Console(outputTemplate: "{Timestamp:HH:mm:ss} - {Level}: {Message:lj}{NewLine}{Exception}")
+    .CreateLogger();
 
-// Create a client
-// The edgedb.toml file gets resolved by working up the directoy chain.
-var edgedb = new EdgeDBClient(new EdgeDBClientPoolConfig
-{
-    Logger = Logger.GetLogger<EdgeDBClient>(LogPostfix.Debug, LogPostfix.Error, LogPostfix.Warning, LogPostfix.Info, LogPostfix.Critical),
-    ClientType = EdgeDBClientType.Tcp
-});
+using var host = Host.CreateDefaultBuilder()
+    .ConfigureServices((services) =>
+    {
+        services.AddLogging(loggingBuilder =>
+        {
+            loggingBuilder.ClearProviders();
+            loggingBuilder.AddSerilog(dispose: true);
+        });
 
-// str is 'Hello, World!'
-var str = await edgedb.QueryRequiredSingleAsync<string>("select \"Hello, World!\"");
+        services.AddSingleton((provider) =>
+        {
+            return new EdgeDBClient(new EdgeDBClientPoolConfig
+            {
+                Logger = provider.GetService<ILoggerFactory>()!.CreateLogger("EdgeDB")
+            });
+        });
 
-// Run our examples
-await IExample.ExecuteAllAsync(edgedb).ConfigureAwait(false);
+        services.AddSingleton<ExampleRunner>();
+    }).Build();
+
+await host.Services.GetRequiredService<ExampleRunner>().StartAsync();
 
 // hault the program
 await Task.Delay(-1);

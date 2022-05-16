@@ -58,6 +58,7 @@ namespace EdgeDB
         ///     This value is a legacy value pre 1.0 and should not be set explicity, use <see cref="TLSCertificateAuthority"/> instead.
         /// </remarks>
         [JsonProperty("tls_cert_data")]
+        [Obsolete("his value is a legacy value pre 1.0 and should not be set explicity, use TLSCertificateAuthority instead.")]
         public string? TLSCertData { get; set; }
 
         /// <summary>

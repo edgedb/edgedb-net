@@ -15,7 +15,7 @@ namespace EdgeDB
         public EdgeDBClientType ClientType { get; set; }
 
         /// <summary>
-        ///     Gets or sets the client factory.
+        ///     Gets or sets the client factory to use when adding new clients to the client pool.
         /// </summary>
         /// <remarks>
         ///     The <see cref="ClientType"/> must be <see cref="EdgeDBClientType.Custom"/> to use this property.
