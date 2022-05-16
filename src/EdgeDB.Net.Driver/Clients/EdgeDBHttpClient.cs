@@ -83,7 +83,6 @@ namespace EdgeDB
             handler.SslProtocols = SslProtocols.None;
             handler.ServerCertificateCustomValidationCallback = ValidateServerCertificate;
             _httpClient = new(handler);
-
         }
 
         private bool ValidateServerCertificate(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)

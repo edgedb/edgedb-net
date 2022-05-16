@@ -18,6 +18,10 @@ namespace EdgeDB
     /// </summary>
     public sealed class EdgeDBTcpClient : EdgeDBBinaryClient
     {
+        public override bool IsConnected
+            => TcpClient.Connected && _secureStream != null;
+
+
         internal TcpClient TcpClient;
         private NetworkStream? _stream;
         private SslStream? _secureStream;

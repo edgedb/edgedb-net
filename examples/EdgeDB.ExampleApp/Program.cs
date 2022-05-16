@@ -10,9 +10,10 @@ Logger.AddStream(Console.OpenStandardError(), StreamType.StandardError);
 var edgedb = new EdgeDBClient(new EdgeDBClientPoolConfig
 {
     Logger = Logger.GetLogger<EdgeDBClient>(LogPostfix.Debug, LogPostfix.Error, LogPostfix.Warning, LogPostfix.Info, LogPostfix.Critical),
-    ClientType = EdgeDBClientType.Http
+    ClientType = EdgeDBClientType.Tcp
 });
 
+// str is 'Hello, World!'
 var str = await edgedb.QueryRequiredSingleAsync<string>("select \"Hello, World!\"");
 
 // Run our examples

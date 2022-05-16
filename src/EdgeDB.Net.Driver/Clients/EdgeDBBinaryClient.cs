@@ -61,9 +61,6 @@ namespace EdgeDB
         /// </summary>
         public TransactionState TransactionState { get; private set; }
 
-        public override bool IsConnected
-            => Duplexer.Connected;
-
         internal byte[] ServerKey;
         internal int SuggestedPoolConcurrency;
         internal ILogger Logger;
