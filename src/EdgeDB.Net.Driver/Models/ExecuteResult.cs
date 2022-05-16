@@ -58,6 +58,7 @@
     public interface IExecuteError
     {
         string? Message { get; }
+
         uint ErrorCode { get; }
     }
 }

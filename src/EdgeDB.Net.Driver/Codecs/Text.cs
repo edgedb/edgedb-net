@@ -11,7 +11,7 @@ namespace EdgeDB.Codecs
 
         public void Serialize(PacketWriter writer, string? value)
         {
-            if (value != null)
+            if (value is not null)
                 writer.Write(Encoding.UTF8.GetBytes(value));
         }
     }

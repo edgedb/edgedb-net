@@ -9,6 +9,7 @@ namespace EdgeDB.DotnetTool
 	internal class CodeWriter
 	{
 		public readonly StringBuilder Content = new();
+
 		public int IndentLevel { get; private set; }
 
 		private readonly ScopeTracker _scopeTracker; //We only need one. It can be reused.
@@ -18,15 +19,21 @@ namespace EdgeDB.DotnetTool
 			_scopeTracker = new(this); //We only need one. It can be reused.
 		}
 
-		public void Append(string line) => Content.Append(line);
-		public void AppendLine(string line) => Content.Append(new string(' ', IndentLevel)).AppendLine(line);
-		public void AppendLine() => Content.AppendLine();
+		public void Append(string line) 
+			=> Content.Append(line);
+
+		public void AppendLine(string line) 
+			=> Content.Append(new string(' ', IndentLevel)).AppendLine(line);
+
+		public void AppendLine() 
+			=> Content.AppendLine();
 
 		public IDisposable BeginScope(string line)
 		{
 			AppendLine(line);
 			return BeginScope();
 		}
+
 		public IDisposable BeginScope()
 		{
 			Content.Append(new string(' ', IndentLevel)).AppendLine("{");
@@ -42,8 +49,11 @@ namespace EdgeDB.DotnetTool
 			Content.Append(new string(' ', IndentLevel)).AppendLine("}");
 		}
 
-		public void StartLine() => Content.Append(new string(' ', IndentLevel));
-		public override string ToString() => Content.ToString();
+		public void StartLine() 
+			=> Content.Append(new string(' ', IndentLevel));
+
+		public override string ToString() 
+			=> Content.ToString();
 
 		class ScopeTracker : IDisposable
 		{
@@ -51,6 +61,7 @@ namespace EdgeDB.DotnetTool
 			{
 				Parent = parent;
 			}
+
 			public CodeWriter Parent { get; }
 
 			public void Dispose()

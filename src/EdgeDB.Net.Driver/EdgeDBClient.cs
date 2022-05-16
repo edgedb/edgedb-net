@@ -42,7 +42,7 @@ namespace EdgeDB
         private ConcurrentStack<BaseEdgeDBClient> _availableClients;
         private bool _isInitialized;
         private Dictionary<string, object?> _edgedbConfig;
-        private int _poolSize;
+        private uint _poolSize;
 
         private readonly object _clientsLock = new();
         private readonly SemaphoreSlim _initSemaphore;
@@ -89,9 +89,6 @@ namespace EdgeDB
             if (config.ClientType == EdgeDBClientType.Custom && config.ClientFactory == null)
                 throw new CustomClientException("You must specify a client factory in order to use custom clients");
 
-            if (config.DefaultPoolSize < 1)
-                throw new ArgumentOutOfRangeException(nameof(config.DefaultPoolSize), "Pool size must be above zero");
-
             _clientFactory = config.ClientFactory;
 
             _isInitialized = false;
@@ -122,7 +119,7 @@ namespace EdgeDB
                 if(client is EdgeDBBinaryClient binaryClient)
                 {
                     // set the pool size to the recommended
-                    _poolSize = binaryClient.SuggestedPoolConcurrency;
+                    _poolSize = (uint)binaryClient.SuggestedPoolConcurrency;
                     _edgedbConfig = binaryClient.RawServerConfig;
                 }
 

@@ -13,7 +13,8 @@ namespace EdgeDB.Models
     public struct CommandComplete : IReceiveable
     {
         /// <inheritdoc/>
-        public ServerMessageType Type => ServerMessageType.CommandComplete;
+        public ServerMessageType Type 
+            => ServerMessageType.CommandComplete;
 
         /// <summary>
         ///     Gets the used capabilities within the completed command.

@@ -8,7 +8,8 @@ namespace EdgeDB.Models
 {
     internal class Execute : Sendable
     {
-        public override ClientMessageTypes Type => ClientMessageTypes.Execute;
+        public override ClientMessageTypes Type 
+            => ClientMessageTypes.Execute;
 
         public AllowCapabilities Capabilities { get; set; }
 

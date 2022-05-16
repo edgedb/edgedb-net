@@ -25,23 +25,31 @@ namespace EdgeDB
         {
             [JsonProperty("message")]
             public string? Message { get; set; }
+
             [JsonProperty("type")]
             public string? Type { get; set; }
+
             [JsonProperty("code")]
             public uint Code { get; set; }
 
-            string? IExecuteError.Message => Message;
+            string? IExecuteError.Message 
+                => Message;
 
-            uint IExecuteError.ErrorCode => Code;
+            uint IExecuteError.ErrorCode 
+                => Code;
         }
 
-        bool IExecuteResult.IsSuccess => Error == null;
+        bool IExecuteResult.IsSuccess 
+            => Error is null;
 
-        IExecuteError? IExecuteResult.ExecutionError => Error;
+        IExecuteError? IExecuteResult.ExecutionError 
+            => Error;
 
-        Exception? IExecuteResult.Exception => null;
+        Exception? IExecuteResult.Exception 
+            => null;
 
-        string? IExecuteResult.ExecutedQuery => null;
+        string? IExecuteResult.ExecutedQuery 
+            => null;
     }
 
     public class EdgeDBHttpClient : BaseEdgeDBClient
@@ -77,11 +85,13 @@ namespace EdgeDB
             _config = config;
             _connection = connection;
             Uri = new($"http{(connection.TLSSecurity != TLSSecurityMode.Insecure ? "s" : "")}://{connection.Hostname}:{connection.Port}/db/{connection.Database}/edgeql");
-            
-            var handler = new HttpClientHandler();
-            handler.ClientCertificateOptions = ClientCertificateOption.Manual;
-            handler.SslProtocols = SslProtocols.None;
-            handler.ServerCertificateCustomValidationCallback = ValidateServerCertificate;
+
+            var handler = new HttpClientHandler
+            {
+                ClientCertificateOptions = ClientCertificateOption.Manual,
+                SslProtocols = SslProtocols.None,
+                ServerCertificateCustomValidationCallback = ValidateServerCertificate
+            };
             _httpClient = new(handler);
         }
 
@@ -147,7 +157,7 @@ namespace EdgeDB
         {
             var result = await ExecuteInternalAsync(query, args);
 
-            if (result.Data == null)
+            if (result.Data is null)
                 return Array.Empty<TResult?>();
 
             var arr = (JArray)result.Data;
@@ -158,12 +168,12 @@ namespace EdgeDB
         {
             var result = await ExecuteInternalAsync(query, args);
 
-            if (result.Data == null)
+            if (result.Data is null)
                 throw new MissingRequiredException();
 
             var arr = (JArray)result.Data;
 
-            if (arr.Count != 1)
+            if (arr.Count is not 1)
                 throw new InvalidDataException($"Expected 1 element but got {arr.Count}", new MissingRequiredException());
 
             return arr[0].ToObject<TResult>()!;
@@ -174,7 +184,7 @@ namespace EdgeDB
         {
             var result = await ExecuteInternalAsync(query, args);
 
-            if (result.Data == null)
+            if (result.Data is null)
                 return default;
 
             var arr = (JArray)result.Data;

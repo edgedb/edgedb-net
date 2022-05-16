@@ -8,11 +8,13 @@ namespace EdgeDB.Models
 {
     internal struct TupleTypeDescriptor : ITypeDescriptor
     {
-        public DescriptorType Type => DescriptorType.TupleTypeDescriptor;
+        public DescriptorType Type 
+            => DescriptorType.TupleTypeDescriptor;
 
         public Guid Id { get; set; }
 
-        public bool IsEmpty => Id.ToString() == "00000000-0000-0000-0000-0000000000FF";
+        public bool IsEmpty 
+            => Id.ToString() == "00000000-0000-0000-0000-0000000000FF";
 
         public ushort[] ElementTypeDescriptorsIndex { get; set; }
 

@@ -9,7 +9,7 @@ namespace EdgeDB.DotnetTool.Lexer
 {
     internal class SchemaBuffer
     {
-        string _buffer;
+        readonly string _buffer;
         int _bufferPos;
 
         public int Column { get; private set; }
@@ -81,7 +81,7 @@ namespace EdgeDB.DotnetTool.Lexer
             int index = portion.LastIndexOf('\n');
             if (index >= 0)
             {
-                Column = new StringInfo(portion.Substring(index + 1)).LengthInTextElements + 1;
+                Column = new StringInfo(portion[(index + 1)..]).LengthInTextElements + 1;
                 Line += portion.Count((ch) => ch == '\n');
             }
             else

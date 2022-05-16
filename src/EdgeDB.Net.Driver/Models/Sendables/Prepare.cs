@@ -12,7 +12,8 @@ namespace EdgeDB.Models
     /// </summary>
     internal class Prepare : Sendable
     {
-        public override ClientMessageTypes Type => ClientMessageTypes.Prepare;
+        public override ClientMessageTypes Type 
+            => ClientMessageTypes.Prepare;
 
         /// <summary>
         ///     Implicit limit for objects returned.
@@ -52,7 +53,7 @@ namespace EdgeDB.Models
 
         protected override void BuildPacket(PacketWriter writer, EdgeDBBinaryClient client)
         {
-            if (Command == null)
+            if (Command is null)
                 throw new ArgumentException("Command cannot be null");
 
             List<Header> headers = new();

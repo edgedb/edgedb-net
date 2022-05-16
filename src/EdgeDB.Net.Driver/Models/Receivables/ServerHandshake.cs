@@ -12,7 +12,8 @@ namespace EdgeDB.Models.Receivables
     public struct ServerHandshake : IReceiveable
     {
         /// <inheritdoc/>
-        public ServerMessageType Type => ServerMessageType.ServerHandshake;
+        public ServerMessageType Type 
+            => ServerMessageType.ServerHandshake;
 
         /// <summary>
         ///     Gets the major version of the server.

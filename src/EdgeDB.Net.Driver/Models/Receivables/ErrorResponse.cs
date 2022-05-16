@@ -13,7 +13,8 @@ namespace EdgeDB.Models
     public struct ErrorResponse : IReceiveable, IExecuteError
     {
         /// <inheritdoc/>
-        public ServerMessageType Type => ServerMessageType.ErrorResponse;
+        public ServerMessageType Type 
+            => ServerMessageType.ErrorResponse;
 
         /// <summary>
         ///     Gets the severity of the error.

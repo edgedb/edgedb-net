@@ -12,7 +12,8 @@ namespace EdgeDB.Models
     public struct RestoreReady : IReceiveable
     {
         /// <inheritdoc/>
-        public ServerMessageType Type => ServerMessageType.RestoreReady;
+        public ServerMessageType Type 
+            => ServerMessageType.RestoreReady;
 
         /// <summary>
         ///     Gets a collection of headers that was sent with this packet.
@@ -31,6 +32,8 @@ namespace EdgeDB.Models
         }
 
         ulong IReceiveable.Id { get; set; }
-        IReceiveable IReceiveable.Clone() => (IReceiveable)MemberwiseClone();
+
+        IReceiveable IReceiveable.Clone() 
+            => (IReceiveable)MemberwiseClone();
     }
 }

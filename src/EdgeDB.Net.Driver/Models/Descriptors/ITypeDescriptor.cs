@@ -9,6 +9,7 @@ namespace EdgeDB.Models
     internal interface ITypeDescriptor
     {
         DescriptorType Type { get; }
+
         Guid Id { get; }
 
         void Read(PacketReader reader);
@@ -32,7 +33,7 @@ namespace EdgeDB.Models
                 _ => null
             };
 
-            if(descriptor == null)
+            if(descriptor is null)
             {
                 var rawType = (byte)type;
 

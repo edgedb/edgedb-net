@@ -15,7 +15,7 @@ namespace EdgeDB
 
         public static bool IsSubclassOfRawGeneric(Type generic, Type? toCheck)
         {
-            while (toCheck != null && toCheck != typeof(object))
+            while (toCheck is not null && toCheck != typeof(object))
             {
                 var cur = toCheck.IsGenericType ? toCheck.GetGenericTypeDefinition() : toCheck;
                 if (generic == cur)
@@ -31,7 +31,7 @@ namespace EdgeDB
         {
             genericReference = null;
 
-            while (toCheck != null && toCheck != typeof(object))
+            while (toCheck is not null && toCheck != typeof(object))
             {
                 var cur = toCheck.IsGenericType ? toCheck.GetGenericTypeDefinition() : toCheck;
                 if (generic == cur)
@@ -47,7 +47,7 @@ namespace EdgeDB
 
         public static TypeBuilder GetTypeBuilder(string name, TypeAttributes? attributes = null)
         {
-            if (ModuleBuilder == null)
+            if (ModuleBuilder is null)
             {
                 var assembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("EdgeDB.Runtime")
                 {
@@ -108,12 +108,12 @@ namespace EdgeDB
             propertyBuilder.SetGetMethod(getPropMthdBldr);
             propertyBuilder.SetSetMethod(setPropMthdBldr);
 
-            if (overrideGetMethod != null)
+            if (overrideGetMethod is not null)
             {
                 tb.DefineMethodOverride(getPropMthdBldr, overrideGetMethod);
             }
 
-            if (overrideSetMethod != null)
+            if (overrideSetMethod is not null)
             {
                 tb.DefineMethodOverride(setPropMthdBldr, overrideSetMethod);
             }
@@ -129,7 +129,7 @@ namespace EdgeDB
                                                   Where(cInfo => longestCtor == null || longestCtor.GetParameters().Length < cInfo.GetParameters().Length))
                 longestCtor = cInfo;
 
-            if (longestCtor == null)
+            if (longestCtor is null)
             {
                 return null;
             }
@@ -140,7 +140,7 @@ namespace EdgeDB
             foreach (var consParamInfo in longestCtor.GetParameters())
             {
                 var attrPropInfo = customAttribute.GetType().GetProperty(consParamInfo.Name!, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-                if (attrPropInfo != null)
+                if (attrPropInfo is not null)
                 {
                     args[position] = attrPropInfo.GetValue(customAttribute, null);
                 }
@@ -148,7 +148,7 @@ namespace EdgeDB
                 {
                     args[position] = null;
                     var attrFieldInfo = customAttribute.GetType().GetField(consParamInfo.Name!, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.IgnoreCase);
-                    if (attrFieldInfo == null)
+                    if (attrFieldInfo is null)
                     {
                         if (consParamInfo.ParameterType.IsValueType)
                         {

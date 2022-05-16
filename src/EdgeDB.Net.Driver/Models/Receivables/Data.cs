@@ -6,7 +6,8 @@
     public struct Data : IReceiveable
     {
         /// <inheritdoc/>
-        public ServerMessageType Type => ServerMessageType.Data;
+        public ServerMessageType Type 
+            => ServerMessageType.Data;
 
         /// <summary>
         ///     Gets the payload of this data packet

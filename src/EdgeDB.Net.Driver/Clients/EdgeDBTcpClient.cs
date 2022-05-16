@@ -93,10 +93,10 @@ namespace EdgeDB
 
         private bool ValidateServerCertificate(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
         {
-            if (Connection.TLSSecurity == TLSSecurityMode.Insecure)
+            if (Connection.TLSSecurity is TLSSecurityMode.Insecure)
                 return true;
 
-            if (Connection.TLSCertificateAuthority != null)
+            if (Connection.TLSCertificateAuthority is not null)
             {
                 var cert = Connection.GetCertificate()!;
 
@@ -113,7 +113,7 @@ namespace EdgeDB
             }
             else
             {
-                return sslPolicyErrors == SslPolicyErrors.None;
+                return sslPolicyErrors is SslPolicyErrors.None;
             }
         }
 
@@ -125,7 +125,7 @@ namespace EdgeDB
             {
                 _stream?.Dispose();
 
-                if (_secureStream != null)
+                if (_secureStream is not null)
                     await _secureStream.DisposeAsync();
             }
 

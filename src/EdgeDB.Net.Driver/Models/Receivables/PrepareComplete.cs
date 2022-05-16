@@ -13,7 +13,8 @@ namespace EdgeDB.Models
     public struct PrepareComplete : IReceiveable
     {
         /// <inheritdoc/>
-        public ServerMessageType Type => ServerMessageType.PrepareComplete;
+        public ServerMessageType Type 
+            => ServerMessageType.PrepareComplete;
 
         /// <summary>
         ///     Gets the allowed capabilities that the command will actually use.
@@ -43,10 +44,8 @@ namespace EdgeDB.Models
 
             var capabilities = headers.Cast<Header?>().FirstOrDefault(x => x!.Value.Code == 0x1001);
 
-            if(capabilities != null)
-            {
+            if(capabilities is not null)
                 Capabilities = (AllowCapabilities)ICodec.GetScalarCodec<long>()!.Deserialize(capabilities.Value.Value);
-            }
 
             Cardinality = (Cardinality)reader.ReadByte();
             InputTypedescId = reader.ReadGuid();

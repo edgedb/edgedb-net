@@ -30,6 +30,7 @@ namespace EdgeDB.Models
         ///     The command will return zero to infinite results.
         /// </summary>
         Many = 0x6d,
+
         /// <summary>
         ///     The command will return one to infinite results.
         /// </summary>

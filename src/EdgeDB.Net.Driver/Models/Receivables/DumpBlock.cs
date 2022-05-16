@@ -8,7 +8,8 @@ namespace EdgeDB.Models
     public struct DumpBlock : IReceiveable
     {
         /// <inheritdoc/>
-        public ServerMessageType Type => ServerMessageType.DumpBlock;
+        public ServerMessageType Type 
+            => ServerMessageType.DumpBlock;
 
         /// <summary>
         ///     Gets the sha1 hash of this packets data, used when writing a dump file.
@@ -28,22 +29,26 @@ namespace EdgeDB.Models
         /// <summary>
         ///     Gets a collection of block type headers derived from the <see cref="Headers"/> collection.
         /// </summary>
-        public IEnumerable<Header> BlockTypes => Headers.Where(x => x.Code == 101);
+        public IEnumerable<Header> BlockTypes 
+            => Headers.Where(x => x.Code == 101);
 
         /// <summary>
         ///     Gets a collection of block id headers derived from the <see cref="Headers"/> collection.
         /// </summary>
-        public IEnumerable<Header> BlockIds => Headers.Where(x => x.Code == 110);
+        public IEnumerable<Header> BlockIds 
+            => Headers.Where(x => x.Code == 110);
 
         /// <summary>
         ///     Gets a collection of block number headers derived from the <see cref="Headers"/> collection.
         /// </summary>
-        public IEnumerable<Header> BlockNumbers => Headers.Where(x => x.Code == 111);
+        public IEnumerable<Header> BlockNumbers 
+            => Headers.Where(x => x.Code == 111);
 
         /// <summary>
         ///     Gets a collection of block data headers derived from the <see cref="Headers"/> collection.
         /// </summary>
-        public IEnumerable<Header> BlockData => Headers.Where(x => x.Code == 112);
+        public IEnumerable<Header> BlockData 
+            => Headers.Where(x => x.Code == 112);
 
         internal byte[] Raw { get; private set; }
         ulong IReceiveable.Id { get; set; }
@@ -56,10 +61,8 @@ namespace EdgeDB.Models
 
             Hash = SHA1.Create().ComputeHash(Raw);
 
-            using (var r = new PacketReader(Raw))
-            {
-                Headers = r.ReadHeaders();
-            }
+            using var r = new PacketReader(Raw);
+            Headers = r.ReadHeaders();
         }
 
         IReceiveable IReceiveable.Clone()

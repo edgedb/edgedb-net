@@ -26,7 +26,7 @@ namespace EdgeDB
 
         public static string? GetEdgeQLType(Type t)
         {
-            if (t.Name == "Nullable`1")
+            if (t.Name is not "Nullable`1")
                 t = t.GenericTypeArguments[0];
             return _scalarTypeMap.TryGetValue(t, out var result) ? result : null;
         }
@@ -80,7 +80,7 @@ namespace EdgeDB
 
                 var codec = GetScalarCodec(typeDescriptor.Id);
 
-                if (codec != null)
+                if (codec is not null)
                     codecs.Add(codec);
                 else
                 {

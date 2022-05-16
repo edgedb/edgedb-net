@@ -81,15 +81,15 @@ namespace EdgeDB
         {
             string str = "edgedb://";
 
-            if (Username != null)
+            if (Username is not null)
                 str += Username;
-            if (Password != null && Username != null)
+            if (Password is not null && Username is not null)
                 str += $":{Password}";
 
-            if (Hostname != null)
+            if (Hostname is not null)
                 str += $"@{Hostname}:{Port}";
 
-            if (Database != null)
+            if (Database is not null)
                 str += $"/{Database}";
 
             return str;
@@ -183,19 +183,19 @@ namespace EdgeDB
 
             var conn = new EdgeDBConnection();
 
-            if (database != null)
+            if (database is not null)
                 conn.Database = database;
 
-            if (host != null)
+            if (host is not null)
                 conn.Hostname = host;
 
-            if (username != null)
+            if (username is not null)
                 conn.Username = username;
 
-            if (password != null)
+            if (password is not null)
                 conn.Password = password;
 
-            if (port != null)
+            if (port is not null)
             {
                 if (!int.TryParse(port, out var parsedPort))
                     throw new FormatException("port was not in the correct format");
@@ -212,7 +212,7 @@ namespace EdgeDB
                 {
                     case "port":
                         {
-                            if (port != null)
+                            if (port is not null)
                                 throw new ArgumentException("Port ambiguity mismatch");
 
                             if (!int.TryParse(value, out var parsedPort))
@@ -222,25 +222,25 @@ namespace EdgeDB
                         }
                         break;
                     case "host":
-                        if (host != null)
+                        if (host is not null)
                             throw new ArgumentException("Port ambiguity mismatch");
 
                         conn.Hostname = value;
                         break;
                     case "database":
-                        if (database != null)
+                        if (database is not null)
                             throw new ArgumentException("Port ambiguity mismatch");
 
                         conn.Database = value;
                         break;
                     case "user":
-                        if (username != null)
+                        if (username is not null)
                             throw new ArgumentException("Port ambiguity mismatch");
 
                         conn.Username = value;
                         break;
                     case "password":
-                        if (password != null)
+                        if (password is not null)
                             throw new ArgumentException("Port ambiguity mismatch");
 
                         conn.Password = value;
@@ -352,7 +352,7 @@ namespace EdgeDB
 
                 var parent = Directory.GetParent(dir!);
 
-                if (parent == null || !parent.Exists)
+                if (parent is null || !parent.Exists)
                     throw new FileNotFoundException("Couldn't resolve edgedb.toml file");
 
                 dir = parent.FullName;

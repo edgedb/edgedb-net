@@ -12,7 +12,8 @@ namespace EdgeDB.Models
     public struct CommandDataDescription : IReceiveable
     {
         /// <inheritdoc/>
-        public ServerMessageType Type => ServerMessageType.CommandDataDescription;
+        public ServerMessageType Type 
+            => ServerMessageType.CommandDataDescription;
 
         /// <summary>
         ///     Gets a read-only collection of headers.

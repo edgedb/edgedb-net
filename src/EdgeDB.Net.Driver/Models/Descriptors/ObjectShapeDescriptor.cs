@@ -8,7 +8,8 @@ namespace EdgeDB.Models
 {
     internal struct ObjectShapeDescriptor : ITypeDescriptor
     {
-        public DescriptorType Type => DescriptorType.ObjectShapeDescriptor;
+        public DescriptorType Type 
+            => DescriptorType.ObjectShapeDescriptor;
 
         public Guid Id { get; set; }
 

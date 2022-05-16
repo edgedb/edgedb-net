@@ -12,7 +12,8 @@ namespace EdgeDB.Models
     public struct ServerKeyData : IReceiveable
     {
         /// <inheritdoc/>
-        public ServerMessageType Type => ServerMessageType.ServerKeyData;
+        public ServerMessageType Type 
+            => ServerMessageType.ServerKeyData;
 
         /// <summary>
         ///     Get the key data.

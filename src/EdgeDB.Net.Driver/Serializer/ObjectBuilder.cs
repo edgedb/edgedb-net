@@ -11,7 +11,9 @@ namespace EdgeDB
         private struct EdgeDBPropertyInfo
         {
             public string EdgeDBName { get; set; }
+
             public PropertyInfo PropertyInfo { get; set; }
+
             public bool ShouldMakeSubType { get; set; }
         }
 
@@ -28,7 +30,7 @@ namespace EdgeDB
 
         public static object? BuildResult(Guid typeDescriptorId, Type targetType, object? raw)
         {
-            if (raw == null)
+            if (raw is null)
                 return null;
 
             if (targetType == typeof(object))
@@ -118,10 +120,10 @@ namespace EdgeDB
             {
                 var prop = properties.FirstOrDefault(x => x.EdgeDBName == result.Key);
 
-                if (prop.EdgeDBName != null)
+                if (prop.EdgeDBName is not null)
                 {
                     var other = objectProps.FirstOrDefault(x => x.Name == prop.PropertyInfo.Name);
-                    if (other != null)
+                    if (other is not null)
                     {
                         other.SetValue(instance, ConvertTo(typeDescriptorId, other.PropertyType, result.Value));
                     }
@@ -134,7 +136,7 @@ namespace EdgeDB
 
         private static bool ShouldCreateSubType(PropertyInfo info)
         {
-            if (info.PropertyType.Name == "ComputedValue`1")
+            if (info.PropertyType.Name is "ComputedValue`1")
                 return true;
 
             return false;
@@ -142,7 +144,7 @@ namespace EdgeDB
 
         private static object? ConvertTo(Guid descriptorId, Type type, object? value)
         {
-            if (value == null)
+            if (value is null)
             {
                 return ReflectionUtils.GetDefault(type);
             }
@@ -163,11 +165,11 @@ namespace EdgeDB
             }
 
             // check for computed values
-            if (type.Name == "ComputedValue`1" && type.GenericTypeArguments[0] == valueType)
+            if (type.Name is "ComputedValue`1" && type.GenericTypeArguments[0] == valueType)
             {
                 var method = type.GetRuntimeMethod("op_Implicit", new Type[] { valueType });
 
-                if (method != null)
+                if (method is not null)
                     return method.Invoke(null, new object[] { value });
             }
 
@@ -194,10 +196,10 @@ namespace EdgeDB
             {
                 if (val is IDictionary<string, object?> raw)
                 {
-                    converted.Add(strongInnerType != null ? BuildResult(descriptorId, strongInnerType, raw) : val);
+                    converted.Add(strongInnerType is not null ? BuildResult(descriptorId, strongInnerType, raw) : val);
                 }
                 else
-                    converted.Add(strongInnerType != null ? ConvertTo(descriptorId, strongInnerType, val) : val);
+                    converted.Add(strongInnerType is not null ? ConvertTo(descriptorId, strongInnerType, val) : val);
 
             }
 
@@ -227,9 +229,9 @@ namespace EdgeDB
 
         private static bool IsValidProperty(PropertyInfo type)
         {
-            var shouldIgnore = type.GetCustomAttribute<EdgeDBIgnoreAttribute>() != null;
+            var shouldIgnore = type.GetCustomAttribute<EdgeDBIgnoreAttribute>() is not null;
 
-            return !shouldIgnore && type.GetSetMethod() != null;
+            return !shouldIgnore && type.GetSetMethod() is not null;
         }
 
         private static bool IsValidTargetType(Type type) =>

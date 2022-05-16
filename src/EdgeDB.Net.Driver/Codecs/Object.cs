@@ -32,7 +32,7 @@ namespace EdgeDB.Codecs
                 var name = _propertyNames[i];
                 var length = reader.ReadInt32();
 
-                if(length == -1)
+                if(length is -1)
                 {
                     dataDictionary.Add(name, null);
                     continue;
@@ -68,40 +68,38 @@ namespace EdgeDB.Codecs
             else if (value is object?[] arr)
                 value = arr;
 
-            if (values == null)
+            if (values is null)
             {
                 throw new ArgumentException($"Expected dynamic object or array but got {value?.GetType()?.Name ?? "null"}");
             }
 
-            using (var innerWriter = new PacketWriter())
+            using var innerWriter = new PacketWriter();
+            for (int i = 0; i != values.Length; i++)
             {
-                for (int i = 0; i != values.Length; i++)
+                var element = values[i];
+                var innerCodec = _innerCodecs[i];
+
+                // reserved
+                innerWriter.Write(0);
+
+                // encode
+                if (element is null)
                 {
-                    var element = values[i];
-                    var innerCodec = _innerCodecs[i];
+                    innerWriter.Write(-1);
+                }
+                else
+                {
+                    var elementBuff = innerCodec.Serialize(element);
 
-                    // reserved
-                    innerWriter.Write(0);
-
-                    // encode
-                    if (element == null)
-                    {
-                        innerWriter.Write(-1);
-                    }
-                    else
-                    {
-                        var elementBuff = innerCodec.Serialize(element);
-
-                        innerWriter.Write(elementBuff.Length);
-                        innerWriter.Write(elementBuff);
-                    }
-
+                    innerWriter.Write(elementBuff.Length);
+                    innerWriter.Write(elementBuff);
                 }
 
-                writer.Write((int)innerWriter.BaseStream.Length + 4);
-                writer.Write(values.Length);
-                writer.Write(innerWriter);
             }
+
+            writer.Write((int)innerWriter.BaseStream.Length + 4);
+            writer.Write(values.Length);
+            writer.Write(innerWriter);
         }
     }
 }

@@ -12,7 +12,8 @@ namespace EdgeDB.Models
     public struct ParameterStatus : IReceiveable
     {
         /// <inheritdoc/>
-        public ServerMessageType Type => ServerMessageType.ParameterStatus;
+        public ServerMessageType Type 
+            => ServerMessageType.ParameterStatus;
 
         /// <summary>
         ///     Gets the name of the parameter.

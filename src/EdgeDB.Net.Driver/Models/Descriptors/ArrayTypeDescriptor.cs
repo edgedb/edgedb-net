@@ -8,7 +8,8 @@ namespace EdgeDB.Models
 {
     internal struct ArrayTypeDescriptor : ITypeDescriptor
     {
-        public DescriptorType Type => DescriptorType.ArrayTypeDescriptor;
+        public DescriptorType Type 
+            => DescriptorType.ArrayTypeDescriptor;
 
         public Guid Id { get; set; }
 

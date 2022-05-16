@@ -8,7 +8,8 @@ namespace EdgeDB.Models
 {
     internal class Sync : Sendable
     {
-        public override ClientMessageTypes Type => ClientMessageTypes.Sync;
+        public override ClientMessageTypes Type 
+            => ClientMessageTypes.Sync;
 
         protected override void BuildPacket(PacketWriter writer, EdgeDBBinaryClient client) { } // no data
     }

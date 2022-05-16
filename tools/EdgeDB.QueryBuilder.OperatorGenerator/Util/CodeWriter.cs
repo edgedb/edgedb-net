@@ -16,15 +16,21 @@ namespace EdgeDB.QueryBuilder.OperatorGenerator
 			_scopeTracker = new(this); //We only need one. It can be reused.
 		}
 
-		public void Append(string line) => Content.Append(line);
-		public void AppendLine(string line) => Content.Append(new string(' ', IndentLevel)).AppendLine(line);
-		public void AppendLine() => Content.AppendLine();
+		public void Append(string line) 
+			=> Content.Append(line);
+
+		public void AppendLine(string line) 
+			=> Content.Append(new string(' ', IndentLevel)).AppendLine(line);
+
+		public void AppendLine() 
+			=> Content.AppendLine();
 
 		public IDisposable BeginScope(string line)
 		{
 			AppendLine(line);
 			return BeginScope();
 		}
+
 		public IDisposable BeginScope()
 		{
 			Content.Append(new string(' ', IndentLevel)).AppendLine("{");
@@ -32,7 +38,8 @@ namespace EdgeDB.QueryBuilder.OperatorGenerator
 			return _scopeTracker;
 		}
 
-		public void EndLine() => Content.AppendLine();
+		public void EndLine() 
+			=> Content.AppendLine();
 
 		public void EndScope()
 		{
@@ -40,8 +47,11 @@ namespace EdgeDB.QueryBuilder.OperatorGenerator
 			Content.Append(new string(' ', IndentLevel)).AppendLine("}");
 		}
 
-		public void StartLine() => Content.Append(new string(' ', IndentLevel));
-		public override string ToString() => Content.ToString();
+		public void StartLine() 
+			=> Content.Append(new string(' ', IndentLevel));
+
+		public override string ToString() 
+			=> Content.ToString();
 
 		class ScopeTracker : IDisposable
 		{

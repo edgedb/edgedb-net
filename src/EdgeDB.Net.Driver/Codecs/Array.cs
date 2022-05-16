@@ -16,12 +16,12 @@
             // skip reserved
             reader.ReadBytes(8);
 
-            if (dimensions == 0)
+            if (dimensions is 0)
             {
                 return Array.Empty<TInner>();
             }
 
-            if(dimensions != 1)
+            if(dimensions is not 1)
             {
                 throw new NotSupportedException("Only dimensions of 1 are supported for arrays");
             }
@@ -39,10 +39,8 @@
                 var innerData = reader.ReadBytes(elementLength);
 
                 // TODO: optimize this stream creation?
-                using(var innerReader = new PacketReader(innerData))
-                {
-                    array[i] = _innerCodec.Deserialize(innerReader);
-                }
+                using var innerReader = new PacketReader(innerData);
+                array[i] = _innerCodec.Deserialize(innerReader);
             }
 
             return array;
@@ -50,7 +48,7 @@
 
         public void Serialize(PacketWriter writer, IEnumerable<TInner?>? value)
         {
-            if(value == null)
+            if(value is null)
             {
                 writer.Write(0);
                 writer.Write(0); // flags?
@@ -68,7 +66,7 @@
             {
                 var element = elements[i];
 
-                if(element == null)
+                if(element is null)
                 {
                     elementWriter.Write(-1);
                 }

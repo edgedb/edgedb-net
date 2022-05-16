@@ -11,7 +11,7 @@ namespace EdgeDB.ExampleApp
 
         static async Task ExecuteAllAsync(EdgeDBClient client, ILogger logger)
         {
-            var examples = Assembly.GetExecutingAssembly().GetTypes().Where(x => x.IsAssignableTo(typeof(IExample)) && x != typeof(IExample));
+            var examples = typeof(IExample).Assembly.GetTypes().Where(x => x.IsAssignableTo(typeof(IExample)) && x != typeof(IExample));
 
             foreach (var example in examples)
             {

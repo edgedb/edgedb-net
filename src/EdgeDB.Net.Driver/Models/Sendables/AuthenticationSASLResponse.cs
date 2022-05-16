@@ -8,7 +8,8 @@ namespace EdgeDB.Models
 {
     internal class AuthenticationSASLResponse : Sendable
     {
-        public override ClientMessageTypes Type => ClientMessageTypes.AuthenticationSASLResponse;
+        public override ClientMessageTypes Type 
+            => ClientMessageTypes.AuthenticationSASLResponse;
 
         private readonly byte[] _payload;
 

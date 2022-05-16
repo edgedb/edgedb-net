@@ -56,20 +56,28 @@ namespace EdgeDB.ExampleApp
         };
         public void Trace(string content, LogPostfix postfix = LogPostfix.Log, Exception? exception = null, bool stdErr = false)
             => Write(content, exception, stdErr, postfix, LogPostfix.Trace);
+
         public void Log(string content, LogPostfix postfix = LogPostfix.Log, Exception? exception = null, bool stdErr = false)
             => Write(content, exception, stdErr, postfix, LogPostfix.Log);
+
         public void Warn(string content, LogPostfix postfix = LogPostfix.Log, Exception? exception = null, bool stdErr = false)
             => Write(content, exception, stdErr, postfix, LogPostfix.Warning);
+
         public void Error(string content, LogPostfix postfix = LogPostfix.Log, Exception? exception = null, bool stdErr = false)
             => Write(content, exception, stdErr, postfix, LogPostfix.Error);
+
         public void Critical(string content, LogPostfix postfix = LogPostfix.Log, Exception? exception = null, bool stdErr = false)
             => Write(content, exception, stdErr, postfix, LogPostfix.Critical);
+
         public void Debug(string content, LogPostfix postfix = LogPostfix.Log, Exception? exception = null, bool stdErr = false)
             => Write(content, exception, stdErr, postfix, LogPostfix.Debug);
+
         public void Info(string content, LogPostfix postfix = LogPostfix.Log, Exception? exception = null, bool stdErr = false)
             => Write(content, exception, stdErr, postfix, LogPostfix.Info);
+
         public void Write(string conent, Exception? exception, bool stdErr = false, params LogPostfix[] postfix)
             => Write(conent, postfix, exception, stdErr);
+
         public void Write(string content, IEnumerable<LogPostfix> postfix, Exception? exception = null, bool stdErr = false)
         {
             if (_postFixs.Length > 0 && !_postFixs.Contains(postfix.First()))
@@ -145,12 +153,15 @@ namespace EdgeDB.ExampleApp
 
         public static Logger GetLogger<TType>(params LogPostfix[] postfixs)
             => GetLogger(typeof(TType), postfixs);
+
         public static Logger GetLogger(Type t, params LogPostfix[] postfixs)
             => new($"{t.Assembly.GetName().Name}:{t.Name}", postfixs);
 
-        public static void AddStream(Stream stream, StreamType type) => _streams.Add((type, stream));
+        public static void AddStream(Stream stream, StreamType type) 
+            => _streams.Add((type, stream));
 
-        public static void RegisterCommand(string commandName, Func<string, Task> commandResult) => _commands.TryAdd(commandName, commandResult);
+        public static void RegisterCommand(string commandName, Func<string, Task> commandResult) 
+            => _commands.TryAdd(commandName, commandResult);
 
         private LogMessage CreateLogMessage(IEnumerable<LogPostfix> severities, string message, StreamType type)
         {
@@ -224,6 +235,7 @@ namespace EdgeDB.ExampleApp
 
             return returnData;
         }
+
         private static ConsoleColor? GetColor(string tag)
         {
             return Enum.TryParse(typeof(ConsoleColor), tag, true, out var res)
@@ -262,12 +274,15 @@ namespace EdgeDB.ExampleApp
 
         public static string BuildColoredString(object? s, ConsoleColor color)
             => BuildColoredString(s?.ToString(), color);
-        public static string BuildColoredString(string? s, ConsoleColor color) => $"<{color}>{s}</{color}>";
+
+        public static string BuildColoredString(string? s, ConsoleColor color) 
+            => $"<{color}>{s}</{color}>";
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
-            if (state == null)
+            if (state is null)
                 return;
+
             var lvl = logLevel switch
             {
                 LogLevel.Debug => LogPostfix.Debug,
@@ -283,18 +298,18 @@ namespace EdgeDB.ExampleApp
             Write(state.ToString()!, exception, postfix: lvl);
         }
 
-        public bool IsEnabled(LogLevel logLevel) => true;
+        public bool IsEnabled(LogLevel logLevel) 
+            => true;
 
-        public IDisposable BeginScope<TState>(TState state) =>
-#pragma warning disable CS8603 // Possible null reference return.
-            null;
-#pragma warning restore CS8603 // Possible null reference return.
-
+        public IDisposable BeginScope<TState>(TState state) 
+            => null!;
 
         private struct LogMessage
         {
             public string Caller { get; set; }
+
             public string Content { get; set; }
+
             public StreamType Type { get; set; }
         }
     }

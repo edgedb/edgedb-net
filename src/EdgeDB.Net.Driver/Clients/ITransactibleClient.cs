@@ -12,7 +12,9 @@ namespace EdgeDB
         TransactionState TransactionState { get; }
 
         Task StartTransactionAsync(Isolation isolation, bool readOnly, bool deferrable);
+
         Task CommitAsync();
+
         Task RollbackAsync();
     }
 }

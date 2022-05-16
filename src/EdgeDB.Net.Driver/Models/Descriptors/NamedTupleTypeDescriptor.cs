@@ -8,7 +8,8 @@ namespace EdgeDB.Models
 {
     internal struct NamedTupleTypeDescriptor : ITypeDescriptor
     {
-        public DescriptorType Type => DescriptorType.NamedTupleDescriptor;
+        public DescriptorType Type 
+            => DescriptorType.NamedTupleDescriptor;
 
         public Guid Id { get; set; }
 
@@ -39,6 +40,7 @@ namespace EdgeDB.Models
     internal struct TupleElement
     {
         public string Name { get; set; }
+
         public short TypePos { get; set; }
     }
 }

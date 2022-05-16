@@ -13,7 +13,7 @@
 
             string value = "";
 
-            if (sign == NumericSign.NEG)
+            if (sign is NumericSign.NEG)
                 value += "-";
 
             int d;

@@ -7,7 +7,7 @@ namespace EdgeDB
         /// <summary>
         ///     Gets or sets the default client pool size.
         /// </summary>
-        public int DefaultPoolSize { get; set; } = 50;
+        public uint DefaultPoolSize { get; set; } = 50;
 
         /// <summary>
         ///     Gets or sets the client type the pool will use.

@@ -112,8 +112,11 @@ namespace EdgeDB
         internal struct RawExecuteResult
         {
             public PrepareComplete PrepareStatement { get; set; }
+
             public ICodec Deserializer { get; set; }
+
             public List<Data> Data { get; set; }
+
             public CommandComplete CompleteStatus { get; set; }
         }
 
@@ -159,29 +162,29 @@ namespace EdgeDB
                 CommandDataDescription? describer = null;
 
                 // if its not cached or we dont have a default one for it, ask the server to describe it for us
-                if (outCodec == null || inCodec == null)
+                if (outCodec is null || inCodec is null)
                 {
                     describer = (CommandDataDescription)await Duplexer.DuplexAndSyncAsync(new DescribeStatement(), x => x.Type == ServerMessageType.CommandDataDescription);
 
-                    if (outCodec == null)
+                    if (outCodec is null)
                     {
                         using var innerReader = new PacketReader(describer.Value.OutputTypeDescriptor.ToArray());
                         outCodec ??= PacketSerializer.BuildCodec(describer.Value.OutputTypeDescriptorId, innerReader);
                     }
 
-                    if (inCodec == null)
+                    if (inCodec is null)
                     {
                         using var innerReader = new PacketReader(describer.Value.InputTypeDescriptor.ToArray());
                         inCodec ??= PacketSerializer.BuildCodec(describer.Value.InputTypeDescriptorId, innerReader);
                     }
                 }
 
-                if (outCodec == null)
+                if (outCodec is null)
                 {
                     throw new MissingCodecException("Couldn't find a valid output codec", result.OutputTypedescId, describer!.Value.OutputTypeDescriptor.ToArray());
                 }
 
-                if (inCodec == null)
+                if (inCodec is null)
                 {
                     throw new MissingCodecException("Couldn't find a valid input codec", result.InputTypedescId, describer!.Value.InputTypeDescriptor.ToArray());
                 }
@@ -282,7 +285,7 @@ namespace EdgeDB
 
             var queryResult = result.Data.FirstOrDefault();
 
-            return queryResult.PayloadData == null
+            return queryResult.PayloadData is null
                 ? default
                 : ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(queryResult.PayloadData.ToArray()));
         }
@@ -296,7 +299,7 @@ namespace EdgeDB
 
             var queryResult = result.Data.FirstOrDefault();
 
-            return queryResult.PayloadData == null
+            return queryResult.PayloadData is null
                 ? throw new MissingRequiredException()
                 : ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(queryResult.PayloadData.ToArray()))!;
         }
@@ -366,59 +369,58 @@ namespace EdgeDB
 
             try
             {
-                using (var scram = new Scram())
+                using var scram = new Scram();
+
+                var method = authStatus.AuthenticationMethods[0];
+
+                if (method is not "SCRAM-SHA-256")
                 {
-                    var method = authStatus.AuthenticationMethods[0];
-
-                    if (method != "SCRAM-SHA-256")
-                    {
-                        throw new ProtocolViolationException("The only supported method is SCRAM-SHA-256");
-                    }
-
-                    var initialMsg = scram.BuildInitialMessage(Connection.Username!, method);
-
-                    var initialResult = await Duplexer.DuplexAsync(x => x.Type == ServerMessageType.Authentication, packets: initialMsg).ConfigureAwait(false);
-
-                    if (initialResult is ErrorResponse err)
-                        throw new EdgeDBErrorException(err);
-
-                    if (initialResult is not AuthenticationStatus intiailStatus)
-                        throw new UnexpectedMessageException(ServerMessageType.Authentication, initialResult.Type);
-
-                    // check the continue
-                    var (FinalMessage, ExpectedSig) = scram.BuildFinalMessage(intiailStatus, Connection.Password!);
-
-                    var finalResult = await Duplexer.DuplexAsync(x => x.Type == ServerMessageType.Authentication, packets: FinalMessage).ConfigureAwait(false);
-
-                    if (finalResult is ErrorResponse error)
-                        throw new EdgeDBErrorException(error);
-
-                    if (finalResult is not AuthenticationStatus finalStatus || finalStatus.AuthStatus != AuthStatus.AuthenticationSASLFinal)
-                        throw new UnexpectedMessageException(ServerMessageType.Authentication, finalResult.Type);
-
-                    var key = Scram.ParseServerFinalMessage(finalStatus);
-
-                    if (!key.SequenceEqual(ExpectedSig))
-                    {
-                        throw new InvalidSignatureException();
-                    }
-
-                    // ok status
-                    var authOk = await Duplexer.NextAsync(x => x.Type == ServerMessageType.Authentication);
-
-                    if (authOk is ErrorResponse er)
-                        throw new EdgeDBErrorException(er);
-
-                    if (authOk is not AuthenticationStatus status || status.AuthStatus != AuthStatus.AuthenticationOK)
-                        throw new UnexpectedMessageException(ServerMessageType.Authentication, authOk.Type);
-
-                    _authCompleteSource.TrySetResult();
-                    _currentRetries = 0;
+                    throw new ProtocolViolationException("The only supported method is SCRAM-SHA-256");
                 }
+
+                var initialMsg = scram.BuildInitialMessage(Connection.Username!, method);
+
+                var initialResult = await Duplexer.DuplexAsync(x => x.Type == ServerMessageType.Authentication, packets: initialMsg).ConfigureAwait(false);
+
+                if (initialResult is ErrorResponse err)
+                    throw new EdgeDBErrorException(err);
+
+                if (initialResult is not AuthenticationStatus intiailStatus)
+                    throw new UnexpectedMessageException(ServerMessageType.Authentication, initialResult.Type);
+
+                // check the continue
+                var (FinalMessage, ExpectedSig) = scram.BuildFinalMessage(intiailStatus, Connection.Password!);
+
+                var finalResult = await Duplexer.DuplexAsync(x => x.Type == ServerMessageType.Authentication, packets: FinalMessage).ConfigureAwait(false);
+
+                if (finalResult is ErrorResponse error)
+                    throw new EdgeDBErrorException(error);
+
+                if (finalResult is not AuthenticationStatus finalStatus || finalStatus.AuthStatus != AuthStatus.AuthenticationSASLFinal)
+                    throw new UnexpectedMessageException(ServerMessageType.Authentication, finalResult.Type);
+
+                var key = Scram.ParseServerFinalMessage(finalStatus);
+
+                if (!key.SequenceEqual(ExpectedSig))
+                {
+                    throw new InvalidSignatureException();
+                }
+
+                // ok status
+                var authOk = await Duplexer.NextAsync(x => x.Type == ServerMessageType.Authentication);
+
+                if (authOk is ErrorResponse er)
+                    throw new EdgeDBErrorException(er);
+
+                if (authOk is not AuthenticationStatus status || status.AuthStatus != AuthStatus.AuthenticationOK)
+                    throw new UnexpectedMessageException(ServerMessageType.Authentication, authOk.Type);
+
+                _authCompleteSource.TrySetResult();
+                _currentRetries = 0;
             }
             catch (Exception x)
             {
-                if (_config.RetryMode == ConnectionRetryMode.AlwaysRetry)
+                if (_config.RetryMode is ConnectionRetryMode.AlwaysRetry)
                 {
                     if (_currentRetries < _config.MaxConnectionRetries)
                     {
@@ -444,7 +446,7 @@ namespace EdgeDB
 
         private async Task<IReceiveable> PrepareAsync(Prepare packet)
         {
-            var result = await Duplexer.DuplexAndSyncAsync(packet, x => x.Type == ServerMessageType.PrepareComplete);
+            var result = await Duplexer.DuplexAndSyncAsync(packet, x => x.Type is ServerMessageType.PrepareComplete);
 
             return result is ErrorResponse err ? throw new EdgeDBErrorException(err) : (IReceiveable)(PrepareComplete)result;
         }
@@ -472,15 +474,13 @@ namespace EdgeDB
 
                             ICodec? codec = PacketSerializer.GetCodec(descriptorId);
 
-                            if (codec == null)
+                            if (codec is null)
                             {
-                                using (var innerReader = new PacketReader(typeDesc))
-                                {
-                                    codec = PacketSerializer.BuildCodec(descriptorId, innerReader);
+                                using var innerReader = new PacketReader(typeDesc);
+                                codec = PacketSerializer.BuildCodec(descriptorId, innerReader);
 
-                                    if (codec == null)
-                                        throw new MissingCodecException("Failed to build codec for system_config", descriptorId, status.Value.ToArray());
-                                }
+                                if (codec is null)
+                                    throw new MissingCodecException("Failed to build codec for system_config", descriptorId, status.Value.ToArray());
                             }
 
                             // disard length

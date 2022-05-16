@@ -11,10 +11,15 @@ namespace EdgeDB.DotnetTool
         public Module? Parent { get; set; }
 
         public string? Name { get; set; }
+
         public string? Extending { get; set; }
+
         public bool IsAbstract { get; set; }
+
         public bool IsScalar { get; set; }
+
         public bool IsLink { get; set; }
+
         public List<Property> Properties { get; set; } = new();
 
         // used for builder

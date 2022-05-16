@@ -28,12 +28,12 @@
             // discard flags and reserved
             reader.ReadBytes(8);
 
-            if(dimensions == 0)
+            if(dimensions is 0)
             {
                 return Array.Empty<TInner>();
             }
 
-            if(dimensions != 1)
+            if(dimensions is not 1)
             {
                 throw new NotSupportedException("Only dimensions of 1 are supported for arrays");
             }
@@ -71,12 +71,12 @@
             // discard flags and reserved
             reader.ReadBytes(8);
 
-            if (dimensions == 0)
+            if (dimensions is 0)
             {
                 return Array.Empty<TInner>();
             }
 
-            if (dimensions != 1)
+            if (dimensions is not 1)
             {
                 throw new NotSupportedException("Only dimensions of 1 are supported for sets");
             }
@@ -92,7 +92,7 @@
             {
                 var elementLength = reader.ReadInt32();
 
-                if (elementLength == -1)
+                if (elementLength is -1)
                     result[i] = default; // TODO: better 'null' value handling?
                 else
                     result[i] = _innerCodec.Deserialize(reader);

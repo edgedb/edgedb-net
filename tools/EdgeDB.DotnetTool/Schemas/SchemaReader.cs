@@ -8,7 +8,7 @@ namespace EdgeDB.DotnetTool
 
         public SchemaReader(string schema)
         {
-            _lexer = new SchemaLexer(schema);
+            _lexer = new(schema);
         }
 
         public List<Module> Read()

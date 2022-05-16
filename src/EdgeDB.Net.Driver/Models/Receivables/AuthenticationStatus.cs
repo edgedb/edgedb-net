@@ -15,7 +15,8 @@ namespace EdgeDB.Models
     public struct AuthenticationStatus : IReceiveable
     {
         /// <inheritdoc/>
-        public ServerMessageType Type => ServerMessageType.Authentication;
+        public ServerMessageType Type 
+            => ServerMessageType.Authentication;
 
         /// <summary>
         ///     Gets the authentication state. 

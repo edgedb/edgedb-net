@@ -8,7 +8,8 @@ namespace EdgeDB.Models
 {
     internal class Restore : Sendable
     {
-        public override ClientMessageTypes Type => ClientMessageTypes.Restore;
+        public override ClientMessageTypes Type 
+            => ClientMessageTypes.Restore;
 
         public Header[]? Headers { get; set; }
 

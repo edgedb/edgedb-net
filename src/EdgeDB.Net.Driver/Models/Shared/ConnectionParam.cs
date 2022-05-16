@@ -9,6 +9,7 @@ namespace EdgeDB.Models
     internal struct ConnectionParam
     {
         public string Name { get; set; }
+
         public string Value { get; set; }
 
         public void Write(PacketWriter writer)

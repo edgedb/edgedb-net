@@ -12,7 +12,7 @@ namespace EdgeDB
     {
         public static X509Certificate2? GetCertificate(this EdgeDBConnection connection)
         {
-            if (connection.TLSCertificateAuthority == null)
+            if (connection.TLSCertificateAuthority is null)
                 return null;
 
             return new X509Certificate2(Encoding.ASCII.GetBytes(connection.TLSCertificateAuthority));

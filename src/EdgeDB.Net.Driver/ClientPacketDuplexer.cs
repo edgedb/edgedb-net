@@ -127,10 +127,8 @@ namespace EdgeDB
             using var ms = new MemoryStream();
             foreach (var packet in packets)
             {
-                using (var writer = new PacketWriter(ms))
-                {
-                    packet.Write(writer, _client);
-                }
+                using var writer = new PacketWriter(ms);
+                packet.Write(writer, _client);
             }
 
             await _stream.WriteAsync(ms.ToArray(), linkedToken.Token).ConfigureAwait(false);

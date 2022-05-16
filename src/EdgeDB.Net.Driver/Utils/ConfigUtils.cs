@@ -18,18 +18,16 @@ namespace EdgeDB.Utils
         private static string GetEdgeDBKnownBasePath()
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
                 return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "EdgeDB");
-            }
+
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
                 return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "Application Support", "edgedb");
-            }
+
             else
             {
                 var xdgConfigDir = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
 
-                if (xdgConfigDir == null || !Path.IsPathRooted(xdgConfigDir))
+                if (xdgConfigDir is null || !Path.IsPathRooted(xdgConfigDir))
                     xdgConfigDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config");
 
                 return Path.Combine(xdgConfigDir, "edgedb");
@@ -48,14 +46,10 @@ namespace EdgeDB.Utils
             string hash = "";
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && !fullPath.StartsWith("\\\\"))
-            {
                 fullPath = "\\\\?\\" + fullPath;
-            }
 
             using (var sha1 = SHA1.Create())
-            {
                 hash = HexConverter.ToHex(sha1.ComputeHash(Encoding.UTF8.GetBytes(fullPath)));
-            }
 
             return Path.Combine(GetEdgeDBBasePath(), "config", "projects", $"{baseName}-{hash.ToLower()}");
         }

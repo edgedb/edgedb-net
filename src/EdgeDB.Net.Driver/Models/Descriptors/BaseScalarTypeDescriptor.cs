@@ -8,7 +8,8 @@ namespace EdgeDB.Models
 {
     internal struct BaseScalarTypeDescriptor : ITypeDescriptor
     {
-        public DescriptorType Type => DescriptorType.BaseScalarTypeDescriptor;
+        public DescriptorType Type 
+            => DescriptorType.BaseScalarTypeDescriptor;
 
         public Guid Id { get; set; }
 

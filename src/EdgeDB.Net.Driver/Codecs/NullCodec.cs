@@ -13,12 +13,12 @@
 
         public void Serialize(PacketWriter writer, object? value)
         {
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public void SerializeArguments(PacketWriter writer, object? value)
         {
-            writer.Write((int)0);
+            writer.Write(0);
         }
     }
 }

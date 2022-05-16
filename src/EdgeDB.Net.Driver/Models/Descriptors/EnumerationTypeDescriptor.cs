@@ -8,7 +8,8 @@ namespace EdgeDB.Models
 {
     internal struct EnumerationTypeDescriptor : ITypeDescriptor
     {
-        public DescriptorType Type => DescriptorType.EnumerationTypeDescriptor;
+        public DescriptorType Type 
+            => DescriptorType.EnumerationTypeDescriptor;
 
         public Guid Id { get; set; }
 

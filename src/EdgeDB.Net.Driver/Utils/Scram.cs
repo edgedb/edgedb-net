@@ -105,10 +105,8 @@ namespace EdgeDB.Utils
 
         private static byte[] ComputeHMACHash(byte[] data, byte[] key)
         {
-            using (var hmac = new HMACSHA256(data))
-            {
-                return hmac.ComputeHash(key);
-            }
+            using var hmac = new HMACSHA256(data);
+            return hmac.ComputeHash(key);
         }
 
         private static byte[] GetClientKey(byte[] password)
@@ -127,10 +125,8 @@ namespace EdgeDB.Utils
 
         private static byte[] Hash(byte[] input)
         {
-            using (var hs = SHA256.Create())
-            {
-                return hs.ComputeHash(input);
-            }
+            using var hs = SHA256.Create();
+            return hs.ComputeHash(input);
         }
 
         private static byte[] XOR(byte[] b1, byte[] b2)

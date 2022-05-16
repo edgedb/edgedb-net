@@ -20,8 +20,6 @@ namespace EdgeDB.Utils
         }
 
         public static string ToHex(byte[] arr)
-        {
-            return BitConverter.ToString(arr).Replace("-", "");
-        }
+            => BitConverter.ToString(arr).Replace("-", "");
     }
 }

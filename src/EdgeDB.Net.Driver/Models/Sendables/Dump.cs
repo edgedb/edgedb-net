@@ -8,7 +8,8 @@ namespace EdgeDB.Models
 {
     internal class Dump : Sendable
     {
-        public override ClientMessageTypes Type => ClientMessageTypes.Dump;
+        public override ClientMessageTypes Type 
+            => ClientMessageTypes.Dump;
 
         public Header[]? Headers { get; set; }
 

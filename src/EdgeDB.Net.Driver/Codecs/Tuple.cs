@@ -24,7 +24,7 @@ namespace EdgeDB.Codecs
             var tupleType = Type.GetType($"System.Tuple`{numElements}");
 
             // TODO: support extended tuple types.
-            if(tupleType == null)
+            if(tupleType is null)
             {
                 throw new NotSupportedException("Failed to find tuple match.");
             }
@@ -41,7 +41,7 @@ namespace EdgeDB.Codecs
 
                 var length = reader.ReadInt32();
                 
-                if(length == 0)
+                if(length is 0)
                 {
                     values[i] = null;
                     continue;
@@ -51,10 +51,8 @@ namespace EdgeDB.Codecs
                 var data = reader.ReadBytes(length);
 
                 // TODO: optimize this?
-                using(var innerReader = new PacketReader(data))
-                {
-                    values[i] = _innerCodecs[i].Deserialize(innerReader);
-                }
+                using var innerReader = new PacketReader(data);
+                values[i] = _innerCodecs[i].Deserialize(innerReader);
             }
 
             // construct our tuple

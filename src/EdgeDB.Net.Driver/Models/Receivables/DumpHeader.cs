@@ -13,7 +13,8 @@ namespace EdgeDB.Models
     public struct DumpHeader : IReceiveable
     {
         /// <inheritdoc/>
-        public ServerMessageType Type => ServerMessageType.DumpHeader;
+        public ServerMessageType Type 
+            => ServerMessageType.DumpHeader;
 
         /// <summary>
         ///     Gets the sha1 hash of this packets data, used when writing a dump file.
@@ -56,7 +57,9 @@ namespace EdgeDB.Models
         public IReadOnlyCollection<DumpObjectDescriptor> Descriptors { get; private set; }
 
         internal byte[] Raw { get; private set; }
+
         ulong IReceiveable.Id { get; set; }
+
         void IReceiveable.Read(PacketReader reader, uint length, EdgeDBBinaryClient client)
         {
             Length = length;
@@ -64,28 +67,27 @@ namespace EdgeDB.Models
 
             Hash = SHA1.Create().ComputeHash(Raw);
 
-            using(var r = new PacketReader(Raw))
-            {
-                Headers = r.ReadHeaders();
-                MajorVersion = r.ReadUInt16();
-                MinorVersion = r.ReadUInt16();
-                SchemaDDL = r.ReadString();
+            using var r = new PacketReader(Raw);
 
-                var numTypeInfo = r.ReadUInt32();
-                DumpTypeInfo[] typeInfo = new DumpTypeInfo[numTypeInfo];
+            Headers = r.ReadHeaders();
+            MajorVersion = r.ReadUInt16();
+            MinorVersion = r.ReadUInt16();
+            SchemaDDL = r.ReadString();
 
-                for (uint i = 0; i != numTypeInfo; i++)
-                    typeInfo[i] = new DumpTypeInfo().Read(r);
+            var numTypeInfo = r.ReadUInt32();
+            DumpTypeInfo[] typeInfo = new DumpTypeInfo[numTypeInfo];
 
-                var numDescriptors = r.ReadUInt32();
-                DumpObjectDescriptor[] descriptors = new DumpObjectDescriptor[numDescriptors];
+            for (uint i = 0; i != numTypeInfo; i++)
+                typeInfo[i] = new DumpTypeInfo().Read(r);
 
-                for (uint i = 0; i != numDescriptors; i++)
-                    descriptors[i] = new DumpObjectDescriptor().Read(r);
+            var numDescriptors = r.ReadUInt32();
+            DumpObjectDescriptor[] descriptors = new DumpObjectDescriptor[numDescriptors];
 
-                Types = typeInfo;
-                Descriptors = descriptors;
-            }
+            for (uint i = 0; i != numDescriptors; i++)
+                descriptors[i] = new DumpObjectDescriptor().Read(r);
+
+            Types = typeInfo;
+            Descriptors = descriptors;
         }
 
         IReceiveable IReceiveable.Clone()

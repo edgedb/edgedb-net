@@ -27,8 +27,8 @@ namespace EdgeDB
 
         public string ConsumeString()
         {
-            using (var streamReader = new StreamReader(base.BaseStream, Encoding.UTF8, leaveOpen: true))
-                return streamReader.ReadToEnd();
+            using var streamReader = new StreamReader(base.BaseStream, Encoding.UTF8, leaveOpen: true);
+            return streamReader.ReadToEnd();
         }
 
         public Guid ReadGuid()

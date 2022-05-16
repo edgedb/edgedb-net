@@ -6,7 +6,8 @@
     public struct ReadyForCommand : IReceiveable
     {
         /// <inheritdoc/>
-        public ServerMessageType Type => ServerMessageType.ReadyForCommand;
+        public ServerMessageType Type 
+            => ServerMessageType.ReadyForCommand;
 
         /// <summary>
         ///     Gets a collection of headers sent with this prepare packet.

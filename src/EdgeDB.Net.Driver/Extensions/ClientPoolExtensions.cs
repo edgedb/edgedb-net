@@ -5,9 +5,7 @@ namespace EdgeDB
     public static class ClientPoolExtensions
     {
         public static bool SupportsTransactions(this EdgeDBClient client)
-        {
-            return client.ClientType == EdgeDBClientType.Tcp;
-        }
+            => client.ClientType is EdgeDBClientType.Tcp;
 
         #region Transactions
         /// <summary>

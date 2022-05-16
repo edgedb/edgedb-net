@@ -10,6 +10,7 @@ namespace EdgeDB.Codecs
     internal interface IArgumentCodec
     {
         void SerializeArguments(PacketWriter writer, object? value);
+
         byte[] SerializeArguments(object? value)
         {
             using var writer = new PacketWriter();
@@ -25,6 +26,7 @@ namespace EdgeDB.Codecs
     internal interface ICodec<TConverter> : ICodec
     {
         void Serialize(PacketWriter writer, TConverter? value);
+
         new TConverter? Deserialize(PacketReader reader);
 
         new TConverter? Deserialize(byte[] buffer)
@@ -45,17 +47,27 @@ namespace EdgeDB.Codecs
         }
 
         // ICodec
-        object? ICodec.Deserialize(PacketReader reader) => Deserialize(reader);
-        void ICodec.Serialize(PacketWriter writer, object? value) => Serialize(writer, (TConverter?)value);
-        Type ICodec.ConverterType => typeof(TConverter);
-        bool ICodec.CanConvert(Type t) => t == typeof(TConverter);
+        object? ICodec.Deserialize(PacketReader reader) 
+            => Deserialize(reader);
+
+        void ICodec.Serialize(PacketWriter writer, object? value) 
+            => Serialize(writer, (TConverter?)value);
+
+        Type ICodec.ConverterType 
+            => typeof(TConverter);
+
+        bool ICodec.CanConvert(Type t)
+            => t == typeof(TConverter);
     }
 
     internal interface ICodec
     {
         bool CanConvert(Type t);
+
         Type ConverterType { get; }
+
         void Serialize(PacketWriter writer, object? value);
+
         object? Deserialize(PacketReader reader);
 
         object? Deserialize(byte[] buffer)

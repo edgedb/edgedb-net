@@ -28,7 +28,7 @@ namespace EdgeDB
             // write length
             Write((ushort)(headers?.Count() ?? 0));
 
-            if(headers != null)
+            if(headers is not null)
             {
                 foreach (var header in headers)
                 {
@@ -60,7 +60,7 @@ namespace EdgeDB
 
         public override void Write(string value)
         {
-            if (value == null)
+            if (value is null)
                 Write((uint)0);
             else
             {

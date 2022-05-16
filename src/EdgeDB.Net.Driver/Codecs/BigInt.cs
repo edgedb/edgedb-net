@@ -37,6 +37,7 @@ namespace EdgeDB.Codecs
             return BigInteger.Parse(result);
         }
 
-        public void Serialize(PacketWriter writer, BigInteger value) => throw new NotImplementedException();
+        public void Serialize(PacketWriter writer, BigInteger value) 
+            => throw new NotImplementedException();
     }
 }

@@ -26,14 +26,14 @@ public class Benchmarks
 
     // benchmark our default client as overhead
     [Benchmark]
-    public async Task BenchmarkQueryOverhead()
+    public static async Task BenchmarkQueryOverhead()
     {
         await SingleClient.QueryAsync<string>("select \"Hello, World!\"").ConfigureAwait(false);
     }
 
     // define our main benchmark
     [Benchmark]
-    public async Task BenchmarkQuery()
+    public static async Task BenchmarkQuery()
     {
         await ClientPool!.QueryAsync<string>("select \"Hello, World!\"").ConfigureAwait(false);
     }

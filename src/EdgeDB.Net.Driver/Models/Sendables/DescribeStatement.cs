@@ -8,7 +8,8 @@ namespace EdgeDB.Models
 {
     internal class DescribeStatement : Sendable
     {
-        public override ClientMessageTypes Type => ClientMessageTypes.DescribeStatement;
+        public override ClientMessageTypes Type 
+            => ClientMessageTypes.DescribeStatement;
 
         public DescribeAspect DescribeAspect { get; set; } = DescribeAspect.DataDescription;
 

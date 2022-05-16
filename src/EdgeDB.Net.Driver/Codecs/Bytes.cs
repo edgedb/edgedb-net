@@ -9,7 +9,7 @@
 
         public void Serialize(PacketWriter writer, byte[]? value)
         {
-            if (value != null)
+            if (value is not null)
                 writer.Write(value);
         }
     }
