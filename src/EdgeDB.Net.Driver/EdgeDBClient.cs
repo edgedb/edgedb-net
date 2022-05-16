@@ -116,11 +116,11 @@ namespace EdgeDB
 
                 await using var client = await GetOrCreateClientAsync().ConfigureAwait(false);
                 
-                if(client is EdgeDBTcpClient tcpClient)
+                if(client is EdgeDBBinaryClient binaryClient)
                 {
                     // set the pool size to the recommended
-                    _poolSize = tcpClient.SuggestedPoolConcurrency;
-                    _edgedbConfig = tcpClient.RawServerConfig;
+                    _poolSize = binaryClient.SuggestedPoolConcurrency;
+                    _edgedbConfig = binaryClient.RawServerConfig;
                 }
 
                 _isInitialized = true;
