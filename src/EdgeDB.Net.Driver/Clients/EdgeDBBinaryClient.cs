@@ -18,7 +18,7 @@ namespace EdgeDB
         /// <summary>
         ///     Fired when the client receives a message.
         /// </summary>
-        public event Func<IReceiveable, Task> OnMessage
+        public event Func<IReceiveable, ValueTask> OnMessage
         {
             add => _onMessage.Add(value);
             remove => _onMessage.Remove(value);
@@ -27,7 +27,7 @@ namespace EdgeDB
         /// <summary>
         ///     Fired when a query is executed.
         /// </summary>
-        public event Func<ExecuteResult, Task> QueryExecuted
+        public event Func<ExecuteResult, ValueTask> QueryExecuted
         {
             add => _queryExecuted.Add(value);
             remove => _queryExecuted.Remove(value);
@@ -36,7 +36,7 @@ namespace EdgeDB
         /// <summary>
         ///     Fired when the client disconnects.
         /// </summary>
-        public event Func<Task> OnDisconnect
+        public event Func<ValueTask> OnDisconnect
         {
             add => _onDisconnect.Add(value);
             remove => _onDisconnect.Remove(value);
@@ -70,9 +70,9 @@ namespace EdgeDB
         internal readonly TimeSpan ConnectionTimeout;
         internal readonly EdgeDBConnection Connection;
 
-        private readonly AsyncEvent<Func<Task>> _onDisconnect = new();
-        private readonly AsyncEvent<Func<IReceiveable, Task>> _onMessage = new();
-        private readonly AsyncEvent<Func<ExecuteResult, Task>> _queryExecuted = new();
+        private readonly AsyncEvent<Func<ValueTask>> _onDisconnect = new();
+        private readonly AsyncEvent<Func<IReceiveable, ValueTask>> _onMessage = new();
+        private readonly AsyncEvent<Func<ExecuteResult, ValueTask>> _queryExecuted = new();
 
         protected CancellationToken DisconnectCancelToken
             => Duplexer.DisconnectToken;
@@ -305,7 +305,7 @@ namespace EdgeDB
 
         #region Receive/Send packet functions
 
-        private async Task HandlePayloadAsync(IReceiveable payload)
+        private async ValueTask HandlePayloadAsync(IReceiveable payload)
         {
             switch (payload)
             {

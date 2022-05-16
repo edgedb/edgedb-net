@@ -10,13 +10,13 @@ namespace EdgeDB
         public bool IsReading
             => _readTask != null && _readTask.Status == TaskStatus.Running;
 
-        public event Func<IReceiveable, Task> OnMessage
+        public event Func<IReceiveable, ValueTask> OnMessage
         {
             add => _onMessage.Add(value);
             remove => _onMessage.Remove(value);
         }
 
-        public event Func<Task> OnDisconnected
+        public event Func<ValueTask> OnDisconnected
         {
             add => _onDisconnected.Add(value);
             remove => _onDisconnected.Remove(value);
@@ -29,8 +29,8 @@ namespace EdgeDB
         private Task? _readTask;
         private readonly EdgeDBBinaryClient _client;
         private readonly CancellationTokenSource _disconnectTokenSource;
-        private readonly AsyncEvent<Func<Task>> _onDisconnected = new();
-        private readonly AsyncEvent<Func<IReceiveable, Task>> _onMessage = new();
+        private readonly AsyncEvent<Func<ValueTask>> _onDisconnected = new();
+        private readonly AsyncEvent<Func<IReceiveable, ValueTask>> _onMessage = new();
         private readonly SemaphoreSlim _duplexLock;
         private readonly SemaphoreSlim _onMessageLock;
 
@@ -157,7 +157,7 @@ namespace EdgeDB
                     if (t.Type == ServerMessageType.ErrorResponse)
                     {
                         tcs.TrySetResult(t);
-                        return Task.CompletedTask;
+                        return ValueTask.CompletedTask;
                     }
 
                     try
@@ -170,12 +170,12 @@ namespace EdgeDB
                         else
                             tcs.TrySetResult(t);
 
-                        return Task.CompletedTask;
+                        return ValueTask.CompletedTask;
                     }
                     catch (Exception x)
                     {
                         tcs.TrySetException(x);
-                        return Task.CompletedTask;
+                        return ValueTask.CompletedTask;
                     }
                 };
 

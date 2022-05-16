@@ -5,9 +5,22 @@ namespace EdgeDB
     public class EdgeDBClientPoolConfig : EdgeDBConfig
     {
         /// <summary>
+        ///     Gets or sets the default client pool size.
+        /// </summary>
+        public int DefaultPoolSize { get; set; } = 50;
+
+        /// <summary>
         ///     Gets or sets the client type the pool will use.
         /// </summary>
         public EdgeDBClientType ClientType { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the client factory.
+        /// </summary>
+        /// <remarks>
+        ///     The <see cref="ClientType"/> must be <see cref="EdgeDBClientType.Custom"/> to use this property.
+        /// </remarks>
+        public Func<ulong, ValueTask<BaseEdgeDBClient>>? ClientFactory { get; set; }
     }
 
     public enum EdgeDBClientType
@@ -20,7 +33,18 @@ namespace EdgeDB
         /// <summary>
         ///     The client pool will use <see cref="EdgeDBHttpClient"/>s
         /// </summary>
-        Http
+        Http,
+
+        /// <summary>
+        ///     The client pool will use unix domain sockets to connect.
+        /// </summary>
+        [Obsolete("EdgeDB servers no longer support unix domain sockets.", true)]
+        Unix,
+
+        /// <summary>
+        ///     The client pool will use the <see cref="EdgeDBClientPoolConfig.ClientFactory"/> to add new clients.
+        /// </summary>
+        Custom
     }
 
     /// <summary>
@@ -28,11 +52,6 @@ namespace EdgeDB
     /// </summary>
     public class EdgeDBConfig
     {
-        /// <summary>
-        ///     Gets or sets the default client pool size.
-        /// </summary>
-        public int DefaultPoolSize { get; set; } = 50;
-
         /// <summary>
         ///     Gets or sets the logger used for logging messages from the driver.
         /// </summary>

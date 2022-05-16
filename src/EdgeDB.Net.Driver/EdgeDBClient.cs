@@ -12,7 +12,7 @@ namespace EdgeDB
         /// <summary>
         ///     Fired when a client in the client pool executes a query.
         /// </summary>
-        public event Func<IExecuteResult, Task> QueryExecuted
+        public event Func<IExecuteResult, ValueTask> QueryExecuted
         {
             add => _queryExecuted.Add(value);
             remove => _queryExecuted.Remove(value);
@@ -27,7 +27,7 @@ namespace EdgeDB
         public IReadOnlyDictionary<string, object?> ServerConfig
             => _edgedbConfig.ToImmutableDictionary();
 
-        internal event Func<BaseEdgeDBClient, Task> ClientReturnedToPool
+        internal event Func<BaseEdgeDBClient, ValueTask> ClientReturnedToPool
         {
             add => _clientReturnedToPool.Add(value);
             remove => _clientReturnedToPool.Remove(value);
@@ -36,7 +36,7 @@ namespace EdgeDB
         internal EdgeDBClientType ClientType
             => _config.ClientType;
 
-        private readonly AsyncEvent<Func<IExecuteResult, Task>> _queryExecuted = new();
+        private readonly AsyncEvent<Func<IExecuteResult, ValueTask>> _queryExecuted = new();
         private readonly EdgeDBConnection _connection;
         private readonly EdgeDBClientPoolConfig _config;
         private ConcurrentStack<BaseEdgeDBClient> _availableClients;
@@ -47,11 +47,12 @@ namespace EdgeDB
         private readonly object _clientsLock = new();
         private readonly SemaphoreSlim _initSemaphore;
         private readonly SemaphoreSlim _clientWaitSemaphore;
+        private readonly Func<ulong, ValueTask<BaseEdgeDBClient>>? _clientFactory;
 
         private ulong _clientIndex;
         private int _totalClients;
 
-        private readonly AsyncEvent<Func<BaseEdgeDBClient, Task>> _clientReturnedToPool = new();
+        private readonly AsyncEvent<Func<BaseEdgeDBClient, ValueTask>> _clientReturnedToPool = new();
 
         /// <summary>
         ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
@@ -85,6 +86,11 @@ namespace EdgeDB
         /// <param name="config">The config for this client pool.</param>
         public EdgeDBClient(EdgeDBConnection connection, EdgeDBClientPoolConfig config)
         {
+            if (config.ClientType == EdgeDBClientType.Custom && config.ClientFactory == null)
+                throw new CustomClientException("You must specify a client factory in order to use custom clients");
+
+            _clientFactory = config.ClientFactory;
+
             _isInitialized = false;
             _config = config;
             _connection = connection;
@@ -96,13 +102,11 @@ namespace EdgeDB
         }
 
         /// <summary>
-        ///     Initializes the client pool as well as retrives the server config from edgedb.
+        ///     Initializes the client pool as well as retrives the server config from edgedb if 
+        ///     the clients within the pool support it.
         /// </summary>
-        public async ValueTask InitializeAsync()
+        public async Task InitializeAsync()
         {
-            if (_isInitialized)
-                return;
-
             await _initSemaphore.WaitAsync().ConfigureAwait(false);
 
             try
@@ -130,7 +134,8 @@ namespace EdgeDB
         /// <inheritdoc/>
         public async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null)
         {
-            await InitializeAsync().ConfigureAwait(false);
+            if (!_isInitialized)
+                await InitializeAsync().ConfigureAwait(false);
 
             await using var client = await GetOrCreateClientAsync().ConfigureAwait(false);
             await client.ExecuteAsync(query, args).ConfigureAwait(false);
@@ -139,7 +144,8 @@ namespace EdgeDB
         /// <inheritdoc/>
         public async Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null)
         {
-            await InitializeAsync().ConfigureAwait(false);
+            if (!_isInitialized)
+                await InitializeAsync().ConfigureAwait(false);
 
             IReadOnlyCollection<TResult?>? result = ImmutableArray<TResult>.Empty;
             await using (var client = await GetOrCreateClientAsync().ConfigureAwait(false))
@@ -152,7 +158,8 @@ namespace EdgeDB
         /// <inheritdoc/>
         public async Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
         {
-            await InitializeAsync().ConfigureAwait(false);
+            if (!_isInitialized)
+                await InitializeAsync().ConfigureAwait(false);
 
             TResult? result = default;
             await using (var client = await GetOrCreateClientAsync().ConfigureAwait(false))
@@ -165,7 +172,8 @@ namespace EdgeDB
         /// <inheritdoc/>
         public async Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
         {
-            await InitializeAsync().ConfigureAwait(false);
+            if (!_isInitialized)
+                await InitializeAsync().ConfigureAwait(false);
 
             TResult result;
             await using (var client = await GetOrCreateClientAsync().ConfigureAwait(false))
@@ -187,7 +195,7 @@ namespace EdgeDB
         ///     will return that client to this client pool.
         /// </remarks>
         /// <returns>
-        ///     A edgedb tcp client.
+        ///     A edgedb client.
         /// </returns>
         public async ValueTask<BaseEdgeDBClient> GetOrCreateClientAsync()
         {
@@ -218,11 +226,11 @@ namespace EdgeDB
             {
                 var numClients = Interlocked.Increment(ref _totalClients);
 
-                return await GetClientAsync(clientIndex);
+                return await CreateClientAsync(clientIndex).ConfigureAwait(false);
             }
         }
 
-        private async ValueTask<BaseEdgeDBClient> GetClientAsync(ulong id)
+        private async ValueTask<BaseEdgeDBClient> CreateClientAsync(ulong id)
         {
             switch (_config.ClientType)
             {
@@ -234,7 +242,7 @@ namespace EdgeDB
                         {
                             Interlocked.Decrement(ref _totalClients);
                             RemoveClient(id);
-                            return Task.CompletedTask;
+                            return ValueTask.CompletedTask;
                         };
 
                         client.QueryExecuted += (i) => _queryExecuted.InvokeAsync(i);
@@ -257,6 +265,21 @@ namespace EdgeDB
                         var client = new EdgeDBHttpClient(_connection, _config, id);
 
                         client.QueryExecuted += (i) => _queryExecuted.InvokeAsync(i);
+
+                        client.OnDisposed += async (c) =>
+                        {
+                            if (_clientReturnedToPool.HasSubscribers)
+                                await _clientReturnedToPool.InvokeAsync(c).ConfigureAwait(false);
+                            else
+                                _availableClients.Push(c);
+                            return false;
+                        };
+
+                        return client;
+                    }
+                case EdgeDBClientType.Custom when _clientFactory is not null:
+                    {
+                        var client = await _clientFactory(id).ConfigureAwait(false)!;
 
                         client.OnDisposed += async (c) =>
                         {

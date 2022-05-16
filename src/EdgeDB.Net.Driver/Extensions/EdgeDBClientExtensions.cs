@@ -148,7 +148,7 @@ namespace EdgeDB
 
                     }
 
-                    return Task.CompletedTask;
+                    return ValueTask.CompletedTask;
                 };
 
                 client.Duplexer.OnMessage += handler;

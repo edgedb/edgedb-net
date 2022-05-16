@@ -11,12 +11,12 @@
             ClientId = clientId;
         }
 
-        internal event Func<BaseEdgeDBClient, Task<bool>> OnDisposed
+        internal event Func<BaseEdgeDBClient, ValueTask<bool>> OnDisposed
         {
             add => _onDisposed.Add(value);
             remove => _onDisposed.Remove(value);
         }
-        private AsyncEvent<Func<BaseEdgeDBClient, Task<bool>>> _onDisposed = new ();
+        private AsyncEvent<Func<BaseEdgeDBClient, ValueTask<bool>>> _onDisposed = new ();
 
 
         public virtual async ValueTask<bool> DisposeAsync()

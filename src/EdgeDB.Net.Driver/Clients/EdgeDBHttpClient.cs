@@ -46,7 +46,7 @@ namespace EdgeDB
 
     public class EdgeDBHttpClient : BaseEdgeDBClient
     {
-        public event Func<HttpQueryResult, Task> QueryExecuted
+        public event Func<HttpQueryResult, ValueTask> QueryExecuted
         {
             add => _onQuery.Add(value);
             remove => _onQuery.Remove(value);
@@ -58,7 +58,7 @@ namespace EdgeDB
         private readonly EdgeDBConfig _config;
         private readonly EdgeDBConnection _connection;
         private readonly HttpClient _httpClient;
-        private readonly AsyncEvent<Func<HttpQueryResult, Task>> _onQuery = new();
+        private readonly AsyncEvent<Func<HttpQueryResult, ValueTask>> _onQuery = new();
         private readonly ILogger _logger;
 
         private class QueryPostBody
