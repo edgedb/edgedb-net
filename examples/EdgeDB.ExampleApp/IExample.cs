@@ -5,11 +5,11 @@ namespace EdgeDB.ExampleApp
 {
     public interface IExample
     {
-        Logger? Logger { get; set; }
+        ILogger? Logger { get; set; }
 
         Task ExecuteAsync(EdgeDBClient client);
 
-        static async Task ExecuteAllAsync(EdgeDBClient client, ILogger logger)
+        static async Task ExecuteAllAsync(EdgeDBClient client, ILogger logger, ILoggerFactory factory)
         {
             var examples = typeof(IExample).Assembly.GetTypes().Where(x => x.IsAssignableTo(typeof(IExample)) && x != typeof(IExample));
 
@@ -19,7 +19,7 @@ namespace EdgeDB.ExampleApp
                 try
                 {
                     var inst = (IExample)Activator.CreateInstance(example)!;
-                    inst.Logger = Logger.GetLogger(example);
+                    inst.Logger = factory.CreateLogger(example.Name);
                     await inst.ExecuteAsync(client).ConfigureAwait(false);
                     logger.LogInformation("{example} complete!", $"{example.Name}.cs");
                 }

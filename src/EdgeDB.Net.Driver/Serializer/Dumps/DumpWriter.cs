@@ -5,7 +5,7 @@ namespace EdgeDB.Dumps
     internal class DumpWriter : IDisposable
     {
         public const long DumpVersion = 1;
-
+        public const int FileFormatLength = 17;
 
         public static readonly byte[] FileFormat = new byte[]
         {

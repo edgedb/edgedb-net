@@ -213,14 +213,20 @@ namespace EdgeDB
                         case ErrorResponse err:
                             throw new EdgeDBErrorException(err);
                         default:
-                            throw new UnexpectedMessageException(msg.Type);
+                            if(msg.Type != ServerMessageType.ReadyForCommand) // could be we received the prepares ready since we have no queue popping
+                                throw new UnexpectedMessageException(msg.Type);
+                            return false;
                     }
                     return false;
                 }
 
                 readyTask = Duplexer.NextAsync(x => x.Type == ServerMessageType.ReadyForCommand);
 
-                var completePacket = (CommandComplete)await Duplexer.DuplexAndSyncAsync(new Execute() { Capabilities = result.Capabilities, Arguments = argumentCodec.SerializeArguments(args) }, handler);
+                var completePacket = (CommandComplete)await Duplexer.DuplexAndSyncAsync(new Execute() 
+                { 
+                    Capabilities = result.Capabilities, 
+                    Arguments = argumentCodec.SerializeArguments(args) 
+                }, handler);
 
                 // update transaction state
                 readyForCommand = (ReadyForCommand)await readyTask.ConfigureAwait(false);

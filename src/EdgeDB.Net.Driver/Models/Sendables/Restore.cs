@@ -21,7 +21,7 @@ namespace EdgeDB.Models
         {
             writer.Write(Headers);
             writer.Write(Jobs);
-            writer.WriteArray(HeaderData!);
+            writer.WriteArrayWithoutLength(HeaderData!);
         }
     }
 }

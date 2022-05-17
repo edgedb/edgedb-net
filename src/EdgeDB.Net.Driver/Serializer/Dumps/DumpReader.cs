@@ -1,4 +1,5 @@
 ﻿using EdgeDB.Models;
+using EdgeDB.Utils;
 using System.Security.Cryptography;
 
 namespace EdgeDB.Dumps
@@ -11,8 +12,9 @@ namespace EdgeDB.Dumps
                 throw new ArgumentException($"Cannot read from {nameof(stream)}");
 
             // read file format
-            var format = new byte[17];
-            ThrowIfEndOfStream(stream.Read(format) == format.Length);
+            var formatLength = DumpWriter.FileFormatLength;
+            var format = new byte[formatLength];
+            ThrowIfEndOfStream(stream.Read(format) == formatLength);
 
             if (!format.SequenceEqual(DumpWriter.FileFormat))
                 throw new FormatException("Format of stream does not match the edgedb dump format");
@@ -27,25 +29,27 @@ namespace EdgeDB.Dumps
                 if (version > DumpWriter.DumpVersion)
                     throw new ArgumentException($"Unsupported dump version {version}");
 
+                var header = ReadPacket(reader);
+
+                if (header is not DumpHeader dumpHeader)
+                    throw new FormatException($"Expected dump header but got {header?.Type}");
+
+                restore = new Restore()
+                {
+                    HeaderData = dumpHeader.Raw
+                };
+
                 while (stream.Position < stream.Length)
                 {
                     var packet = ReadPacket(reader);
 
-                    switch (packet)
+                    if(packet is not DumpBlock dumpBlock)
+                        throw new FormatException($"Expected dump block but got {header?.Type}");
+                    
+                    blocks.Add(new RestoreBlock
                     {
-                        case DumpHeader header:
-                            restore = new()
-                            {
-                                HeaderData = header.Raw
-                            };
-                            break;
-                        case DumpBlock block:
-                            blocks.Add(new RestoreBlock
-                            {
-                                BlockData = block.Raw
-                            });
-                            break;
-                    }
+                        BlockData = dumpBlock.Raw
+                    });
                 }
             }
 

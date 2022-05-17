@@ -116,5 +116,8 @@ namespace EdgeDB
             Write((uint)buffer.Length);
             base.Write(buffer);
         }
+
+        public void WriteArrayWithoutLength(byte[] buffer)
+            => base.Write(buffer);
     }
 }

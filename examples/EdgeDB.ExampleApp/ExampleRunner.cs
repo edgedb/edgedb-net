@@ -12,15 +12,17 @@ namespace EdgeDB.ExampleApp
     {
         private readonly EdgeDBClient _client;
         private readonly ILogger _logger;
-        public ExampleRunner(EdgeDBClient client, ILogger<ExampleRunner> logger)
+        private readonly ILoggerFactory _loggerFactory;
+        public ExampleRunner(EdgeDBClient client, ILogger<ExampleRunner> logger, ILoggerFactory factory)
         {
             _client = client;
             _logger = logger;
+            _loggerFactory = factory;
         }
 
         public async Task StartAsync()
         {
-            await IExample.ExecuteAllAsync(_client, _logger).ConfigureAwait(false);
+            await IExample.ExecuteAllAsync(_client, _logger, _loggerFactory).ConfigureAwait(false);
         }
     }
 }

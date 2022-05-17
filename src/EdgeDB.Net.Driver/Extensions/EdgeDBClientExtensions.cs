@@ -121,7 +121,7 @@ namespace EdgeDB
 
             try
             {
-                var tcs = new TaskCompletionSource(TaskCreationOptions.LongRunning);
+                var tcs = new TaskCompletionSource();
                 token.Register(() => tcs.SetCanceled(token));
 
                 var stream = new MemoryStream();
@@ -143,9 +143,6 @@ namespace EdgeDB
                             {
                                 throw new EdgeDBErrorException(error);
                             }
-                        default:
-                            throw new UnexpectedMessageException(msg.Type);
-
                     }
 
                     return ValueTask.CompletedTask;
