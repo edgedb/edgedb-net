@@ -4,6 +4,13 @@ namespace EdgeDB
 {
     public static class ClientPoolExtensions
     {
+        /// <summary>
+        ///     Returns true if the client pool supports transactions.
+        /// </summary>
+        /// <param name="client">The client pool.</param>
+        /// <returns>
+        ///     <see langword="true"/> if the client pool supports transactions; otherwise <see langword="false"/>.
+        /// </returns>
         public static bool SupportsTransactions(this EdgeDBClient client)
             => client.ClientType is EdgeDBClientType.Tcp;
 
@@ -14,7 +21,7 @@ namespace EdgeDB
         /// <param name="pool">The client pool on which to fetch a client from.</param>
         /// <param name="func">The callback to pass the transaction into.</param>
         /// <returns>
-        ///     A task that proxies the passed in callbacks awaiter.
+        ///     A Task that proxies the passed in callbacks awaiter.
         /// </returns>
         public static async Task TransactionAsync(this EdgeDBClient pool, Func<Transaction, Task> func)
         {
@@ -28,7 +35,7 @@ namespace EdgeDB
         /// <typeparam name="TResult">The return result of the task.</typeparam>
         /// <param name="pool">The client pool on which to fetch a client from.</param>
         /// <param name="func">The callback to pass the transaction into.</param>
-        /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
+        /// <returns>A Task that proxies the passed in callbacks awaiter.</returns>
         public static async Task<TResult?> TransactionAsync<TResult>(this EdgeDBClient pool, Func<Transaction, Task<TResult>> func)
         {
             await using var client = await pool.GetTransactibleClientAsync();
@@ -41,7 +48,7 @@ namespace EdgeDB
         /// <param name="pool">The client pool on which to fetch a client from.</param>
         /// <param name="settings">The transactions settings.</param>
         /// <param name="func">The callback to pass the transaction into.</param>
-        /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
+        /// <returns>A Task that proxies the passed in callbacks awaiter.</returns>
         public static async Task TransactionAsync(this EdgeDBClient pool, TransactionSettings settings, Func<Transaction, Task> func)
         {
             await using var client = await pool.GetTransactibleClientAsync().ConfigureAwait(false);
@@ -55,7 +62,7 @@ namespace EdgeDB
         /// <param name="pool">The client pool on which to fetch a client from.</param>
         /// <param name="settings">The transactions settings.</param>
         /// <param name="func">The callback to pass the transaction into.</param>
-        /// <returns>A task that proxies the passed in callbacks awaiter.</returns>
+        /// <returns>A Task that proxies the passed in callbacks awaiter.</returns>
         public static async Task<TResult?> TransactionAsync<TResult>(this EdgeDBClient pool, TransactionSettings settings, Func<Transaction, Task<TResult>> func)
         {
             await using var client = await pool.GetTransactibleClientAsync().ConfigureAwait(false);

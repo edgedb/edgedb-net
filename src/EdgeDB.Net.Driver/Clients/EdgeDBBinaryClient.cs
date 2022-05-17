@@ -13,6 +13,9 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
+    /// <summary>
+    ///     Represents an abstract binary clinet.
+    /// </summary>
     public abstract class EdgeDBBinaryClient : BaseEdgeDBClient, ITransactibleClient
     {
         /// <summary>
@@ -86,7 +89,7 @@ namespace EdgeDB
         private uint _currentRetries;
 
         /// <summary>
-        ///     Creates a new TCP client with the provided conection and config.
+        ///     Creates a new binary client with the provided conection and config.
         /// </summary>
         /// <param name="connection">The connection details used to connect to the database.</param>
         /// <param name="config">The configuration for this client.</param>
@@ -120,6 +123,10 @@ namespace EdgeDB
             public CommandComplete CompleteStatus { get; set; }
         }
 
+        /// <exception cref="EdgeDBException">A general error occored.</exception>
+        /// <exception cref="EdgeDBErrorException">The client received an <see cref="ErrorResponse"/>.</exception>
+        /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
+        /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         internal async Task<RawExecuteResult> ExecuteInternalAsync(string query, IDictionary<string, object?>? args = null, Cardinality? card = null,
             AllowCapabilities? capabilities = AllowCapabilities.ReadOnly)
         {
@@ -267,10 +274,18 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
+        /// <exception cref="EdgeDBException">A general error occored.</exception>
+        /// <exception cref="EdgeDBErrorException">The client received an <see cref="ErrorResponse"/>.</exception>
+        /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
+        /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         public override async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null)
             => await ExecuteInternalAsync(query, args, Cardinality.Many).ConfigureAwait(false);
 
-
+        /// <inheritdoc/>
+        /// <exception cref="EdgeDBException">A general error occored.</exception>
+        /// <exception cref="EdgeDBErrorException">The client received an <see cref="ErrorResponse"/>.</exception>
+        /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
+        /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         public override async Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null)
             where TResult : default
         {
@@ -287,6 +302,12 @@ namespace EdgeDB
             return returnResults.ToImmutableArray();
         }
 
+        /// <inheritdoc/>
+        /// <exception cref="EdgeDBException">A general error occored.</exception>
+        /// <exception cref="EdgeDBErrorException">The client received an <see cref="ErrorResponse"/>.</exception>
+        /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
+        /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
+        /// <exception cref="ResultCardinalityMismatchException">The results cardinality was not what the query expected.</exception>
         public override async Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
             where TResult : default
         {
@@ -302,6 +323,13 @@ namespace EdgeDB
                 : ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(queryResult.PayloadData.ToArray()));
         }
 
+        /// <inheritdoc/>
+        /// <exception cref="EdgeDBException">A general error occored.</exception>
+        /// <exception cref="EdgeDBErrorException">The client received an <see cref="ErrorResponse"/>.</exception>
+        /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
+        /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
+        /// <exception cref="ResultCardinalityMismatchException">The results cardinality was not what the query expected.</exception>
+        /// <exception cref="MissingRequiredException">The query didn't return a result.</exception>
         public override async Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
         {
             var result = await ExecuteInternalAsync(query, args, Cardinality.AtMostOne);
@@ -315,11 +343,9 @@ namespace EdgeDB
                 ? throw new MissingRequiredException()
                 : ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(queryResult.PayloadData.ToArray()))!;
         }
-
         #endregion
 
-        #region Receive/Send packet functions
-
+        #region Packet handling
         private async ValueTask HandlePayloadAsync(IReceiveable payload)
         {
             switch (payload)
@@ -367,11 +393,9 @@ namespace EdgeDB
                 Logger.EventHandlerError(x);
             }
         }
-
         #endregion
 
-        #region Helper functions
-
+        #region SASL
         private async Task StartSASLAuthenticationAsync(AuthenticationStatus authStatus)
         {
             // steal the sephamore to stop any query attempts.
@@ -455,7 +479,9 @@ namespace EdgeDB
                 IsIdle = true;
             }
         }
+        #endregion
 
+        #region Helper functions
         private async Task<IReceiveable> PrepareAsync(Prepare packet)
         {
             var result = await Duplexer.DuplexAndSyncAsync(packet, x => x.Type is ServerMessageType.PrepareComplete);
@@ -513,11 +539,9 @@ namespace EdgeDB
                 Logger.ServerSettingsParseFailed(x);
             }
         }
-
         #endregion
 
         #region Connect/disconnect
-
         /// <summary>
         ///     Connects and authenticates this client.
         /// </summary>
@@ -579,9 +603,7 @@ namespace EdgeDB
             await ConnectInternalAsync();
         }
 
-        /// <summary>
-        ///     Disconnects this client from the database.
-        /// </summary>
+        /// <inheritdoc/>
         public override async ValueTask DisconnectAsync()
         {
             await Duplexer.DisconnectAsync().ConfigureAwait(false);
@@ -591,7 +613,6 @@ namespace EdgeDB
         #endregion
 
         #region Command locks
-
         internal async Task<IDisposable> AquireCommandLockAsync(CancellationToken token = default)
         {
             var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(DisconnectCancelToken, token);
@@ -613,18 +634,14 @@ namespace EdgeDB
             public void Dispose()
                 => _onDispose();
         }
-
         #endregion
 
         #region Streams
-
-        public abstract ValueTask<Stream> GetStreamAsync();
-        public abstract ValueTask CloseStreamAsync();
-
+        protected abstract ValueTask<Stream> GetStreamAsync();
+        protected abstract ValueTask CloseStreamAsync();
         #endregion
 
         #region Client pool dispose
-
         public override async ValueTask<bool> DisposeAsync()
         {
             var shouldDispose = await base.DisposeAsync().ConfigureAwait(false);
@@ -636,7 +653,6 @@ namespace EdgeDB
 
             return shouldDispose;
         }
-
         #endregion
 
         #region ITranactibleClient

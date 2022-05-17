@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
+    /// <summary>
+    ///     Represents an exception that wraps <see cref="Models.ErrorResponse"/>.
+    /// </summary>
     public sealed class EdgeDBErrorException : EdgeDBException
     {
         public string? Details { get; }

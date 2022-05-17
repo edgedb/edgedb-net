@@ -2,6 +2,9 @@
 
 namespace EdgeDB
 {
+    /// <summary>
+    ///     Represents an exception that occurs when the client receives an unexpected exception.
+    /// </summary>
     public class UnexpectedMessageException : EdgeDBException
     {
         public UnexpectedMessageException(ServerMessageType unexpected)

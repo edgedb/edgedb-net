@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace EdgeDB
 {
-    public static class LoggerExtensions
+    internal static class LoggerExtensions
     {
         #region Delegates
         private static readonly Action<ILogger, Exception> _internalExecuteFailed;

@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
+    /// <summary>
+    ///     Represents a generic error with custom clients.
+    /// </summary>
     public class CustomClientException : EdgeDBException
     {
         public CustomClientException(string message)

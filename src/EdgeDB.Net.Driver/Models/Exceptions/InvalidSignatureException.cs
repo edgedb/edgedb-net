@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
+    /// <summary>
+    ///     Represents an exception that occurs when the server signature is incorrect.
+    /// </summary>
     public class InvalidSignatureException : EdgeDBException
     {
         public InvalidSignatureException()

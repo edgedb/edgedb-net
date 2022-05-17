@@ -13,22 +13,43 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
+    /// <summary>
+    ///     Represents the returned data from a http-based query.
+    /// </summary>
     public class HttpQueryResult : IExecuteResult
     {
+        /// <summary>
+        ///     Gets or sets the data returned from the query.
+        /// </summary>
         [JsonProperty("data")]
         public object? Data { get; set; }
 
+        /// <summary>
+        ///     Gets or sets the error returned from the query.
+        /// </summary>
         [JsonProperty("error")]
         public QueryResultError? Error { get; set; }
 
+        /// <summary>
+        ///     Represents a query error received over http
+        /// </summary>
         public class QueryResultError : IExecuteError
         {
+            /// <summary>
+            ///     Gets or sets the error message.
+            /// </summary>
             [JsonProperty("message")]
             public string? Message { get; set; }
 
+            /// <summary>
+            ///     Gets or sets the type of the error.
+            /// </summary>
             [JsonProperty("type")]
             public string? Type { get; set; }
 
+            /// <summary>
+            ///     Gets or sets the error code.
+            /// </summary>
             [JsonProperty("code")]
             public uint Code { get; set; }
 
@@ -52,15 +73,29 @@ namespace EdgeDB
             => null;
     }
 
+    /// <summary>
+    ///     Represents a client that can preform queries over HTTP.
+    /// </summary>
     public class EdgeDBHttpClient : BaseEdgeDBClient
     {
+        /// <summary>
+        ///     Fired when a query is executed.
+        /// </summary>
         public event Func<HttpQueryResult, ValueTask> QueryExecuted
         {
             add => _onQuery.Add(value);
             remove => _onQuery.Remove(value);
         }
 
+        /// <inheritdoc/>
+        /// <remarks>
+        ///     This property is always <see langword="true"/>.
+        /// </remarks>
         public override bool IsConnected => true;
+
+        /// <summary>
+        ///     The URI of the edgedb instance.
+        /// </summary>
         public readonly Uri Uri;
         
         private readonly EdgeDBConfig _config;
@@ -78,6 +113,12 @@ namespace EdgeDB
             public IDictionary<string, object?>? Variables { get; set; }
         }
 
+        /// <summary>
+        ///     Creates a new instance of the http client.
+        /// </summary>
+        /// <param name="connection">The connection details used to connect to the database.</param>
+        /// <param name="config">The configuration for this client.</param>
+        /// <param name="clientId">The optional client id of this client. This is used for logging and client pooling.</param>
         public EdgeDBHttpClient(EdgeDBConnection connection, EdgeDBConfig config, ulong clientId)
             : base(clientId)
         {
@@ -121,9 +162,16 @@ namespace EdgeDB
             }
         }
 
+        /// <inheritdoc/>
+        /// <remarks>
+        ///     This function does nothing for the <see cref="EdgeDBHttpClient"/>.
+        /// </remarks>
         public override ValueTask DisconnectAsync()
             => default;
 
+        /// <remarks>
+        ///     This function does nothing for the <see cref="EdgeDBHttpClient"/>.
+        /// </remarks>
         public override ValueTask ConnectAsync() 
             => default;
 
@@ -147,11 +195,13 @@ namespace EdgeDB
             return result;
         }
 
+        /// <inheritdoc/>
         public override async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null)
         {
             await ExecuteInternalAsync(query, args).ConfigureAwait(false);
         }
 
+        /// <inheritdoc/>
         public override async Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null)
             where TResult : default
         {
@@ -164,6 +214,7 @@ namespace EdgeDB
             return arr.ToObject<TResult?[]>()!;
         }
 
+        /// <inheritdoc/>
         public override async Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
         {
             var result = await ExecuteInternalAsync(query, args);
@@ -179,6 +230,7 @@ namespace EdgeDB
             return arr[0].ToObject<TResult>()!;
         }
 
+        /// <inheritdoc/>
         public override async Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
             where TResult : default
         {

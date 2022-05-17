@@ -7,6 +7,10 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
+    /// <summary>
+    ///     Represents an exception that occurs when a queries cardinality 
+    ///     isn't what the client was expecting.
+    /// </summary>
     public class ResultCardinalityMismatchException : EdgeDBException
     {
         public ResultCardinalityMismatchException(Cardinality expected, Cardinality actual)

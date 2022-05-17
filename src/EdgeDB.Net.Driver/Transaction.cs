@@ -2,8 +2,14 @@
 
 namespace EdgeDB
 {
+    /// <summary>
+    ///     Represents a transaction within edgedb.
+    /// </summary>
     public class Transaction : IEdgeDBQueryable
     {
+        /// <summary>
+        ///     Gets the transaction state of this transaction.
+        /// </summary>
         public TransactionState State
             => _client.TransactionState;
 
@@ -80,27 +86,28 @@ namespace EdgeDB
             throw new TransactionException($"Transaction failed {_settings.RetryAttempts} time(s)", innerException);
         }
 
+        /// <inheritdoc/>
         public Task ExecuteAsync(string query, IDictionary<string, object?>? args = null)
             => ExecuteInternalAsync(() => _client.ExecuteAsync(query, args));
 
+        /// <inheritdoc/>
         public Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null)
             => ExecuteInternalAsync(() => _client.QueryAsync<TResult>(query, args));
 
+        /// <inheritdoc/>
         public Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
             => ExecuteInternalAsync(() => _client.QuerySingleAsync<TResult>(query, args));
 
+        /// <inheritdoc/>
         public Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
             => ExecuteInternalAsync(() => _client.QueryRequiredSingleAsync<TResult>(query, args));
-
-
-        public static Task CreateAsync(EdgeDBTcpClient client, Func<Transaction, Task> func)
-            => func(new Transaction(client, TransactionSettings.Default));
-        public static Task CreateAsync(EdgeDBTcpClient client, TransactionSettings settings, Func<Transaction, Task> func)
-            => func(new Transaction(client, settings));
     }
 
     public sealed class TransactionSettings
     {
+        /// <summary>
+        ///     Gets the default transaction settings.
+        /// </summary>
         public static TransactionSettings Default
             => new();
 

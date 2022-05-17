@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 namespace EdgeDB
 {
     /// <summary>
-    ///     Represents a class used to interact with EdgeDB.
+    ///     Represents a client pool used to interact with EdgeDB.
     /// </summary>
     public sealed class EdgeDBClient : IEdgeDBQueryable
     {
@@ -22,7 +22,8 @@ namespace EdgeDB
         ///     Gets the EdgeDB server config.
         /// </summary>
         /// <remarks>
-        ///     The returned dictionary can be empty if the client pool hasn't connected any clients.
+        ///     The returned dictionary can be empty if the client pool hasn't connected any clients 
+        ///     or the clients don't support getting a server config.
         /// </remarks>
         public IReadOnlyDictionary<string, object?> ServerConfig
             => _edgedbConfig.ToImmutableDictionary();
@@ -184,7 +185,7 @@ namespace EdgeDB
         }
 
         /// <summary>
-        ///     Gets or creates a raw client in the client pool used to interact with edgedb.
+        ///     Gets or creates a client in the client pool used to interact with edgedb.
         /// </summary>
         /// <remarks>
         ///     This method can hang if the client pool is full and all connections are in use. 

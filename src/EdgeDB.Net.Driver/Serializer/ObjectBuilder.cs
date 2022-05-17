@@ -50,7 +50,7 @@ namespace EdgeDB
 
             var instance = Activator.CreateInstance(targetType);
 
-            var objectProps = targetType.GetProperties().OrderBy(x => x.DeclaringType == targetType ? 0 : 1).ToDictionary(x => x.GetCustomAttribute<EdgeDBPropertyAttribute>()?.Name ?? x.Name, x => x);
+            var objectProps = targetType.GetProperties().Where(x => IsValidProperty(x)).OrderBy(x => x.DeclaringType == targetType ? 0 : 1).ToDictionary(x => x.GetCustomAttribute<EdgeDBPropertyAttribute>()?.Name ?? x.Name, x => x);
 
             foreach (var result in rawResult)
             {

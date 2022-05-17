@@ -18,6 +18,7 @@ namespace EdgeDB
     /// </summary>
     public sealed class EdgeDBTcpClient : EdgeDBBinaryClient
     {
+        /// <inheritdoc/>
         public override bool IsConnected
             => TcpClient.Connected && _secureStream != null;
 
@@ -26,13 +27,19 @@ namespace EdgeDB
         private NetworkStream? _stream;
         private SslStream? _secureStream;
 
+        /// <summary>
+        ///     Creates a new TCP client with the provided conection and config.
+        /// </summary>
+        /// <param name="connection">The connection details used to connect to the database.</param>
+        /// <param name="config">The configuration for this client.</param>
+        /// <param name="clientId">The optional client id of this client. This is used for logging and client pooling.</param>
         public EdgeDBTcpClient(EdgeDBConnection connection, EdgeDBConfig config, ulong? clientId = null) 
             : base(connection, config, clientId)
         {
             TcpClient = new();
         }
 
-        public override async ValueTask<Stream> GetStreamAsync()
+        protected override async ValueTask<Stream> GetStreamAsync()
         {
             TcpClient = new TcpClient();
 
@@ -85,7 +92,7 @@ namespace EdgeDB
             return _secureStream;
         }
 
-        public override ValueTask CloseStreamAsync()
+        protected override ValueTask CloseStreamAsync()
         {
             TcpClient.Close();
             return ValueTask.CompletedTask;
@@ -117,6 +124,13 @@ namespace EdgeDB
             }
         }
 
+        /// <summary>
+        ///     Disposes or releases the client.
+        /// </summary>
+        /// <returns>
+        ///     A ValueTask that represents the asynchronous dispose or release operation.
+        ///     The result of the value tasks indicates whether or not the client got disposed.
+        /// </returns>
         public override async ValueTask<bool> DisposeAsync()
         {
             var shouldDispose = await base.DisposeAsync();

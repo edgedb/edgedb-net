@@ -26,7 +26,7 @@
         /// </summary>
         public bool IsReadOnly { get; set; }
 
-        internal string? Name { get; set; }
+        internal readonly string? Name;
 
         /// <summary>
         ///     Marks this member to be used when serializing/deserializing.
