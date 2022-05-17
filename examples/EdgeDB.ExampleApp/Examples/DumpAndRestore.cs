@@ -13,10 +13,10 @@ namespace EdgeDB.ExampleApp.Examples
 
             // at this point you can write the stream to a file as a backup,
             // for this example we're just going to immediatly restore it.
-            var result = await client.RestoreDatabaseAsync(dumpStream!).ConfigureAwait(false);
 
-            // Log the status of the restore
-            Logger?.LogInformation("Restore status: {Status}", result.Status);
+            // since our database isn't empty we cannot restore it; but lets say it was empty, we could use the following code:
+            // var result = await client.RestoreDatabaseAsync(dumpStream!).ConfigureAwait(false);
+            // Logger?.LogInformation("Restore status: {Status}", result.Status);
         }
     }
 }

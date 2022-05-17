@@ -222,11 +222,17 @@ namespace EdgeDB
 
                 readyTask = Duplexer.NextAsync(x => x.Type == ServerMessageType.ReadyForCommand);
 
-                var completePacket = (CommandComplete)await Duplexer.DuplexAndSyncAsync(new Execute() 
+                var executeResult = await Duplexer.DuplexAndSyncAsync(new Execute() 
                 { 
                     Capabilities = result.Capabilities, 
                     Arguments = argumentCodec.SerializeArguments(args) 
                 }, handler);
+
+                if (executeResult is ErrorResponse err)
+                    throw new EdgeDBErrorException(err);
+
+                if (executeResult is not CommandComplete completePacket)
+                    throw new UnexpectedMessageException(ServerMessageType.CommandComplete, executeResult.Type);
 
                 // update transaction state
                 readyForCommand = (ReadyForCommand)await readyTask.ConfigureAwait(false);
