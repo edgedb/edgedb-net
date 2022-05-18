@@ -884,27 +884,29 @@ namespace EdgeDB
 
         internal static Type CreateMockedType(Type mock)
         {
-            if (mock.IsValueType || mock.IsSealed)
-                throw new InvalidOperationException($"Cannot create mocked type from {mock}");
+            //if (mock.IsValueType || mock.IsSealed)
+            //    throw new InvalidOperationException($"Cannot create mocked type from {mock}");
 
-            var tb = ReflectionUtils.GetTypeBuilder($"SubQuery{mock.Name}_{Guid.NewGuid().ToString().Replace("-", "")}",
-                   TypeAttributes.Public |
-                   TypeAttributes.Class |
-                   TypeAttributes.AutoClass |
-                   TypeAttributes.AnsiClass |
-                   TypeAttributes.BeforeFieldInit |
-                   TypeAttributes.AutoLayout);
+            //var tb = ReflectionUtils.GetTypeBuilder($"SubQuery{mock.Name}_{Guid.NewGuid().ToString().Replace("-", "")}",
+            //       TypeAttributes.Public |
+            //       TypeAttributes.Class |
+            //       TypeAttributes.AutoClass |
+            //       TypeAttributes.AnsiClass |
+            //       TypeAttributes.BeforeFieldInit |
+            //       TypeAttributes.AutoLayout);
 
-            tb.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
-            var get = typeof(ISubQueryType).GetMethod("get_Builder");
-            var set = typeof(ISubQueryType).GetMethod("set_Builder");
-            ReflectionUtils.CreateProperty(tb, "Builder", typeof(QueryBuilder), get, set);
-            tb.SetParent(mock);
-            tb.AddInterfaceImplementation(typeof(ISubQueryType));
+            //tb.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
+            //var get = typeof(ISubQueryType).GetMethod("get_Builder");
+            //var set = typeof(ISubQueryType).GetMethod("set_Builder");
+            //ReflectionUtils.CreateProperty(tb, "Builder", typeof(QueryBuilder), get, set);
+            //tb.SetParent(mock);
+            //tb.AddInterfaceImplementation(typeof(ISubQueryType));
 
-            Type objectType = tb.CreateType()!;
+            //Type objectType = tb.CreateType()!;
 
-            return objectType;
+            //return objectType;
+
+            throw new NotSupportedException();
         }
     }
 

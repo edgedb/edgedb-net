@@ -1,4 +1,4 @@
-.. _edgedb-dotnet-installation:
+.. _edgedb-dotnet-installing:
 
 Installing
 ==========
@@ -15,7 +15,7 @@ it is to use the dotnet command line tool or NuGet package manager in Visual Stu
 
 .. warning:: 
   
-  EdgeDB.Net targets .net5 and .net6, other .net frameworks are not supported currently.
+  EdgeDB.Net targets .net5 and .net6. Other .NET frameworks are not supported currently.
 
 
 Building from source
