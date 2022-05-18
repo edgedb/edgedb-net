@@ -11,7 +11,6 @@ namespace EdgeDB.ExampleApp.Examples
     {
         public ILogger? Logger { get; set; }
 
-
         // The driver supports deserializing custom classes from a schema, take for example this schema:
         // module default {
         //   type Person {
@@ -21,7 +20,7 @@ namespace EdgeDB.ExampleApp.Examples
         //     }
         //   }
         // }
-        // we have a type called 'Person' with a few properties, we can create a class that resembles this object like so
+        // We have a type called 'Person' with a few properties, we can create a class that resembles this object like so
         public class Person
         {
             [EdgeDBProperty("name")]

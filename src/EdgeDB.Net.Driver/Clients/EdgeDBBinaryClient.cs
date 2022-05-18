@@ -138,7 +138,7 @@ namespace EdgeDB
 
             try
             {
-                var readyTask = Duplexer.NextAsync(x => x.Type == ServerMessageType.ReadyForCommand);
+                var nextTask = Duplexer.NextAsync(x => x.Type == ServerMessageType.ReadyForCommand).ConfigureAwait(false);
 
                 var prepareResult = await PrepareAsync(new Prepare
                 {
@@ -161,7 +161,8 @@ namespace EdgeDB
                     throw new UnexpectedMessageException(ServerMessageType.PrepareComplete, prepareResult.Type);
                 }
 
-                ReadyForCommand readyForCommand = (ReadyForCommand)await readyTask.ConfigureAwait(false);
+                // pop ready 
+                _ = await nextTask;
 
                 // get the codec for the return type
                 var outCodec = PacketSerializer.GetCodec(result.OutputTypedescId);
@@ -203,54 +204,59 @@ namespace EdgeDB
 
                 List<Data> receivedData = new();
 
-                bool complete = false;
+                CommandComplete? commandComplete = null;
+                ReadyForCommand? readyForCommand = null;
+
+
                 bool handler(IReceiveable msg)
                 {
-                    if (complete)
-                        return true;
-
                     switch (msg)
                     {
                         case Data data:
                             receivedData.Add(data);
                             break;
                         case CommandComplete comp:
-                            complete = true;
-                            return true;
+                            commandComplete = comp;
+                            break;
                         case ErrorResponse err:
                             throw new EdgeDBErrorException(err);
+                        case ReadyForCommand ready:
+                            readyForCommand = ready;
+                            break;
                         default:
-                            if(msg.Type != ServerMessageType.ReadyForCommand) // could be we received the prepares ready since we have no queue popping
-                                throw new UnexpectedMessageException(msg.Type);
-                            return false;
+                            throw new UnexpectedMessageException(msg.Type);
                     }
-                    return false;
-                }
 
-                readyTask = Duplexer.NextAsync(x => x.Type == ServerMessageType.ReadyForCommand);
+                    return readyForCommand.HasValue && commandComplete.HasValue;
+                }
 
                 var executeResult = await Duplexer.DuplexAndSyncAsync(new Execute() 
                 { 
                     Capabilities = result.Capabilities, 
                     Arguments = argumentCodec.SerializeArguments(args) 
-                }, handler);
+                }, handler).ConfigureAwait(false);
+
+                if (!commandComplete.HasValue)
+                    throw new UnexpectedMessageException(ServerMessageType.CommandComplete);
+
+                if(!readyForCommand.HasValue)
+                    throw new UnexpectedMessageException(ServerMessageType.ReadyForCommand);
 
                 if (executeResult is ErrorResponse err)
                     throw new EdgeDBErrorException(err);
 
-                if (executeResult is not CommandComplete completePacket)
-                    throw new UnexpectedMessageException(ServerMessageType.CommandComplete, executeResult.Type);
-
                 // update transaction state
-                readyForCommand = (ReadyForCommand)await readyTask.ConfigureAwait(false);
-
-                TransactionState = readyForCommand.TransactionState;
+                TransactionState = commandComplete.Value.Status switch 
+                {
+                    "START TRANSACTION" => TransactionState.InTransaction,
+                    _ => readyForCommand.Value.TransactionState
+                };
 
                 execResult = new ExecuteResult(true, null, null, query);
 
                 return new RawExecuteResult
                 {
-                    CompleteStatus = completePacket,
+                    CompleteStatus = commandComplete.Value,
                     Data = receivedData,
                     Deserializer = outCodec,
                     PrepareStatement = result

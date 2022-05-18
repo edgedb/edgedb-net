@@ -1,5 +1,6 @@
 ﻿using EdgeDB.Models;
 using EdgeDB.Utils;
+using System.Collections.Concurrent;
 
 namespace EdgeDB
 {
@@ -84,6 +85,11 @@ namespace EdgeDB
 
                 if (msg != null)
                 {
+                    if(msg is ReadyForCommand ready && ready.TransactionState == TransactionState.InTransaction)
+                    {
+
+                    }
+
                     await _onMessageLock.WaitAsync().ConfigureAwait(false);
                     try
                     {
@@ -218,5 +224,8 @@ namespace EdgeDB
         public static Task<IReceiveable> DuplexAndSyncAsync(this ClientPacketDuplexer duplexer, Sendable packet,
             Predicate<IReceiveable>? predicate = null, CancellationToken token = default)
             => duplexer.DuplexAsync(predicate, token, packet, new Sync());
+        public static Task<IReceiveable> DuplexAsync(this ClientPacketDuplexer duplexer, Sendable packet,
+            Predicate<IReceiveable>? predicate = null, CancellationToken token = default)
+            => duplexer.DuplexAsync(predicate, token, packet);
     }
 }

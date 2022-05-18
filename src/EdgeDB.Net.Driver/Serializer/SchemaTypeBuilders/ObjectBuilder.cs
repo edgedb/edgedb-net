@@ -7,60 +7,15 @@ namespace EdgeDB
 {
     internal class ObjectBuilder
     {
-        private static readonly ConcurrentDictionary<(Guid TypeDescriptor, Guid TypeId), Type> _runtimeTypemap = new();
-        private struct EdgeDBPropertyInfo
-        {
-            public string EdgeDBName { get; set; }
-
-            public PropertyInfo PropertyInfo { get; set; }
-
-            public bool ShouldMakeSubType { get; set; }
-        }
-
-        public static TType? BuildResult<TType>(Guid typeDescriptorId, IDictionary<string, object?> rawResult)
-            => (TType?)BuildResult(typeDescriptorId, typeof(TType), rawResult);
+        public static TType? BuildResult<TType>(IDictionary<string, object?> rawResult)
+            => (TType?)TypeBuilder.BuildObject(typeof(TType), rawResult);
 
         public static TType? BuildResult<TType>(Guid typeDescriptorId, object? value)
         {
             if (value is IDictionary<string, object?> raw)
-                return BuildResult<TType>(typeDescriptorId, raw);
+                return BuildResult<TType>(raw);
 
             return (TType?)ConvertTo(typeDescriptorId, typeof(TType), value);
-        }
-
-        public static object? BuildResult(Guid typeDescriptorId, Type targetType, object? raw)
-        {
-            if (raw is null)
-                return null;
-
-            if (targetType == typeof(object))
-                return raw;
-
-            if (raw is not IDictionary<string, object?> rawResult)
-                throw new ArgumentException($"Cannot use {raw.GetType()} for building");
-
-            if (rawResult.GetType() == targetType)
-                return rawResult;
-
-            if (targetType.IsAssignableTo(typeof(IEnumerable)))
-                return ConvertTo(typeDescriptorId, targetType, new object[] { rawResult });
-
-            if (!IsValidTargetType(targetType))
-                throw new EdgeDBException($"Invalid type {targetType} for building");
-
-            var instance = Activator.CreateInstance(targetType);
-
-            var objectProps = targetType.GetProperties().Where(x => IsValidProperty(x)).OrderBy(x => x.DeclaringType == targetType ? 0 : 1).ToDictionary(x => x.GetCustomAttribute<EdgeDBPropertyAttribute>()?.Name ?? x.Name, x => x);
-
-            foreach (var result in rawResult)
-            {
-                if (!objectProps.TryGetValue(result.Key, out var prop))
-                    continue;
-
-                prop.SetValue(instance, ConvertTo(typeDescriptorId, prop.PropertyType, result.Value));
-            }
-
-            return instance;
         }
 
         private static object? ConvertTo(Guid descriptorId, Type type, object? value)
@@ -90,10 +45,9 @@ namespace EdgeDB
                     return method.Invoke(null, new object[] { value });
             }
 
-
             // check for edgeql types
-            if ((type.GetCustomAttribute<EdgeDBTypeAttribute>() != null || IsValidTargetType(type)) && value is IDictionary<string, object?> dict)
-                return BuildResult(descriptorId, type, dict);
+            if (TypeBuilder.IsValidObjectType(type) && value is IDictionary<string, object?> dict)
+                return TypeBuilder.BuildObject(type, dict);
 
             try
             {
@@ -118,7 +72,7 @@ namespace EdgeDB
             {
                 if (val is IDictionary<string, object?> raw)
                 {
-                    converted.Add(strongInnerType is not null ? BuildResult(descriptorId, strongInnerType, raw) : val);
+                    converted.Add(strongInnerType is not null ? TypeBuilder.BuildObject(strongInnerType, raw) : val);
                 }
                 else
                     converted.Add(strongInnerType is not null ? ConvertTo(descriptorId, strongInnerType, val) : val);
