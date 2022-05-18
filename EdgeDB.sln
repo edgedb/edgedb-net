@@ -25,7 +25,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.DotnetTool", "tools\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Tests.Integration", "tests\EdgeDB.Tests.Integration\EdgeDB.Tests.Integration.csproj", "{C189294A-4990-4A06-B120-A0AF03A798C6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EdgeDB.Tests.Benchmarks", "EdgeDB.Tests.Benchmarks\EdgeDB.Tests.Benchmarks.csproj", "{5FFD1E88-614D-409B-8420-F9571AC7CA60}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EdgeDB.Tests.Benchmarks", "tests\EdgeDB.Tests.Benchmarks\EdgeDB.Tests.Benchmarks.csproj", "{5FFD1E88-614D-409B-8420-F9571AC7CA60}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
