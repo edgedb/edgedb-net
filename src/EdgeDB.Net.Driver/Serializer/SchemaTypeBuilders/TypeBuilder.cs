@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -46,6 +47,27 @@ namespace EdgeDB
 
             return (type.IsClass || type.IsValueType) && !type.IsSealed && validConstructor;
         }
+
+        internal static bool TryGetCollectionParser(Type type, out Func<Array, Type, object>? builder)
+        {
+            builder = null;
+
+            if (ReflectionUtils.IsSubclassOfRawGeneric(typeof(List<>), type))
+                builder = CreateDynamicList;
+
+            return builder != null;
+        }
+
+        private static object CreateDynamicList(Array arr, Type elementType)
+        {
+            var listType = typeof(List<>).MakeGenericType(elementType);
+            var inst = (IList)Activator.CreateInstance(listType, arr.Length)!;
+
+            for (int i = 0; i != arr.Length; i++)
+                inst.Add(arr.GetValue(i));
+
+            return inst;
+        }
     }
 
     public class SchemaTypeInfo
@@ -88,10 +110,57 @@ namespace EdgeDB
             foreach(var prop in _propertyMap)
             {
                 if (rawValue.TryGetValue(prop.Key, out var value))
-                    prop.Value.SetValue(instance, value);
+                {
+                    var valueType = value?.GetType();
+
+                    if (valueType == null)
+                        continue;
+
+                    if (valueType.IsAssignableTo(prop.Value.PropertyType))
+                    {
+                        prop.Value.SetValue(instance, value);
+                        continue;
+                    }
+
+                    prop.Value.SetValue(instance, ConvertValue(prop.Value.PropertyType, value));
+                }
             }
 
             return instance;
+        }
+
+        private object? ConvertValue(Type target, object? value)
+        {
+            // is it a link?
+            if (value is IDictionary<string, object?> obj)
+            {
+                if (TypeBuilder.IsValidObjectType(target))
+                {
+                    return TypeBuilder.BuildObject(target, obj);
+                }
+            }
+
+            // is it an array or can we return an array enumerable?
+            if (TypeBuilder.TryGetCollectionParser(target, out var builder) || target.IsArray)
+            {
+                var innerType = target.IsArray
+                    ? target.GetElementType()!
+                    : target.GenericTypeArguments.Length > 0
+                        ? target.GetGenericArguments()[0]
+                        : target;
+
+                if (value is not Array array)
+                    throw new NoTypeConverter(target, typeof(Array));
+
+                var parsedArray = Array.CreateInstance(innerType, array.Length);
+
+                for (int i = 0; i < array.Length; i++)
+                    parsedArray.SetValue(ConvertValue(innerType, array.GetValue(i)), i);
+
+                return builder is not null ? builder(parsedArray, innerType) : parsedArray;
+            }
+
+            throw new NoTypeConverter(target, value?.GetType() ?? typeof(object));
         }
 
         private bool TryGetCustomBuilder(out MethodInfo? info)

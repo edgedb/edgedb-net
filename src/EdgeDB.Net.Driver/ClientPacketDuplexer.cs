@@ -85,11 +85,6 @@ namespace EdgeDB
 
                 if (msg != null)
                 {
-                    if(msg is ReadyForCommand ready && ready.TransactionState == TransactionState.InTransaction)
-                    {
-
-                    }
-
                     await _onMessageLock.WaitAsync().ConfigureAwait(false);
                     try
                     {

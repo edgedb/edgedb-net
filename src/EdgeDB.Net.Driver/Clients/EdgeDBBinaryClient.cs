@@ -110,8 +110,8 @@ namespace EdgeDB
             ConnectionTimeout = TimeSpan.FromMilliseconds(config.ConnectionTimeout);
             Duplexer = new ClientPacketDuplexer(this);
         }
-        #region Commands/queries
 
+        #region Commands/queries
         internal struct RawExecuteResult
         {
             public PrepareComplete PrepareStatement { get; set; }

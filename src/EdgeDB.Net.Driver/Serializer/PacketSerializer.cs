@@ -10,7 +10,7 @@ namespace EdgeDB
     {
         public static readonly Guid NullCodec = Guid.Empty;
 
-        private static readonly Dictionary<ServerMessageType, Func<IReceiveable>> _receiveablePayloadFactory = new();
+        private static readonly ConcurrentDictionary<ServerMessageType, Func<IReceiveable>> _receiveablePayloadFactory = new();
         private static readonly ConcurrentDictionary<Guid, ICodec> _codecCache = new();
 
         static PacketSerializer()
@@ -20,7 +20,7 @@ namespace EdgeDB
             foreach (var t in types)
             {
                 var inst = (IReceiveable)Activator.CreateInstance(t)!;
-                _receiveablePayloadFactory.Add(inst.Type, () => (IReceiveable)Activator.CreateInstance(t)!);
+                _receiveablePayloadFactory.TryAdd(inst.Type, () => (IReceiveable)Activator.CreateInstance(t)!);
             }
         }
 
@@ -41,13 +41,12 @@ namespace EdgeDB
         public static IReceiveable? DeserializePacket(ServerMessageType type, Stream stream, EdgeDBBinaryClient client)
         {
             // read the type
-
             var reader = new PacketReader(stream);
             var length = reader.ReadUInt32() - 4;
 
-            if (_receiveablePayloadFactory.ContainsKey(type))
+            if(_receiveablePayloadFactory.TryGetValue(type, out var factory))
             {
-                var payload = _receiveablePayloadFactory[type]();
+                var payload = factory();
 
                 payload.Read(reader, length, client);
 
@@ -56,7 +55,6 @@ namespace EdgeDB
             else
             {
                 // skip the packet length
-
                 stream.Read(new byte[length], 0, (int)length);
 
                 client.Logger.UnknownPacket(type.ToString("X"));
