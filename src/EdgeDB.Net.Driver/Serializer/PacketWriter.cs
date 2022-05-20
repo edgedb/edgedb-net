@@ -64,8 +64,9 @@ namespace EdgeDB
                 Write((uint)0);
             else
             {
-                Write((uint)value.Length);
-                Write(Encoding.UTF8.GetBytes(value));
+                var buffer = Encoding.UTF8.GetBytes(value);
+                Write((uint)buffer.Length);
+                Write(buffer);
             }
 
         }
