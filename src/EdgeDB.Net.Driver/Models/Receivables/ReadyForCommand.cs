@@ -1,9 +1,11 @@
-﻿namespace EdgeDB.Models
+﻿using System.Collections.Immutable;
+
+namespace EdgeDB.Models
 {
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#readyforcommand">Ready for Command</see> packet.
     /// </summary>
-    public struct ReadyForCommand : IReceiveable
+    public readonly struct ReadyForCommand : IReceiveable
     {
         /// <inheritdoc/>
         public ServerMessageType Type 
@@ -12,22 +14,20 @@
         /// <summary>
         ///     Gets a collection of headers sent with this prepare packet.
         /// </summary>
-        public IReadOnlyCollection<Header> Headers { get; private set; }
+        public IReadOnlyCollection<Header> Headers
+            => _headers.ToImmutableArray();
 
         /// <summary>
         ///     Gets the transaction state of the next command.
         /// </summary>
-        public TransactionState TransactionState { get; private set; }
+        public TransactionState TransactionState { get; }
 
-        ulong IReceiveable.Id { get; set; }
+        private readonly Header[] _headers;
 
-        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBBinaryClient client)
+        internal ReadyForCommand(PacketReader reader)
         {
-            Headers = reader.ReadHeaders();
+            _headers = reader.ReadHeaders();
             TransactionState = (TransactionState)reader.ReadByte();
         }
-
-        IReceiveable IReceiveable.Clone()
-            => (IReceiveable)MemberwiseClone();
     }
 }

@@ -10,8 +10,10 @@ namespace EdgeDB.Models
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#preparecomplete">Prepare Complete</see> packet
     /// </summary>
-    public struct PrepareComplete : IReceiveable
+    public readonly struct PrepareComplete : IReceiveable
     {
+        public const int CAPBILITIES_HEADER = 0x1001;
+
         /// <inheritdoc/>
         public ServerMessageType Type 
             => ServerMessageType.PrepareComplete;
@@ -19,40 +21,38 @@ namespace EdgeDB.Models
         /// <summary>
         ///     Gets the allowed capabilities that the command will actually use.
         /// </summary>
-        public AllowCapabilities Capabilities { get; private set; }
+        public AllowCapabilities? Capabilities { get; }
 
         /// <summary>
         ///     Gets the cardinality the command will return.
         /// </summary>
-        public Cardinality Cardinality { get; private set; }
+        public Cardinality Cardinality { get; }
 
         /// <summary>
         ///     Gets the input type descriptor id.
         /// </summary>
-        public Guid InputTypedescId { get; private set; }
+        public Guid InputTypedescId { get; }
 
         /// <summary>
         ///     Gets the output type descriptor id.
         /// </summary>
-        public Guid OutputTypedescId { get; private set; }
+        public Guid OutputTypedescId { get; }
 
-        ulong IReceiveable.Id { get; set; }
-
-        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBBinaryClient client)
+        internal PrepareComplete(PacketReader reader)
         {
             var headers = reader.ReadHeaders();
-
-            var capabilities = headers.Cast<Header?>().FirstOrDefault(x => x!.Value.Code == 0x1001);
-
-            if(capabilities is not null)
-                Capabilities = (AllowCapabilities)ICodec.GetScalarCodec<long>()!.Deserialize(capabilities.Value.Value);
+            Capabilities = null;
+            for (int i = 0; i != headers.Length; i++)
+            {
+                if (headers[i].Code == CAPBILITIES_HEADER)
+                {
+                    Capabilities = (AllowCapabilities)ICodec.GetScalarCodec<ulong>()!.Deserialize(headers[i].Value);
+                }
+            }
 
             Cardinality = (Cardinality)reader.ReadByte();
             InputTypedescId = reader.ReadGuid();
             OutputTypedescId = reader.ReadGuid();
         }
-
-        IReceiveable IReceiveable.Clone()
-            => (IReceiveable)MemberwiseClone();
     }
 }

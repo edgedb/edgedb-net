@@ -16,7 +16,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents a TCP client used to interact with EdgeDB.
     /// </summary>
-    public sealed class EdgeDBTcpClient : EdgeDBBinaryClient
+    public class EdgeDBTcpClient : EdgeDBBinaryClient
     {
         /// <inheritdoc/>
         public override bool IsConnected

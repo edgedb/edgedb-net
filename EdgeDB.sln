@@ -25,7 +25,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.DotnetTool", "tools\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Tests.Integration", "tests\EdgeDB.Tests.Integration\EdgeDB.Tests.Integration.csproj", "{C189294A-4990-4A06-B120-A0AF03A798C6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EdgeDB.Tests.Benchmarks", "tests\EdgeDB.Tests.Benchmarks\EdgeDB.Tests.Benchmarks.csproj", "{5FFD1E88-614D-409B-8420-F9571AC7CA60}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Tests.Benchmarks", "tests\EdgeDB.Tests.Benchmarks\EdgeDB.Tests.Benchmarks.csproj", "{5FFD1E88-614D-409B-8420-F9571AC7CA60}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EdgeDB.BinaryDebugger", "tools\EdgeDB.BinaryDebugger\EdgeDB.BinaryDebugger.csproj", "{3A4AAAA0-9948-43D3-B838-8EFAC130240C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -65,6 +67,10 @@ Global
 		{5FFD1E88-614D-409B-8420-F9571AC7CA60}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5FFD1E88-614D-409B-8420-F9571AC7CA60}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5FFD1E88-614D-409B-8420-F9571AC7CA60}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A4AAAA0-9948-43D3-B838-8EFAC130240C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A4AAAA0-9948-43D3-B838-8EFAC130240C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A4AAAA0-9948-43D3-B838-8EFAC130240C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A4AAAA0-9948-43D3-B838-8EFAC130240C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -78,6 +84,7 @@ Global
 		{74DB9D5E-9BA9-4282-90EA-2F7BDC4C4FBD} = {67ED9EF0-7828-44C0-8CB0-DEBD69EC94CA}
 		{C189294A-4990-4A06-B120-A0AF03A798C6} = {E6B9FABC-241B-4561-9A94-E67B6BE380E2}
 		{5FFD1E88-614D-409B-8420-F9571AC7CA60} = {E6B9FABC-241B-4561-9A94-E67B6BE380E2}
+		{3A4AAAA0-9948-43D3-B838-8EFAC130240C} = {67ED9EF0-7828-44C0-8CB0-DEBD69EC94CA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4E90C94F-D693-4411-82F3-2051DE1BE052}

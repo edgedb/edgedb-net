@@ -59,6 +59,6 @@
     {
         string? Message { get; }
 
-        uint ErrorCode { get; }
+        ServerErrorCodes ErrorCode { get; }
     }
 }

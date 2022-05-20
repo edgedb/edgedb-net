@@ -44,7 +44,7 @@ namespace EdgeDB.Utils
                 throw new ArgumentException($"Expected continuation message for SASL, got {status.AuthStatus}");
 
             // parse the message
-            var msg = ICodec.GetScalarCodec<string>()!.Deserialize(status.SASLData)!;
+            var msg = ICodec.GetScalarCodec<string>()!.Deserialize(status.SASLDataBuffer)!;
 
             var parsedMessage = ParseServerMessage(msg);
 
@@ -79,7 +79,7 @@ namespace EdgeDB.Utils
 
         public static byte[] ParseServerFinalMessage(AuthenticationStatus status)
         {
-            var msg = ICodec.GetScalarCodec<string>()!.Deserialize(status.SASLData)!;
+            var msg = ICodec.GetScalarCodec<string>()!.Deserialize(status.SASLDataBuffer)!;
 
             var parsed = ParseServerMessage(msg);
 

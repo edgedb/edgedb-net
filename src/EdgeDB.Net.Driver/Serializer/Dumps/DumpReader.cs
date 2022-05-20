@@ -60,12 +60,7 @@ namespace EdgeDB.Dumps
         {
             var type = reader.ReadChar();
 
-            IReceiveable packet = type switch
-            {
-                'H' => new DumpHeader(),
-                'D' => new DumpBlock(),
-                _ => throw new ArgumentException($"Unknown packet format {type}"),
-            };
+            
 
             // read hash
             var hash = reader.ReadBytes(20);
@@ -83,10 +78,13 @@ namespace EdgeDB.Dumps
 
             using (var innerReader = new PacketReader(packetData))
             {
-                packet.Read(innerReader, length, null!);
+                return type switch
+                {
+                    'H' => new DumpHeader(innerReader, length),
+                    'D' => new DumpBlock(innerReader, length),
+                    _ => throw new ArgumentException($"Unknown packet format {type}"),
+                };
             }
-
-            return packet;
         }
 
         private static void ThrowIfEndOfStream(bool readSuccess)

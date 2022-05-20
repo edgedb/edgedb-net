@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,7 +13,7 @@ namespace EdgeDB.Models
     ///     <see href="https://www.edgedb.com/docs/reference/protocol/messages#authenticationsaslcontinue">AuthenticationSASLContinue</see>,
     ///     and <see href="https://www.edgedb.com/docs/reference/protocol/messages#authenticationsaslfinal">AuthenticationSASLFinal</see> packets.
     /// </summary>
-    public struct AuthenticationStatus : IReceiveable
+    public readonly struct AuthenticationStatus : IReceiveable
     {
         /// <inheritdoc/>
         public ServerMessageType Type 
@@ -21,21 +22,22 @@ namespace EdgeDB.Models
         /// <summary>
         ///     Gets the authentication state. 
         /// </summary>
-        public AuthStatus AuthStatus { get; private set; }
+        public AuthStatus AuthStatus { get; }
 
         /// <summary>
         ///     Gets a collection of supported authentication methods.
         /// </summary>
-        public string[] AuthenticationMethods { get; private set; }
+        public string[]? AuthenticationMethods { get; }
 
         /// <summary>
         ///     Gets the SASL data.
         /// </summary>
-        public byte[] SASLData { get; private set; }
+        public IReadOnlyCollection<byte>? SASLData
+            => SASLDataBuffer?.ToImmutableArray();
 
-        ulong IReceiveable.Id { get; set; }
+        internal byte[] SASLDataBuffer { get; }
 
-        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBBinaryClient client)
+        internal AuthenticationStatus(PacketReader reader)
         {
             AuthStatus = (AuthStatus)reader.ReadUInt32();
 
@@ -46,24 +48,24 @@ namespace EdgeDB.Models
                         var count = reader.ReadUInt32();
                         AuthenticationMethods = new string[count];
 
-                        for(int i = 0; i != count; i++)
+                        for (int i = 0; i != count; i++)
                         {
                             AuthenticationMethods[i] = reader.ReadString();
                         }
+                        SASLDataBuffer = Array.Empty<byte>();
                     }
                     break;
                 case AuthStatus.AuthenticationSASLContinue or AuthStatus.AuthenticationSASLFinal:
                     {
-                        SASLData = reader.ReadByteArray();
+                        SASLDataBuffer = reader.ReadByteArray();
+                        AuthenticationMethods = Array.Empty<string>();
                     }
                     break;
                 default:
-
+                    SASLDataBuffer = Array.Empty<byte>();
+                    AuthenticationMethods = Array.Empty<string>();
                     break;
             }
         }
-        
-        IReceiveable IReceiveable.Clone()
-            => (IReceiveable)MemberwiseClone();
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,7 +10,7 @@ namespace EdgeDB.Models
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#parameterstatus">Parameter Status</see> packet.
     /// </summary>
-    public struct ParameterStatus : IReceiveable
+    public readonly struct ParameterStatus : IReceiveable
     {
         /// <inheritdoc/>
         public ServerMessageType Type 
@@ -18,22 +19,20 @@ namespace EdgeDB.Models
         /// <summary>
         ///     Gets the name of the parameter.
         /// </summary>
-        public string Name { get; private set; }
+        public string Name { get; }
 
         /// <summary>
         ///     Gets the value of the parameter.
         /// </summary>
-        public IReadOnlyCollection<byte> Value { get; private set; }
+        public IReadOnlyCollection<byte> Value
+            => ValueBuffer.ToImmutableArray();
 
-        ulong IReceiveable.Id { get; set; }
+        internal byte[] ValueBuffer { get; }
 
-        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBBinaryClient client)
+        internal ParameterStatus(PacketReader reader)
         {
             Name = reader.ReadString();
-            Value = reader.ReadByteArray();
+            ValueBuffer = reader.ReadByteArray();
         }
-
-        IReceiveable IReceiveable.Clone()
-            => (IReceiveable)MemberwiseClone();
     }
 }

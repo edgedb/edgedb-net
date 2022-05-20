@@ -128,7 +128,7 @@ namespace EdgeDB
         /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         internal async Task<RawExecuteResult> ExecuteInternalAsync(string query, IDictionary<string, object?>? args = null, Cardinality? card = null,
-            AllowCapabilities? capabilities = AllowCapabilities.ReadOnly)
+            AllowCapabilities? capabilities = AllowCapabilities.ReadOnly, IOFormat format = IOFormat.Binary)
         {
             await _semaphore.WaitAsync(DisconnectCancelToken).ConfigureAwait(false);
 
@@ -144,7 +144,7 @@ namespace EdgeDB
                 {
                     Capabilities = capabilities,
                     Command = query,
-                    Format = IOFormat.Binary,
+                    Format = format,
                     ExpectedCardinality = card ?? Cardinality.Many,
                     ExplicitObjectIds = true,
                     ImplicitTypeNames = true,
@@ -176,30 +176,30 @@ namespace EdgeDB
 
                     if (outCodec is null)
                     {
-                        using var innerReader = new PacketReader(describer.Value.OutputTypeDescriptor.ToArray());
+                        using var innerReader = new PacketReader(describer.Value.OutputTypeDescriptorBuffer);
                         outCodec ??= PacketSerializer.BuildCodec(describer.Value.OutputTypeDescriptorId, innerReader);
                     }
 
                     if (inCodec is null)
                     {
-                        using var innerReader = new PacketReader(describer.Value.InputTypeDescriptor.ToArray());
+                        using var innerReader = new PacketReader(describer.Value.InputTypeDescriptorBuffer);
                         inCodec ??= PacketSerializer.BuildCodec(describer.Value.InputTypeDescriptorId, innerReader);
                     }
                 }
 
                 if (outCodec is null)
                 {
-                    throw new MissingCodecException("Couldn't find a valid output codec", result.OutputTypedescId, describer!.Value.OutputTypeDescriptor.ToArray());
+                    throw new MissingCodecException("Couldn't find a valid output codec", result.OutputTypedescId, describer!.Value.OutputTypeDescriptorBuffer);
                 }
 
                 if (inCodec is null)
                 {
-                    throw new MissingCodecException("Couldn't find a valid input codec", result.InputTypedescId, describer!.Value.InputTypeDescriptor.ToArray());
+                    throw new MissingCodecException("Couldn't find a valid input codec", result.InputTypedescId, describer!.Value.InputTypeDescriptorBuffer);
                 }
 
                 if (inCodec is not IArgumentCodec argumentCodec)
                     throw new MissingCodecException($"Cannot encode arguments, {inCodec} is not a registered argument codec", result.InputTypedescId, describer.HasValue
-                        ? describer!.Value.InputTypeDescriptor.ToArray()
+                        ? describer!.Value.InputTypeDescriptorBuffer
                         : Array.Empty<byte>());
 
                 List<Data> receivedData = new();
@@ -232,7 +232,7 @@ namespace EdgeDB
 
                 var executeResult = await Duplexer.DuplexAndSyncAsync(new Execute() 
                 { 
-                    Capabilities = result.Capabilities, 
+                    Capabilities = (result.Capabilities ?? capabilities) ?? AllowCapabilities.Modifications, 
                     Arguments = argumentCodec.SerializeArguments(args) 
                 }, handler).ConfigureAwait(false);
 
@@ -301,7 +301,7 @@ namespace EdgeDB
 
             foreach (var item in result.Data)
             {
-                var obj = ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(item.PayloadData.ToArray()));
+                var obj = ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(item.PayloadBuffer));
                 returnResults.Add(obj);
             }
 
@@ -324,9 +324,9 @@ namespace EdgeDB
 
             var queryResult = result.Data.FirstOrDefault();
 
-            return queryResult.PayloadData is null
+            return queryResult.PayloadBuffer is null
                 ? default
-                : ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(queryResult.PayloadData.ToArray()));
+                : ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(queryResult.PayloadBuffer));
         }
 
         /// <inheritdoc/>
@@ -345,9 +345,9 @@ namespace EdgeDB
 
             var queryResult = result.Data.FirstOrDefault();
 
-            return queryResult.PayloadData is null
+            return queryResult.PayloadBuffer is null
                 ? throw new MissingRequiredException()
-                : ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(queryResult.PayloadData.ToArray()))!;
+                : ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(queryResult.PayloadBuffer))!;
         }
         #endregion
 
@@ -373,7 +373,7 @@ namespace EdgeDB
                     break;
                 case ServerKeyData keyData:
                     {
-                        ServerKey = keyData.Key.ToArray();
+                        ServerKey = keyData.KeyBuffer;
                     }
                     break;
                 case ParameterStatus parameterStatus:
@@ -413,7 +413,7 @@ namespace EdgeDB
             {
                 using var scram = new Scram();
 
-                var method = authStatus.AuthenticationMethods[0];
+                var method = authStatus.AuthenticationMethods![0];
 
                 if (method is not "SCRAM-SHA-256")
                 {
@@ -502,7 +502,7 @@ namespace EdgeDB
                 switch (status.Name)
                 {
                     case "suggested_pool_concurrency":
-                        var str = Encoding.UTF8.GetString(status.Value.ToArray());
+                        var str = Encoding.UTF8.GetString(status.ValueBuffer);
                         if (!int.TryParse(str, out SuggestedPoolConcurrency))
                         {
                             throw new FormatException("suggested_pool_concurrency type didn't match the expected type of int");
@@ -510,7 +510,7 @@ namespace EdgeDB
                         break;
 
                     case "system_config":
-                        using (var reader = new PacketReader(status.Value.ToArray()))
+                        using (var reader = new PacketReader(status.ValueBuffer))
                         {
                             var length = reader.ReadInt32() - 16;
                             var descriptorId = reader.ReadGuid();
@@ -524,7 +524,7 @@ namespace EdgeDB
                                 codec = PacketSerializer.BuildCodec(descriptorId, innerReader);
 
                                 if (codec is null)
-                                    throw new MissingCodecException("Failed to build codec for system_config", descriptorId, status.Value.ToArray());
+                                    throw new MissingCodecException("Failed to build codec for system_config", descriptorId, status.ValueBuffer);
                             }
 
                             // disard length

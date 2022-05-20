@@ -29,10 +29,10 @@ namespace EdgeDB.ExampleApp.Examples
             public int Year { get; set; }
 
             [EdgeDBProperty("director")]
-            public Person? Director { get; set; }
+            public Person? Director { get; set; } // single link
 
             [EdgeDBProperty("actors")]
-            public Person[]? Actors { get; set; }
+            public Person[]? Actors { get; set; } // multi link, can also use List<Person> here
         }
 
         public async Task ExecuteAsync(EdgeDBClient client)

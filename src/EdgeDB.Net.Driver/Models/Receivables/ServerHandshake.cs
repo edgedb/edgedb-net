@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB.Models.Receivables
+namespace EdgeDB.Models
 {
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#serverhandshake">Server Handshake</see> packet.
     /// </summary>
-    public struct ServerHandshake : IReceiveable
+    public readonly struct ServerHandshake : IReceiveable
     {
         /// <inheritdoc/>
         public ServerMessageType Type 
@@ -18,21 +19,22 @@ namespace EdgeDB.Models.Receivables
         /// <summary>
         ///     Gets the major version of the server.
         /// </summary>
-        public ushort MajorVersion { get; set; }
+        public ushort MajorVersion { get; }
 
         /// <summary>
         ///     Gets the minor version of the server.
         /// </summary>
-        public ushort MinorVersion { get; set; }
+        public ushort MinorVersion { get; }
 
         /// <summary>
         ///     Gets a collection of <see cref="ProtocolExtension"/>s used by the server.
         /// </summary>
-        public ProtocolExtension[] Extensions { get; set; }
+        public IReadOnlyCollection<ProtocolExtension> Extensions
+            => _extensions.ToImmutableArray();
 
-        ulong IReceiveable.Id { get; set; }
+        private readonly ProtocolExtension[] _extensions;
 
-        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBBinaryClient client)
+        internal ServerHandshake(PacketReader reader)
         {
             MajorVersion = reader.ReadUInt16();
             MinorVersion = reader.ReadUInt16();
@@ -40,15 +42,14 @@ namespace EdgeDB.Models.Receivables
             var numExtensions = reader.ReadUInt16();
             var extensions = new ProtocolExtension[numExtensions];
 
-            for(int i = 0; i != numExtensions; i++)
+            for (int i = 0; i != numExtensions; i++)
             {
                 var extension = new ProtocolExtension();
                 extension.Read(reader);
                 extensions[i] = extension;
             }
-        }
 
-        IReceiveable IReceiveable.Clone()
-            => (IReceiveable)MemberwiseClone();
+            _extensions = extensions;
+        }
     }
 }

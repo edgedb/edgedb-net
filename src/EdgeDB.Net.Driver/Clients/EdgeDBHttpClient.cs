@@ -51,12 +51,12 @@ namespace EdgeDB
             ///     Gets or sets the error code.
             /// </summary>
             [JsonProperty("code")]
-            public uint Code { get; set; }
+            public ServerErrorCodes Code { get; set; }
 
             string? IExecuteError.Message 
                 => Message;
 
-            uint IExecuteError.ErrorCode 
+            ServerErrorCodes IExecuteError.ErrorCode 
                 => Code;
         }
 

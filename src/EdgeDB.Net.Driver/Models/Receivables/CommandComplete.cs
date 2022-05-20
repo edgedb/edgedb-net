@@ -10,8 +10,10 @@ namespace EdgeDB.Models
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#commandcomplete">Command Complete</see> packet
     /// </summary>
-    public struct CommandComplete : IReceiveable
+    public readonly struct CommandComplete : IReceiveable
     {
+        public const int CAPBILITIES_HEADER = 0x1001;
+
         /// <inheritdoc/>
         public ServerMessageType Type 
             => ServerMessageType.CommandComplete;
@@ -19,30 +21,27 @@ namespace EdgeDB.Models
         /// <summary>
         ///     Gets the used capabilities within the completed command.
         /// </summary>
-        public AllowCapabilities UsedCapabilities { get; private set; }
+        public AllowCapabilities? UsedCapabilities { get; }
 
         /// <summary>
         ///     Gets the status of the completed command.
         /// </summary>
-        public string Status { get; private set; }
+        public string Status { get; }
 
-        ulong IReceiveable.Id { get; set; }
-
-        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBBinaryClient client)
+        internal CommandComplete(PacketReader reader)
         {
+            UsedCapabilities = null;
+
             var headers = reader.ReadHeaders();
-
-            var usedCap = headers.Cast<Header?>().FirstOrDefault(x => x!.Value.Code == 0x1001);
-
-            if (usedCap.HasValue)
+            for (int i = 0; i != headers.Length; i++)
             {
-                UsedCapabilities = (AllowCapabilities)ICodec.GetScalarCodec<long>()!.Deserialize(usedCap.Value.Value);
+                if (headers[i].Code == CAPBILITIES_HEADER)
+                {
+                    UsedCapabilities = (AllowCapabilities)ICodec.GetScalarCodec<ulong>()!.Deserialize(headers[i].Value);
+                }
             }
 
             Status = reader.ReadString();
         }
-
-        IReceiveable IReceiveable.Clone()
-            => (IReceiveable)MemberwiseClone();
     }
 }

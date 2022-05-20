@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,25 +10,25 @@ namespace EdgeDB.Models
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#serverkeydata">Server Key Data</see> packet.
     /// </summary>
-    public struct ServerKeyData : IReceiveable
+    public readonly struct ServerKeyData : IReceiveable
     {
+        public const int SERVER_KEY_LENGTH = 32;
+
         /// <inheritdoc/>
         public ServerMessageType Type 
             => ServerMessageType.ServerKeyData;
 
         /// <summary>
-        ///     Get the key data.
+        ///     Gets the key data.
         /// </summary>
-        public IReadOnlyCollection<byte> Key { get; set; }
+        public IReadOnlyCollection<byte> Key
+            => KeyBuffer.ToImmutableArray();
 
-        ulong IReceiveable.Id { get; set; }
+        internal readonly byte[] KeyBuffer { get; }
 
-        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBBinaryClient client)
+        internal ServerKeyData(PacketReader reader)
         {
-            Key = reader.ReadBytes(32);
+            KeyBuffer = reader.ReadBytes(SERVER_KEY_LENGTH);
         }
-
-        IReceiveable IReceiveable.Clone()
-            => (IReceiveable)MemberwiseClone();
     }
 }

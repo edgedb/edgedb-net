@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,7 +10,7 @@ namespace EdgeDB.Models
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#commanddatadescription">Command Data Description</see> packet.
     /// </summary>
-    public struct CommandDataDescription : IReceiveable
+    public readonly struct CommandDataDescription : IReceiveable
     {
         /// <inheritdoc/>
         public ServerMessageType Type 
@@ -18,45 +19,46 @@ namespace EdgeDB.Models
         /// <summary>
         ///     Gets a read-only collection of headers.
         /// </summary>
-        public IReadOnlyCollection<Header> Headers { get; private set; }
+        public IReadOnlyCollection<Header> Headers { get; }
 
         /// <summary>
         ///     Gets the cardinality of the command.
         /// </summary>
-        public Cardinality Cardinality { get; private set; }
+        public Cardinality Cardinality { get; }
 
         /// <summary>
         ///     Gets the input type descriptor id.
         /// </summary>
-        public Guid InputTypeDescriptorId { get; private set; }
+        public Guid InputTypeDescriptorId { get; }
 
         /// <summary>
         ///     Gets the complete input type descriptor.
         /// </summary>
-        public IReadOnlyCollection<byte> InputTypeDescriptor { get; private set; }
+        public IReadOnlyCollection<byte> InputTypeDescriptor
+            => InputTypeDescriptorBuffer.ToImmutableArray();
         
         /// <summary>
         ///     Gets the output type descriptor id.
         /// </summary>
-        public Guid OutputTypeDescriptorId { get; private set; }
+        public Guid OutputTypeDescriptorId { get; }
 
         /// <summary>
         ///     Gets the complete output type descriptor.
         /// </summary>
-        public IReadOnlyCollection<byte> OutputTypeDescriptor { get; private set; }
+        public IReadOnlyCollection<byte> OutputTypeDescriptor
+            => OutputTypeDescriptorBuffer.ToImmutableArray();
 
-        ulong IReceiveable.Id { get; set; }
+        internal byte[] InputTypeDescriptorBuffer { get; }
+        internal byte[] OutputTypeDescriptorBuffer { get; }
 
-        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBBinaryClient client)
+        internal CommandDataDescription(PacketReader reader)
         {
             Headers = reader.ReadHeaders();
             Cardinality = (Cardinality)reader.ReadByte();
             InputTypeDescriptorId = reader.ReadGuid();
-            InputTypeDescriptor = reader.ReadByteArray();
+            InputTypeDescriptorBuffer = reader.ReadByteArray();
             OutputTypeDescriptorId = reader.ReadGuid();
-            OutputTypeDescriptor = reader.ReadByteArray();
+            OutputTypeDescriptorBuffer = reader.ReadByteArray();
         }
-        IReceiveable IReceiveable.Clone()
-            => (IReceiveable)MemberwiseClone();
     }
 }

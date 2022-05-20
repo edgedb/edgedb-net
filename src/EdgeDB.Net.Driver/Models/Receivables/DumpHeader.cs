@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -10,7 +11,7 @@ namespace EdgeDB.Models
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#dump-header">Dump Header</see> packet.
     /// </summary>
-    public struct DumpHeader : IReceiveable
+    public readonly struct DumpHeader : IReceiveable
     {
         /// <inheritdoc/>
         public ServerMessageType Type 
@@ -19,53 +20,53 @@ namespace EdgeDB.Models
         /// <summary>
         ///     Gets the sha1 hash of this packets data, used when writing a dump file.
         /// </summary>
-        public IReadOnlyCollection<byte> Hash { get; private set; }
+        public IReadOnlyCollection<byte> Hash
+            => RawHash.ToImmutableArray();
 
         /// <summary>
         ///     Gets the length of this packets data, used when writing a dump file.
         /// </summary>
-        public uint Length { get; private set; }
+        public uint Length { get; }
 
         /// <summary>
         ///     Gets a collection of headers sent with this packet.
         /// </summary>
-        public IReadOnlyCollection<Header> Headers { get; private set; }
+        public IReadOnlyCollection<Header> Headers { get; }
 
         /// <summary>
         ///     Gets the EdgeDB major version.
         /// </summary>
-        public ushort MajorVersion { get; private set; }
+        public ushort MajorVersion { get; }
 
         /// <summary>
         ///     Gets the EdgeDB minor version.
         /// </summary>
-        public ushort MinorVersion { get; private set; }
+        public ushort MinorVersion { get; }
 
         /// <summary>
         ///     Gets the schema currently within the database.
         /// </summary>
-        public string? SchemaDDL { get; private set; }
+        public string? SchemaDDL { get; }
 
         /// <summary>
         ///     Gets a collection of types within the database.
         /// </summary>
-        public IReadOnlyCollection<DumpTypeInfo> Types { get; private set; }
+        public IReadOnlyCollection<DumpTypeInfo> Types { get; }
 
         /// <summary>
         ///     Gets a collection of descriptors used to define the types in <see cref="Types"/>.
         /// </summary>
-        public IReadOnlyCollection<DumpObjectDescriptor> Descriptors { get; private set; }
+        public IReadOnlyCollection<DumpObjectDescriptor> Descriptors { get; }
 
-        internal byte[] Raw { get; private set; }
+        internal byte[] Raw { get; }
+        internal byte[] RawHash { get; }
 
-        ulong IReceiveable.Id { get; set; }
-
-        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBBinaryClient client)
+        internal DumpHeader(PacketReader reader, uint length)
         {
             Length = length;
             Raw = reader.ReadBytes((int)length);
 
-            Hash = SHA1.Create().ComputeHash(Raw);
+            RawHash = SHA1.Create().ComputeHash(Raw);
 
             using var r = new PacketReader(Raw);
 
@@ -78,73 +79,68 @@ namespace EdgeDB.Models
             DumpTypeInfo[] typeInfo = new DumpTypeInfo[numTypeInfo];
 
             for (uint i = 0; i != numTypeInfo; i++)
-                typeInfo[i] = new DumpTypeInfo().Read(r);
+                typeInfo[i] = new DumpTypeInfo(r);
 
             var numDescriptors = r.ReadUInt32();
             DumpObjectDescriptor[] descriptors = new DumpObjectDescriptor[numDescriptors];
 
             for (uint i = 0; i != numDescriptors; i++)
-                descriptors[i] = new DumpObjectDescriptor().Read(r);
+                descriptors[i] = new DumpObjectDescriptor(r);
 
             Types = typeInfo;
             Descriptors = descriptors;
         }
-
-        IReceiveable IReceiveable.Clone()
-            => (IReceiveable)MemberwiseClone();
     }
 
     /// <summary>
     ///     Represents the type info sent within a <see cref="DumpHeader"/> packet.
     /// </summary>
-    public struct DumpTypeInfo
+    public readonly struct DumpTypeInfo
     {
         /// <summary>
         ///     Gets the name of this type info.
         /// </summary>
-        public string Name { get; private set; }
+        public string Name { get; }
 
         /// <summary>
         ///     Gets the class of this type info.
         /// </summary>
-        public string Class { get; private set; }
+        public string Class { get; }
 
         /// <summary>
         ///     Gets the Id of the type info.
         /// </summary>
-        public Guid Id { get; private set; }
+        public Guid Id { get; }
 
-        internal DumpTypeInfo Read(PacketReader reader)
+        internal DumpTypeInfo(PacketReader reader)
         {
             Name = reader.ReadString();
             Class = reader.ReadString();
             Id = reader.ReadGuid();
-
-            return this;
         }
     }
 
     /// <summary>
     ///     Represents a object descriptor sent within the <see cref="DumpHeader"/> packet.
     /// </summary>
-    public struct DumpObjectDescriptor
+    public readonly struct DumpObjectDescriptor
     {
         /// <summary>
         ///     Gets the object Id that the descriptor describes.
         /// </summary>
-        public Guid ObjectId { get; private set; }
+        public Guid ObjectId { get; }
 
         /// <summary>
         ///     Gets the description of the object.
         /// </summary>
-        public IReadOnlyCollection<byte> Description { get; private set; }
+        public IReadOnlyCollection<byte> Description { get; }
 
         /// <summary>
         ///     Gets a collection of dependencies that this descriptor relies on.
         /// </summary>
-        public IReadOnlyCollection<Guid> Dependencies { get; private set; }
+        public IReadOnlyCollection<Guid> Dependencies { get; }
 
-        internal DumpObjectDescriptor Read(PacketReader reader)
+        internal DumpObjectDescriptor(PacketReader reader)
         {
             ObjectId = reader.ReadGuid();
             Description = reader.ReadByteArray();
@@ -152,14 +148,12 @@ namespace EdgeDB.Models
             var numDep = reader.ReadUInt16();
             Guid[] dep = new Guid[numDep];
 
-            for(ushort i = 0; i != numDep; i++)
+            for (ushort i = 0; i != numDep; i++)
             {
                 dep[i] = reader.ReadGuid();
             }
 
             Dependencies = dep;
-
-            return this;
         }
     }
 }

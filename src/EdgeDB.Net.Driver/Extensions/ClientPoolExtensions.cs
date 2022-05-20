@@ -71,9 +71,6 @@ namespace EdgeDB
 
         private static async Task<ITransactibleClient> GetTransactibleClientAsync(this EdgeDBClient pool)
         {
-            if (!pool.SupportsTransactions())
-                throw new EdgeDBException($"Cannot use transactions with {pool.ClientType} clients");
-
             var client = await pool.GetOrCreateClientAsync().ConfigureAwait(false);
 
             if (client is not ITransactibleClient tranactibleClient)

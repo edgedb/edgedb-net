@@ -49,7 +49,7 @@ namespace EdgeDB.Dumps
         public void WriteDumpBlock(DumpBlock block)
         {
             _writer.Write('D');
-            _writer.Write(block.Hash.ToArray());
+            _writer.Write(block.HashBuffer);
             _writer.Write(block.Length);
             _writer.Write(block.Raw);
 

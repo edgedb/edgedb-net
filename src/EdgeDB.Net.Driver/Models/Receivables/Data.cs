@@ -1,9 +1,11 @@
-﻿namespace EdgeDB.Models
+﻿using System.Collections.Immutable;
+
+namespace EdgeDB.Models
 {
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#data">Data</see> packet
     /// </summary>
-    public struct Data : IReceiveable
+    public readonly struct Data : IReceiveable
     {
         /// <inheritdoc/>
         public ServerMessageType Type 
@@ -12,11 +14,12 @@
         /// <summary>
         ///     Gets the payload of this data packet
         /// </summary>
-        public IReadOnlyCollection<byte> PayloadData { get; set; }
+        public IReadOnlyCollection<byte> PayloadData
+            => PayloadData.ToImmutableArray();
 
-        ulong IReceiveable.Id { get; set; }
+        internal byte[] PayloadBuffer { get; }
 
-        void IReceiveable.Read(PacketReader reader, uint length, EdgeDBBinaryClient client)
+        internal Data(PacketReader reader)
         {
             // skip arary since its always one, errr should be one
             var numElements = reader.ReadUInt16();
@@ -27,10 +30,7 @@
 
             var payloadLength = reader.ReadUInt32();
 
-            PayloadData = reader.ReadBytes((int)payloadLength);
+            PayloadBuffer = reader.ReadBytes((int)payloadLength);
         }
-
-        IReceiveable IReceiveable.Clone()
-            => (IReceiveable)MemberwiseClone();
     }
 }

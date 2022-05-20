@@ -5,6 +5,23 @@ namespace EdgeDB
 {
     public static class EdgeDBClientExtensions
     {
+        #region JsonResults
+        public static async Task<string> QueryJsonAsync(this EdgeDBBinaryClient client, 
+            string query, IDictionary<string, object?>? parameters = null)
+        {
+            var result = await client.ExecuteInternalAsync(query, parameters, Cardinality.Many, format: IOFormat.Json).ConfigureAwait(false);
+
+            if(result.Data.Count >= 2)
+            {
+                throw new ResultCardinalityMismatchException(Cardinality.AtMostOne, Cardinality.Many);
+            }
+
+            return result.Data.Count == 1
+                ? (string)result.Deserializer.Deserialize(result.Data[0].PayloadBuffer)!
+                : "[]";
+        }
+        #endregion
+
         #region Transactions
         /// <summary>
         ///     Creates a transaction and executes a callback with the transaction object.

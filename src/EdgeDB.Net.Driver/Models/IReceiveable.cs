@@ -15,11 +15,5 @@ namespace EdgeDB.Models
         ///     Gets the type of the message.
         /// </summary>
         ServerMessageType Type { get; }
-
-        internal ulong Id { get; set; }
-
-        internal void Read(PacketReader reader, uint length, EdgeDBBinaryClient client);
-
-        internal IReceiveable Clone();
     }
 }

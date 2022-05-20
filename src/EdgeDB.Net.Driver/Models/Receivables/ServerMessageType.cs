@@ -26,17 +26,17 @@
         Data = 0x44,
 
         /// <summary>
-        ///		A <see cref="DumpBlock"/> message.
+        ///		A <see cref="Models.DumpBlock"/> message.
         /// </summary>
         DumpBlock = 0x3d,
 
         /// <summary>
-        ///		A <see cref="DumpHeader"/> message.
+        ///		A <see cref="Models.DumpHeader"/> message.
         /// </summary>
         DumpHeader = 0x40,
 
         /// <summary>
-        ///		A <see cref="ErrorResponse"/> message.
+        ///		A <see cref="Models.ErrorResponse"/> message.
         /// </summary>
         ErrorResponse = 0x45,
 
@@ -46,32 +46,32 @@
         LogMessage = 0x4c,
 
         /// <summary>
-        ///		A <see cref="ParameterStatus"/> message.
+        ///		A <see cref="Models.ParameterStatus"/> message.
         /// </summary>
         ParameterStatus = 0x53,
 
         /// <summary>
-        ///		A <see cref="PrepareComplete"/> message.
+        ///		A <see cref="Models.PrepareComplete"/> message.
         /// </summary>
         PrepareComplete = 0x31,
 
         /// <summary>
-        ///		A <see cref="ReadyForCommand"/> message.
+        ///		A <see cref="Models.ReadyForCommand"/> message.
         /// </summary>
         ReadyForCommand = 0x5a,
 
         /// <summary>
-        ///		A <see cref="RestoreReady"/> message.
+        ///		A <see cref="Models.RestoreReady"/> message.
         /// </summary>
         RestoreReady = 0x2b,
 
         /// <summary>
-        ///		A <see cref="ServerHandshake"/> message.
+        ///		A <see cref="Models.ServerHandshake"/> message.
         /// </summary>
         ServerHandshake = 0x76,
 
         /// <summary>
-        ///		A <see cref="ServerKeyData"/> message.
+        ///		A <see cref="Models.ServerKeyData"/> message.
         /// </summary>
         ServerKeyData = 0x4b
     }

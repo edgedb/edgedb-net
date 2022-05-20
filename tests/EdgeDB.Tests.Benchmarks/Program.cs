@@ -2,38 +2,33 @@
 using BenchmarkDotNet.Running;
 using EdgeDB;
 using EdgeDB.Tests.Benchmarks;
+using System.Reflection;
 
-BenchmarkRunner.Run<Benchmarks>();
+//var asm = typeof(ClientPoolBenchmarks).Assembly;
 
-await Task.Delay(-1);
+//BenchmarkRunner.Run(asm);
 
-public class Benchmarks
+// verify no exceptions
+try
 {
-    internal static MockedEdgeDBClient SingleClient;
-    internal static EdgeDBClient ClientPool;
+    var inst = new DeserializerBenchmarks();
 
-    static Benchmarks()
+    foreach (var item in inst.ValuesForPacket)
     {
-        SingleClient = new MockedEdgeDBClient(0);
-        ClientPool = new EdgeDBClient(new EdgeDBClientPoolConfig
+        inst.Packet = item;
+
+        if (inst.Deserialize() == null)
         {
-            ClientType = EdgeDBClientType.Custom,
-            ClientFactory = (id) => ValueTask.FromResult<BaseEdgeDBClient>(new MockedEdgeDBClient(id)),
-            DefaultPoolSize = 100
-        });
-    }
-
-    // benchmark our default client as overhead
-    [Benchmark]
-    public async Task BenchmarkQueryOverhead()
-    {
-        await SingleClient.QueryAsync<string>("select \"Hello, World!\"").ConfigureAwait(false);
-    }
-
-    // define our main benchmark
-    [Benchmark]
-    public async Task BenchmarkQuery()
-    {
-        await ClientPool!.QueryAsync<string>("select \"Hello, World!\"").ConfigureAwait(false);
+            throw new NullReferenceException("Deserialize didn't return packet");
+        }
     }
 }
+catch(Exception x)
+{
+    Console.WriteLine(x);
+}
+BenchmarkRunner.Run<DeserializerBenchmarks>();
+
+
+
+await Task.Delay(-1);

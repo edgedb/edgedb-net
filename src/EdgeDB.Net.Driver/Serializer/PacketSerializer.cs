@@ -10,18 +10,25 @@ namespace EdgeDB
     {
         public static readonly Guid NullCodec = Guid.Empty;
 
-        private static readonly ConcurrentDictionary<ServerMessageType, Func<IReceiveable>> _receiveablePayloadFactory = new();
+        private static readonly ConcurrentDictionary<ServerMessageType, Func<PacketReader, uint, IReceiveable>> _receiveablePayloadFactory = new();
         private static readonly ConcurrentDictionary<Guid, ICodec> _codecCache = new();
 
         static PacketSerializer()
         {
-            var types = Assembly.GetExecutingAssembly().GetTypes().Where(x => x.GetTypeInfo().ImplementedInterfaces.Any(y => y == typeof(IReceiveable)));
-
-            foreach (var t in types)
-            {
-                var inst = (IReceiveable)Activator.CreateInstance(t)!;
-                _receiveablePayloadFactory.TryAdd(inst.Type, () => (IReceiveable)Activator.CreateInstance(t)!);
-            }
+            _receiveablePayloadFactory.TryAdd(ServerMessageType.Authentication, (r, _) => new AuthenticationStatus(r));
+            _receiveablePayloadFactory.TryAdd(ServerMessageType.CommandComplete, (r, _) => new CommandComplete(r));
+            _receiveablePayloadFactory.TryAdd(ServerMessageType.CommandDataDescription, (r, _) => new CommandDataDescription(r));
+            _receiveablePayloadFactory.TryAdd(ServerMessageType.Data, (r, _) => new Data(r));
+            _receiveablePayloadFactory.TryAdd(ServerMessageType.DumpBlock, (r, l) => new DumpBlock(r, l));
+            _receiveablePayloadFactory.TryAdd(ServerMessageType.DumpHeader, (r, l) => new DumpHeader(r, l));
+            _receiveablePayloadFactory.TryAdd(ServerMessageType.ErrorResponse, (r, _) => new ErrorResponse(r));
+            _receiveablePayloadFactory.TryAdd(ServerMessageType.LogMessage, (r, _) => new LogMessage(r));
+            _receiveablePayloadFactory.TryAdd(ServerMessageType.ParameterStatus, (r, _) => new ParameterStatus(r));
+            _receiveablePayloadFactory.TryAdd(ServerMessageType.PrepareComplete, (r, _) => new PrepareComplete(r));
+            _receiveablePayloadFactory.TryAdd(ServerMessageType.ReadyForCommand, (r, _) => new ReadyForCommand(r));
+            _receiveablePayloadFactory.TryAdd(ServerMessageType.RestoreReady, (r, _) => new RestoreReady(r));
+            _receiveablePayloadFactory.TryAdd(ServerMessageType.ServerHandshake, (r, _) => new ServerHandshake(r));
+            _receiveablePayloadFactory.TryAdd(ServerMessageType.ServerKeyData, (r, _) => new ServerKeyData(r));
         }
 
         public static string? GetEdgeQLType(Type t)
@@ -40,22 +47,31 @@ namespace EdgeDB
 
         public static IReceiveable? DeserializePacket(ServerMessageType type, Stream stream, EdgeDBBinaryClient client)
         {
-            // read the type
-            var reader = new PacketReader(stream);
+            using(var reader = new PacketReader(stream))
+            {
+                return DeserializePacket(type, reader, client);
+            }
+        }
+        public static IReceiveable? DeserializePacket(ServerMessageType type, byte[] buffer, EdgeDBBinaryClient client)
+        {
+            using (var reader = new PacketReader(buffer))
+            {
+                return DeserializePacket(type, reader, client);
+            }
+        }
+
+        public static IReceiveable? DeserializePacket(ServerMessageType type, PacketReader reader, EdgeDBBinaryClient client)
+        {
             var length = reader.ReadUInt32() - 4;
 
             if(_receiveablePayloadFactory.TryGetValue(type, out var factory))
             {
-                var payload = factory();
-
-                payload.Read(reader, length, client);
-
-                return payload;
+                return factory.Invoke(reader, length);
             }
             else
             {
                 // skip the packet length
-                stream.Read(new byte[length], 0, (int)length);
+                reader.Read(new byte[length], 0, (int)length);
 
                 client.Logger.UnknownPacket(type.ToString("X"));
                 return null;

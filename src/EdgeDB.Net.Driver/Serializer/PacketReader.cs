@@ -16,7 +16,7 @@ namespace EdgeDB
 
         }
 
-        public byte[] ConsumeByteArray()
+        public byte[] ConsumeByteArray() // should be smarter than this, ex: empty instead of taking a max of 1024 bytes
         {
             byte[] buff = new byte[1024];
 
