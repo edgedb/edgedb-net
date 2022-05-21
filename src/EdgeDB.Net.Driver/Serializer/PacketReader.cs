@@ -33,74 +33,123 @@ namespace EdgeDB
 
         public Guid ReadGuid()
         {
-            var bytes = ReadBytes(16);
+            var a = ReadInt32();
+            var b = ReadInt16();
+            var c = ReadInt16();
 
-            return Guid.Parse(HexConverter.ToHex(bytes));
+            Span<byte> buffer = stackalloc byte[8];
+            if (base.Read(buffer) != 8)
+                throw new EndOfStreamException();
+
+            return new Guid(a, b, c, buffer.ToArray());
         }
 
         public override double ReadDouble()
         {
-            var bytes = ReadBytes(8);
+            Span<byte> buffer = stackalloc byte[8];
+            if (base.Read(buffer) != 8)
+                throw new EndOfStreamException();
 
-            return BitConverter.ToDouble(bytes.Reverse().ToArray());
+            if (BitConverter.IsLittleEndian)
+                buffer.Reverse();
+
+            return BitConverter.ToDouble(buffer);
         }
 
         public override float ReadSingle()
         {
-            var bytes = ReadBytes(4);
+            Span<byte> buffer = stackalloc byte[4];
+            if (base.Read(buffer) != 4)
+                throw new EndOfStreamException();
 
-            return BitConverter.ToSingle(bytes.Reverse().ToArray());
+            if (BitConverter.IsLittleEndian)
+                buffer.Reverse();
+
+            return BitConverter.ToSingle(buffer);
         }
 
         public override ulong ReadUInt64()
         {
-            var bytes = ReadBytes(8);
+            Span<byte> buffer = stackalloc byte[8];
+            if (base.Read(buffer) != 8)
+                throw new EndOfStreamException();
 
-            return BitConverter.ToUInt64(bytes.Reverse().ToArray());
+            if (BitConverter.IsLittleEndian)
+                buffer.Reverse();
+
+            return BitConverter.ToUInt64(buffer);
         }
 
         public override long ReadInt64()
         {
-            var bytes = ReadBytes(8);
+            Span<byte> buffer = stackalloc byte[8];
+            if (base.Read(buffer) != 8)
+                throw new EndOfStreamException();
 
-            return BitConverter.ToInt64(bytes.Reverse().ToArray());
+            if (BitConverter.IsLittleEndian)
+                buffer.Reverse();
+
+            return BitConverter.ToInt64(buffer);
         }
 
         public override uint ReadUInt32()
         {
-            var bytes = ReadBytes(4);
+            Span<byte> buffer = stackalloc byte[4];
+            if (base.Read(buffer) != 4)
+                throw new EndOfStreamException();
 
-            return BitConverter.ToUInt32(bytes.Reverse().ToArray());
+            if (BitConverter.IsLittleEndian)
+                buffer.Reverse();
+
+            return BitConverter.ToUInt32(buffer);
         }
 
         public override int ReadInt32()
         {
-            var bytes = ReadBytes(4);
+            Span<byte> buffer = stackalloc byte[4];
+            if (base.Read(buffer) != 4)
+                throw new EndOfStreamException();
 
-            return BitConverter.ToInt32(bytes.Reverse().ToArray());
+            if (BitConverter.IsLittleEndian)
+                buffer.Reverse();
+
+            return BitConverter.ToInt32(buffer);
         }
 
         public override ushort ReadUInt16()
         {
-            var bytes = ReadBytes(2);
+            Span<byte> buffer = stackalloc byte[2];
+            if (base.Read(buffer) != 2)
+                throw new EndOfStreamException();
 
-            return BitConverter.ToUInt16(bytes.Reverse().ToArray());
+            if (BitConverter.IsLittleEndian)
+                buffer.Reverse();
+
+            return BitConverter.ToUInt16(buffer);
         }
 
         public override short ReadInt16()
         {
-            var bytes = ReadBytes(2);
+            Span<byte> buffer = stackalloc byte[2];
+            if (base.Read(buffer) != 2)
+                throw new EndOfStreamException();
 
-            return BitConverter.ToInt16(bytes.Reverse().ToArray());
+            if (BitConverter.IsLittleEndian)
+                buffer.Reverse();
+
+            return BitConverter.ToInt16(buffer);
         }
 
         public override string ReadString()
         {
             var lenth = ReadUInt32();
 
-            var l = ReadBytes((int)lenth);
+            Span<byte> buffer = stackalloc byte[(int)lenth];
 
-            return Encoding.UTF8.GetString(l);
+            if (base.Read(buffer) != lenth)
+                throw new EndOfStreamException();
+
+            return Encoding.UTF8.GetString(buffer);
         }
 
         public Header[] ReadHeaders()
@@ -123,24 +172,19 @@ namespace EdgeDB
 
             var arr = ReadByteArray();
 
-            return new Header
-            {
-                Code = code,
-                Value = arr
-            };
+            return new Header(code, arr);
         }
 
         public byte[] ReadByteArray()
         {
             var length = ReadUInt32();
-            byte[] data = new byte[length];
 
-            for (int i = 0; i != length; i++)
-            {
-                data[i] = ReadByte();
-            }
+            Span<byte> buffer = stackalloc byte[(int)length];
 
-            return data;
+            if (base.Read(buffer) != length)
+                throw new EndOfStreamException();
+
+            return buffer.ToArray();
         }
     }
 }

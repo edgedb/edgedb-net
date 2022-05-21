@@ -5,12 +5,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
 
-var client = new EdgeDBTcpClient(EdgeDBConnection.ResolveConnection(), new EdgeDBConfig(), 0);
-
-await client.ConnectAsync();
-
-var a = await client.QueryJsonAsync("select Person");
-
 Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
     .MinimumLevel.Debug()

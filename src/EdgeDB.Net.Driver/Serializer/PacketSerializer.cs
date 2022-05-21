@@ -49,21 +49,19 @@ namespace EdgeDB
         {
             using(var reader = new PacketReader(stream))
             {
-                return DeserializePacket(type, reader, client);
+                return DeserializePacket(type, reader, (uint)stream.Length, client);
             }
         }
         public static IReceiveable? DeserializePacket(ServerMessageType type, byte[] buffer, EdgeDBBinaryClient client)
         {
             using (var reader = new PacketReader(buffer))
             {
-                return DeserializePacket(type, reader, client);
+                return DeserializePacket(type, reader, (uint)buffer.Length, client);
             }
         }
 
-        public static IReceiveable? DeserializePacket(ServerMessageType type, PacketReader reader, EdgeDBBinaryClient client)
+        public static IReceiveable? DeserializePacket(ServerMessageType type, PacketReader reader, uint length, EdgeDBBinaryClient client)
         {
-            var length = reader.ReadUInt32() - 4;
-
             if(_receiveablePayloadFactory.TryGetValue(type, out var factory))
             {
                 return factory.Invoke(reader, length);

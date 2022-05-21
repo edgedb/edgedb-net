@@ -37,7 +37,7 @@ namespace EdgeDB.Models
             {
                 if (headers[i].Code == CAPBILITIES_HEADER)
                 {
-                    UsedCapabilities = (AllowCapabilities)ICodec.GetScalarCodec<ulong>()!.Deserialize(headers[i].Value);
+                    UsedCapabilities = (AllowCapabilities)ICodec.GetScalarCodec<long>()!.Deserialize(headers[i].Value);
                 }
             }
 

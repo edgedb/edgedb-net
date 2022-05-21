@@ -35,7 +35,6 @@ namespace EdgeDB
         private readonly AsyncEvent<Func<IReceiveable, ValueTask>> _onMessage = new();
         private readonly SemaphoreSlim _duplexLock;
         private readonly SemaphoreSlim _onMessageLock;
-
         public ClientPacketDuplexer(EdgeDBBinaryClient client)
         {
             _client = client;
@@ -61,40 +60,62 @@ namespace EdgeDB
 
         private async Task ReadAsync()
         {
-            while (Connected)
+            byte[] packetHeaderBuffer = new byte[5];
+
+            try
             {
-                if (_disconnectTokenSource.IsCancellationRequested)
-                    return;
-
-                if (_stream == null)
-                    return;
-
-                var typeBuf = new byte[1];
-
-                var result = await _stream.ReadAsync(typeBuf, _disconnectTokenSource.Token).ConfigureAwait(false);
-
-                if (result == 0)
+                while (Connected)
                 {
-                    // disconnected
-                    _disconnectTokenSource?.Cancel();
-                    await _onDisconnected.InvokeAsync().ConfigureAwait(false);
-                    return;
-                }
+                    if (_disconnectTokenSource.IsCancellationRequested)
+                        return;
 
-                var msg = PacketSerializer.DeserializePacket((ServerMessageType)typeBuf[0], _stream, _client);
+                    if (_stream == null)
+                        return;
 
-                if (msg != null)
-                {
-                    await _onMessageLock.WaitAsync().ConfigureAwait(false);
-                    try
+                    var result = await _stream.ReadAsync(packetHeaderBuffer, _disconnectTokenSource.Token).ConfigureAwait(false);
+
+                    if (result != 5)
                     {
-                        await _onMessage.InvokeAsync(msg).ConfigureAwait(false);
+                        // disconnected
+                        _disconnectTokenSource?.Cancel();
+                        await _onDisconnected.InvokeAsync().ConfigureAwait(false);
+                        return;
                     }
-                    finally
+
+                    // read the length
+                    var type = (ServerMessageType)packetHeaderBuffer[0];
+                    var length = (BitConverter.IsLittleEndian
+                        ? BitConverter.ToInt32(packetHeaderBuffer.Reverse().ToArray(), 0)
+                        : BitConverter.ToInt32(packetHeaderBuffer, 1)) - 4; // length includes self
+
+                    byte[] buffer = new byte[length];
+                    if (await _stream.ReadAsync(buffer, _disconnectTokenSource.Token).ConfigureAwait(false) != length)
                     {
-                        _onMessageLock.Release();
+                        // disconnected
+                        _disconnectTokenSource?.Cancel();
+                        await _onDisconnected.InvokeAsync().ConfigureAwait(false);
+                        return;
+                    }
+
+                    var msg = PacketSerializer.DeserializePacket(type, buffer, _client);
+
+                    if (msg != null)
+                    {
+                        await _onMessageLock.WaitAsync().ConfigureAwait(false);
+                        try
+                        {
+                            await _onMessage.InvokeAsync(msg).ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            _onMessageLock.Release();
+                        }
                     }
                 }
+            }
+            catch(Exception x)
+            {
+                Console.WriteLine(x);
             }
         }
 
