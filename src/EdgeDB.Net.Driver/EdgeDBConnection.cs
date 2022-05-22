@@ -103,7 +103,7 @@ namespace EdgeDB
         /// <exception cref="ArgumentException">A query parameter has already been defined in the DSN.</exception>
         /// <exception cref="FormatException">Port was not in the correct format of int.</exception>
         /// <exception cref="FileNotFoundException">A file parameter wasn't found.</exception>
-        /// <exception cref="KeyNotFoundException">An enviorment variable couldn't be found.</exception>
+        /// <exception cref="KeyNotFoundException">An environment variable couldn't be found.</exception>
         public static EdgeDBConnection FromDSN(string dsn)
         {
             if (!Regex.IsMatch(dsn, @"^[a-z]+:\/\/"))
