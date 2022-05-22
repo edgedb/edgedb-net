@@ -115,7 +115,7 @@ namespace EdgeDB
             }
             catch(Exception x)
             {
-                Console.WriteLine(x);
+                _client.Logger.ReadException(x);
             }
         }
 

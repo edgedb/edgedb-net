@@ -1,55 +1,17 @@
 ﻿using EdgeDB;
 using EdgeDB.Models;
+using EdgeDB.Utils;
 using System.Text;
 
 
-var e = BitConverter.IsLittleEndian;
+var packet = EdgeDB.Utils.HexConverter.FromHex("4B000000C6-000000D-73797374656D5F636F6E666967000000AD00000071F2F5594609176568E2521789EE64F97F0200000000000000000000000000000100020000000000000000000000000000010E01F2F5594609176568E2521789EE64F97F00020000000141000000026964000000000000410000001473657373696F6E5F69646C655F74696D656F75740001000000340000000200000B8600000010172097A439F411E9B1899321EB2F4B97000040490000001000000000039387000000000000000000");
+
 
 unsafe
 {
-    var packet = Serializer.Deserialize();
-
-    var aa = *packet;
-
-    if (ServerMessageType.ServerKeyData == aa)
+    fixed (byte* ptr = packet)
     {
-        var p = *(DummyPacket*)packet;
+        var p = (DummyPacket*)ptr;
 
-        var str = p.GetContent();
     }
-}
-
-byte[] one = new byte[] { 0x05, 0x0, 0x0, 0x0, 0x48, 0x65, 0x6C, 0x6C, 0x6F };
-byte[] two = new byte[] { 0x05, 0x0, 0x0, 0x0, 0x48, 0x65, 0x6C, 0x6C, 0x6F };
-
-unsafe
-{
-    fixed (byte* onept = one)
-    fixed (byte* twopt = two)
-    fixed (byte** arr = new byte*[2])
-    {
-        arr[0] = onept;
-        arr[1] = twopt;
-
-        var t = GetStringArray(arr, 2);
-    }
-}
-
-
-
-
-unsafe string[] GetStringArray(byte** array, int count)
-{
-    string[] arr = new string[count];
-
-    for (int i = 0; i != arr.Length; i++)
-    {
-        var ptr = array[i];
-
-        var length = (*(int*)ptr);
-        var strRaw = ptr += 4;
-        arr[i] = Encoding.UTF8.GetString(strRaw, length);
-    }
-
-    return arr;
 }

@@ -9,15 +9,15 @@ namespace EdgeDB
 {
     internal unsafe class Serializer
     {
-        public static ServerMessageType* Deserialize()
-        {
-            var packet = new DummyPacket();
+        //public static ServerMessageType* Deserialize()
+        //{
+        //    var packet = new DummyPacket();
 
-            var addr = &packet;
+        //    var addr = &packet;
 
-            var p = (ServerMessageType*)addr;
+        //    var p = (ServerMessageType*)addr;
 
-            return p;
-        }
+        //    return p;
+        //}
     }
 }

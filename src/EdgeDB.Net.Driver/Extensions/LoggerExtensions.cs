@@ -15,6 +15,7 @@ namespace EdgeDB
         private static readonly Action<ILogger, Exception?> _authenticationFailed;
         private static readonly Action<ILogger, Exception> _serverSettingsParseFailed;
         private static readonly Action<ILogger, string, Exception?> _unknownPacket;
+        private static readonly Action<ILogger, Exception> _readException;
         #endregion
 
         static LoggerExtensions()
@@ -63,6 +64,11 @@ namespace EdgeDB
                 LogLevel.Critical,
                 new EventId(9, nameof(UnknownPacket)),
                 "No reader found for packet {PacketId}. Please file a bug report");
+
+            _readException = LoggerMessage.Define(
+                LogLevel.Critical,
+                new EventId(10, nameof(ReadException)),
+                "Error occured while reading binary stream");
         }
 
         public static void InternalExecuteFailed(this ILogger logger, Exception x)
@@ -91,5 +97,8 @@ namespace EdgeDB
 
         public static void UnknownPacket(this ILogger logger, string packetType)
             => _unknownPacket(logger, packetType, null);
+
+        public static void ReadException(this ILogger logger, Exception x)
+            => _readException(logger, x);
     }
 }

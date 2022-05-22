@@ -18,11 +18,9 @@ namespace EdgeDB
 
         public byte[] ConsumeByteArray() // should be smarter than this, ex: empty instead of taking a max of 1024 bytes
         {
-            byte[] buff = new byte[1024];
-
-            var l = base.BaseStream.Read(buff, 0, buff.Length);
-
-            return buff.Take(l).ToArray();
+            byte[] buff = new byte[BaseStream.Length - BaseStream.Position];
+            base.BaseStream.Read(buff, 0, buff.Length);
+            return buff;
         }
 
         public string ConsumeString()

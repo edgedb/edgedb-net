@@ -8,31 +8,35 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
-    public unsafe readonly ref struct DummyPacket
+    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 0)]
+    public readonly unsafe struct DummyPacket
     {
-        public readonly ServerMessageType Type = ServerMessageType.ServerKeyData;
+        [MarshalAs(UnmanagedType.I1)]
+        public readonly ServerMessageType Type;
 
-        public readonly ulong SomeNumber;
+        [MarshalAs(UnmanagedType.U4)]
+        public readonly uint Length;
 
-        public readonly byte* _content;
-        private readonly int _contentLength;
+        [MarshalAs(UnmanagedType.U4)]
+        public readonly uint NameLength;
+        [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
+        public readonly byte* NameValue;
 
-        public DummyPacket()
-        {
-            byte[] arr = new byte[] { 0x48, 0x65, 0x6C, 0x6C, 0x6F };
+        public readonly uint ValueLength;
+        [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 4)]
+        public readonly byte* ValueValue;
 
-            fixed (byte* c = arr)
-            {
-                _content = c;
-            }
+        //public readonly Bytes Name;
+        //public readonly Bytes Value;
 
-            _contentLength = arr.Length;
+        
+    }
 
-            SomeNumber = 1234;
-        }
-
-        public string GetContent()
-            => Encoding.UTF8.GetString(_content, _contentLength);
+    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    public unsafe readonly ref struct Bytes
+    {
+        public readonly uint Length;
+        [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
+        public readonly byte* Data;
     }
 }
