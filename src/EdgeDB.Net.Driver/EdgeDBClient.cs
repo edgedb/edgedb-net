@@ -260,8 +260,16 @@ namespace EdgeDB
         /// </returns>
         public async ValueTask<BaseEdgeDBClient> GetOrCreateClientAsync()
         {
+            // try get an available client ready for commands
             if (_availableClients.TryPop(out var result))
             {
+                return result;
+            }
+
+            // try to get a disconnected client that can be connected again
+            if((result = _clients.FirstOrDefault(x => !x.Value.IsConnected).Value) != null)
+            {
+                await result.ConnectAsync().ConfigureAwait(false);
                 return result;
             }
 
@@ -303,6 +311,13 @@ namespace EdgeDB
                         {
                             Interlocked.Decrement(ref _totalClients);
                             RemoveClient(id);
+                            return ValueTask.CompletedTask;
+                        };
+
+                        client.OnConnect += (c) =>
+                        {
+                            // add back client if it isn't there
+                            AddClient(id, c);
                             return ValueTask.CompletedTask;
                         };
 
@@ -382,7 +397,19 @@ namespace EdgeDB
             lock (_clientsLock)
             {
                 _availableClients = new ConcurrentStack<BaseEdgeDBClient>(_availableClients.Where(x => x.ClientId != id).ToArray());
-                _clients.TryRemove(id, out _);
+                //_clients.TryRemove(id, out _);
+            }
+        }
+
+        private void AddClient(ulong id, BaseEdgeDBClient client)
+        {
+            lock (_clientsLock)
+            {
+                if(!_availableClients.Any(x => x.ClientId == id))
+                {
+                    _availableClients = new ConcurrentStack<BaseEdgeDBClient>(_availableClients.Append(client));
+                }
+                //_clients.TryAdd(id, client);
             }
         }
 

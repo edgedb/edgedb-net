@@ -60,6 +60,7 @@ namespace EdgeDB
         {
             await SendAsync(packets: new Terminate()).ConfigureAwait(false);
             _disconnectTokenSource.Cancel();
+            await _onDisconnected.InvokeAsync().ConfigureAwait(false);
         }
 
         private CancellationToken GetTimeoutToken()

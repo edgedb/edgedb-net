@@ -31,6 +31,14 @@
         }
 
         internal readonly AsyncEvent<Func<BaseEdgeDBClient, ValueTask>> OnDisconnectInternal = new();
+
+        internal event Func<BaseEdgeDBClient, ValueTask> OnConnect
+        {
+            add => OnConnectInternal.Add(value);
+            remove => OnConnectInternal.Remove(value);
+        }
+
+        internal readonly AsyncEvent<Func<BaseEdgeDBClient, ValueTask>> OnConnectInternal = new();
         /// <summary>
         ///     Initialized the base client.
         /// </summary>
@@ -80,10 +88,15 @@
         /// <summary>
         ///     Connects this client to the database.
         /// </summary>
+        /// <remarks>
+        ///     When overridden, it's <b>strongly</b> recommended to call base.ConnectAsync
+        ///     to ensure the client pool adds this client.
+        /// </remarks>
         /// <returns>
         ///     A ValueTask representing the asynchronous connect operation.
         /// </returns>
-        public abstract ValueTask ConnectAsync();
+        public virtual ValueTask ConnectAsync()
+            => OnConnectInternal.InvokeAsync(this);
 
         /// <summary>
         ///     Executes a given query, ignoring any returned data.

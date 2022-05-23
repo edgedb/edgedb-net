@@ -582,6 +582,9 @@ namespace EdgeDB
 
             // wait for auth promise
             await Task.Run(() => Task.WhenAll(_readySource.Task, _authCompleteSource.Task), _readyCancelTokenSource.Token).ConfigureAwait(false);
+
+            // call base to notify listeners that we connected.
+            await base.ConnectAsync();
         }
 
         private async Task ConnectInternalAsync()
@@ -643,6 +646,7 @@ namespace EdgeDB
         {
             await Duplexer.DisconnectAsync().ConfigureAwait(false);
             await CloseStreamAsync().ConfigureAwait(false);
+            await base.DisconnectAsync();
         }
 
         #endregion
