@@ -39,10 +39,10 @@ namespace EdgeDB
         /// <summary>
         ///     Fired when the client disconnects.
         /// </summary>
-        public event Func<ValueTask> OnDisconnect
+        public new event Func<ValueTask> OnDisconnect
         {
-            add => _onDisconnect.Add(value);
-            remove => _onDisconnect.Remove(value);
+            add => OnDisconnectInternal.Add((c) => value());
+            remove => OnDisconnectInternal.Remove((c) => value());
         }
 
         /// <summary>
@@ -73,7 +73,6 @@ namespace EdgeDB
         internal readonly TimeSpan ConnectionTimeout;
         internal readonly EdgeDBConnection Connection;
 
-        private readonly AsyncEvent<Func<ValueTask>> _onDisconnect = new();
         private readonly AsyncEvent<Func<IReceiveable, ValueTask>> _onMessage = new();
         private readonly AsyncEvent<Func<ExecuteResult, ValueTask>> _queryExecuted = new();
 

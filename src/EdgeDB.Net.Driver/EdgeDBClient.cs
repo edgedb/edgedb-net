@@ -7,7 +7,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents a client pool used to interact with EdgeDB.
     /// </summary>
-    public sealed class EdgeDBClient : IEdgeDBQueryable
+    public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     {
         /// <summary>
         ///     Fired when a client in the client pool executes a query.
@@ -17,6 +17,38 @@ namespace EdgeDB
             add => _queryExecuted.Add(value);
             remove => _queryExecuted.Remove(value);
         }
+        internal event Func<BaseEdgeDBClient, ValueTask> ClientReturnedToPool
+        {
+            add => _clientReturnedToPool.Add(value);
+            remove => _clientReturnedToPool.Remove(value);
+        }
+
+        /// <summary>
+        ///     Gets all clients within the client pool.
+        /// </summary>
+        public IReadOnlyCollection<BaseEdgeDBClient> Clients
+            => _clients.Values.ToImmutableArray();
+
+        /// <summary>
+        ///     Gets the total number of clients within the client pool that are connected.
+        /// </summary>
+        public int ConnectedClients
+            => _clients.Count(x => x.Value.IsConnected);
+
+        /// <summary>
+        ///     Gets the number of available (idle) clients within the client pool.
+        /// </summary>
+        /// <remarks>
+        ///     This property can equal <see cref="ConnectedClients"/> if the client type 
+        ///     doesn't have restrictions on idling.
+        /// </remarks>
+        public int AvailableClients
+            => _availableClients.Count(x =>
+            {
+                if (x is EdgeDBBinaryClient binaryCliet)
+                    return binaryCliet.IsIdle;
+                return x.IsConnected;
+            });
 
         /// <summary>
         ///     Gets the EdgeDB server config.
@@ -28,12 +60,6 @@ namespace EdgeDB
         public IReadOnlyDictionary<string, object?> ServerConfig
             => _edgedbConfig.ToImmutableDictionary();
 
-        internal event Func<BaseEdgeDBClient, ValueTask> ClientReturnedToPool
-        {
-            add => _clientReturnedToPool.Add(value);
-            remove => _clientReturnedToPool.Remove(value);
-        }
-
         internal EdgeDBClientType ClientType
             => _config.ClientType;
 
@@ -41,6 +67,7 @@ namespace EdgeDB
         private readonly EdgeDBConnection _connection;
         private readonly EdgeDBClientPoolConfig _config;
         private ConcurrentStack<BaseEdgeDBClient> _availableClients;
+        private ConcurrentDictionary<ulong, BaseEdgeDBClient> _clients; 
         private bool _isInitialized;
         private Dictionary<string, object?> _edgedbConfig;
         private uint _poolSize;
@@ -92,14 +119,15 @@ namespace EdgeDB
 
             _clientFactory = config.ClientFactory;
 
-            _isInitialized = false;
             _config = config;
-            _connection = connection;
-            _availableClients = new();
-            _initSemaphore = new(1, 1);
-            _clientWaitSemaphore = new(1, 1);
+            _clients = new();
             _poolSize = config.DefaultPoolSize;
+            _connection = connection;
             _edgedbConfig = new Dictionary<string, object?>();
+            _isInitialized = false;
+            _initSemaphore = new(1, 1);
+            _availableClients = new();
+            _clientWaitSemaphore = new(1, 1);
         }
 
         /// <summary>
@@ -129,6 +157,29 @@ namespace EdgeDB
             finally
             {
                 _initSemaphore.Release();
+            }
+        }
+
+        /// <summary>
+        ///     Disconnects all clients within the client pool.
+        /// </summary>
+        /// <remarks>
+        ///     This task will run all <see cref="BaseEdgeDBClient.DisconnectAsync"/> methods in parallel.
+        /// </remarks>
+        /// <returns>The total number of clients disconnected.</returns>
+        public async Task<int> DisconnectAllAsync()
+        {
+            await _clientWaitSemaphore.WaitAsync().ConfigureAwait(false);
+
+            try
+            {
+                var clients = _clients.Select(x => x.Value.DisconnectAsync().AsTask()).ToArray();
+                await Task.WhenAll(clients);
+                return clients.Length;
+            }
+            finally
+            {
+                _clientWaitSemaphore.Release();
             }
         }
 
@@ -214,9 +265,9 @@ namespace EdgeDB
 
                 try
                 {
-                    return SpinWait.SpinUntil(() => _availableClients.TryPop(out result), 15000)
+                    return SpinWait.SpinUntil(() => _availableClients.TryPop(out result), (int)_config.ConnectionTimeout)
                         ? result!
-                        : throw new TimeoutException("Couldn't find a client after 15 seconds");
+                        : throw new TimeoutException($"Couldn't find a client after {_config.ConnectionTimeout}ms");
                 }
                 finally
                 {
@@ -259,6 +310,8 @@ namespace EdgeDB
                             return false;
                         };
 
+                        _clients[id] = client;
+
                         return client;
                     }
                 case EdgeDBClientType.Http:
@@ -276,6 +329,14 @@ namespace EdgeDB
                             return false;
                         };
 
+                        client.OnDisconnect += (c) =>
+                        {
+                            RemoveClient(c.ClientId);
+                            return ValueTask.CompletedTask;
+                        };
+
+                        _clients[id] = client;
+
                         return client;
                     }
                 case EdgeDBClientType.Custom when _clientFactory is not null:
@@ -291,6 +352,14 @@ namespace EdgeDB
                             return false;
                         };
 
+                        client.OnDisconnect += (c) =>
+                        {
+                            RemoveClient(c.ClientId);
+                            return ValueTask.CompletedTask;
+                        };
+
+                        _clients[id] = client;
+
                         return client;
                     }
 
@@ -304,7 +373,14 @@ namespace EdgeDB
             lock (_clientsLock)
             {
                 _availableClients = new ConcurrentStack<BaseEdgeDBClient>(_availableClients.Where(x => x.ClientId != id).ToArray());
+                _clients.TryRemove(id, out _);
             }
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await DisconnectAllAsync().ConfigureAwait(false);
+            await Task.WhenAll(_clients.Select(x => x.Value.DisposeAsync().AsTask()).ToArray()).ConfigureAwait(false);
         }
     }
 }

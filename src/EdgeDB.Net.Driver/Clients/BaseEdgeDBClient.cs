@@ -23,6 +23,14 @@
         }
 
         private readonly AsyncEvent<Func<BaseEdgeDBClient, ValueTask<bool>>> _onDisposed = new();
+
+        internal event Func<BaseEdgeDBClient, ValueTask> OnDisconnect
+        {
+            add => OnDisconnectInternal.Add(value);
+            remove => OnDisconnectInternal.Remove(value);
+        }
+
+        internal readonly AsyncEvent<Func<BaseEdgeDBClient, ValueTask>> OnDisconnectInternal = new();
         /// <summary>
         ///     Initialized the base client.
         /// </summary>
@@ -59,10 +67,15 @@
         /// <summary>
         ///     Disconnects this client from the database.
         /// </summary>
+        /// <remarks>
+        ///     When overridden, it's <b>strongly</b> recommended to call base.DisconnectAsync
+        ///     to ensure the client pool removes this client.
+        /// </remarks>
         /// <returns>
         ///     A ValueTask representing the asynchronous disconnect operation.
         /// </returns>
-        public abstract ValueTask DisconnectAsync();
+        public virtual ValueTask DisconnectAsync()
+            => OnDisconnectInternal.InvokeAsync(this);
 
         /// <summary>
         ///     Connects this client to the database.
