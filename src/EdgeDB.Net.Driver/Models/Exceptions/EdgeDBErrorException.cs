@@ -18,7 +18,7 @@ namespace EdgeDB
         public Models.ErrorResponse ErrorResponse { get; }
 
         public EdgeDBErrorException(Models.ErrorResponse error)
-            : base(error.Message)
+            : base(error.Message, typeof(ServerErrorCodes).GetField(error.ErrorCode.ToString())?.IsDefined(typeof(ShouldRetryAttribute), false) ?? false)
         {
             if(error.Headers.Any(x => x.Code == 0x0002))
                 Details = Encoding.UTF8.GetString(error.Headers.FirstOrDefault(x => x.Code == 0x0002).Value);

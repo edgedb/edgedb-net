@@ -29,8 +29,8 @@ namespace EdgeDB
 
         private Stream? _stream;
         private Task? _readTask;
+        private CancellationTokenSource _disconnectTokenSource;
         private readonly EdgeDBBinaryClient _client;
-        private readonly CancellationTokenSource _disconnectTokenSource;
         private readonly AsyncEvent<Func<ValueTask>> _onDisconnected = new();
         private readonly AsyncEvent<Func<IReceiveable, ValueTask>> _onMessage = new();
         private readonly SemaphoreSlim _duplexLock;
@@ -41,6 +41,13 @@ namespace EdgeDB
             _disconnectTokenSource = new();
             _duplexLock = new(1, 1);
             _onMessageLock = new(1, 1);
+        }
+
+        public async Task ResetAsync()
+        {
+            if(_readTask != null)
+                await _readTask!;
+            _disconnectTokenSource = new();
         }
 
         public void Start(Stream stream)
@@ -113,7 +120,7 @@ namespace EdgeDB
                     }
                 }
             }
-            catch(Exception x)
+            catch(Exception x) when (x is not OperationCanceledException or TaskCanceledException)
             {
                 _client.Logger.ReadException(x);
             }

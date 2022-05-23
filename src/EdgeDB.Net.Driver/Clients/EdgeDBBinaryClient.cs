@@ -111,15 +111,15 @@ namespace EdgeDB
         }
 
         #region Commands/queries
-        internal struct RawExecuteResult
+        internal readonly struct RawExecuteResult
         {
-            public PrepareComplete PrepareStatement { get; set; }
+            public PrepareComplete PrepareStatement { get; init; }
 
-            public ICodec Deserializer { get; set; }
+            public ICodec Deserializer { get; init; }
 
-            public List<Data> Data { get; set; }
+            public List<Data> Data { get; init; }
 
-            public CommandComplete CompleteStatus { get; set; }
+            public CommandComplete CompleteStatus { get; init; }
         }
 
         /// <exception cref="EdgeDBException">A general error occored.</exception>
@@ -127,12 +127,12 @@ namespace EdgeDB
         /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         internal async Task<RawExecuteResult> ExecuteInternalAsync(string query, IDictionary<string, object?>? args = null, Cardinality? card = null,
-            AllowCapabilities? capabilities = AllowCapabilities.ReadOnly, IOFormat format = IOFormat.Binary)
+            AllowCapabilities? capabilities = AllowCapabilities.ReadOnly, IOFormat format = IOFormat.Binary, bool isRetry = false)
         {
             await _semaphore.WaitAsync(DisconnectCancelToken).ConfigureAwait(false);
 
             IsIdle = false;
-
+            bool released = false;
             ExecuteResult? execResult = null;
 
             try
@@ -261,6 +261,21 @@ namespace EdgeDB
                     PrepareStatement = result
                 };
             }
+            catch (EdgeDBException x) when (x.ShouldReconnect && !isRetry)
+            {
+                await ReconnectAsync().ConfigureAwait(false);
+                _semaphore.Release();
+                released = true;
+
+                return await ExecuteInternalAsync(query, args, card, capabilities, format, true).ConfigureAwait(false);
+            }
+            catch (EdgeDBException x) when (x.ShouldRetry && !isRetry)
+            {
+                _semaphore.Release();
+                released = true;
+
+                return await ExecuteInternalAsync(query, args, card, capabilities, format, true).ConfigureAwait(false);
+            }
             catch (Exception x)
             {
                 execResult = x is EdgeDBErrorException err
@@ -268,13 +283,14 @@ namespace EdgeDB
                     : (ExecuteResult?)new ExecuteResult(false, null, x, query);
 
                 Logger.InternalExecuteFailed(x);
-                throw new EdgeDBException($"Failed to execute query: {x}", x);
+
+                throw new EdgeDBException($"Failed to execute query{(isRetry ? " after retrying once" : "")}", x);
             }
             finally
             {
                 _ = Task.Run(async () => await _queryExecuted.InvokeAsync(execResult!.Value).ConfigureAwait(false));
                 IsIdle = true;
-                _semaphore.Release();
+                if(!released) _semaphore.Release();
             }
         }
 
@@ -406,6 +422,7 @@ namespace EdgeDB
             // steal the sephamore to stop any query attempts.
             await _semaphore.WaitAsync().ConfigureAwait(false);
 
+            bool released = false;
             IsIdle = false;
 
             try
@@ -459,6 +476,13 @@ namespace EdgeDB
                 _authCompleteSource.TrySetResult();
                 _currentRetries = 0;
             }
+            catch(EdgeDBException x) when (x.ShouldReconnect)
+            {
+                _semaphore.Release();
+                released = true;
+                await ReconnectAsync().ConfigureAwait(false);
+                throw;
+            }
             catch (Exception x)
             {
                 if (_config.RetryMode is ConnectionRetryMode.AlwaysRetry)
@@ -480,7 +504,7 @@ namespace EdgeDB
             }
             finally
             {
-                _semaphore.Release();
+                if(!released) _semaphore.Release();
                 IsIdle = true;
             }
         }
@@ -564,6 +588,8 @@ namespace EdgeDB
         {
             try
             {
+                await Duplexer.ResetAsync();
+
                 var stream = await GetStreamAsync().ConfigureAwait(false);
 
                 Duplexer.Start(stream);
@@ -602,10 +628,14 @@ namespace EdgeDB
             }
         }
 
-        private async Task ReconnectAsync()
+        /// <summary>
+        ///     Disconnects and reconnects the current client.
+        /// </summary>
+        /// <returns>A task representing the asynchronous disconnect and reconnection operations.</returns>
+        public async Task ReconnectAsync()
         {
-            await DisconnectAsync();
-            await ConnectInternalAsync();
+            await DisconnectAsync().ConfigureAwait(false);
+            await ConnectAsync().ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
@@ -627,7 +657,7 @@ namespace EdgeDB
             return new CommandLock(() => { _commandSemaphore.Release(); });
         }
 
-        private class CommandLock : IDisposable
+        private readonly struct CommandLock : IDisposable
         {
             private readonly Action _onDispose;
 

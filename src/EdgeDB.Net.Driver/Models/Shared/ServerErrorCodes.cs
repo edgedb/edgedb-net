@@ -113,6 +113,7 @@ namespace EdgeDB
         MissingRequiredError = 0x_05_02_00_03,
 
         TransactionError = 0x_05_03_00_00,
+        [ShouldRetry]
         TransactionConflictError = 0x_05_03_01_00,
         TransactionSerializationError = 0x_05_03_01_01,
         TransactionDeadlockError = 0x_05_03_01_02,
@@ -130,7 +131,7 @@ namespace EdgeDB
 
         #region Availability Errors (0x08)
         AvailabilityError = 0x_08_00_00_00,
-
+        [ShouldRetry]
         BackendUnavailableError = 0x_08_00_00_01,
         #endregion
 

@@ -235,6 +235,15 @@ namespace EdgeDB
             return result;
         }
 
+        public async ValueTask<TClient> GetOrCreateClientAsync<TClient>()
+            where TClient : BaseEdgeDBClient
+        {
+            var client = await GetOrCreateClientAsync();
+            if (client is TClient clientTyped)
+                return clientTyped;
+            throw new CustomClientException($"{typeof(TClient).Name} is not type of {client.GetType().Name}");
+        }
+
         /// <summary>
         ///     Gets or creates a client in the client pool used to interact with edgedb.
         /// </summary>
