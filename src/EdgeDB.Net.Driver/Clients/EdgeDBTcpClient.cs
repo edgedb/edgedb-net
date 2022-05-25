@@ -16,14 +16,14 @@ namespace EdgeDB
     /// <summary>
     ///     Represents a TCP client used to interact with EdgeDB.
     /// </summary>
-    public class EdgeDBTcpClient : EdgeDBBinaryClient
+    public sealed class EdgeDBTcpClient : EdgeDBBinaryClient
     {
         /// <inheritdoc/>
         public override bool IsConnected
-            => TcpClient.Connected && _secureStream != null;
+            => _tcpClient.Connected && _secureStream != null;
 
 
-        internal TcpClient TcpClient;
+        private TcpClient _tcpClient;
         private NetworkStream? _stream;
         private SslStream? _secureStream;
 
@@ -36,12 +36,12 @@ namespace EdgeDB
         public EdgeDBTcpClient(EdgeDBConnection connection, EdgeDBConfig config, ulong? clientId = null) 
             : base(connection, config, clientId)
         {
-            TcpClient = new();
+            _tcpClient = new();
         }
 
         protected override async ValueTask<Stream> GetStreamAsync()
         {
-            TcpClient = new TcpClient();
+            _tcpClient = new TcpClient();
 
             var timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(DisconnectCancelToken);
 
@@ -49,7 +49,7 @@ namespace EdgeDB
 
             try
             {
-                await TcpClient.ConnectAsync(Connection.Hostname!, Connection.Port, timeoutToken.Token).ConfigureAwait(false);
+                await _tcpClient.ConnectAsync(Connection.Hostname!, Connection.Port, timeoutToken.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException x) when (timeoutToken.IsCancellationRequested)
             {
@@ -71,7 +71,7 @@ namespace EdgeDB
                 }
             }
 
-            _stream = TcpClient.GetStream();
+            _stream = _tcpClient.GetStream();
 
             _secureStream = new SslStream(_stream, false, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
 
@@ -94,7 +94,7 @@ namespace EdgeDB
 
         protected override ValueTask CloseStreamAsync()
         {
-            TcpClient.Close();
+            _tcpClient.Close();
             return ValueTask.CompletedTask;
         }
 
@@ -124,13 +124,7 @@ namespace EdgeDB
             }
         }
 
-        /// <summary>
-        ///     Disposes or releases the client.
-        /// </summary>
-        /// <returns>
-        ///     A ValueTask that represents the asynchronous dispose or release operation.
-        ///     The result of the value tasks indicates whether or not the client got disposed.
-        /// </returns>
+        /// <inheritdoc/>
         public override async ValueTask<bool> DisposeAsync()
         {
             var shouldDispose = await base.DisposeAsync();

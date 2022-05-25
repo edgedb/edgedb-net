@@ -7,8 +7,5 @@ using System.Threading.Tasks;
 namespace EdgeDB
 {
     [AttributeUsage(AttributeTargets.Field)]
-    internal class ShouldRetryAttribute : Attribute
-    {
-
-    }
+    internal class ShouldRetryAttribute : Attribute { }
 }

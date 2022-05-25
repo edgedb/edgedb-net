@@ -10,7 +10,6 @@ namespace EdgeDB
     ///     Represents the different error codes sent by the server defined 
     ///     <seealso href="https://www.edgedb.com/docs/reference/protocol/errors#error-codes">on the docs.</seealso>
     /// </summary>
-    /// 
     public enum ServerErrorCodes : uint
     {
         #region Server Errors (0x01)

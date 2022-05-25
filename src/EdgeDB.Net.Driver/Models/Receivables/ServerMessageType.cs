@@ -51,9 +51,9 @@
         ParameterStatus = 0x53,
 
         /// <summary>
-        ///		A <see cref="Models.PrepareComplete"/> message.
+        ///		A <see cref="Models.ParseComplete"/> message.
         /// </summary>
-        PrepareComplete = 0x31,
+        ParseComplete = 0x31,
 
         /// <summary>
         ///		A <see cref="Models.ReadyForCommand"/> message.

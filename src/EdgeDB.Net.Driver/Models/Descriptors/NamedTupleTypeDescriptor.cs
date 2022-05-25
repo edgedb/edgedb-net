@@ -6,22 +6,24 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    internal struct NamedTupleTypeDescriptor : ITypeDescriptor
+    internal readonly struct NamedTupleTypeDescriptor : ITypeDescriptor
     {
         public DescriptorType Type 
             => DescriptorType.NamedTupleDescriptor;
 
-        public Guid Id { get; set; }
+        public readonly Guid Id;
 
-        public TupleElement[] Elements { get; set; }
+        public readonly TupleElement[] Elements;
 
-        public void Read(PacketReader reader)
+        public NamedTupleTypeDescriptor(Guid id, PacketReader reader)
         {
+            Id = id;
+
             var count = reader.ReadUInt16();
 
             var elements = new TupleElement[count];
 
-            for(int i = 0; i != count; i++)
+            for (int i = 0; i != count; i++)
             {
                 var name = reader.ReadString();
                 var typePos = reader.ReadInt16();
@@ -35,12 +37,14 @@ namespace EdgeDB.Models
 
             Elements = elements;
         }
+
+        Guid ITypeDescriptor.Id => Id;
     }
 
-    internal struct TupleElement
+    internal readonly struct TupleElement
     {
-        public string Name { get; set; }
+        public readonly string Name { get; init; }
 
-        public short TypePos { get; set; }
+        public readonly short TypePos { get; init; }
     }
 }

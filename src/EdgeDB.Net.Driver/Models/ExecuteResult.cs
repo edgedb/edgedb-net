@@ -3,19 +3,19 @@
     /// <summary>
     ///     Represents a generic execution result of a command.
     /// </summary>
-    public struct ExecuteResult : IExecuteResult
+    public readonly struct ExecuteResult : IExecuteResult
     {
         /// <inheritdoc/>
-        public bool IsSuccess { get; private set; }
+        public bool IsSuccess { get; internal init; }
 
         /// <inheritdoc/>
-        public ErrorResponse? ErrorResponse { get; private set; }
+        public ErrorResponse? ErrorResponse { get; internal init; }
 
         /// <inheritdoc/>
-        public Exception? Exception { get; private set; }
+        public Exception? Exception { get; internal init; }
 
         /// <inheritdoc/>
-        public string? ExecutedQuery { get; private set; }
+        public string? ExecutedQuery { get; internal init; }
 
         internal ExecuteResult(bool success, ErrorResponse? error, Exception? exc, string? executedQuery)
         {

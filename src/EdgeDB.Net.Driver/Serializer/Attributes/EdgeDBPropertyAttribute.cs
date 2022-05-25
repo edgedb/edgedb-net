@@ -9,22 +9,22 @@
         /// <summary>
         ///     Gets or sets whether or not this member is a link.
         /// </summary>
-        public bool IsLink { get; set; }
+        internal bool IsLink { get; set; }
 
         /// <summary>
         ///     Gets or sets whether or not this member is required.
         /// </summary>
-        public bool IsRequired { get; set; }
+        internal bool IsRequired { get; set; }
 
         /// <summary>
         ///     Gets or sets whether or not this member is a computed value.
         /// </summary>
-        public bool IsComputed { get; set; }
+        internal bool IsComputed { get; set; }
 
         /// <summary>
         ///     Gets or sets whether or not this member is read-only.
         /// </summary>
-        public bool IsReadOnly { get; set; }
+        internal bool IsReadOnly { get; set; }
 
         internal readonly string? Name;
 

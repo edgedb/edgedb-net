@@ -235,6 +235,23 @@ namespace EdgeDB
             return result;
         }
 
+        /// <summary>
+        ///     Gets or creates a client in the client pool used to interact with edgedb.
+        /// </summary>
+        /// <remarks>
+        ///     This method can hang if the client pool is full and all connections are in use. 
+        ///     It's recommended to use the query methods defined in the <see cref="EdgeDBClient"/> class.
+        ///     <br/>
+        ///     <br/>
+        ///     Disposing the returned client with the <see cref="EdgeDBTcpClient.DisposeAsync"/> method
+        ///     will return that client to this client pool.
+        /// </remarks>
+        /// <typeparam name="TClient">The type of client to get.</typeparam>
+        /// <returns>
+        ///     A task that represents the asynchonous operation of getting an available client. The tasks
+        ///     result is a client of type <typeparamref name="TClient"/>.
+        /// </returns>
+        /// <exception cref="CustomClientException">The client returned cannot be assigned to <typeparamref name="TClient"/>.</exception>
         public async ValueTask<TClient> GetOrCreateClientAsync<TClient>()
             where TClient : BaseEdgeDBClient
         {
@@ -256,7 +273,8 @@ namespace EdgeDB
         ///     will return that client to this client pool.
         /// </remarks>
         /// <returns>
-        ///     A edgedb client.
+        ///     A task that represents the asynchonous operation of getting an available client. The tasks
+        ///     result is a <see cref="BaseEdgeDBClient"/> instance.
         /// </returns>
         public async ValueTask<BaseEdgeDBClient> GetOrCreateClientAsync()
         {

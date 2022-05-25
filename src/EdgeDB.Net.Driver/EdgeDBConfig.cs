@@ -77,5 +77,33 @@ namespace EdgeDB
         ///     Gets or sets the max amount of miliseconds a client will wait for an expected message.
         /// </summary>
         public uint MessageTimeout { get; set; } = 5000;
+
+        /// <summary>
+        ///     Gets or sets whether or not to always return object ids.
+        /// </summary>
+        /// <remarks>
+        ///     If set to <see langword="true"/> returned objects will not have an implicit id property i.e. query 
+        ///     shapes will have to explicitly list id properties.
+        /// </remarks>
+        public bool ExplicitObjectIds { get; set; }
+
+        /// <summary>
+        ///     Gets or sets whether or not to implicitly return type names.
+        /// </summary>
+        /// <remarks>
+        ///     If set to <see langword="true"/> all returned objects have a __tname__ property set to their type name 
+        ///     (equivalent to having an implicit “__tname__ := .__type__.name” computed property.) Note 
+        ///     that setting this to <see langword="true"/> might slow down queries.
+        /// </remarks>
+        public bool ImplicitTypeNames { get; set; }
+
+        /// <summary>
+        ///     Gets or sets whether or not to implicitly return type ids.
+        /// </summary>
+        /// <remarks>
+        ///     If set to <see langword="true"/> all returned objects have a __tid__ property set to their type ID 
+        ///     (equivalent to having an implicit “__tid__ := .__type__.id” computed property.)
+        /// </remarks>
+        public bool ImplicitTypeIds { get; set; }
     }
 }

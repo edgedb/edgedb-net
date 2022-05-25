@@ -39,6 +39,7 @@
         }
 
         internal readonly AsyncEvent<Func<BaseEdgeDBClient, ValueTask>> OnConnectInternal = new();
+
         /// <summary>
         ///     Initialized the base client.
         /// </summary>
@@ -146,7 +147,11 @@
         /// </returns>
         public abstract Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null);
 
-        async ValueTask IAsyncDisposable.DisposeAsync() 
-            => await DisposeAsync().ConfigureAwait(false);
+        /// <inheritdoc/>
+        async ValueTask IAsyncDisposable.DisposeAsync()
+        {
+            GC.SuppressFinalize(this);
+            await DisposeAsync().ConfigureAwait(false);
+        }
     }
 }

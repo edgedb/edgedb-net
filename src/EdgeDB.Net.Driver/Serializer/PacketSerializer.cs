@@ -24,7 +24,7 @@ namespace EdgeDB
             _receiveablePayloadFactory.TryAdd(ServerMessageType.ErrorResponse, (r, _) => new ErrorResponse(r));
             _receiveablePayloadFactory.TryAdd(ServerMessageType.LogMessage, (r, _) => new LogMessage(r));
             _receiveablePayloadFactory.TryAdd(ServerMessageType.ParameterStatus, (r, _) => new ParameterStatus(r));
-            _receiveablePayloadFactory.TryAdd(ServerMessageType.PrepareComplete, (r, _) => new PrepareComplete(r));
+            _receiveablePayloadFactory.TryAdd(ServerMessageType.ParseComplete, (r, _) => new ParseComplete(r));
             _receiveablePayloadFactory.TryAdd(ServerMessageType.ReadyForCommand, (r, _) => new ReadyForCommand(r));
             _receiveablePayloadFactory.TryAdd(ServerMessageType.RestoreReady, (r, _) => new RestoreReady(r));
             _receiveablePayloadFactory.TryAdd(ServerMessageType.ServerHandshake, (r, _) => new ServerHandshake(r));

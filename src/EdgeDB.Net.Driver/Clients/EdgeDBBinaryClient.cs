@@ -8,6 +8,7 @@ using System.Collections.Immutable;
 using System.Dynamic;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -79,9 +80,9 @@ namespace EdgeDB
         protected CancellationToken DisconnectCancelToken
             => Duplexer.DisconnectToken;
 
-        private readonly TaskCompletionSource _readySource;
-        private readonly CancellationTokenSource _readyCancelTokenSource;
+        private TaskCompletionSource _readySource;
         private TaskCompletionSource _authCompleteSource;
+        private readonly CancellationTokenSource _readyCancelTokenSource;
         private readonly SemaphoreSlim _semaphore;
         private readonly SemaphoreSlim _commandSemaphore;
         private readonly EdgeDBConfig _config;
@@ -113,7 +114,7 @@ namespace EdgeDB
         #region Commands/queries
         internal readonly struct RawExecuteResult
         {
-            public PrepareComplete PrepareStatement { get; init; }
+            public ParseComplete PrepareStatement { get; init; }
 
             public ICodec Deserializer { get; init; }
 
@@ -139,15 +140,15 @@ namespace EdgeDB
             {
                 var nextTask = Duplexer.NextAsync(x => x.Type == ServerMessageType.ReadyForCommand).ConfigureAwait(false);
 
-                var prepareResult = await PrepareAsync(new Prepare
+                var prepareResult = await ParseAsync(new Parse
                 {
                     Capabilities = capabilities,
                     Command = query,
                     Format = format,
                     ExpectedCardinality = card ?? Cardinality.Many,
-                    ExplicitObjectIds = true,
-                    ImplicitTypeNames = true,
-                    ImplicitTypeIds = true,
+                    ExplicitObjectIds = _config.ExplicitObjectIds,
+                    ImplicitTypeNames = _config.ImplicitTypeNames,
+                    ImplicitTypeIds = _config.ImplicitTypeIds,
                 }).ConfigureAwait(false);
 
                 if (prepareResult is ErrorResponse error)
@@ -155,9 +156,9 @@ namespace EdgeDB
                     throw new EdgeDBErrorException(error);
                 }
 
-                if (prepareResult is not PrepareComplete result)
+                if (prepareResult is not ParseComplete result)
                 {
-                    throw new UnexpectedMessageException(ServerMessageType.PrepareComplete, prepareResult.Type);
+                    throw new UnexpectedMessageException(ServerMessageType.ParseComplete, prepareResult.Type);
                 }
 
                 // pop ready 
@@ -307,6 +308,8 @@ namespace EdgeDB
         /// <exception cref="EdgeDBErrorException">The client received an <see cref="ErrorResponse"/>.</exception>
         /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
+        /// <exception cref="InvalidOperationException">Target type doesn't match received type.</exception>
+        /// <exception cref="TargetInvocationException">Cannot construct a <typeparamref name="TResult"/>.</exception>
         public override async Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null)
             where TResult : default
         {
@@ -329,6 +332,8 @@ namespace EdgeDB
         /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         /// <exception cref="ResultCardinalityMismatchException">The results cardinality was not what the query expected.</exception>
+        /// <exception cref="InvalidOperationException">Target type doesn't match received type.</exception>
+        /// <exception cref="TargetInvocationException">Cannot construct a <typeparamref name="TResult"/>.</exception>
         public override async Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
             where TResult : default
         {
@@ -351,6 +356,8 @@ namespace EdgeDB
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         /// <exception cref="ResultCardinalityMismatchException">The results cardinality was not what the query expected.</exception>
         /// <exception cref="MissingRequiredException">The query didn't return a result.</exception>
+        /// <exception cref="InvalidOperationException">Target type doesn't match received type.</exception>
+        /// <exception cref="TargetInvocationException">Cannot construct a <typeparamref name="TResult"/>.</exception>
         public override async Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
         {
             var result = await ExecuteInternalAsync(query, args, Cardinality.AtMostOne);
@@ -511,11 +518,11 @@ namespace EdgeDB
         #endregion
 
         #region Helper functions
-        private async Task<IReceiveable> PrepareAsync(Prepare packet)
+        private async Task<IReceiveable> ParseAsync(Parse packet)
         {
-            var result = await Duplexer.DuplexAndSyncAsync(packet, x => x.Type is ServerMessageType.PrepareComplete);
+            var result = await Duplexer.DuplexAndSyncAsync(packet, x => x.Type is ServerMessageType.ParseComplete);
 
-            return result is ErrorResponse err ? throw new EdgeDBErrorException(err) : (IReceiveable)(PrepareComplete)result;
+            return result is ErrorResponse err ? throw new EdgeDBErrorException(err) : (IReceiveable)(ParseComplete)result;
         }
 
         private void ParseServerSettings(ParameterStatus status)
@@ -574,6 +581,12 @@ namespace EdgeDB
         /// <summary>
         ///     Connects and authenticates this client.
         /// </summary>
+        /// <remarks>
+        ///     This task waits for the underlying connection to receive a 
+        ///     <see cref="ReadyForCommand"/> message indicating the client 
+        ///     can start to preform queries.
+        /// </remarks>
+        /// <inheritdoc/>
         public override async ValueTask ConnectAsync()
         {
             _authCompleteSource = new();
@@ -591,6 +604,9 @@ namespace EdgeDB
         {
             try
             {
+                _readySource = new();
+                _authCompleteSource = new();
+
                 await Duplexer.ResetAsync();
 
                 var stream = await GetStreamAsync().ConfigureAwait(false);
@@ -641,6 +657,10 @@ namespace EdgeDB
             await ConnectAsync().ConfigureAwait(false);
         }
 
+        /// <summary>
+        ///     Disconnects this client from the database.
+        /// </summary>
+        /// <remarks/> <!-- clears the remarks about calling base -->
         /// <inheritdoc/>
         public override async ValueTask DisconnectAsync()
         {
@@ -676,11 +696,29 @@ namespace EdgeDB
         #endregion
 
         #region Streams
+        /// <summary>
+        ///     Gets a stream that the binary client can write and read from.
+        /// </summary>
+        /// <returns>
+        ///     A task representing the asynchronous operation of opening or 
+        ///     initializing a stream; the result of the task is a stream the 
+        ///     binary client can use to read from/write to the database with.
+        /// </returns>
         protected abstract ValueTask<Stream> GetStreamAsync();
+
+        /// <summary>
+        ///     Closes the stream returned from <see cref="GetStreamAsync"/>.
+        /// </summary>
+        /// <returns>
+        ///     A task that represents the asynchronous closing operation of 
+        ///     the stream.
+        /// </returns>
         protected abstract ValueTask CloseStreamAsync();
         #endregion
 
         #region Client pool dispose
+        /// <remarks/> <!-- removes the remark about calling base -->
+        /// <inheritdoc/>
         public override async ValueTask<bool> DisposeAsync()
         {
             var shouldDispose = await base.DisposeAsync().ConfigureAwait(false);
@@ -695,6 +733,7 @@ namespace EdgeDB
         #endregion
 
         #region ITranactibleClient
+        /// <inheritdoc/>
         async Task ITransactibleClient.StartTransactionAsync(Isolation isolation, bool readOnly, bool deferrable)
         {
             var isolationMode = isolation switch
@@ -710,12 +749,15 @@ namespace EdgeDB
             await ExecuteInternalAsync($"start transaction isolation {isolationMode}, {readMode}, {deferMode}", capabilities: null).ConfigureAwait(false);
         }
 
+        /// <inheritdoc/>
         async Task ITransactibleClient.CommitAsync()
             => await ExecuteInternalAsync($"commit", capabilities: null).ConfigureAwait(false);
 
+        /// <inheritdoc/>
         async Task ITransactibleClient.RollbackAsync()
             => await ExecuteInternalAsync($"rollback", capabilities: null).ConfigureAwait(false);
 
+        /// <inheritdoc/>
         TransactionState ITransactibleClient.TransactionState => TransactionState;
         #endregion
     }

@@ -10,13 +10,13 @@ namespace EdgeDB.Models
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#preparecomplete">Prepare Complete</see> packet
     /// </summary>
-    public readonly struct PrepareComplete : IReceiveable
+    public readonly struct ParseComplete : IReceiveable
     {
         public const int CAPBILITIES_HEADER = 0x1001;
 
         /// <inheritdoc/>
         public ServerMessageType Type 
-            => ServerMessageType.PrepareComplete;
+            => ServerMessageType.ParseComplete;
 
         /// <summary>
         ///     Gets the allowed capabilities that the command will actually use.
@@ -38,7 +38,7 @@ namespace EdgeDB.Models
         /// </summary>
         public Guid OutputTypedescId { get; }
 
-        internal PrepareComplete(PacketReader reader)
+        internal ParseComplete(PacketReader reader)
         {
             var headers = reader.ReadHeaders();
             Capabilities = null;

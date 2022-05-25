@@ -10,10 +10,16 @@ namespace EdgeDB.Models
     /// <summary>
     ///     https://www.edgedb.com/docs/reference/protocol/messages#prepare
     /// </summary>
-    internal class Prepare : Sendable
+    internal class Parse : Sendable
     {
+        public const int IMPLICIT_LIMITS = 0xFF01;
+        public const int IMPLICIT_TYPENAMES = 0xFF02;
+        public const int IMPLICIT_TYPEIDS = 0xFF03;
+        public const int ALLOW_CAPABILITIES = 0xFF04;
+        public const int EXPLICIT_OBJECTIDS = 0xFF05;
+
         public override ClientMessageTypes Type 
-            => ClientMessageTypes.Prepare;
+            => ClientMessageTypes.Parse;
 
         /// <summary>
         ///     Implicit limit for objects returned.
@@ -62,7 +68,7 @@ namespace EdgeDB.Models
             {
                 headers.Add(new Header
                 {
-                    Code = 0xFF01,
+                    Code = IMPLICIT_LIMITS,
                     Value = Encoding.UTF8.GetBytes($"{ImplicitLimit.Value}")
                 });
             }
@@ -71,8 +77,8 @@ namespace EdgeDB.Models
             {
                 headers.Add(new Header
                 {
-                    Code = 0xFF02,
-                    Value = ICodec.GetScalarCodec<bool>()!.Serialize(ImplicitTypeNames.Value)
+                    Code = IMPLICIT_TYPENAMES,
+                    Value = ICodec.GetScalarCodec<string>()!.Serialize(ImplicitTypeNames.Value.ToString())
                 });
             }
 
@@ -80,8 +86,8 @@ namespace EdgeDB.Models
             {
                 headers.Add(new Header
                 {
-                    Code = 0xFF03,
-                    Value = ICodec.GetScalarCodec<bool>()!.Serialize(ImplicitTypeIds.Value)
+                    Code = IMPLICIT_TYPEIDS,
+                    Value = ICodec.GetScalarCodec<string>()!.Serialize(ImplicitTypeIds.Value.ToString())
                 });
             }
 
@@ -89,7 +95,7 @@ namespace EdgeDB.Models
             {
                 headers.Add(new Header
                 {
-                    Code = 0xFF04,
+                    Code = ALLOW_CAPABILITIES,
                     Value = ICodec.GetScalarCodec<long>()!.Serialize((long)Capabilities.Value)
                 });
             }
@@ -98,8 +104,8 @@ namespace EdgeDB.Models
             {
                 headers.Add(new Header
                 {
-                    Code = 0xFF05,
-                    Value = ICodec.GetScalarCodec<bool>()!.Serialize(ExplicitObjectIds.Value)
+                    Code = EXPLICIT_OBJECTIDS,
+                    Value = ICodec.GetScalarCodec<string>()!.Serialize(ExplicitObjectIds.Value.ToString())
                 });
             }
 

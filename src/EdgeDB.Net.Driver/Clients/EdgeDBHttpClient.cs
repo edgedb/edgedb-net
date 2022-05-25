@@ -98,7 +98,6 @@ namespace EdgeDB
         /// </summary>
         public readonly Uri Uri;
         
-        private readonly EdgeDBConfig _config;
         private readonly EdgeDBConnection _connection;
         private readonly HttpClient _httpClient;
         private readonly AsyncEvent<Func<HttpQueryResult, ValueTask>> _onQuery = new();
@@ -123,7 +122,6 @@ namespace EdgeDB
             : base(clientId)
         {
             _logger = config.Logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
-            _config = config;
             _connection = connection;
             Uri = new($"http{(connection.TLSSecurity != TLSSecurityMode.Insecure ? "s" : "")}://{connection.Hostname}:{connection.Port}/db/{connection.Database}/edgeql");
 
@@ -162,16 +160,17 @@ namespace EdgeDB
             }
         }
 
-        /// <inheritdoc/>
         /// <remarks>
         ///     This function does nothing for the <see cref="EdgeDBHttpClient"/>.
         /// </remarks>
+        /// <inheritdoc/>
         public override ValueTask DisconnectAsync()
             => default;
 
         /// <remarks>
         ///     This function does nothing for the <see cref="EdgeDBHttpClient"/>.
         /// </remarks>
+        /// <inheritdoc/>
         public override ValueTask ConnectAsync() 
             => default;
 
@@ -196,12 +195,14 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
+        /// <exception cref="EdgeDBException">The server returned a status code other than 200.</exception>
         public override async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null)
         {
             await ExecuteInternalAsync(query, args).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
+        /// <exception cref="EdgeDBException">The server returned a status code other than 200.</exception>
         public override async Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null)
             where TResult : default
         {
@@ -215,6 +216,7 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
+        /// <exception cref="EdgeDBException">The server returned a status code other than 200.</exception>
         public override async Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
         {
             var result = await ExecuteInternalAsync(query, args);
@@ -231,6 +233,7 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
+        /// <exception cref="EdgeDBException">The server returned a status code other than 200.</exception>
         public override async Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
             where TResult : default
         {

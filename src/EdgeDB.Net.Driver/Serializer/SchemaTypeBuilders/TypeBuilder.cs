@@ -11,14 +11,26 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
+    /// <summary>
+    ///     Represents the class used to build types from edgedb query results.
+    /// </summary>
     public static class TypeBuilder
     {
+        /// <summary>
+        ///     Gets a collection of user-defined type builders.
+        /// </summary>
         public static IReadOnlyDictionary<Type, SchemaTypeInfo> CustomTypeBuilders
             => _customTypeBuilders.ToImmutableDictionary();
 
         internal static ConcurrentDictionary<Type, SchemaTypeInfo> _customTypeBuilders = new();
         internal static ConcurrentDictionary<Type, SchemaTypeInfo> _typeInfo = new();
 
+        /// <summary>
+        ///     Adds or updates a custom type builder.
+        /// </summary>
+        /// <typeparam name="TType">The type of which the builder will build.</typeparam>
+        /// <param name="builder">The builder for <typeparamref name="TType"/>.</param>
+        /// <returns>The type info for <typeparamref name="TType"/>.</returns>
         public static SchemaTypeInfo AddOrUpdateCustomTypeBuilder<TType>(Action<TType, IDictionary<string, object?>> builder)
         {
             var info = new SchemaTypeInfo(typeof(TType));
@@ -26,6 +38,14 @@ namespace EdgeDB
             return _customTypeBuilders.AddOrUpdate(typeof(TType), info, (_, __) => info);
         }
 
+        /// <summary>
+        ///     Attempts to remove a custom type builder.
+        /// </summary>
+        /// <typeparam name="TType">The type of which to remove the builder.</typeparam>
+        /// <param name="info">The info of the builder if it was successfully removed.</param>
+        /// <returns>
+        ///     <see langword="true"/> if the type builder was removed; otherwise <see langword="false"/>.
+        /// </returns>
         public static bool TryRemoveCustomTypeBuilder<TType>([MaybeNullWhen(false)] out SchemaTypeInfo info)
             => _customTypeBuilders.TryRemove(typeof(TType), out info); 
 
@@ -70,11 +90,32 @@ namespace EdgeDB
         }
     }
 
-    public class SchemaTypeInfo
+    /// <summary>
+    ///     Represents type info used by a <see cref="TypeBuilder"/>.
+    /// </summary>
+    public sealed class SchemaTypeInfo
     {
-        public Type ObjectType { get; set; }
-        public Action<object, IDictionary<string, object?>>? CustomBuilder { get; set; }
+        /// <summary>
+        ///     Gets the underlying object type that this type info represents.
+        /// </summary>
+        public Type ObjectType { get; }
+
+        /// <summary>
+        ///     Gets the custom builder or <see langword="null"/> if no custom builder is specified.
+        /// </summary>
+        public Action<object, IDictionary<string, object?>>? CustomBuilder { get; internal set; }
+
+        /// <summary>
+        ///     Gets whether or not the types constructor is the builder.
+        /// </summary>
         public bool ConstructorIsBuilder { get; private set; }
+
+        /// <summary>
+        ///     Gets a dictionary mapping the schemas type's property name to the 
+        ///     <see cref="ObjectType"/>'s property info.
+        /// </summary>
+        public IReadOnlyDictionary<string, PropertyInfo> PropertyMap
+            => _propertyMap.ToImmutableDictionary();
 
         private Dictionary<string, PropertyInfo> _propertyMap;
         internal SchemaTypeInfo(Type type)
@@ -91,7 +132,14 @@ namespace EdgeDB
             ConstructorIsBuilder = type.GetConstructor(new Type[] { typeof(IDictionary<string, object?>) })?.GetCustomAttribute<EdgeDBDeserializerAttribute>() != null;
         }
 
-        internal object? Create(IDictionary<string, object?> rawValue)
+        /// <summary>
+        ///     Creates an instance of the <see cref="ObjectType"/> and sets its 
+        ///     properties with the specified query result.
+        /// </summary>
+        /// <param name="rawValue">The query result containing the objects properties.</param>
+        /// <returns>An instance of <see cref="ObjectType"/>.</returns>
+        /// <exception cref="TargetInvocationException">Failed to create an instance of the <see cref="ObjectType"/>.</exception>
+        public object? Create(IDictionary<string, object?> rawValue)
         {
             if (ConstructorIsBuilder)
                 return Activator.CreateInstance(ObjectType, rawValue);

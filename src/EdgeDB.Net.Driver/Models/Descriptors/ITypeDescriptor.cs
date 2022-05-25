@@ -12,8 +12,6 @@ namespace EdgeDB.Models
 
         Guid Id { get; }
 
-        void Read(PacketReader reader);
-
         public static ITypeDescriptor GetDescriptor(PacketReader reader)
         {
             var type = (DescriptorType)reader.ReadByte();
@@ -21,15 +19,15 @@ namespace EdgeDB.Models
 
             ITypeDescriptor? descriptor = type switch
             {
-                DescriptorType.ArrayTypeDescriptor => new ArrayTypeDescriptor { Id = id },
-                DescriptorType.BaseScalarTypeDescriptor => new BaseScalarTypeDescriptor { Id = id },
-                DescriptorType.EnumerationTypeDescriptor => new EnumerationTypeDescriptor { Id = id },
-                DescriptorType.NamedTupleDescriptor => new NamedTupleTypeDescriptor { Id = id },
-                DescriptorType.ObjectShapeDescriptor => new ObjectShapeDescriptor { Id = id },
-                DescriptorType.ScalarTypeDescriptor => new ScalarTypeDescriptor { Id = id },
-                DescriptorType.ScalarTypeNameAnnotation => new ScalarTypeNameAnnotation { Id = id },
-                DescriptorType.SetDescriptor => new SetDescriptor { Id = id },
-                DescriptorType.TupleTypeDescriptor => new TupleTypeDescriptor { Id = id },
+                DescriptorType.ArrayTypeDescriptor => new ArrayTypeDescriptor(id, reader),
+                DescriptorType.BaseScalarTypeDescriptor => new BaseScalarTypeDescriptor(id),
+                DescriptorType.EnumerationTypeDescriptor => new EnumerationTypeDescriptor(id, reader),
+                DescriptorType.NamedTupleDescriptor => new NamedTupleTypeDescriptor(id, reader),
+                DescriptorType.ObjectShapeDescriptor => new ObjectShapeDescriptor(id, reader),
+                DescriptorType.ScalarTypeDescriptor => new ScalarTypeDescriptor(id, reader),
+                DescriptorType.ScalarTypeNameAnnotation => new ScalarTypeNameAnnotation(id, reader),
+                DescriptorType.SetDescriptor => new SetDescriptor(id, reader),
+                DescriptorType.TupleTypeDescriptor => new TupleTypeDescriptor(id, reader),
                 _ => null
             };
 
@@ -39,13 +37,11 @@ namespace EdgeDB.Models
 
                 if (rawType >= 0x80 && rawType <= 0xfe)
                 {
-                    descriptor = new TypeAnnotationDescriptor { Id = id, Type = type };
+                    descriptor = new TypeAnnotationDescriptor(type, id, reader);
                 }
                 else
                     throw new InvalidDataException($"No descriptor found for type {type}");
             }
-
-            descriptor.Read(reader);
 
             return descriptor;
         }

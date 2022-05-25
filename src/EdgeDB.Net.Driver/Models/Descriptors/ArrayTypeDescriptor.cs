@@ -6,31 +6,34 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    internal struct ArrayTypeDescriptor : ITypeDescriptor
+    internal readonly struct ArrayTypeDescriptor : ITypeDescriptor
     {
         public DescriptorType Type 
             => DescriptorType.ArrayTypeDescriptor;
 
-        public Guid Id { get; set; }
+        public readonly Guid Id; 
 
-        public ushort TypePos { get; set; }
+        public readonly ushort TypePos;
 
-        public uint[] Dimensions { get; set; }
+        public readonly uint[] Dimensions;
 
-        public void Read(PacketReader reader)
+        public ArrayTypeDescriptor(Guid id, PacketReader reader)
         {
+            Id = id;
             TypePos = reader.ReadUInt16();
 
             var count = reader.ReadUInt16();
 
             uint[] dimensions = new uint[count];
 
-            for(int i = 0; i != count; i++)
+            for (int i = 0; i != count; i++)
             {
                 dimensions[i] = reader.ReadUInt32();
             }
 
             Dimensions = dimensions;
         }
+
+        Guid ITypeDescriptor.Id => Id;
     }
 }

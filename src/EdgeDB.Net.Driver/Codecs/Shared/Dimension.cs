@@ -1,9 +1,9 @@
 ﻿namespace EdgeDB.Codecs
 {
-    internal struct Dimension
+    internal readonly struct Dimension
     {
-        public int Upper { get; set; }
+        public int Upper { get; init; }
 
-        public int Lower { get; set; }
+        public int Lower { get; init; }
     }
 }

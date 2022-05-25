@@ -7,7 +7,5 @@ using System.Threading.Tasks;
 namespace EdgeDB
 {
     [AttributeUsage(AttributeTargets.Field)]
-    internal class ShouldReconnectAttribute : Attribute
-    {
-    }
+    internal class ShouldReconnectAttribute : Attribute { }
 }

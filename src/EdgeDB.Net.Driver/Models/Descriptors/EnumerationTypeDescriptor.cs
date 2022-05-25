@@ -6,27 +6,31 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    internal struct EnumerationTypeDescriptor : ITypeDescriptor
+    internal readonly struct EnumerationTypeDescriptor : ITypeDescriptor
     {
         public DescriptorType Type 
             => DescriptorType.EnumerationTypeDescriptor;
 
-        public Guid Id { get; set; }
+        public readonly Guid Id;
 
-        public string[] Members { get; set; }
+        public readonly string[] Members;
 
-        public void Read(PacketReader reader)
+        public EnumerationTypeDescriptor(Guid id, PacketReader reader)
         {
+            Id = id;
+
             var count = reader.ReadUInt16();
 
             string[] members = new string[count];
 
-            for (int i = 0; i != count; i++)
+            for (ushort i = 0; i != count; i++)
             {
                 members[i] = reader.ReadString();
             }
 
             Members = members;
         }
+
+        Guid ITypeDescriptor.Id => Id;
     }
 }

@@ -24,7 +24,8 @@ using var host = Host.CreateDefaultBuilder()
         {
             return new EdgeDBClient(new EdgeDBClientPoolConfig
             {
-                Logger = provider.GetService<ILoggerFactory>()!.CreateLogger("EdgeDB")
+                Logger = provider.GetService<ILoggerFactory>()!.CreateLogger("EdgeDB"),
+                ExplicitObjectIds = true,
             });
         });
 

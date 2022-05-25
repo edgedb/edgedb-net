@@ -38,9 +38,7 @@
                 var elementLength = reader.ReadInt32();
                 var innerData = reader.ReadBytes(elementLength);
 
-                // TODO: optimize this stream creation?
-                using var innerReader = new PacketReader(innerData);
-                array[i] = _innerCodec.Deserialize(innerReader);
+                array[i] = _innerCodec.Deserialize(innerData);
             }
 
             return array;
@@ -51,7 +49,7 @@
             if(value is null)
             {
                 writer.Write(0);
-                writer.Write(0); // flags?
+                writer.Write(0); // flags
                 writer.Write(0); // reserved
                 writer.Write(0); // zero upper
                 writer.Write(1); // one lower
@@ -77,7 +75,7 @@
             }
 
             writer.Write(1); // dimensions
-            writer.Write(0); // flags?
+            writer.Write(0); // flags
             writer.Write(0); // reserved
 
             // dimension (our length for upper and 1 for lower)

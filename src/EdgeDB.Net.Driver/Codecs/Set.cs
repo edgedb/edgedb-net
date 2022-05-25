@@ -93,7 +93,7 @@
                 var elementLength = reader.ReadInt32();
 
                 if (elementLength is -1)
-                    result[i] = default; // TODO: better 'null' value handling?
+                    result[i] = default;
                 else
                     result[i] = _innerCodec.Deserialize(reader);
             }

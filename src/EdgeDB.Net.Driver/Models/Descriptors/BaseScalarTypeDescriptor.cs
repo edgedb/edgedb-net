@@ -6,16 +6,18 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    internal struct BaseScalarTypeDescriptor : ITypeDescriptor
+    internal readonly struct BaseScalarTypeDescriptor : ITypeDescriptor
     {
         public DescriptorType Type 
             => DescriptorType.BaseScalarTypeDescriptor;
 
-        public Guid Id { get; set; }
+        public readonly Guid Id;
 
-        public void Read(PacketReader reader)
+        public BaseScalarTypeDescriptor(Guid id)
         {
-            // do nothing, the ITypeDescriptor fills our id field.
+            Id = id;
         }
+
+        Guid ITypeDescriptor.Id => Id;
     }
 }

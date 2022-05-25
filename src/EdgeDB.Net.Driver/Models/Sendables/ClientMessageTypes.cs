@@ -17,7 +17,7 @@ namespace EdgeDB.Models
 		ExecuteScript = 0x51,
 		Flush = 0x48,
 		OptimisticExecute = 0x4f,
-		Prepare = 0x50,
+		Parse = 0x50,
 		Restore = 0x3c,
 		RestoreBlock = 0x3d,
 		RestoreEOF = 0x2e,

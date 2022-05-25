@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
-    internal class PacketWriter : BinaryWriter
+    internal unsafe class PacketWriter : BinaryWriter
     {
         public PacketWriter()
             : base(new MemoryStream())
@@ -40,7 +40,6 @@ namespace EdgeDB
 
         public void Write(PacketWriter value, int offset = 0)
         {
-            // block copy data to other stream
             value.BaseStream.Position = offset;
             value.BaseStream.CopyTo(base.BaseStream);
         }
@@ -54,7 +53,6 @@ namespace EdgeDB
         public void Write(Guid value)
         {
             var bytes = HexConverter.FromHex(value.ToString().Replace("-", ""));
-
             Write(bytes);
         }
 
@@ -68,48 +66,70 @@ namespace EdgeDB
                 Write((uint)buffer.Length);
                 Write(buffer);
             }
-
         }
 
         public override void Write(double value)
         {
-            Write(BitConverter.GetBytes(value).Reverse().ToArray());
+            var span = new Span<byte>((byte*)&value, sizeof(double));
+            if (BitConverter.IsLittleEndian)
+                span.Reverse();
+            Write(span);
         }
 
         public override void Write(float value)
         {
-            Write(BitConverter.GetBytes(value).Reverse().ToArray());
+            var span = new Span<byte>((byte*)&value, sizeof(float));
+            if (BitConverter.IsLittleEndian)
+                span.Reverse();
+            Write(span);
         }
 
         public override void Write(uint value)
         {
-            Write(BitConverter.GetBytes(value).Reverse().ToArray());
+            var span = new Span<byte>((byte*)&value, sizeof(uint));
+            if (BitConverter.IsLittleEndian)
+                span.Reverse();
+            Write(span);
         }
 
         public override void Write(int value)
         {
-            Write(BitConverter.GetBytes(value).Reverse().ToArray());
+            var span = new Span<byte>((byte*)&value, sizeof(int));
+            if (BitConverter.IsLittleEndian)
+                span.Reverse();
+            Write(span);
         }
 
         public override void Write(ulong value)
         {
-            Write(BitConverter.GetBytes(value).Reverse().ToArray());
+            var span = new Span<byte>((byte*)&value, sizeof(ulong));
+            if (BitConverter.IsLittleEndian)
+                span.Reverse();
+            Write(span);
         }
 
         public override void Write(long value)
         {
-            var a = BitConverter.GetBytes(value).Reverse().ToArray(); 
-            Write(a);
+            var span = new Span<byte>((byte*)&value, sizeof(long));
+            if (BitConverter.IsLittleEndian)
+                span.Reverse();
+            Write(span);
         }
 
         public override void Write(short value)
         {
-            Write(BitConverter.GetBytes(value).Reverse().ToArray());
+            var span = new Span<byte>((byte*)&value, sizeof(short));
+            if (BitConverter.IsLittleEndian)
+                span.Reverse();
+            Write(span);
         }
 
         public override void Write(ushort value)
         {
-            Write(BitConverter.GetBytes(value).Reverse().ToArray());
+            var span = new Span<byte>((byte*)&value, sizeof(ushort));
+            if (BitConverter.IsLittleEndian)
+                span.Reverse();
+            Write(span);
         }
 
         public void WriteArray(byte[] buffer)

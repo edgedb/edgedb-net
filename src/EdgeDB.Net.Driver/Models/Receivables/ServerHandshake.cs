@@ -44,9 +44,7 @@ namespace EdgeDB.Models
 
             for (int i = 0; i != numExtensions; i++)
             {
-                var extension = new ProtocolExtension();
-                extension.Read(reader);
-                extensions[i] = extension;
+                extensions[i] = new ProtocolExtension(reader);
             }
 
             _extensions = extensions;

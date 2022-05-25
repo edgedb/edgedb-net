@@ -6,15 +6,20 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    internal struct TypeAnnotationDescriptor : ITypeDescriptor
+    internal readonly struct TypeAnnotationDescriptor : ITypeDescriptor
     {
-        public DescriptorType Type { get; set; }
-        public Guid Id { get; set; }
-        public string Annotation { get; set; }
+        public readonly DescriptorType Type;
+        public readonly Guid Id;
+        public readonly string Annotation;
 
-        public void Read(PacketReader reader)
+        public TypeAnnotationDescriptor(DescriptorType type, Guid id, PacketReader reader)
         {
+            Type = type;
+            Id = id;
             Annotation = reader.ReadString();
         }
+
+        DescriptorType ITypeDescriptor.Type => Type;
+        Guid ITypeDescriptor.Id => Id;
     }
 }

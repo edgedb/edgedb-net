@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    internal struct ConnectionParam
+    internal readonly struct ConnectionParam
     {
-        public string Name { get; set; }
+        public string Name { get; init; }
 
-        public string Value { get; set; }
+        public string Value { get; init; }
 
         public void Write(PacketWriter writer)
         {

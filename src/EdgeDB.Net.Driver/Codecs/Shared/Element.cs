@@ -1,11 +1,11 @@
 ﻿namespace EdgeDB.Codecs
 {
-    internal struct Element
+    internal readonly struct Element
     {
-        public int Reserved { get; set; }
+        public int Reserved { get; init; }
 
-        public int Length { get; set; }
+        public int Length { get; init; }
 
-        public byte[] Data { get; set; }
+        public byte[] Data { get; init; }
     }
 }

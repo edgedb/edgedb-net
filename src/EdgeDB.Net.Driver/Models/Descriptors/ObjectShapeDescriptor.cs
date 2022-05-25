@@ -6,17 +6,19 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Models
 {
-    internal struct ObjectShapeDescriptor : ITypeDescriptor
+    internal readonly struct ObjectShapeDescriptor : ITypeDescriptor
     {
         public DescriptorType Type 
             => DescriptorType.ObjectShapeDescriptor;
 
-        public Guid Id { get; set; }
+        public readonly Guid Id;
 
-        public ShapeElement[] Shapes { get; set; }
+        public readonly ShapeElement[] Shapes;
 
-        public void Read(PacketReader reader)
+        public ObjectShapeDescriptor(Guid id, PacketReader reader)
         {
+            Id = id;
+
             var elementCount = reader.ReadUInt16();
 
             ShapeElement[] shapes = new ShapeElement[elementCount];
@@ -38,14 +40,16 @@ namespace EdgeDB.Models
 
             Shapes = shapes;
         }
+
+        Guid ITypeDescriptor.Id => Id;
     }
 
-    internal struct ShapeElement
+    internal readonly struct ShapeElement
     {
-        public ShapeElementFlags Flags { get; set; }
-        public Cardinality Cardinality { get; set; }
-        public string Name { get; set; }
-        public ushort TypePos { get; set; }
+        public readonly ShapeElementFlags Flags { get; init; }
+        public readonly Cardinality Cardinality { get; init; }
+        public readonly string Name { get; init; }
+        public readonly ushort TypePos { get; init; }
     }
 
     internal enum ShapeElementFlags : uint

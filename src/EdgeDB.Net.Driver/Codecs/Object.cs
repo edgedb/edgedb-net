@@ -42,11 +42,7 @@ namespace EdgeDB.Codecs
 
                 object? value;
 
-                // TODO: optimize?
-                using(var innerReader = new PacketReader(innerData))
-                {
-                    value = _innerCodecs[i].Deserialize(innerReader);
-                }
+                value = _innerCodecs[i].Deserialize(innerData);
 
                 dataDictionary.Add(name, value);
             }
@@ -94,7 +90,6 @@ namespace EdgeDB.Codecs
                     innerWriter.Write(elementBuff.Length);
                     innerWriter.Write(elementBuff);
                 }
-
             }
 
             writer.Write((int)innerWriter.BaseStream.Length + 4);

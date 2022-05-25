@@ -4,6 +4,7 @@ namespace EdgeDB
 {
     public static class ClientPoolExtensions
     {
+        #region Transactions
         /// <summary>
         ///     Returns true if the client pool supports transactions.
         /// </summary>
@@ -14,7 +15,6 @@ namespace EdgeDB
         public static bool SupportsTransactions(this EdgeDBClient client)
             => client.ClientType is EdgeDBClientType.Tcp;
 
-        #region Transactions
         /// <summary>
         ///     Creates a transaction and executes a callback with the transaction object.
         /// </summary>
@@ -88,16 +88,18 @@ namespace EdgeDB
         /// <param name="pool">The client pool on which to fetch a client from.</param>
         /// <param name="token">A token to cancel the operation with.</param>
         /// <returns>A stream containing the entire dumped database.</returns>
-        /// <exception cref="EdgeDBErrorException">The server sent an error message during the dumping process.</exception>
+        /// <exception cref="CustomClientException">
+        ///     The client returned from the client pool cannot be used to dump the 
+        ///     database.
+        /// </exception>
+        /// <exception cref="EdgeDBErrorException">
+        ///     The server sent an error message during the dumping process.
+        /// </exception>
         /// <exception cref="EdgeDBException">The server sent a mismatched packet.</exception>
         public static async Task<Stream?> DumpDatabaseAsync(this EdgeDBClient pool, CancellationToken token = default)
         {
-            await using var client = await pool.GetOrCreateClientAsync();
-
-            if(client is not EdgeDBBinaryClient binaryClient)
-                throw new EdgeDBException($"Cannot dump database with {pool.ClientType} clients");
-
-            return await binaryClient.DumpDatabaseAsync(token).ConfigureAwait(false);
+            await using var client = await pool.GetOrCreateClientAsync<EdgeDBBinaryClient>();
+            return await client.DumpDatabaseAsync(token).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -107,19 +109,67 @@ namespace EdgeDB
         /// <param name="stream">The stream containing the database dump.</param>
         /// <param name="token">A token to cancel the operation with.</param>
         /// <returns>The command complete packet received after restoring the database.</returns>
+        /// <exception cref="CustomClientException">
+        ///     The client returned from the client pool cannot be used to dump the 
+        ///     database.
+        /// </exception>
         /// <exception cref="EdgeDBException">
         ///     The server sent an invalid packet or the restore operation couldn't proceed 
         ///     due to the database not being empty.
         /// </exception>
-        /// <exception cref="EdgeDBErrorException">The server sent an error during the restore operation.</exception>
+        /// <exception cref="EdgeDBErrorException">
+        ///     The server sent an error during the restore operation.
+        /// </exception>
         public static async Task<CommandComplete> RestoreDatabaseAsync(this EdgeDBClient pool, Stream stream, CancellationToken token = default)
         {
-            await using var client = await pool.GetOrCreateClientAsync();
+            await using var client = await pool.GetOrCreateClientAsync<EdgeDBBinaryClient>();
+            return await client.RestoreDatabaseAsync(stream, token).ConfigureAwait(false);
+        }
+        #endregion
 
-            if (client is not EdgeDBBinaryClient binaryClient)
-                throw new EdgeDBException($"Cannot restore database with {pool.ClientType} clients");
+        #region Json queries
+        /// <summary>
+        ///     Executes a given query and returns the result as a single json string.
+        /// </summary>
+        /// <remarks>
+        ///     This method will pull a client from the client pool, if the pool is full 
+        ///     and all clients are in use this method can hang.
+        /// </remarks>
+        /// <param name="pool">The client pool on which to get a client from.</param>
+        /// <param name="query">The query to execute.</param>
+        /// <param name="args">Optional collection of arguments within the query.</param>
+        ///     A task representing the asynchronous query operation. The tasks result is 
+        ///     the json result of the query.
+        /// <exception cref="CustomClientException">
+        ///     The client returned from the pool doesn't support json querying.
+        /// </exception>
+        public static async Task<string> QueryJsonAsync(this EdgeDBClient pool, string query, IDictionary<string, object?>? args = null)
+        {
+            await using var client = await pool.GetOrCreateClientAsync<EdgeDBBinaryClient>().ConfigureAwait(false);
+            return await client.QueryJsonAsync(query, args).ConfigureAwait(false);
+        }
 
-            return await binaryClient.RestoreDatabaseAsync(stream, token).ConfigureAwait(false);
+        /// <summary>
+        ///     Executes a given query and returns the result as an array of json objects.
+        /// </summary>
+        /// <remarks>
+        ///     This method will pull a client from the client pool, if the pool is full 
+        ///     and all clients are in use this method can hang.
+        /// </remarks>
+        /// <param name="pool">The client pool on which to get a client from.</param>
+        /// <param name="query">The query to execute.</param>
+        /// <param name="args">Optional collection of arguments within the query.</param>
+        /// <returns>
+        ///     A task representing the asynchronous query operation. The tasks result is 
+        ///     the json result of the query.
+        /// </returns>
+        /// <exception cref="CustomClientException">
+        ///     The client returned from the pool doesn't support json querying.
+        /// </exception>
+        public static async Task<string[]> QueryJsonElementsAsync(this EdgeDBClient pool, string query, IDictionary<string, object?>? args = null)
+        {
+            await using var client = await pool.GetOrCreateClientAsync<EdgeDBBinaryClient>().ConfigureAwait(false);
+            return await client.QueryJsonElementsAsync(query, args).ConfigureAwait(false);
         }
         #endregion
     }

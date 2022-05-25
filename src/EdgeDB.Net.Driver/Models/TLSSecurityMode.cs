@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
+    /// <summary>
+    ///     Represents the TLS security mode the client will follow.
+    /// </summary>
     public enum TLSSecurityMode
     {
         /// <summary>
