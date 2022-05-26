@@ -76,7 +76,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents a client that can preform queries over HTTP.
     /// </summary>
-    public class EdgeDBHttpClient : BaseEdgeDBClient
+    public sealed class EdgeDBHttpClient : BaseEdgeDBClient
     {
         /// <summary>
         ///     Fired when a query is executed.
