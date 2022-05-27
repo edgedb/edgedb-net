@@ -45,6 +45,20 @@ namespace EdgeDB.ExampleApp.Examples
             public string? Email { get; set; }
         }
 
+        public interface IPerson
+        {
+            string Name { get; }
+
+            string Email { get; }
+        }
+
+        public class PersonImpl : IPerson
+        {
+            public string Name { get; init; } = string.Empty;
+
+            public string Email { get; init; } = string.Empty;
+        }
+
         public async Task ExecuteAsync(EdgeDBClient client)
         {
             // Define our queries
@@ -55,11 +69,22 @@ namespace EdgeDB.ExampleApp.Examples
             await client.ExecuteAsync(insertQuery).ConfigureAwait(false);
 
             // Define a custom deserializer for the 'PersonGlobal' type
-            TypeBuilder.AddOrUpdateCustomTypeBuilder<PersonGlobal>((person, data) =>
+            TypeBuilder.AddOrUpdateTypeBuilder<PersonGlobal>((person, data) =>
             {
                 Logger?.LogInformation("Custom deserializer was called");
                 person.Name = (string)data["name"]!;
                 person.Email = (string)data["email"]!;
+            });
+
+            // Define a custom creator for the 'PersonImmutable' type
+            TypeBuilder.AddOrUpdateTypeFactory<IPerson>(data =>
+            {
+                Logger?.LogInformation("Custom factory was called");
+                return new PersonImpl
+                {
+                    Email = (string)data["email"]!,
+                    Name = (string)data["name"]!
+                };
             });
 
             // should call the constructor to deserialize
@@ -68,13 +93,16 @@ namespace EdgeDB.ExampleApp.Examples
             // should call the 'PersonBuilder' method to deserialize
             var johnMethod = await client.QueryRequiredSingleAsync<PersonMethod>(selectQuery).ConfigureAwait(false);
 
-            // should call the global method defined on line 58 to deserialize
+            // should call the global method defined on line 72 to deserialize
             var johnGlobal = await client.QueryRequiredSingleAsync<PersonGlobal>(selectQuery).ConfigureAwait(false);
-            
+
+            // should call the global factory defined on line 80 to deserialize
+            var johnImmutable = await client.QueryRequiredSingleAsync<IPerson>(selectQuery).ConfigureAwait(false);
 
             Logger?.LogInformation("Globally defined deserializer: {@Person}", johnGlobal);
             Logger?.LogInformation("Constructor deserializer: {@Person}", johnConstructor);
             Logger?.LogInformation("Method defined deserializer {@Person}", johnMethod);
+            Logger?.LogInformation("Factory defined deserializer {@Person}", johnImmutable);
         }
     }
 }

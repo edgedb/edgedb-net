@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EdgeDB
 {
@@ -16,14 +10,7 @@ namespace EdgeDB
     /// </summary>
     public static class TypeBuilder
     {
-        /// <summary>
-        ///     Gets a collection of user-defined type builders.
-        /// </summary>
-        public static IReadOnlyDictionary<Type, SchemaTypeInfo> CustomTypeBuilders
-            => _customTypeBuilders.ToImmutableDictionary();
-
-        internal static ConcurrentDictionary<Type, SchemaTypeInfo> _customTypeBuilders = new();
-        internal static ConcurrentDictionary<Type, SchemaTypeInfo> _typeInfo = new();
+        internal static ConcurrentDictionary<Type, Func<IDictionary<string, object?>, object>> _typeInfo = new();
 
         /// <summary>
         ///     Adds or updates a custom type builder.
@@ -31,39 +18,71 @@ namespace EdgeDB
         /// <typeparam name="TType">The type of which the builder will build.</typeparam>
         /// <param name="builder">The builder for <typeparamref name="TType"/>.</param>
         /// <returns>The type info for <typeparamref name="TType"/>.</returns>
-        public static SchemaTypeInfo AddOrUpdateCustomTypeBuilder<TType>(Action<TType, IDictionary<string, object?>> builder)
+        public static void AddOrUpdateTypeBuilder<TType>(
+            Action<TType, IDictionary<string, object?>> builder)
         {
-            var info = new SchemaTypeInfo(typeof(TType));
-            info.CustomBuilder = (inst, data) => builder((TType)inst, data);
-            return _customTypeBuilders.AddOrUpdate(typeof(TType), info, (_, __) => info);
+            object Factory(IDictionary<string, object?> raw)
+            {
+                var instance = Activator.CreateInstance<TType>();
+
+                if (instance is null)
+                    throw new TargetInvocationException($"Cannot create an instance of {typeof(TType).Name}", null);
+
+                builder(instance, raw);
+
+                return instance;
+            }
+
+            _typeInfo.AddOrUpdate(typeof(TType), Factory, (_, _) => Factory);
         }
 
         /// <summary>
-        ///     Attempts to remove a custom type builder.
+        ///     Adds or updates a custom type factory.
         /// </summary>
-        /// <typeparam name="TType">The type of which to remove the builder.</typeparam>
-        /// <param name="info">The info of the builder if it was successfully removed.</param>
+        /// <typeparam name="TType">The type of which the factory will build.</typeparam>
+        /// <param name="factory">The factory for <typeparamref name="TType"/>.</param>
+        /// <returns>The type info for <typeparamref name="TType"/>.</returns>
+        public static void AddOrUpdateTypeFactory<TType>(
+            Func<IDictionary<string, object?>, TType> factory)
+        {
+            object Factory(IDictionary<string, object?> data) => factory(data) ??
+                                                                 throw new TargetInvocationException(
+                                                                     $"Cannot create an instance of {typeof(TType).Name}",
+                                                                     null);
+
+            _typeInfo.AddOrUpdate(typeof(TType), Factory, (_, _) => Factory);
+        }
+
+        /// <summary>
+        ///     Attempts to remove a type factory.
+        /// </summary>
+        /// <typeparam name="TType">The type of which to remove the factory.</typeparam>
         /// <returns>
-        ///     <see langword="true"/> if the type builder was removed; otherwise <see langword="false"/>.
+        ///     <see langword="true"/> if the type factory was removed; otherwise <see langword="false"/>.
         /// </returns>
-        public static bool TryRemoveCustomTypeBuilder<TType>([MaybeNullWhen(false)] out SchemaTypeInfo info)
-            => _customTypeBuilders.TryRemove(typeof(TType), out info); 
+        public static bool TryRemoveTypeFactory<TType>(out Func<IDictionary<string, object?>, object>? factory)
+            => _typeInfo.TryRemove(typeof(TType), out factory);
 
         internal static object? BuildObject(Type type, IDictionary<string, object?> raw)
         {
             if (!IsValidObjectType(type))
                 throw new InvalidOperationException($"Cannot use {type.Name} to deserialize to");
 
-            var info = _typeInfo.GetOrAdd(type, (_) => new SchemaTypeInfo(type));
+            var factory = _typeInfo.GetOrAdd(type, CreateDefaultFactory);
 
-            return info.Create(raw);
+            return factory(raw);
         }
 
         internal static bool IsValidObjectType(Type type)
         {
+            // check if we know already how to build this type
+            if (_typeInfo.ContainsKey(type))
+                return true;
+
             // check constructor for builder
             var validConstructor = type.GetConstructor(Array.Empty<Type>()) != null ||
-                                   type.GetConstructor(new Type[] { typeof(IDictionary<string, object?>) })?.GetCustomAttribute<EdgeDBDeserializerAttribute>() != null;
+                                   type.GetConstructor(new Type[] { typeof(IDictionary<string, object?>) })
+                                       ?.GetCustomAttribute<EdgeDBDeserializerAttribute>() != null;
 
             return (type.IsClass || type.IsValueType) && !type.IsSealed && validConstructor;
         }
@@ -78,6 +97,65 @@ namespace EdgeDB
             return builder != null;
         }
 
+        private static Func<IDictionary<string, object?>, object> CreateDefaultFactory(Type type)
+        {
+            // if type has custom method builder
+            if (type.TryGetCustomBuilder(out var methodInfo))
+            {
+                return (data) =>
+                {
+                    var instance = Activator.CreateInstance(type);
+
+                    if (instance is null)
+                        throw new TargetInvocationException($"Cannot create an instance of {type.Name}", null);
+
+                    methodInfo!.Invoke(instance, new object[] { data });
+
+                    return instance;
+                };
+            }
+
+            // if type has custom constructor factory
+            var constructorIsBuilder = type.GetConstructor(new Type[] { typeof(IDictionary<string, object?>) })
+                ?.GetCustomAttribute<EdgeDBDeserializerAttribute>() != null;
+
+            if (constructorIsBuilder)
+                return (data) => Activator.CreateInstance(type, data) ??
+                                 throw new TargetInvocationException($"Cannot create an instance of {type.Name}", null);
+
+            // fallback to reflection factory
+            var propertyMap = type.GetPropertyMap();
+
+            return data =>
+            {
+                var instance = Activator.CreateInstance(type);
+
+                if (instance is null)
+                    throw new TargetInvocationException($"Cannot create an instance of {type.Name}", null);
+
+                foreach (var prop in propertyMap)
+                {
+                    if (data.TryGetValue(prop.Key, out var value))
+                    {
+                        var valueType = value?.GetType();
+
+                        if (valueType == null)
+                            continue;
+
+                        if (valueType.IsAssignableTo(prop.Value.PropertyType))
+                        {
+                            prop.Value.SetValue(instance, value);
+                            continue;
+                        }
+
+                        prop.Value.SetValue(instance, prop.Value.PropertyType.ConvertValue(value));
+                    }
+                }
+
+                return instance;
+            };
+        }
+
         private static object CreateDynamicList(Array arr, Type elementType)
         {
             var listType = typeof(List<>).MakeGenericType(elementType);
@@ -88,108 +166,20 @@ namespace EdgeDB
 
             return inst;
         }
-    }
 
-    /// <summary>
-    ///     Represents type info used by a <see cref="TypeBuilder"/>.
-    /// </summary>
-    public sealed class SchemaTypeInfo
-    {
-        /// <summary>
-        ///     Gets the underlying object type that this type info represents.
-        /// </summary>
-        public Type ObjectType { get; }
-
-        /// <summary>
-        ///     Gets the custom builder or <see langword="null"/> if no custom builder is specified.
-        /// </summary>
-        public Action<object, IDictionary<string, object?>>? CustomBuilder { get; internal set; }
-
-        /// <summary>
-        ///     Gets whether or not the types constructor is the builder.
-        /// </summary>
-        public bool ConstructorIsBuilder { get; private set; }
-
-        /// <summary>
-        ///     Gets a dictionary mapping the schemas type's property name to the 
-        ///     <see cref="ObjectType"/>'s property info.
-        /// </summary>
-        public IReadOnlyDictionary<string, PropertyInfo> PropertyMap
-            => _propertyMap.ToImmutableDictionary();
-
-        private Dictionary<string, PropertyInfo> _propertyMap;
-        internal SchemaTypeInfo(Type type)
-        {
-            ObjectType = type;
-
-            _propertyMap = GetPropertyMap();
-
-            if(TryGetCustomBuilder(out var methodInfo))
-            {
-                CustomBuilder = (inst, data) => methodInfo!.Invoke(inst, new object[] { data });
-            }
-
-            ConstructorIsBuilder = type.GetConstructor(new Type[] { typeof(IDictionary<string, object?>) })?.GetCustomAttribute<EdgeDBDeserializerAttribute>() != null;
-        }
-
-        /// <summary>
-        ///     Creates an instance of the <see cref="ObjectType"/> and sets its 
-        ///     properties with the specified query result.
-        /// </summary>
-        /// <param name="rawValue">The query result containing the objects properties.</param>
-        /// <returns>An instance of <see cref="ObjectType"/>.</returns>
-        /// <exception cref="TargetInvocationException">Failed to create an instance of the <see cref="ObjectType"/>.</exception>
-        public object? Create(IDictionary<string, object?> rawValue)
-        {
-            if (ConstructorIsBuilder)
-                return Activator.CreateInstance(ObjectType, rawValue);
-
-            var instance = Activator.CreateInstance(ObjectType);
-
-            if (instance is null)
-                throw new TargetInvocationException($"Cannot create an instance of {ObjectType.Name}", null);
-
-            if (CustomBuilder is not null)
-            {
-                CustomBuilder(instance, rawValue);
-                return instance;
-            }
-
-            foreach(var prop in _propertyMap)
-            {
-                if (rawValue.TryGetValue(prop.Key, out var value))
-                {
-                    var valueType = value?.GetType();
-
-                    if (valueType == null)
-                        continue;
-
-                    if (valueType.IsAssignableTo(prop.Value.PropertyType))
-                    {
-                        prop.Value.SetValue(instance, value);
-                        continue;
-                    }
-
-                    prop.Value.SetValue(instance, ConvertValue(prop.Value.PropertyType, value));
-                }
-            }
-
-            return instance;
-        }
-
-        private object? ConvertValue(Type target, object? value)
+        internal static object? ConvertValue(this Type target, object? value)
         {
             // is it a link?
             if (value is IDictionary<string, object?> obj)
             {
-                if (TypeBuilder.IsValidObjectType(target))
+                if (IsValidObjectType(target))
                 {
-                    return TypeBuilder.BuildObject(target, obj);
+                    return BuildObject(target, obj);
                 }
             }
 
             // is it an array or can we return an array enumerable?
-            if (TypeBuilder.TryGetCollectionParser(target, out var builder) || target.IsArray)
+            if (TryGetCollectionParser(target, out var builder) || target.IsArray)
             {
                 var innerType = target.IsArray
                     ? target.GetElementType()!
@@ -211,16 +201,17 @@ namespace EdgeDB
             throw new NoTypeConverter(target, value?.GetType() ?? typeof(object));
         }
 
-        private bool TryGetCustomBuilder(out MethodInfo? info)
+        internal static bool TryGetCustomBuilder(this Type objectType, out MethodInfo? info)
         {
             info = null;
-            var method = ObjectType.GetMethods().FirstOrDefault(x =>
+            var method = objectType.GetMethods().FirstOrDefault(x =>
             {
                 if (x.GetCustomAttribute<EdgeDBDeserializerAttribute>() != null && x.ReturnType == typeof(void))
                 {
                     var parameters = x.GetParameters();
 
-                    return parameters.Length == 1 && parameters[0].ParameterType == typeof(IDictionary<string, object?>);
+                    return parameters.Length == 1 &&
+                           parameters[0].ParameterType == typeof(IDictionary<string, object?>);
                 }
 
                 return false;
@@ -230,14 +221,16 @@ namespace EdgeDB
             return method is not null;
         }
 
-        private Dictionary<string, PropertyInfo> GetPropertyMap()
+        internal static Dictionary<string, PropertyInfo> GetPropertyMap(this Type objectType)
         {
-            var properties = ObjectType.GetProperties().Where(x =>
+            var properties = objectType.GetProperties().Where(x =>
                 x.CanWrite &&
                 x.GetCustomAttribute<EdgeDBIgnoreAttribute>() == null &&
                 x.SetMethod != null);
 
-            return properties.ToDictionary(x => x.GetCustomAttribute<EdgeDBPropertyAttribute>()?.Name ?? x.Name,x => x);
+            return properties.ToDictionary(
+                x => x.GetCustomAttribute<EdgeDBPropertyAttribute>()?.Name ?? x.Name,
+                x => x);
         }
     }
 }
