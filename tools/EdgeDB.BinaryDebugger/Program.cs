@@ -1,14 +1,11 @@
 ﻿using EdgeDB;
 using EdgeDB.BinaryDebugger;
 
-var connection = EdgeDBConnection.ResolveConnection();
-var config = new EdgeDBConfig();
-
 var client = new EdgeDBClient(new EdgeDBClientPoolConfig
 {
-    ClientFactory = async (id) =>
+    ClientFactory = async (id, conn, conf) =>
     {
-        var client = new DebuggerClient(connection, config, id);
+        var client = new DebuggerClient(conn, conf, id);
         await client.ConnectAsync();
         return client;
     },

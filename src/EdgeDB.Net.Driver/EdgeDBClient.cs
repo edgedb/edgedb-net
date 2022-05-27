@@ -67,7 +67,7 @@ namespace EdgeDB
         private readonly EdgeDBConnection _connection;
         private readonly EdgeDBClientPoolConfig _config;
         private ConcurrentStack<BaseEdgeDBClient> _availableClients;
-        private ConcurrentDictionary<ulong, BaseEdgeDBClient> _clients; 
+        private readonly ConcurrentDictionary<ulong, BaseEdgeDBClient> _clients; 
         private bool _isInitialized;
         private Dictionary<string, object?> _edgedbConfig;
         private uint _poolSize;
@@ -75,7 +75,7 @@ namespace EdgeDB
         private readonly object _clientsLock = new();
         private readonly SemaphoreSlim _initSemaphore;
         private readonly SemaphoreSlim _clientWaitSemaphore;
-        private readonly Func<ulong, ValueTask<BaseEdgeDBClient>>? _clientFactory;
+        private readonly Func<ulong, EdgeDBConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? _clientFactory;
 
         private ulong _clientIndex;
         private int _totalClients;
@@ -383,7 +383,7 @@ namespace EdgeDB
                     }
                 case EdgeDBClientType.Custom when _clientFactory is not null:
                     {
-                        var client = await _clientFactory(id).ConfigureAwait(false)!;
+                        var client = await _clientFactory(id, _connection, _config).ConfigureAwait(false)!;
 
                         client.OnDisposed += async (c) =>
                         {

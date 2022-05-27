@@ -20,7 +20,7 @@ namespace EdgeDB
         /// <remarks>
         ///     The <see cref="ClientType"/> must be <see cref="EdgeDBClientType.Custom"/> to use this property.
         /// </remarks>
-        public Func<ulong, ValueTask<BaseEdgeDBClient>>? ClientFactory { get; set; }
+        public Func<ulong, EdgeDBConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? ClientFactory { get; set; }
     }
 
     public enum EdgeDBClientType

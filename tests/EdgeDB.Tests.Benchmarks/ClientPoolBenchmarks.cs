@@ -18,7 +18,7 @@ namespace EdgeDB.Tests.Benchmarks
             ClientPool = new EdgeDBClient(new EdgeDBClientPoolConfig
             {
                 ClientType = EdgeDBClientType.Custom,
-                ClientFactory = (id) => ValueTask.FromResult<BaseEdgeDBClient>(new MockedEdgeDBClient(id)),
+                ClientFactory = (id, _, _) => ValueTask.FromResult<BaseEdgeDBClient>(new MockedEdgeDBClient(id)),
                 DefaultPoolSize = 100
             });
         }
