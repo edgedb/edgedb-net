@@ -10,37 +10,37 @@ namespace EdgeDB.Models
     ///     Represents a bitfield of capabilities used when executing commands.
     /// </summary>
     [Flags]
-    public enum AllowCapabilities : ulong
+    public enum Capabilities : ulong
     {
         /// <summary>
         ///     The default value for capabilities.
         /// </summary>
-        ReadOnly = 1 << 0,
+        ReadOnly = 0,
 
         /// <summary>
         ///     The query is not read only.
         /// </summary>
-        Modifications = 1 << 1,
+        Modifications = 1 << 0,
 
         /// <summary>
         ///     The query contains session config changes.
         /// </summary>
-        SessionConfig = 1 << 2,
+        SessionConfig = 1 << 1,
 
         /// <summary>
         ///     The query contains transaction manipulations.
         /// </summary>
-        Transaction = 1 << 3,
+        Transaction = 1 << 2,
 
         /// <summary>
         ///     The query contains DDL.
         /// </summary>
-        DDL = 1 << 4,
+        DDL = 1 << 3,
 
         /// <summary>
         ///     The command changes serve ror database configs.
         /// </summary>
-        PersistantConfig = 1 << 5,
+        PersistantConfig = 1 << 4,
 
         /// <summary>
         ///     Represents all capabilities except <see cref="ReadOnly"/>

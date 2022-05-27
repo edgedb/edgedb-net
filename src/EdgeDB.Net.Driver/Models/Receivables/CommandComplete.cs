@@ -21,7 +21,7 @@ namespace EdgeDB.Models
         /// <summary>
         ///     Gets the used capabilities within the completed command.
         /// </summary>
-        public AllowCapabilities? UsedCapabilities { get; }
+        public Capabilities? UsedCapabilities { get; }
 
         /// <summary>
         ///     Gets the status of the completed command.
@@ -37,7 +37,7 @@ namespace EdgeDB.Models
             {
                 if (headers[i].Code == CAPBILITIES_HEADER)
                 {
-                    UsedCapabilities = (AllowCapabilities)ICodec.GetScalarCodec<long>()!.Deserialize(headers[i].Value);
+                    UsedCapabilities = (Capabilities)ICodec.GetScalarCodec<long>()!.Deserialize(headers[i].Value);
                 }
             }
 

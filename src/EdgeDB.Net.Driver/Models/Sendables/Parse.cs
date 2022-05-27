@@ -42,7 +42,7 @@ namespace EdgeDB.Models
         /// <summary>
         ///     Optional bitmask of capabilities allowed for this query. See RFC1004 for more information.
         /// </summary>
-        public AllowCapabilities? Capabilities { get; set; }
+        public Capabilities? Capabilities { get; set; }
 
         /// <summary>
         ///     If set to “true” returned objects will not have an implicit id property i.e. query shapes will have to explicitly list id properties.

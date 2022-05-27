@@ -11,7 +11,7 @@ namespace EdgeDB.Models
         public override ClientMessageTypes Type 
             => ClientMessageTypes.Execute;
 
-        public AllowCapabilities Capabilities { get; set; }
+        public Capabilities Capabilities { get; set; }
 
         public string? PreparedStatementName { get; set; }
 

@@ -21,7 +21,7 @@ namespace EdgeDB.Models
         /// <summary>
         ///     Gets the allowed capabilities that the command will actually use.
         /// </summary>
-        public AllowCapabilities? Capabilities { get; }
+        public Capabilities? Capabilities { get; }
 
         /// <summary>
         ///     Gets the cardinality the command will return.
@@ -46,7 +46,7 @@ namespace EdgeDB.Models
             {
                 if (headers[i].Code == CAPBILITIES_HEADER)
                 {
-                    Capabilities = (AllowCapabilities)ICodec.GetScalarCodec<long>()!.Deserialize(headers[i].Value);
+                    Capabilities = (Capabilities)ICodec.GetScalarCodec<long>()!.Deserialize(headers[i].Value);
                 }
             }
 

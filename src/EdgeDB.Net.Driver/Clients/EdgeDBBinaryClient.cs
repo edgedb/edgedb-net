@@ -128,7 +128,7 @@ namespace EdgeDB
         /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         internal async Task<RawExecuteResult> ExecuteInternalAsync(string query, IDictionary<string, object?>? args = null, Cardinality? card = null,
-            AllowCapabilities? capabilities = AllowCapabilities.ReadOnly, IOFormat format = IOFormat.Binary, bool isRetry = false)
+            Capabilities? capabilities = Capabilities.ReadOnly, IOFormat format = IOFormat.Binary, bool isRetry = false)
         {
             await _semaphore.WaitAsync(DisconnectCancelToken).ConfigureAwait(false);
 
@@ -232,7 +232,7 @@ namespace EdgeDB
 
                 var executeResult = await Duplexer.DuplexAndSyncAsync(new Execute() 
                 { 
-                    Capabilities = (result.Capabilities ?? capabilities) ?? AllowCapabilities.Modifications, 
+                    Capabilities = (result.Capabilities ?? capabilities) ?? Capabilities.Modifications, 
                     Arguments = argumentCodec.SerializeArguments(args) 
                 }, handler).ConfigureAwait(false);
 
@@ -746,7 +746,7 @@ namespace EdgeDB
 
             var deferMode = $"{(!deferrable ? "not " : "")}deferrable";
 
-            await ExecuteInternalAsync($"start transaction isolation {isolationMode}, {readMode}, {deferMode}", capabilities: null).ConfigureAwait(false);
+            await ExecuteInternalAsync($"start transaction isolation {isolationMode}, {readMode}, {deferMode}", capabilities: Capabilities.Transaction).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
