@@ -163,18 +163,21 @@ namespace EdgeDB
         /// <remarks>
         ///     This function does nothing for the <see cref="EdgeDBHttpClient"/>.
         /// </remarks>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
         /// <inheritdoc/>
-        public override ValueTask DisconnectAsync()
+        public override ValueTask DisconnectAsync(CancellationToken token = default)
             => default;
 
         /// <remarks>
         ///     This function does nothing for the <see cref="EdgeDBHttpClient"/>.
         /// </remarks>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
         /// <inheritdoc/>
-        public override ValueTask ConnectAsync() 
+        public override ValueTask ConnectAsync(CancellationToken token = default) 
             => default;
 
-        private async Task<HttpQueryResult> ExecuteInternalAsync(string query, IDictionary<string, object?>? args = null)
+        private async Task<HttpQueryResult> ExecuteInternalAsync(string query, IDictionary<string, object?>? args = null, 
+            CancellationToken token = default)
         {
             var content = new StringContent(JsonConvert.SerializeObject(new QueryPostBody()
             {
@@ -182,12 +185,12 @@ namespace EdgeDB
                 Variables = args
             }, new JsonSerializerSettings() { NullValueHandling = NullValueHandling.Ignore }), Encoding.UTF8, "application/json");
 
-            var httpResult = await _httpClient.PostAsync(Uri, content).ConfigureAwait(false);
+            var httpResult = await _httpClient.PostAsync(Uri, content, token).ConfigureAwait(false);
 
             if (!httpResult.IsSuccessStatusCode)
                 throw new EdgeDBException($"Failed to execute HTTP query, got {httpResult.StatusCode}");
 
-            var json = await httpResult.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var json = await httpResult.Content.ReadAsStringAsync(token).ConfigureAwait(false);
 
             var result = JsonConvert.DeserializeObject<HttpQueryResult>(json)!;
             await InvokeResultEventAsync(result).ConfigureAwait(false);
@@ -196,17 +199,19 @@ namespace EdgeDB
 
         /// <inheritdoc/>
         /// <exception cref="EdgeDBException">The server returned a status code other than 200.</exception>
-        public override async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null)
+        public override async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null, 
+            CancellationToken token = default)
         {
-            await ExecuteInternalAsync(query, args).ConfigureAwait(false);
+            await ExecuteInternalAsync(query, args, token).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         /// <exception cref="EdgeDBException">The server returned a status code other than 200.</exception>
-        public override async Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null)
+        public override async Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null,
+            CancellationToken token = default)
             where TResult : default
         {
-            var result = await ExecuteInternalAsync(query, args);
+            var result = await ExecuteInternalAsync(query, args, token);
 
             if (result.Data is null)
                 return Array.Empty<TResult?>();
@@ -217,9 +222,10 @@ namespace EdgeDB
 
         /// <inheritdoc/>
         /// <exception cref="EdgeDBException">The server returned a status code other than 200.</exception>
-        public override async Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
+        public override async Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null,
+            CancellationToken token = default)
         {
-            var result = await ExecuteInternalAsync(query, args);
+            var result = await ExecuteInternalAsync(query, args, token);
 
             if (result.Data is null)
                 throw new MissingRequiredException();
@@ -234,10 +240,11 @@ namespace EdgeDB
 
         /// <inheritdoc/>
         /// <exception cref="EdgeDBException">The server returned a status code other than 200.</exception>
-        public override async Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
+        public override async Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null,
+            CancellationToken token = default)
             where TResult : default
         {
-            var result = await ExecuteInternalAsync(query, args);
+            var result = await ExecuteInternalAsync(query, args, token);
 
             if (result.Data is null)
                 return default;

@@ -42,12 +42,12 @@ namespace EdgeDB.BinaryDebugger
             Writer = new StreamWriter(FileStream, Encoding.UTF8);
         }
 
-        protected override async ValueTask<Stream> GetStreamAsync()
+        protected override async ValueTask<Stream> GetStreamAsync(CancellationToken token = default)
         {
 
             _tcpClient = new TcpClient();
 
-            var timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(DisconnectCancelToken);
+            var timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(DisconnectCancelToken, token);
 
             timeoutToken.CancelAfter(ConnectionTimeout);
 
@@ -143,7 +143,7 @@ namespace EdgeDB.BinaryDebugger
 
             if (_isReadingBody)
             {
-                _packetBody.AddRange(buffer);
+                _packetBody!.AddRange(buffer);
 
                 if (_packetBody.Count >= _packetLength - 4)
                 {
@@ -169,7 +169,7 @@ namespace EdgeDB.BinaryDebugger
                              $"Offset: {offset}\n");
         }
 
-        protected override ValueTask CloseStreamAsync()
+        protected override ValueTask CloseStreamAsync(CancellationToken token = default)
         {
             _proxy?.Close();
             FileStream.Close();

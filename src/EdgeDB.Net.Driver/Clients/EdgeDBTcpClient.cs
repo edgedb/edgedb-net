@@ -39,11 +39,11 @@ namespace EdgeDB
             _tcpClient = new();
         }
 
-        protected override async ValueTask<Stream> GetStreamAsync()
+        protected override async ValueTask<Stream> GetStreamAsync(CancellationToken token)
         {
             _tcpClient = new TcpClient();
 
-            var timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(DisconnectCancelToken);
+            var timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(DisconnectCancelToken, token);
 
             timeoutToken.CancelAfter(ConnectionTimeout);
 
@@ -92,7 +92,7 @@ namespace EdgeDB
             return _secureStream;
         }
 
-        protected override ValueTask CloseStreamAsync()
+        protected override ValueTask CloseStreamAsync(CancellationToken token)
         {
             _tcpClient.Close();
             return ValueTask.CompletedTask;

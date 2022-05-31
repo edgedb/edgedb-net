@@ -249,7 +249,7 @@ namespace EdgeDB
 
             var reader = new DumpReader();
 
-            var count = await client.QueryRequiredSingleAsync<long>("select count(schema::Module filter not .builtin and not .name = \"default\") + count(schema::Object filter .name like \"default::%\")").ConfigureAwait(false);
+            var count = await client.QueryRequiredSingleAsync<long>("select count(schema::Module filter not .builtin and not .name = \"default\") + count(schema::Object filter .name like \"default::%\")", token: token).ConfigureAwait(false);
 
             if (count > 0)
                 throw new InvalidOperationException("Cannot restore: Database isn't empty");

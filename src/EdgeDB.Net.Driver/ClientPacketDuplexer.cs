@@ -56,9 +56,9 @@ namespace EdgeDB
             _readTask = Task.Run(async () => await ReadAsync());
         }
 
-        public async ValueTask DisconnectAsync()
+        public async ValueTask DisconnectAsync(CancellationToken token = default)
         {
-            await SendAsync(packets: new Terminate()).ConfigureAwait(false);
+            await SendAsync(token, packets: new Terminate()).ConfigureAwait(false);
             _disconnectTokenSource.Cancel();
             await _onDisconnected.InvokeAsync().ConfigureAwait(false);
         }

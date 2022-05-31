@@ -87,20 +87,23 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
-        public Task ExecuteAsync(string query, IDictionary<string, object?>? args = null)
-            => ExecuteInternalAsync(() => _client.ExecuteAsync(query, args));
+        public Task ExecuteAsync(string query, IDictionary<string, object?>? args = null, CancellationToken token = default)
+            => ExecuteInternalAsync(() => _client.ExecuteAsync(query, args, token));
 
         /// <inheritdoc/>
-        public Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null)
-            => ExecuteInternalAsync(() => _client.QueryAsync<TResult>(query, args));
+        public Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null,
+            CancellationToken token = default)
+            => ExecuteInternalAsync(() => _client.QueryAsync<TResult>(query, args, token));
 
         /// <inheritdoc/>
-        public Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
-            => ExecuteInternalAsync(() => _client.QuerySingleAsync<TResult>(query, args));
+        public Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null,
+            CancellationToken token = default)
+            => ExecuteInternalAsync(() => _client.QuerySingleAsync<TResult>(query, args, token));
 
         /// <inheritdoc/>
-        public Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
-            => ExecuteInternalAsync(() => _client.QueryRequiredSingleAsync<TResult>(query, args));
+        public Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null,
+            CancellationToken token = default)
+            => ExecuteInternalAsync(() => _client.QueryRequiredSingleAsync<TResult>(query, args, token));
     }
 
     public sealed class TransactionSettings

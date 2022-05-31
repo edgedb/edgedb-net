@@ -134,16 +134,17 @@ namespace EdgeDB
         ///     Initializes the client pool as well as retrives the server config from edgedb if 
         ///     the clients within the pool support it.
         /// </summary>
-        public async Task InitializeAsync()
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
+        public async Task InitializeAsync(CancellationToken token = default)
         {
-            await _initSemaphore.WaitAsync().ConfigureAwait(false);
+            await _initSemaphore.WaitAsync(token).ConfigureAwait(false);
 
             try
             {
                 if (_isInitialized)
                     return;
 
-                await using var client = await GetOrCreateClientAsync().ConfigureAwait(false);
+                await using var client = await GetOrCreateClientAsync(token).ConfigureAwait(false);
                 
                 if(client is EdgeDBBinaryClient binaryClient)
                 {
@@ -166,14 +167,15 @@ namespace EdgeDB
         /// <remarks>
         ///     This task will run all <see cref="BaseEdgeDBClient.DisconnectAsync"/> methods in parallel.
         /// </remarks>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
         /// <returns>The total number of clients disconnected.</returns>
-        public async Task<int> DisconnectAllAsync()
+        public async Task<int> DisconnectAllAsync(CancellationToken token = default)
         {
-            await _clientWaitSemaphore.WaitAsync().ConfigureAwait(false);
+            await _clientWaitSemaphore.WaitAsync(token).ConfigureAwait(false);
 
             try
             {
-                var clients = _clients.Select(x => x.Value.DisconnectAsync().AsTask()).ToArray();
+                var clients = _clients.Select(x => x.Value.DisconnectAsync(token).AsTask()).ToArray();
                 await Task.WhenAll(clients);
                 return clients.Length;
             }
@@ -184,55 +186,46 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
-        public async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null)
+        public async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null, CancellationToken token = default)
         {
             if (!_isInitialized)
-                await InitializeAsync().ConfigureAwait(false);
+                await InitializeAsync(token).ConfigureAwait(false);
 
-            await using var client = await GetOrCreateClientAsync().ConfigureAwait(false);
-            await client.ExecuteAsync(query, args).ConfigureAwait(false);
+            await using var client = await GetOrCreateClientAsync(token).ConfigureAwait(false);
+            await client.ExecuteAsync(query, args, token).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
-        public async Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null)
+        public async Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null,
+            CancellationToken token = default)
         {
             if (!_isInitialized)
-                await InitializeAsync().ConfigureAwait(false);
+                await InitializeAsync(token).ConfigureAwait(false);
 
-            IReadOnlyCollection<TResult?>? result = ImmutableArray<TResult>.Empty;
-            await using (var client = await GetOrCreateClientAsync().ConfigureAwait(false))
-            {
-                result = await client.QueryAsync<TResult>(query, args).ConfigureAwait(false);
-            }
-            return result;
+            await using var client = await GetOrCreateClientAsync(token).ConfigureAwait(false);
+            return await client.QueryAsync<TResult>(query, args, token).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
-        public async Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
+        public async Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null,
+            CancellationToken token = default)
         {
             if (!_isInitialized)
-                await InitializeAsync().ConfigureAwait(false);
+                await InitializeAsync(token).ConfigureAwait(false);
 
-            TResult? result = default;
-            await using (var client = await GetOrCreateClientAsync().ConfigureAwait(false))
-            {
-                result = await client.QuerySingleAsync<TResult>(query, args).ConfigureAwait(false);
-            }
-            return result;
+            await using var client = await GetOrCreateClientAsync(token).ConfigureAwait(false);
+            return await client.QuerySingleAsync<TResult>(query, args, token).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
-        public async Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
+        public async Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null,
+            CancellationToken token = default)
         {
             if (!_isInitialized)
-                await InitializeAsync().ConfigureAwait(false);
+                await InitializeAsync(token).ConfigureAwait(false);
 
-            TResult result;
-            await using (var client = await GetOrCreateClientAsync().ConfigureAwait(false))
-            {
-                result = await client.QueryRequiredSingleAsync<TResult>(query, args).ConfigureAwait(false);
-            }
-            return result;
+            await using var client = await GetOrCreateClientAsync(token).ConfigureAwait(false);
+            return await client.QueryRequiredSingleAsync<TResult>(query, args, token).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -247,15 +240,16 @@ namespace EdgeDB
         ///     will return that client to this client pool.
         /// </remarks>
         /// <typeparam name="TClient">The type of client to get.</typeparam>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
         /// <returns>
         ///     A task that represents the asynchonous operation of getting an available client. The tasks
         ///     result is a client of type <typeparamref name="TClient"/>.
         /// </returns>
         /// <exception cref="CustomClientException">The client returned cannot be assigned to <typeparamref name="TClient"/>.</exception>
-        public async ValueTask<TClient> GetOrCreateClientAsync<TClient>()
+        public async ValueTask<TClient> GetOrCreateClientAsync<TClient>(CancellationToken token = default)
             where TClient : BaseEdgeDBClient
         {
-            var client = await GetOrCreateClientAsync();
+            var client = await GetOrCreateClientAsync(token);
             if (client is TClient clientTyped)
                 return clientTyped;
             throw new CustomClientException($"{typeof(TClient).Name} is not type of {client.GetType().Name}");
@@ -272,11 +266,12 @@ namespace EdgeDB
         ///     Disposing the returned client with the <see cref="EdgeDBTcpClient.DisposeAsync"/> method
         ///     will return that client to this client pool.
         /// </remarks>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
         /// <returns>
         ///     A task that represents the asynchonous operation of getting an available client. The tasks
         ///     result is a <see cref="BaseEdgeDBClient"/> instance.
         /// </returns>
-        public async ValueTask<BaseEdgeDBClient> GetOrCreateClientAsync()
+        public async ValueTask<BaseEdgeDBClient> GetOrCreateClientAsync(CancellationToken token = default)
         {
             // try get an available client ready for commands
             if (_availableClients.TryPop(out var result))
@@ -287,7 +282,7 @@ namespace EdgeDB
             // try to get a disconnected client that can be connected again
             if((result = _clients.FirstOrDefault(x => !x.Value.IsConnected).Value) != null)
             {
-                await result.ConnectAsync().ConfigureAwait(false);
+                await result.ConnectAsync(token).ConfigureAwait(false);
                 return result;
             }
 
@@ -296,11 +291,15 @@ namespace EdgeDB
 
             if (_totalClients >= _poolSize)
             {
-                await _clientWaitSemaphore.WaitAsync().ConfigureAwait(false);
+                await _clientWaitSemaphore.WaitAsync(token).ConfigureAwait(false);
 
                 try
                 {
-                    return SpinWait.SpinUntil(() => _availableClients.TryPop(out result), (int)_config.ConnectionTimeout)
+                    return SpinWait.SpinUntil(() =>
+                    {
+                        token.ThrowIfCancellationRequested();
+                        return _availableClients.TryPop(out result);
+                    }, (int)_config.ConnectionTimeout)
                         ? result!
                         : throw new TimeoutException($"Couldn't find a client after {_config.ConnectionTimeout}ms");
                 }
@@ -313,11 +312,11 @@ namespace EdgeDB
             {
                 var numClients = Interlocked.Increment(ref _totalClients);
 
-                return await CreateClientAsync(clientIndex).ConfigureAwait(false);
+                return await CreateClientAsync(clientIndex, token).ConfigureAwait(false);
             }
         }
 
-        private async ValueTask<BaseEdgeDBClient> CreateClientAsync(ulong id)
+        private async ValueTask<BaseEdgeDBClient> CreateClientAsync(ulong id, CancellationToken token = default)
         {
             switch (_config.ClientType)
             {
@@ -341,7 +340,7 @@ namespace EdgeDB
 
                         client.QueryExecuted += (i) => _queryExecuted.InvokeAsync(i);
 
-                        await client.ConnectAsync().ConfigureAwait(false);
+                        await client.ConnectAsync(token).ConfigureAwait(false);
 
                         client.OnDisposed += async (c) =>
                         {

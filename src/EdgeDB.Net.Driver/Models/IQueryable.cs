@@ -17,10 +17,12 @@ namespace EdgeDB
         /// </summary>
         /// <param name="query">The query to execute.</param>
         /// <param name="args">Any arguments that are part of the query.</param>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
         /// <returns>
         ///     A task representing the asynchronous execute operation.
         /// </returns>
-        Task ExecuteAsync(string query, IDictionary<string, object?>? args = null);
+        Task ExecuteAsync(string query, IDictionary<string, object?>? args = null, 
+            CancellationToken token = default);
 
         /// <summary>
         ///     Executes a given query and returns the result as a collection.
@@ -31,11 +33,13 @@ namespace EdgeDB
         /// </remarks>
         /// <param name="query">The query to execute.</param>
         /// <param name="args">Any arguments that are part of the query.</param>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
         /// <returns>
         ///     A task representing the asynchronous query operation. The result 
         ///     of the task is the result of the query.
         /// </returns>
-        Task<IReadOnlyCollection<object?>> QueryAsync(string query, IDictionary<string, object?>? args = null)
+        Task<IReadOnlyCollection<object?>> QueryAsync(string query, IDictionary<string, object?>? args = null, 
+            CancellationToken token = default)
             => QueryAsync<object>(query, args);
 
         /// <summary>
@@ -48,11 +52,13 @@ namespace EdgeDB
         /// <typeparam name="TResult">The type of the return result of the query.</typeparam>
         /// <param name="query">The query to execute.</param>
         /// <param name="args">Any arguments that are part of the query.</param>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
         /// <returns>
         ///     A task representing the asynchronous query operation. The result 
         ///     of the task is the result of the query.
         /// </returns>
-        Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null);
+        Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null, 
+            CancellationToken token = default);
 
         /// <summary>
         ///     Executes a given query and returns a single result or <see langword="null"/>.
@@ -63,11 +69,13 @@ namespace EdgeDB
         /// </remarks>
         /// <param name="query">The query to execute.</param>
         /// <param name="args">Any arguments that are part of the query.</param>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
         /// <returns>
         ///     A task representing the asynchronous query operation. The result 
         ///     of the task is the result of the query.
         /// </returns>
-        Task<object?> QuerySingleAsync(string query, IDictionary<string, object?>? args = null)
+        Task<object?> QuerySingleAsync(string query, IDictionary<string, object?>? args = null, 
+            CancellationToken token = default)
             => QuerySingleAsync<object>(query, args);
 
         /// <summary>
@@ -80,11 +88,13 @@ namespace EdgeDB
         /// <typeparam name="TResult">The return type of the query.</typeparam>
         /// <param name="query">The query to execute.</param>
         /// <param name="args">Any arguments that are part of the query.</param>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
         /// <returns>
         ///     A task representing the asynchronous query operation. The result 
         ///     of the task is the result of the query.
         /// </returns>
-        Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null);
+        Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null, 
+            CancellationToken token = default);
 
         /// <summary>
         ///     Executes a given query and returns a single result.
@@ -95,11 +105,13 @@ namespace EdgeDB
         /// </remarks>
         /// <param name="query">The query to execute.</param>
         /// <param name="args">Any arguments that are part of the query.</param>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
         /// <returns>
         ///     A task representing the asynchronous query operation. The result 
         ///     of the task is the result of the query.
         /// </returns>
-        Task<object> QueryRequiredSingleAsync(string query, IDictionary<string, object?>? args = null)
+        Task<object> QueryRequiredSingleAsync(string query, IDictionary<string, object?>? args = null, 
+            CancellationToken token = default)
             => QueryRequiredSingleAsync<object>(query, args);
 
         /// <summary>
@@ -112,10 +124,12 @@ namespace EdgeDB
         /// <typeparam name="TResult">The return type of the query.</typeparam>
         /// <param name="query">The query to execute.</param>
         /// <param name="args">Any arguments that are part of the query.</param>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
         /// <returns>
         ///     A task representing the asynchronous query operation. The result 
         ///     of the task is the result of the query.
         /// </returns>
-        Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null);
+        Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null, 
+            CancellationToken token = default);
     }
 }

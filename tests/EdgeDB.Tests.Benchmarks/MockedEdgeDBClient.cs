@@ -8,36 +8,26 @@ namespace EdgeDB.Tests.Benchmarks
 {
     public class MockedEdgeDBClient : BaseEdgeDBClient
     {
-        public MockedEdgeDBClient(ulong clientId) : base(clientId) { }
-
         public override bool IsConnected => true;
 
-        public override ValueTask ConnectAsync()
-            => ValueTask.CompletedTask;
-
-        public override ValueTask DisconnectAsync()
-            => ValueTask.CompletedTask;
-
-        public override Task ExecuteAsync(string query, IDictionary<string, object?>? args = null)
+        public MockedEdgeDBClient(ulong id)
+            : base(id)
         {
-            return Task.CompletedTask;
+
         }
 
-        public override Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null)
+        public override Task ExecuteAsync(string query, IDictionary<string, object?>? args = null, CancellationToken token = default)
+            => Task.CompletedTask;
+
+        public override Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null, CancellationToken token = default)
             where TResult : default
-        {
-            return Task.FromResult<IReadOnlyCollection<TResult?>>(Array.Empty<TResult?>());
-        }
+            => Task.FromResult<IReadOnlyCollection<TResult?>>(Array.Empty<TResult>());
 
-        public override Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
-        {
-            return Task.FromResult<TResult>(default!);
-        }
+        public override Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null, CancellationToken token = default)
+            => Task.FromResult<TResult>(default!);
 
-        public override Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null)
+        public override Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null, CancellationToken token = default)
             where TResult : default
-        {
-            return Task.FromResult<TResult?>(default);
-        }
+            => Task.FromResult<TResult?>(default);
     }
 }
