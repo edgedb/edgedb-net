@@ -15,7 +15,7 @@ namespace EdgeDB.Models
 
         public readonly ShapeElement[] Shapes;
 
-        public ObjectShapeDescriptor(Guid id, PacketReader reader)
+        public ObjectShapeDescriptor(Guid id, ref PacketReader reader)
         {
             Id = id;
 

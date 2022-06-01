@@ -1,5 +1,6 @@
 ﻿using EdgeDB.Models;
 using EdgeDB.Utils;
+using System.Buffers;
 using System.Collections.Concurrent;
 
 namespace EdgeDB
@@ -72,11 +73,8 @@ namespace EdgeDB
 
             try
             {
-                while (Connected)
+                while (!_disconnectTokenSource.IsCancellationRequested)
                 {
-                    if (_disconnectTokenSource.IsCancellationRequested)
-                        return;
-
                     if (_stream == null)
                         return;
 
@@ -96,7 +94,9 @@ namespace EdgeDB
                         ? BitConverter.ToInt32(packetHeaderBuffer.Reverse().ToArray(), 0)
                         : BitConverter.ToInt32(packetHeaderBuffer, 1)) - 4; // length includes self
 
-                    byte[] buffer = new byte[length];
+                    using var memoryOwner = MemoryPool<byte>.Shared.Rent(length);
+                    var buffer = memoryOwner.Memory[..length];
+
                     if (await _stream.ReadAsync(buffer, _disconnectTokenSource.Token).ConfigureAwait(false) != length)
                     {
                         // disconnected

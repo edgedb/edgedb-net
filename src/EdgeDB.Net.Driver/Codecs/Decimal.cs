@@ -4,7 +4,7 @@
     {
         public const decimal NBASE = 10000;
 
-        public decimal Deserialize(PacketReader reader)
+        public decimal Deserialize(ref PacketReader reader)
         {
             var numDigits = reader.ReadUInt16();
             var weight = reader.ReadInt16();

@@ -28,7 +28,8 @@ namespace EdgeDB.Models
 
         internal ServerKeyData(PacketReader reader)
         {
-            KeyBuffer = reader.ReadBytes(SERVER_KEY_LENGTH);
+            reader.ReadBytes(SERVER_KEY_LENGTH, out var buff);
+            KeyBuffer = buff.ToArray();
         }
     }
 }

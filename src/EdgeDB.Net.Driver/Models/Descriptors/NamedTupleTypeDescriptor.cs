@@ -15,7 +15,7 @@ namespace EdgeDB.Models
 
         public readonly TupleElement[] Elements;
 
-        public NamedTupleTypeDescriptor(Guid id, PacketReader reader)
+        public NamedTupleTypeDescriptor(Guid id, ref PacketReader reader)
         {
             Id = id;
 

@@ -128,7 +128,7 @@ namespace EdgeDB
         /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         internal async Task<RawExecuteResult> ExecuteInternalAsync(string query, IDictionary<string, object?>? args = null, Cardinality? card = null,
-            Capabilities? capabilities = Capabilities.ReadOnly, IOFormat format = IOFormat.Binary, bool isRetry = false, 
+            Capabilities? capabilities = Capabilities.Modifications, IOFormat format = IOFormat.Binary, bool isRetry = false, 
             CancellationToken token = default)
         {
             var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, DisconnectCancelToken).Token;
@@ -169,14 +169,12 @@ namespace EdgeDB
 
                     if (outCodec is null)
                     {
-                        using var innerReader = new PacketReader(descriptor.Value.OutputTypeDescriptorBuffer);
-                        outCodec = PacketSerializer.BuildCodec(descriptor.Value.OutputTypeDescriptorId, innerReader);
+                        outCodec = PacketSerializer.BuildCodec(descriptor.Value.OutputTypeDescriptorId, descriptor.Value.OutputTypeDescriptorBuffer);
                     }
 
                     if (inCodec is null)
                     {
-                        using var innerReader = new PacketReader(descriptor.Value.InputTypeDescriptorBuffer);
-                        inCodec = PacketSerializer.BuildCodec(descriptor.Value.InputTypeDescriptorId, innerReader);
+                        inCodec = PacketSerializer.BuildCodec(descriptor.Value.InputTypeDescriptorId, descriptor.Value.InputTypeDescriptorBuffer);
                     }
                 }
 
@@ -527,30 +525,28 @@ namespace EdgeDB
                         break;
 
                     case "system_config":
-                        using (var reader = new PacketReader(status.ValueBuffer))
-                        {
-                            var length = reader.ReadInt32() - 16;
-                            var descriptorId = reader.ReadGuid();
-                            var typeDesc = reader.ReadBytes(length);
+                        var reader = new PacketReader(status.ValueBuffer.AsSpan());
+                        var length = reader.ReadInt32() - 16;
+                        var descriptorId = reader.ReadGuid();
+                        reader.ReadBytes(length, out var typeDesc);
 
-                            ICodec? codec = PacketSerializer.GetCodec(descriptorId);
+                        ICodec? codec = PacketSerializer.GetCodec(descriptorId);
+
+                        if (codec is null)
+                        {
+                            var innerReader = new PacketReader(ref typeDesc);
+                            codec = PacketSerializer.BuildCodec(descriptorId, ref innerReader);
 
                             if (codec is null)
-                            {
-                                using var innerReader = new PacketReader(typeDesc);
-                                codec = PacketSerializer.BuildCodec(descriptorId, innerReader);
-
-                                if (codec is null)
-                                    throw new MissingCodecException("Failed to build codec for system_config", descriptorId, status.ValueBuffer);
-                            }
-
-                            // disard length
-                            reader.ReadUInt32();
-
-                            var obj = codec.Deserialize(reader)!;
-
-                            RawServerConfig = ((ExpandoObject)obj).ToDictionary(x => x.Key, x => x.Value);
+                                throw new MissingCodecException("Failed to build codec for system_config", descriptorId, status.ValueBuffer);
                         }
+
+                        // disard length
+                        reader.ReadUInt32();
+
+                        var obj = codec.Deserialize(ref reader)!;
+
+                        RawServerConfig = ((ExpandoObject)obj).ToDictionary(x => x.Key, x => x.Value);
                         break;
 
                     default:

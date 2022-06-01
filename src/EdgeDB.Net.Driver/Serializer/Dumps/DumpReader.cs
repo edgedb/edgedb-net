@@ -22,7 +22,18 @@ namespace EdgeDB.Dumps
             Restore? restore = null;
             List<RestoreBlock> blocks = new();
 
-            using (var reader = new PacketReader(stream))
+            Span<byte> buff;
+            using(var ms = new MemoryStream())
+            {
+                stream.CopyTo(ms);
+
+                if (ms.TryGetBuffer(out var arr))
+                    buff = arr;
+                else
+                    throw new EdgeDBException("Failed to get buffer from the stream");
+            }
+
+            using (var reader = new PacketReader(buff))
             {
                 var version = reader.ReadInt64();
 
@@ -60,19 +71,17 @@ namespace EdgeDB.Dumps
         {
             var type = reader.ReadChar();
 
-            
-
             // read hash
-            var hash = reader.ReadBytes(20);
+            reader.ReadBytes(20, out var hash);
 
             var length = reader.ReadUInt32();
 
-            var packetData = reader.ReadBytes((int)length);
+            reader.ReadBytes((int)length, out var packetData);
 
             // check hash
             using (var alg = SHA1.Create())
             {
-                if (!alg.ComputeHash(packetData).SequenceEqual(hash))
+                if (!alg.ComputeHash(packetData.ToArray()).SequenceEqual(hash.ToArray()))
                     throw new ArgumentException("Hash did not match");
             }
 

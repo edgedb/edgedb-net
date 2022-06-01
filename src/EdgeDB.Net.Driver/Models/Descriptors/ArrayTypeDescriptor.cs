@@ -17,7 +17,7 @@ namespace EdgeDB.Models
 
         public readonly uint[] Dimensions;
 
-        public ArrayTypeDescriptor(Guid id, PacketReader reader)
+        public ArrayTypeDescriptor(Guid id, ref PacketReader reader)
         {
             Id = id;
             TypePos = reader.ReadUInt16();

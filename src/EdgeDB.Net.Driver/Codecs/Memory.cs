@@ -2,7 +2,7 @@
 {
     internal class Memory : IScalarCodec<DataTypes.Memory>
     {
-        public DataTypes.Memory Deserialize(PacketReader reader)
+        public DataTypes.Memory Deserialize(ref PacketReader reader)
         {
             return new DataTypes.Memory(reader.ReadInt64());
         }

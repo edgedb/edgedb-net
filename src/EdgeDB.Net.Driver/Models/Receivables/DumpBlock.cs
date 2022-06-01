@@ -36,11 +36,12 @@ namespace EdgeDB.Models
         {
             Length = length;
 
-            Raw = reader.ReadBytes((int)length);
+            reader.ReadBytes((int)length, out var rawBuff);
+            Raw = rawBuff.ToArray();
 
             HashBuffer = SHA1.Create().ComputeHash(Raw);
 
-            using var r = new PacketReader(Raw);
+            using var r = new PacketReader(rawBuff);
             Headers = r.ReadHeaders();
         }
     }

@@ -27,17 +27,23 @@ namespace EdgeDB.Codecs
     {
         void Serialize(PacketWriter writer, TConverter? value);
 
-        new TConverter? Deserialize(PacketReader reader);
+        new TConverter? Deserialize(ref PacketReader reader);
 
         new TConverter? Deserialize(byte[] buffer)
         {
-            using var reader = new PacketReader(buffer);
-            return Deserialize(reader);
+            var reader = new PacketReader(buffer);
+            return Deserialize(ref reader);
+        }
+        
+        new TConverter? Deserialize(Span<byte> buffer)
+        {
+            var reader = new PacketReader(buffer);
+            return Deserialize(ref reader);
         }
 
         byte[] Serialize(TConverter? value)
         {
-            using var writer = new PacketWriter();
+            var writer = new PacketWriter();
             Serialize(writer, value);
 
             writer.BaseStream.Position = 0;
@@ -47,8 +53,8 @@ namespace EdgeDB.Codecs
         }
 
         // ICodec
-        object? ICodec.Deserialize(PacketReader reader) 
-            => Deserialize(reader);
+        object? ICodec.Deserialize(ref PacketReader reader) 
+            => Deserialize(ref reader);
 
         void ICodec.Serialize(PacketWriter writer, object? value) 
             => Serialize(writer, (TConverter?)value);
@@ -68,17 +74,23 @@ namespace EdgeDB.Codecs
 
         void Serialize(PacketWriter writer, object? value);
 
-        object? Deserialize(PacketReader reader);
+        object? Deserialize(ref PacketReader reader);
+
+        object? Deserialize(Span<byte> buffer)
+        {
+            var reader = new PacketReader(buffer);
+            return Deserialize(ref reader);
+        }
 
         object? Deserialize(byte[] buffer)
         {
-            using var reader = new PacketReader(buffer);
-            return Deserialize(reader);
+            var reader = new PacketReader(buffer);
+            return Deserialize(ref reader);
         }
 
         byte[] Serialize(object? value)
         {
-            using var writer = new PacketWriter();
+            var writer = new PacketWriter();
             Serialize(writer, value);
 
             writer.BaseStream.Position = 0;

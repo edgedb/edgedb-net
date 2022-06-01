@@ -4,7 +4,7 @@ namespace EdgeDB.Codecs
 {
     internal class Text : IScalarCodec<string>
     {
-        public string Deserialize(PacketReader reader)
+        public string Deserialize(ref PacketReader reader)
         {
             return reader.ConsumeString();
         }

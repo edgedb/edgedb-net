@@ -2,7 +2,7 @@
 {
     internal class Float32 : IScalarCodec<float>
     {
-        public float Deserialize(PacketReader reader)
+        public float Deserialize(ref PacketReader reader)
         {
             return reader.ReadSingle();
         }

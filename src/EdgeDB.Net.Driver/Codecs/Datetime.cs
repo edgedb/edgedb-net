@@ -4,7 +4,7 @@
     {
         public static readonly DateTimeOffset EdgedbEpoc = new(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
-        public DateTimeOffset Deserialize(PacketReader reader)
+        public DateTimeOffset Deserialize(ref PacketReader reader)
         {
             var val = reader.ReadInt64();
 
@@ -23,7 +23,7 @@
     {
         public static readonly DateTime EdgedbEpoc = new(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
 
-        public DateTime Deserialize(PacketReader reader)
+        public DateTime Deserialize(ref PacketReader reader)
         {
             var val = reader.ReadInt64();
 
@@ -48,7 +48,7 @@
             writer.Write(days);
         }
 
-        public DateTime Deserialize(PacketReader reader)
+        public DateTime Deserialize(ref PacketReader reader)
         {
             var val = reader.ReadInt32();
             return EdgedbEpoc.AddDays(val);
@@ -57,7 +57,7 @@
 
     internal class Duration : IScalarCodec<TimeSpan>
     {
-        public TimeSpan Deserialize(PacketReader reader)
+        public TimeSpan Deserialize(ref PacketReader reader)
         {
             var microseconds = reader.ReadInt64();
 
@@ -76,7 +76,7 @@
 
     internal class RelativeDuration : IScalarCodec<TimeSpan>
     {
-        public TimeSpan Deserialize(PacketReader reader)
+        public TimeSpan Deserialize(ref PacketReader reader)
         {
             var microseconds = reader.ReadInt64();
             var days = reader.ReadInt32();

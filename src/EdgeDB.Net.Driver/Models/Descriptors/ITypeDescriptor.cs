@@ -12,21 +12,21 @@ namespace EdgeDB.Models
 
         Guid Id { get; }
 
-        public static ITypeDescriptor GetDescriptor(PacketReader reader)
+        public static ITypeDescriptor GetDescriptor(ref PacketReader reader)
         {
             var type = (DescriptorType)reader.ReadByte();
             var id = reader.ReadGuid();
 
             ITypeDescriptor? descriptor = type switch
             {
-                DescriptorType.ArrayTypeDescriptor => new ArrayTypeDescriptor(id, reader),
+                DescriptorType.ArrayTypeDescriptor => new ArrayTypeDescriptor(id, ref reader),
                 DescriptorType.BaseScalarTypeDescriptor => new BaseScalarTypeDescriptor(id),
-                DescriptorType.EnumerationTypeDescriptor => new EnumerationTypeDescriptor(id, reader),
-                DescriptorType.NamedTupleDescriptor => new NamedTupleTypeDescriptor(id, reader),
-                DescriptorType.ObjectShapeDescriptor => new ObjectShapeDescriptor(id, reader),
+                DescriptorType.EnumerationTypeDescriptor => new EnumerationTypeDescriptor(id, ref reader),
+                DescriptorType.NamedTupleDescriptor => new NamedTupleTypeDescriptor(id, ref reader),
+                DescriptorType.ObjectShapeDescriptor => new ObjectShapeDescriptor(id, ref reader),
                 DescriptorType.ScalarTypeDescriptor => new ScalarTypeDescriptor(id, reader),
                 DescriptorType.ScalarTypeNameAnnotation => new ScalarTypeNameAnnotation(id, reader),
-                DescriptorType.SetDescriptor => new SetDescriptor(id, reader),
+                DescriptorType.SetDescriptor => new SetDescriptor(id, ref reader),
                 DescriptorType.TupleTypeDescriptor => new TupleTypeDescriptor(id, reader),
                 _ => null
             };

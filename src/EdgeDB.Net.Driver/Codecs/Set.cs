@@ -9,7 +9,7 @@
             _innerCodec = innerCodec;
         }
 
-        public IEnumerable<TInner?>? Deserialize(PacketReader reader)
+        public IEnumerable<TInner?>? Deserialize(ref PacketReader reader)
         {
             if (_innerCodec is Array<TInner>)
                 return DecodeSetOfArrays(reader);
@@ -26,7 +26,7 @@
             var dimensions = reader.ReadInt32();
 
             // discard flags and reserved
-            reader.ReadBytes(8);
+            reader.Skip(8);
 
             if(dimensions is 0)
             {
@@ -47,7 +47,7 @@
 
             for(int i = 0; i != numElements; i++)
             {
-                reader.ReadBytes(4); // skip array element size
+                reader.Skip(4); // skip array element size
 
                 var envelopeElements = reader.ReadInt32();
 
@@ -56,9 +56,9 @@
                     throw new InvalidDataException($"Envelope should contain 1 element, got {envelopeElements} elements");
                 }
 
-                reader.ReadBytes(4); // skip reserved
+                reader.Skip(4); // skip reserved
 
-                result[i] = _innerCodec.Deserialize(reader);
+                result[i] = _innerCodec.Deserialize(ref reader);
             }
 
             return result;
@@ -69,7 +69,7 @@
             var dimensions = reader.ReadInt32();
 
             // discard flags and reserved
-            reader.ReadBytes(8);
+            reader.Skip(8);
 
             if (dimensions is 0)
             {
@@ -95,7 +95,7 @@
                 if (elementLength is -1)
                     result[i] = default;
                 else
-                    result[i] = _innerCodec.Deserialize(reader);
+                    result[i] = _innerCodec.Deserialize(ref reader);
             }
 
             return result;

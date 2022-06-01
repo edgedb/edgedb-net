@@ -2,7 +2,7 @@
 {
     internal class UUID : IScalarCodec<Guid>
     {
-        public Guid Deserialize(PacketReader reader)
+        public Guid Deserialize(ref PacketReader reader)
         {
             return reader.ReadGuid();
         }

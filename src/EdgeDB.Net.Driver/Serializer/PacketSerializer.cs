@@ -8,9 +8,11 @@ namespace EdgeDB
 {
     internal class PacketSerializer
     {
+        internal delegate IReceiveable PayloadFactory(PacketReader reader, uint length);
+
         public static readonly Guid NullCodec = Guid.Empty;
 
-        private static readonly ConcurrentDictionary<ServerMessageType, Func<PacketReader, uint, IReceiveable>> _receiveablePayloadFactory = new();
+        private static readonly ConcurrentDictionary<ServerMessageType, PayloadFactory> _receiveablePayloadFactory = new();
         private static readonly ConcurrentDictionary<Guid, ICodec> _codecCache = new();
 
         static PacketSerializer()
@@ -45,16 +47,17 @@ namespace EdgeDB
             return val.Key;
         }
 
-        public static IReceiveable? DeserializePacket(ServerMessageType type, Stream stream, EdgeDBBinaryClient client)
-        {
-            using(var reader = new PacketReader(stream))
-            {
-                return DeserializePacket(type, reader, (uint)stream.Length, client);
-            }
-        }
         public static IReceiveable? DeserializePacket(ServerMessageType type, byte[] buffer, EdgeDBBinaryClient client)
         {
             using (var reader = new PacketReader(buffer))
+            {
+                return DeserializePacket(type, reader, (uint)buffer.Length, client);
+            }
+        }
+
+        public static IReceiveable?  DeserializePacket(ServerMessageType type, Memory<byte> buffer, EdgeDBBinaryClient client)
+        {
+            using(var reader = new PacketReader(buffer.Span))
             {
                 return DeserializePacket(type, reader, (uint)buffer.Length, client);
             }
@@ -69,7 +72,7 @@ namespace EdgeDB
             else
             {
                 // skip the packet length
-                reader.Read(new byte[length], 0, (int)length);
+                reader.ReadBytes((int)length, out _);
 
                 client.Logger.UnknownPacket(type.ToString("X"));
                 return null;
@@ -79,16 +82,22 @@ namespace EdgeDB
         public static ICodec? GetCodec(Guid id)
             => _codecCache.TryGetValue(id, out var codec) ? codec : GetScalarCodec(id);
 
-        public static ICodec? BuildCodec(Guid id, PacketReader reader)
+        public static ICodec? BuildCodec(Guid id, byte[] buff)
+        {
+            var reader = new PacketReader(buff.AsSpan());
+            return BuildCodec(id, ref reader);
+        }
+
+        public static ICodec? BuildCodec(Guid id, ref PacketReader reader)
         {
             if (id == NullCodec)
                 return new NullCodec();
 
             List<ICodec> codecs = new();
 
-            while (reader.BaseStream.Position != reader.BaseStream.Length)
+            while (!reader.Empty)
             {
-                var typeDescriptor = ITypeDescriptor.GetDescriptor(reader);
+                var typeDescriptor = ITypeDescriptor.GetDescriptor(ref reader);
 
                 var codec = GetScalarCodec(typeDescriptor.Id);
 

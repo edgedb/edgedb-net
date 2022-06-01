@@ -29,8 +29,8 @@ namespace EdgeDB.Models
             }
 
             var payloadLength = reader.ReadUInt32();
-
-            PayloadBuffer = reader.ReadBytes((int)payloadLength);
+            reader.ReadBytes((int)payloadLength, out var buff);
+            PayloadBuffer = buff.ToArray();
         }
     }
 }

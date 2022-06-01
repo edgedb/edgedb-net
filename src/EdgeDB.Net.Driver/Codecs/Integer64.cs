@@ -2,7 +2,7 @@
 {
     internal class Integer64 : IScalarCodec<long>
     {
-        public long Deserialize(PacketReader reader)
+        public long Deserialize(ref PacketReader reader)
         {
             return reader.ReadInt64();
         }

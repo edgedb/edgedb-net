@@ -4,7 +4,7 @@ namespace EdgeDB.Codecs
 {
     internal class BigInt : IScalarCodec<BigInteger>
     {
-        public BigInteger Deserialize(PacketReader reader)
+        public BigInteger Deserialize(ref PacketReader reader)
         {
             var numDigits = reader.ReadUInt16();
 
@@ -13,7 +13,7 @@ namespace EdgeDB.Codecs
             var sign = (NumericSign)reader.ReadUInt16();
 
             // reserved
-            reader.ReadUInt16();
+            reader.Skip(2);
 
             string result = sign == NumericSign.NEG ? "-" : "";
 

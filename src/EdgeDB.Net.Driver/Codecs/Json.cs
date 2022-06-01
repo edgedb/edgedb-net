@@ -4,10 +4,10 @@ namespace EdgeDB.Codecs
 {
     internal class Json : IScalarCodec<DataTypes.Json>
     {
-        public DataTypes.Json Deserialize(PacketReader reader)
+        public DataTypes.Json Deserialize(ref PacketReader reader)
         {
             // format (unused)
-            reader.ReadByte();
+            reader.Skip(1);
 
             var data = Encoding.UTF8.GetString(reader.ConsumeByteArray());
 

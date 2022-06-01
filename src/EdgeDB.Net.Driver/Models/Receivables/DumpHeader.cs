@@ -64,11 +64,13 @@ namespace EdgeDB.Models
         internal DumpHeader(PacketReader reader, uint length)
         {
             Length = length;
-            Raw = reader.ReadBytes((int)length);
+            reader.ReadBytes((int)length, out var rawBuffer);
+
+            Raw = rawBuffer.ToArray();
 
             RawHash = SHA1.Create().ComputeHash(Raw);
 
-            using var r = new PacketReader(Raw);
+            var r = new PacketReader(rawBuffer);
 
             Headers = r.ReadHeaders();
             MajorVersion = r.ReadUInt16();
@@ -79,13 +81,13 @@ namespace EdgeDB.Models
             DumpTypeInfo[] typeInfo = new DumpTypeInfo[numTypeInfo];
 
             for (uint i = 0; i != numTypeInfo; i++)
-                typeInfo[i] = new DumpTypeInfo(r);
+                typeInfo[i] = new DumpTypeInfo(ref r);
 
             var numDescriptors = r.ReadUInt32();
             DumpObjectDescriptor[] descriptors = new DumpObjectDescriptor[numDescriptors];
 
             for (uint i = 0; i != numDescriptors; i++)
-                descriptors[i] = new DumpObjectDescriptor(r);
+                descriptors[i] = new DumpObjectDescriptor(ref r);
 
             Types = typeInfo;
             Descriptors = descriptors;
@@ -112,7 +114,7 @@ namespace EdgeDB.Models
         /// </summary>
         public Guid Id { get; }
 
-        internal DumpTypeInfo(PacketReader reader)
+        internal DumpTypeInfo(ref PacketReader reader)
         {
             Name = reader.ReadString();
             Class = reader.ReadString();
@@ -140,7 +142,7 @@ namespace EdgeDB.Models
         /// </summary>
         public IReadOnlyCollection<Guid> Dependencies { get; }
 
-        internal DumpObjectDescriptor(PacketReader reader)
+        internal DumpObjectDescriptor(ref PacketReader reader)
         {
             ObjectId = reader.ReadGuid();
             Description = reader.ReadByteArray();

@@ -15,7 +15,7 @@ namespace EdgeDB.Models
 
         public readonly string[] Members;
 
-        public EnumerationTypeDescriptor(Guid id, PacketReader reader)
+        public EnumerationTypeDescriptor(Guid id, ref PacketReader reader)
         {
             Id = id;
 

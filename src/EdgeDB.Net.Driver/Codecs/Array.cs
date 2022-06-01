@@ -9,12 +9,12 @@
             _innerCodec = innerCodec;
         }
 
-        public IEnumerable<TInner?> Deserialize(PacketReader reader)
+        public IEnumerable<TInner?> Deserialize(ref PacketReader reader)
         {
             var dimensions = reader.ReadInt32();
 
             // skip reserved
-            reader.ReadBytes(8);
+            reader.Skip(8);
 
             if (dimensions is 0)
             {
@@ -36,8 +36,7 @@
             for(int i = 0; i != numElements; i++)
             {
                 var elementLength = reader.ReadInt32();
-                var innerData = reader.ReadBytes(elementLength);
-
+                reader.ReadBytes(elementLength, out var innerData);
                 array[i] = _innerCodec.Deserialize(innerData);
             }
 

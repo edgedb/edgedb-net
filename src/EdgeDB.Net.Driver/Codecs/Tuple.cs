@@ -11,7 +11,7 @@ namespace EdgeDB.Codecs
             _innerCodecs = innerCodecs;
         }
 
-        public ITuple Deserialize(PacketReader reader)
+        public ITuple Deserialize(ref PacketReader reader)
         {
             var numElements = reader.ReadInt32();
 
@@ -37,7 +37,7 @@ namespace EdgeDB.Codecs
             for(int i = 0; i != numElements; i++)
             {
                 // skip reserved 
-                reader.ReadInt32();
+                reader.Skip(4);
 
                 var length = reader.ReadInt32();
                 
@@ -48,11 +48,10 @@ namespace EdgeDB.Codecs
                 }
 
 
-                var data = reader.ReadBytes(length);
+                reader.ReadBytes(length, out var data);
 
-                // TODO: optimize this?
-                using var innerReader = new PacketReader(data);
-                values[i] = _innerCodecs[i].Deserialize(innerReader);
+                var innerReader = new PacketReader(data);
+                values[i] = _innerCodecs[i].Deserialize(ref innerReader);
             }
 
             // construct our tuple

@@ -15,7 +15,7 @@ namespace EdgeDB.Models
 
         public readonly ushort TypePos;
 
-        public SetDescriptor(Guid id, PacketReader reader)
+        public SetDescriptor(Guid id, ref PacketReader reader)
         {
             Id = id;
             TypePos = reader.ReadUInt16();

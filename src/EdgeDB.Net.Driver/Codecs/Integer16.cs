@@ -2,7 +2,7 @@
 {
     internal class Integer16 : IScalarCodec<short>
     {
-        public short Deserialize(PacketReader reader)
+        public short Deserialize(ref PacketReader reader)
         {
             return reader.ReadInt16();
         }

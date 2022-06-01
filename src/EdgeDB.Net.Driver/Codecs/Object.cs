@@ -13,7 +13,7 @@ namespace EdgeDB.Codecs
             _propertyNames = propertyNames;
         }
 
-        public object? Deserialize(PacketReader reader)
+        public object? Deserialize(ref PacketReader reader)
         {
             var numElements = reader.ReadInt32();
 
@@ -28,7 +28,7 @@ namespace EdgeDB.Codecs
             for (int i = 0; i != numElements; i++)
             {
                 // reserved
-                reader.ReadInt32();
+                reader.Skip(4);
                 var name = _propertyNames[i];
                 var length = reader.ReadInt32();
 
@@ -38,7 +38,7 @@ namespace EdgeDB.Codecs
                     continue;
                 }
 
-                var innerData = reader.ReadBytes(length);
+                reader.ReadBytes(length, out var innerData);
 
                 object? value;
 

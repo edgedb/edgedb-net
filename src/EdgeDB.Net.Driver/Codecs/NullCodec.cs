@@ -9,7 +9,7 @@
             return true;
         }
 
-        public object? Deserialize(PacketReader reader) { return null; }
+        public object? Deserialize(ref PacketReader reader) { return null; }
 
         public void Serialize(PacketWriter writer, object? value)
         {

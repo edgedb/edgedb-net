@@ -2,7 +2,7 @@
 {
     internal class Float64 : IScalarCodec<double>
     {
-        public double Deserialize(PacketReader reader)
+        public double Deserialize(ref PacketReader reader)
         {
             return reader.ReadDouble();
         }

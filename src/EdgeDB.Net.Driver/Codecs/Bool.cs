@@ -2,7 +2,7 @@
 {
     internal class Bool : IScalarCodec<bool>
     {
-        public bool Deserialize(PacketReader reader)
+        public bool Deserialize(ref PacketReader reader)
         {
             return reader.ReadBoolean();
         }
