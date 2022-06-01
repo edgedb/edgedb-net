@@ -128,7 +128,7 @@ namespace EdgeDB
         /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         internal async Task<RawExecuteResult> ExecuteInternalAsync(string query, IDictionary<string, object?>? args = null, Cardinality? card = null,
-            AllowCapabilities? capabilities = AllowCapabilities.ReadOnly, IOFormat format = IOFormat.Binary, bool isRetry = false, 
+            Capabilities? capabilities = Capabilities.ReadOnly, IOFormat format = IOFormat.Binary, bool isRetry = false, 
             CancellationToken token = default)
         {
             var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, DisconnectCancelToken).Token;
