@@ -29,7 +29,7 @@ you can configure the pools default size and client factory with the ``EdgeDBCli
     - Type
     - Description
   * - ClientFactory
-    - ``Func<ulong, ValueTask<BaseEdgeDBClient>>`` 
+    - ``Func<ulong, EdgeDBConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>`` 
     - Gets or sets the client factory to use when adding new clients to the client pool.
   * - ClientType
     - ``EdgeDBClientType``
@@ -37,6 +37,12 @@ you can configure the pools default size and client factory with the ``EdgeDBCli
   * - DefaultPoolSize
     - ``int``
     - Gets or sets the default pool size. The internal pool size may change based off of the servers recommended pool size.
+
+Executing commands in a pool
+----------------------------
+By default, when you call a method like ``ExecuteAsync`` or ``QueryAsync``, the pool will first get or 
+create a client within the pool, hold that client and execute your command, and then release it back to the pool.
+You don't need to manage the pool yourself, the pool will manage itself for you.
 
 
 Pulling clients out of the pool

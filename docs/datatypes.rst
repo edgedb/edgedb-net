@@ -88,3 +88,86 @@ We can write at class that represents person as follows:
   the name of the type with the ``EdgeDBType`` attribute.
 
 You can find an example with custom types `here <https://github.com/quinchs/EdgeDB.Net/blob/dev/examples/EdgeDB.ExampleApp/Examples/QueryResults.cs>`_
+
+
+Custom Deserializers
+--------------------
+You can specify how the Driver should deserialize your custom types.
+
+Method-Based Deserializers
+___________________________
+
+You can decorate both methods and constructors with the ``EdgeDBDeserializer`` attribute to 
+specify that the corresponding method should be used to deserialize the type. 
+
+.. note:: Any method/constructor that is marked with the ``EdgeDBDeserializer`` attribute will be 
+  ignored if the methods parameter is not of type ``IDictionary<string, object?>``
+
+.. code-block:: c#
+
+  public class PersonConstructor
+  {
+      public string Name { get; set; }
+      public string Email { get; set; }
+
+      [EdgeDBDeserializer]
+      public PersonConstructor(IDictionary<string, object?> raw)
+      {
+          Name = (string)raw["name"]!;
+          Email = (string)raw["email"]!;
+      }
+  }
+
+.. code-block:: c#
+
+  public class PersonMethod
+  {
+      public string? Name { get; set; }
+      public string? Email { get; set; }
+
+      [EdgeDBDeserializer]
+      public void PersonBuilder(IDictionary<string, object?> raw)
+      {
+          Name = (string)raw["name"]!;
+          Email = (string)raw["email"]!;
+      }
+  }
+
+Global-Based Deserializers
+__________________________
+You can specify a callback to populate your type with the specified data like so:
+
+.. code-block:: c#
+
+  // Define a custom deserializer for the 'PersonGlobal' type
+  TypeBuilder.AddOrUpdateTypeBuilder<PersonGlobal>((person, data) =>
+  {
+      Logger?.LogInformation("Custom deserializer was called");
+      person.Name = (string)data["name"]!;
+      person.Email = (string)data["email"]!;
+  });
+
+If you need to remove a custom deserializer, you can do so by calling the following:
+
+.. code-block:: c#
+
+  TypeBuilder.TryRemoveTypeFactory<PersonGlobal>(out var factory);
+
+Interface-Based Deserializers
+_____________________________
+You can have interface-based deserializers. This is useful if you want to return different types based off of the returned data.
+
+.. code-block:: c#
+
+  // Define a custom creator for the 'PersonImmutable' type
+  TypeBuilder.AddOrUpdateTypeFactory<IPerson>(data =>
+  {
+      Logger?.LogInformation("Custom factory was called");
+      return new PersonImpl
+      {
+          Email = (string)data["email"]!,
+          Name = (string)data["name"]!
+      };
+  });
+
+The full source code for custom deserializers can be found `here <https://github.com/quinchs/EdgeDB.Net/blob/dev/examples/EdgeDB.ExampleApp/Examples/CustomDeserializer.cs#L10>`_
