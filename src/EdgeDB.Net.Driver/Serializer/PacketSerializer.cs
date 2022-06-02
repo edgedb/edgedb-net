@@ -8,30 +8,8 @@ namespace EdgeDB
 {
     internal class PacketSerializer
     {
-        internal delegate IReceiveable PayloadFactory(PacketReader reader, uint length);
-
         public static readonly Guid NullCodec = Guid.Empty;
-
-        private static readonly ConcurrentDictionary<ServerMessageType, PayloadFactory> _receiveablePayloadFactory = new();
         private static readonly ConcurrentDictionary<Guid, ICodec> _codecCache = new();
-
-        static PacketSerializer()
-        {
-            _receiveablePayloadFactory.TryAdd(ServerMessageType.Authentication, (r, _) => new AuthenticationStatus(r));
-            _receiveablePayloadFactory.TryAdd(ServerMessageType.CommandComplete, (r, _) => new CommandComplete(r));
-            _receiveablePayloadFactory.TryAdd(ServerMessageType.CommandDataDescription, (r, _) => new CommandDataDescription(r));
-            _receiveablePayloadFactory.TryAdd(ServerMessageType.Data, (r, _) => new Data(r));
-            _receiveablePayloadFactory.TryAdd(ServerMessageType.DumpBlock, (r, l) => new DumpBlock(r, l));
-            _receiveablePayloadFactory.TryAdd(ServerMessageType.DumpHeader, (r, l) => new DumpHeader(r, l));
-            _receiveablePayloadFactory.TryAdd(ServerMessageType.ErrorResponse, (r, _) => new ErrorResponse(r));
-            _receiveablePayloadFactory.TryAdd(ServerMessageType.LogMessage, (r, _) => new LogMessage(r));
-            _receiveablePayloadFactory.TryAdd(ServerMessageType.ParameterStatus, (r, _) => new ParameterStatus(r));
-            _receiveablePayloadFactory.TryAdd(ServerMessageType.ParseComplete, (r, _) => new ParseComplete(r));
-            _receiveablePayloadFactory.TryAdd(ServerMessageType.ReadyForCommand, (r, _) => new ReadyForCommand(r));
-            _receiveablePayloadFactory.TryAdd(ServerMessageType.RestoreReady, (r, _) => new RestoreReady(r));
-            _receiveablePayloadFactory.TryAdd(ServerMessageType.ServerHandshake, (r, _) => new ServerHandshake(r));
-            _receiveablePayloadFactory.TryAdd(ServerMessageType.ServerKeyData, (r, _) => new ServerKeyData(r));
-        }
 
         public static string? GetEdgeQLType(Type t)
         {
@@ -47,36 +25,63 @@ namespace EdgeDB
             return val.Key;
         }
 
-        public static IReceiveable? DeserializePacket(ServerMessageType type, byte[] buffer, EdgeDBBinaryClient client)
-        {
-            using (var reader = new PacketReader(buffer))
-            {
-                return DeserializePacket(type, reader, (uint)buffer.Length, client);
-            }
-        }
 
-        public static IReceiveable?  DeserializePacket(ServerMessageType type, Memory<byte> buffer, EdgeDBBinaryClient client)
+        public static IReceiveable? DeserializePacket(ServerMessageType type, Memory<byte> buffer, int length, EdgeDBBinaryClient client)
         {
-            using(var reader = new PacketReader(buffer.Span))
-            {
-                return DeserializePacket(type, reader, (uint)buffer.Length, client);
-            }
-        }
+            var reader = new PacketReader(buffer.Span);
 
-        public static IReceiveable? DeserializePacket(ServerMessageType type, PacketReader reader, uint length, EdgeDBBinaryClient client)
-        {
-            if(_receiveablePayloadFactory.TryGetValue(type, out var factory))
+            try
             {
-                return factory.Invoke(reader, length);
-            }
-            else
-            {
-                // skip the packet length
-                reader.ReadBytes((int)length, out _);
+                switch (type)
+                {
+                    case ServerMessageType.Authentication:
+                        return new AuthenticationStatus(ref reader);
+                    case ServerMessageType.CommandComplete:
+                        return new CommandComplete(ref reader);
+                    case ServerMessageType.CommandDataDescription:
+                        return new CommandDataDescription(ref reader);
+                    case ServerMessageType.Data:
+                        return new Data(ref reader);
+                    case ServerMessageType.DumpBlock:
+                        return new DumpBlock(ref reader, in length);
+                    case ServerMessageType.DumpHeader:
+                        return new DumpHeader(ref reader, in length);
+                    case ServerMessageType.ErrorResponse:
+                        return new ErrorResponse(ref reader);
+                    case ServerMessageType.LogMessage:
+                        return new LogMessage(ref reader);
+                    case ServerMessageType.ParameterStatus:
+                        return new ParameterStatus(ref reader);
+                    case ServerMessageType.ParseComplete:
+                        return new ParseComplete(ref reader);
+                    case ServerMessageType.ReadyForCommand:
+                        return new ReadyForCommand(ref reader);
+                    case ServerMessageType.RestoreReady:
+                        return new RestoreReady(ref reader);
+                    case ServerMessageType.ServerHandshake:
+                        return new ServerHandshake(ref reader);
+                    case ServerMessageType.ServerKeyData:
+                        return new ServerKeyData(ref reader);
+                    default:
+                        // skip the packet length
+                        reader.Skip(length);
 
-                client.Logger.UnknownPacket(type.ToString("X"));
-                return null;
+                        client.Logger.UnknownPacket(type.ToString("X"));
+                        return null;
+                }
             }
+            finally
+            {
+                // ensure that we read the entire packet
+                if (!reader.Empty)
+                {
+                    // log a warning
+                    client.Logger.DidntReadTillEnd(type, length);
+                }
+
+                reader.Dispose();
+            }
+
         }
 
         public static ICodec? GetCodec(Guid id)

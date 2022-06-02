@@ -37,7 +37,7 @@ namespace EdgeDB.Models
 
         internal byte[] SASLDataBuffer { get; }
 
-        internal AuthenticationStatus(PacketReader reader)
+        internal AuthenticationStatus(ref PacketReader reader)
         {
             AuthStatus = (AuthStatus)reader.ReadUInt32();
 

@@ -1,6 +1,7 @@
 ﻿using EdgeDB.Models;
 using EdgeDB.Utils;
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Collections.Concurrent;
 
 namespace EdgeDB
@@ -90,9 +91,7 @@ namespace EdgeDB
 
                     // read the length
                     var type = (ServerMessageType)packetHeaderBuffer[0];
-                    var length = (BitConverter.IsLittleEndian
-                        ? BitConverter.ToInt32(packetHeaderBuffer.Reverse().ToArray(), 0)
-                        : BitConverter.ToInt32(packetHeaderBuffer, 1)) - 4; // length includes self
+                    var length = (int)BinaryPrimitives.ReadUInt32BigEndian(packetHeaderBuffer.AsSpan()[1..5]) - 4;
 
                     using var memoryOwner = MemoryPool<byte>.Shared.Rent(length);
                     var buffer = memoryOwner.Memory[..length];
@@ -105,7 +104,7 @@ namespace EdgeDB
                         return;
                     }
 
-                    var msg = PacketSerializer.DeserializePacket(type, buffer, _client);
+                    var msg = PacketSerializer.DeserializePacket(type, buffer, length, _client);
 
                     if (msg != null)
                     {

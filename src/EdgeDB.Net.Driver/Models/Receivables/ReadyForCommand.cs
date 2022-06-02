@@ -24,7 +24,7 @@ namespace EdgeDB.Models
 
         private readonly Header[] _headers;
 
-        internal ReadyForCommand(PacketReader reader)
+        internal ReadyForCommand(ref PacketReader reader)
         {
             _headers = reader.ReadHeaders();
             TransactionState = (TransactionState)reader.ReadByte();

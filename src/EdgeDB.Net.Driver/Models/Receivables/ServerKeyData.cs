@@ -26,7 +26,7 @@ namespace EdgeDB.Models
 
         internal readonly byte[] KeyBuffer { get; }
 
-        internal ServerKeyData(PacketReader reader)
+        internal ServerKeyData(ref PacketReader reader)
         {
             reader.ReadBytes(SERVER_KEY_LENGTH, out var buff);
             KeyBuffer = buff.ToArray();

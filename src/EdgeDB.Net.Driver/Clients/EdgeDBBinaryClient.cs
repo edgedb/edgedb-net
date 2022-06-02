@@ -525,7 +525,7 @@ namespace EdgeDB
                         break;
 
                     case "system_config":
-                        var reader = new PacketReader(status.ValueBuffer.AsSpan());
+                        var reader = new PacketReader(status.ValueBuffer);
                         var length = reader.ReadInt32() - 16;
                         var descriptorId = reader.ReadGuid();
                         reader.ReadBytes(length, out var typeDesc);

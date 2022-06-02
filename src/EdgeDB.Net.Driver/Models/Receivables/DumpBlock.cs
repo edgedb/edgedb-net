@@ -21,7 +21,7 @@ namespace EdgeDB.Models
         /// <summary>
         ///     Gets the length of this packets data, used when writing a dump file.
         /// </summary>
-        public uint Length { get; }
+        public int Length { get; }
 
         /// <summary>
         ///     Gets a collection of headers for this packet.
@@ -32,11 +32,11 @@ namespace EdgeDB.Models
 
         internal byte[] HashBuffer { get; }
 
-        internal DumpBlock(PacketReader reader, uint length)
+        internal DumpBlock(ref PacketReader reader, in int length)
         {
             Length = length;
 
-            reader.ReadBytes((int)length, out var rawBuff);
+            reader.ReadBytes(length, out var rawBuff);
             Raw = rawBuff.ToArray();
 
             HashBuffer = SHA1.Create().ComputeHash(Raw);

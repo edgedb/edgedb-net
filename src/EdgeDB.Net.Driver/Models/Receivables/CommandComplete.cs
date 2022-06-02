@@ -28,7 +28,7 @@ namespace EdgeDB.Models
         /// </summary>
         public string Status { get; }
 
-        internal CommandComplete(PacketReader reader)
+        internal CommandComplete(ref PacketReader reader)
         {
             UsedCapabilities = null;
 

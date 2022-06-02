@@ -34,7 +34,7 @@ namespace EdgeDB.Models
 
         private readonly ProtocolExtension[] _extensions;
 
-        internal ServerHandshake(PacketReader reader)
+        internal ServerHandshake(ref PacketReader reader)
         {
             MajorVersion = reader.ReadUInt16();
             MinorVersion = reader.ReadUInt16();
@@ -44,7 +44,7 @@ namespace EdgeDB.Models
 
             for (int i = 0; i != numExtensions; i++)
             {
-                extensions[i] = new ProtocolExtension(reader);
+                extensions[i] = new ProtocolExtension(ref reader);
             }
 
             _extensions = extensions;

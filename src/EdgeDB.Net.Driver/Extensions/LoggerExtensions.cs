@@ -16,6 +16,7 @@ namespace EdgeDB
         private static readonly Action<ILogger, Exception> _serverSettingsParseFailed;
         private static readonly Action<ILogger, string, Exception?> _unknownPacket;
         private static readonly Action<ILogger, Exception> _readException;
+        private static readonly Action<ILogger, ServerMessageType, int, Exception?> _didntReadTillEnd;
         #endregion
 
         static LoggerExtensions()
@@ -69,7 +70,15 @@ namespace EdgeDB
                 LogLevel.Critical,
                 new EventId(10, nameof(ReadException)),
                 "Error occured while reading binary stream");
+
+            _didntReadTillEnd = LoggerMessage.Define<ServerMessageType, int>(
+                LogLevel.Warning,
+                new EventId(11, nameof(DidntReadTillEnd)),
+                "Packet reader was left with data remaining while deserializing {PacketType} of length {Length}");
         }
+
+        public static void DidntReadTillEnd(this ILogger logger, ServerMessageType type, int length)
+            => _didntReadTillEnd(logger, type, length, null);
 
         public static void InternalExecuteFailed(this ILogger logger, Exception x)
             => _internalExecuteFailed(logger, x);

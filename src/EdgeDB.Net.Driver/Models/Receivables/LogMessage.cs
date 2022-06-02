@@ -22,7 +22,7 @@ namespace EdgeDB.Models
 
         private readonly Header[] _attributes;
 
-        internal LogMessage(PacketReader reader)
+        internal LogMessage(ref PacketReader reader)
         {
             Severity = (MessageSeverity)reader.ReadByte();
             Code = (ServerErrorCodes)reader.ReadUInt32();

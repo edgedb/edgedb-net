@@ -29,7 +29,7 @@ namespace EdgeDB.Models
 
         internal byte[] ValueBuffer { get; }
 
-        internal ParameterStatus(PacketReader reader)
+        internal ParameterStatus(ref PacketReader reader)
         {
             Name = reader.ReadString();
             ValueBuffer = reader.ReadByteArray();

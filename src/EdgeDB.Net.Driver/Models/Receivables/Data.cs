@@ -19,7 +19,7 @@ namespace EdgeDB.Models
 
         internal byte[] PayloadBuffer { get; }
 
-        internal Data(PacketReader reader)
+        internal Data(ref PacketReader reader)
         {
             // skip arary since its always one, errr should be one
             var numElements = reader.ReadUInt16();

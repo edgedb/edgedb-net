@@ -74,9 +74,9 @@ namespace EdgeDB.Dumps
             // read hash
             reader.ReadBytes(20, out var hash);
 
-            var length = reader.ReadUInt32();
+            var length = (int)reader.ReadUInt32();
 
-            reader.ReadBytes((int)length, out var packetData);
+            reader.ReadBytes(length, out var packetData);
 
             // check hash
             using (var alg = SHA1.Create())
@@ -85,15 +85,14 @@ namespace EdgeDB.Dumps
                     throw new ArgumentException("Hash did not match");
             }
 
-            using (var innerReader = new PacketReader(packetData))
+            var innerReader = new PacketReader(packetData);
+
+            return type switch
             {
-                return type switch
-                {
-                    'H' => new DumpHeader(innerReader, length),
-                    'D' => new DumpBlock(innerReader, length),
-                    _ => throw new ArgumentException($"Unknown packet format {type}"),
-                };
-            }
+                'H' => new DumpHeader(ref innerReader, length),
+                'D' => new DumpBlock(ref innerReader, length),
+                _ => throw new ArgumentException($"Unknown packet format {type}"),
+            };
         }
 
         private static void ThrowIfEndOfStream(bool readSuccess)

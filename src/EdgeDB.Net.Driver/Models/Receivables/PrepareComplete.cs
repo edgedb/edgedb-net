@@ -38,7 +38,7 @@ namespace EdgeDB.Models
         /// </summary>
         public Guid OutputTypedescId { get; }
 
-        internal ParseComplete(PacketReader reader)
+        internal ParseComplete(ref PacketReader reader)
         {
             var headers = reader.ReadHeaders();
             Capabilities = null;

@@ -36,7 +36,7 @@ namespace EdgeDB.Models
         /// </summary>
         public IReadOnlyCollection<Header> Headers { get; }
 
-        internal ErrorResponse(PacketReader reader)
+        internal ErrorResponse(ref PacketReader reader)
         {
             Severity = (ErrorSeverity)reader.ReadByte();
             ErrorCode = (ServerErrorCodes)reader.ReadUInt32();

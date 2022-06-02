@@ -24,7 +24,7 @@ namespace EdgeDB.Models
             => _headers.ToImmutableArray();
 
         private readonly Header[] _headers;
-        internal ProtocolExtension(PacketReader reader)
+        internal ProtocolExtension(ref PacketReader reader)
         {
             Name = reader.ReadString();
             _headers = reader.ReadHeaders();

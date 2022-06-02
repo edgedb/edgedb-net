@@ -51,7 +51,7 @@ namespace EdgeDB.Models
         internal byte[] InputTypeDescriptorBuffer { get; }
         internal byte[] OutputTypeDescriptorBuffer { get; }
 
-        internal CommandDataDescription(PacketReader reader)
+        internal CommandDataDescription(ref PacketReader reader)
         {
             Headers = reader.ReadHeaders();
             Cardinality = (Cardinality)reader.ReadByte();

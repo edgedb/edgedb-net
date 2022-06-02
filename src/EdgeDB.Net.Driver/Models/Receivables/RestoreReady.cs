@@ -29,7 +29,7 @@ namespace EdgeDB.Models
 
         private readonly Header[] _headers;
 
-        internal RestoreReady(PacketReader reader)
+        internal RestoreReady(ref PacketReader reader)
         {
             _headers = reader.ReadHeaders();
             Jobs = reader.ReadUInt16();
