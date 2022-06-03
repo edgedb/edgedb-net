@@ -54,7 +54,7 @@ namespace EdgeDB.Tests.Benchmarks
         [Benchmark]
         public IReceiveable? Deserialize()
         {
-            return PacketSerializer.DeserializePacket(Packet.Type, Packet.Data, null!); // client as null is OK as its only used for logging unknown packet
+            return PacketSerializer.DeserializePacket(Packet.Type, Packet.Data, Packet.Data.Length, null!); // client as null is OK as its only used for logging unknown packet
         }
     }
 }
