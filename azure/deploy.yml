@@ -1,0 +1,30 @@
+steps:
+- script: |
+    dotnet pack "src\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj" --no-restore --no-build -v minimal -c $(buildConfiguration) -o "$(Build.ArtifactStagingDirectory)" /p:BuildNumber=$(buildNumber) /p:IsTagBuild=$(buildTag)
+#    dotnet pack "src\EdgeDB.Net.QueryBuilder\EdgeDB.Net.QueryBuilder.csproj" --no-restore --no-build -v minimal -c $(buildConfiguration) -o "$(Build.ArtifactStagingDirectory)" /p:BuildNumber=$(buildNumber) /p:IsTagBuild=$(buildTag)
+  displayName: Pack projects
+
+# - task: NuGetCommand@2
+#   displayName: Pack metapackage (release mode)
+#   condition: eq(variables['buildTag'], True)
+#   inputs:
+#     command: 'pack'
+#     packagesToPack: 'src/EdgeDB.Net/EdgeDB.Net.nuspec'
+#     versioningScheme: 'off'  
+
+# - task: NuGetCommand@2
+#   displayName: Pack metapackage
+#   condition: eq(variables['buildTag'], False)
+#   inputs:
+#     command: 'pack'
+#     packagesToPack: 'src/EdgeDB.Net/Discord.Net.nuspec'
+#     versioningScheme: 'off'
+#     buildProperties: 'suffix=-$(buildNumber)'
+
+- task: NuGetCommand@2
+  displayName: Push to NuGet
+  inputs:
+    command: push
+    nuGetFeedType: external
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
+    publishFeedCredentials: myget
