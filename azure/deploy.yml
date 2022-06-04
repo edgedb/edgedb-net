@@ -27,4 +27,4 @@ steps:
     command: push
     nuGetFeedType: external
     packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
-    publishFeedCredentials: myget-key
+    publishFeedCredentials: $(myget-key)
