@@ -3,7 +3,7 @@
     <AssemblyName>EdgeDB.Net.Driver</AssemblyName>
     <RootNamespace>EdgeDB</RootNamespace>
     <Description>A core driver to interface with EdgeDB</Description>
-    <TargetFramework>net6.0;net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>

@@ -1,18 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+	<AssemblyName>EdgeDB.Net.QueryBuilder</AssemblyName>
+	<RootNamespace>EdgeDB</RootNamespace>
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <Version>0.1.1</Version>
-    <Authors>quinchs</Authors>
     <Description>An optional extension to the base driver that allows for query building.</Description>
-    <PackageProjectUrl>https://github.com/quinchs/EdgeDB.Net</PackageProjectUrl>
-    <PackageIcon>PackageLogo.png</PackageIcon>
-    <RepositoryUrl>https://github.com/quinchs/EdgeDB.Net</RepositoryUrl>
-    <PackageTags>edgedb;database</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
 	<NoWarn>CS1591</NoWarn>
   </PropertyGroup>
 

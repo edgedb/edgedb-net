@@ -3,7 +3,7 @@
         <VersionPrefix>1.0.0</VersionPrefix>
         <LangVersion>latest</LangVersion>
         <Authors>EdgeDB.Net Contributors</Authors>
-        <PackageTags>discord;discordapp</PackageTags>
+        <PackageTags>edgedb;db;database</PackageTags>
         <PackageProjectUrl>https://github.com/quinchs/EdgeDB.Net</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageIcon>PackageLogo.png</PackageIcon>
