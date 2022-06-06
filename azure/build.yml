@@ -9,7 +9,7 @@ steps:
 - task: DotNetCoreCLI@2
   inputs:
      command: 'restore'
-     projects: 'EdgeDB.sln'
+     projects: 'EdgeDB.Net.sln'
      feedsToUse: 'select'
      verbosityRestore: 'Minimal'
   displayName: Restore packages
