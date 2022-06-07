@@ -43,7 +43,6 @@ namespace EdgeDB.Examples.ExampleTODOApi.Controllers
         {
             var result = await _client.QueryAsync<object>("delete TODO filter .title = <str>$title", new Dictionary<string, object?> { { "title", title } });
             
-
             return result.Count > 0 ? NoContent() : NotFound();
         }
 
