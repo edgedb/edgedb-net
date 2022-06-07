@@ -37,6 +37,7 @@ namespace EdgeDB
         private readonly AsyncEvent<Func<IReceiveable, ValueTask>> _onMessage = new();
         private readonly SemaphoreSlim _duplexLock;
         private readonly SemaphoreSlim _onMessageLock;
+
         public ClientPacketDuplexer(EdgeDBBinaryClient client)
         {
             _client = client;

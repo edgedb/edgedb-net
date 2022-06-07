@@ -346,9 +346,13 @@ namespace EdgeDB
                         {
                             if (_clientReturnedToPool.HasSubscribers)
                                 await _clientReturnedToPool.InvokeAsync(c).ConfigureAwait(false);
-                            else
+                            else if(c.IsConnected)
+                            {
                                 _availableClients.Push(c);
-                            return false;
+                                return false;
+                            }
+                            _clients.TryRemove(c.ClientId, out _);
+                            return true;
                         };
 
                         _clients[id] = client;

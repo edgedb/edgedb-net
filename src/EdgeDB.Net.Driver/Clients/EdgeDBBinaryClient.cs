@@ -133,6 +133,7 @@ namespace EdgeDB
         {
             var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, DisconnectCancelToken).Token;
 
+            // safe to allow taskcancelledexception at this point since no data has been sent to the server.
             await _semaphore.WaitAsync(linkedToken).ConfigureAwait(false);
 
             IsIdle = false;
@@ -251,6 +252,12 @@ namespace EdgeDB
                     PrepareStatement = result
                 };
             }
+            catch (OperationCanceledException)
+            {
+                // disconnect
+                await DisconnectAsync(default);
+                throw;
+            }
             catch (EdgeDBException x) when (x.ShouldReconnect && !isRetry)
             {
                 await ReconnectAsync(token).ConfigureAwait(false);
@@ -278,7 +285,8 @@ namespace EdgeDB
             }
             finally
             {
-                _ = Task.Run(async () => await _queryExecuted.InvokeAsync(execResult!.Value).ConfigureAwait(false), token);
+                if(execResult.HasValue)
+                    _ = Task.Run(async () => await _queryExecuted.InvokeAsync(execResult!.Value).ConfigureAwait(false), token);
                 IsIdle = true;
                 if(!released) _semaphore.Release();
             }
@@ -713,7 +721,7 @@ namespace EdgeDB
         {
             var shouldDispose = await base.DisposeAsync().ConfigureAwait(false);
 
-            if (shouldDispose)
+            if (shouldDispose && IsConnected)
             {
                 await DisconnectAsync();
             }
@@ -722,7 +730,7 @@ namespace EdgeDB
         }
         #endregion
 
-        #region ITranactibleClient
+        #region ITransactibleClient
         /// <inheritdoc/>
         async Task ITransactibleClient.StartTransactionAsync(Isolation isolation, bool readOnly, bool deferrable, CancellationToken token)
         {
