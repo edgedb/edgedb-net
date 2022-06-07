@@ -5,7 +5,7 @@ VisualStudioVersion = 17.1.31903.286
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Net.Driver", "src\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj", "{0C1C6233-388F-4FAE-955B-F0A6D33D44C9}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.ExampleApp", "examples\EdgeDB.ExampleApp\EdgeDB.ExampleApp.csproj", "{B85156A1-66B3-46F1-B238-19B96C4C7729}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.ExampleApp", "examples\EdgeDB.Examples.ExampleApp\EdgeDB.ExampleApp.csproj", "{B85156A1-66B3-46F1-B238-19B96C4C7729}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Tests.Unit", "tests\EdgeDB.Tests.Unit\EdgeDB.Tests.Unit.csproj", "{CD4A4B5D-4B67-4E64-A13B-3F7BF770B056}"
 EndProject
@@ -33,7 +33,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Experiments", "Experiments"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Serializer.Experiments", "experiments\EdgeDB.Serializer.Experiments\EdgeDB.Serializer.Experiments.csproj", "{6FA68DEA-D398-4A5B-8025-5F15C728F04C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EdgeDB.Examples.ExampleTODOApi", "EdgeDB.Examples.ExampleTODOApi\EdgeDB.Examples.ExampleTODOApi.csproj", "{E38429C6-53A5-4311-8189-1F78238666DC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EdgeDB.Examples.ExampleTODOApi", "examples\EdgeDB.Examples.ExampleTODOApi\EdgeDB.Examples.ExampleTODOApi.csproj", "{E38429C6-53A5-4311-8189-1F78238666DC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
