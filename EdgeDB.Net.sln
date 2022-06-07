@@ -31,7 +31,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.BinaryDebugger", "to
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Experiments", "Experiments", "{49B6FB80-A675-4ECA-802C-2337A4F37566}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EdgeDB.Serializer.Experiments", "experiments\EdgeDB.Serializer.Experiments\EdgeDB.Serializer.Experiments.csproj", "{6FA68DEA-D398-4A5B-8025-5F15C728F04C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Serializer.Experiments", "experiments\EdgeDB.Serializer.Experiments\EdgeDB.Serializer.Experiments.csproj", "{6FA68DEA-D398-4A5B-8025-5F15C728F04C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EdgeDB.Examples.ExampleTODOApi", "EdgeDB.Examples.ExampleTODOApi\EdgeDB.Examples.ExampleTODOApi.csproj", "{E38429C6-53A5-4311-8189-1F78238666DC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -79,6 +81,10 @@ Global
 		{6FA68DEA-D398-4A5B-8025-5F15C728F04C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6FA68DEA-D398-4A5B-8025-5F15C728F04C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6FA68DEA-D398-4A5B-8025-5F15C728F04C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E38429C6-53A5-4311-8189-1F78238666DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E38429C6-53A5-4311-8189-1F78238666DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E38429C6-53A5-4311-8189-1F78238666DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E38429C6-53A5-4311-8189-1F78238666DC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -94,6 +100,7 @@ Global
 		{5FFD1E88-614D-409B-8420-F9571AC7CA60} = {E6B9FABC-241B-4561-9A94-E67B6BE380E2}
 		{3A4AAAA0-9948-43D3-B838-8EFAC130240C} = {67ED9EF0-7828-44C0-8CB0-DEBD69EC94CA}
 		{6FA68DEA-D398-4A5B-8025-5F15C728F04C} = {49B6FB80-A675-4ECA-802C-2337A4F37566}
+		{E38429C6-53A5-4311-8189-1F78238666DC} = {6FC214F5-C912-4D99-91B1-3E9F52A4E11B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4E90C94F-D693-4411-82F3-2051DE1BE052}

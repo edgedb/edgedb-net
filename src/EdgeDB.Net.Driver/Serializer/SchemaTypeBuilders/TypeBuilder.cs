@@ -147,6 +147,11 @@ namespace EdgeDB
                             prop.Value.SetValue(instance, value);
                             continue;
                         }
+                        else if (prop.Value.PropertyType.IsEnum && value is string str) // enums
+                        {
+                            prop.Value.SetValue(instance, Enum.Parse(prop.Value.PropertyType, str));
+                            continue;
+                        }
 
                         prop.Value.SetValue(instance, prop.Value.PropertyType.ConvertValue(value));
                     }
