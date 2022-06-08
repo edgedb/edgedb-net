@@ -23,6 +23,16 @@ namespace EdgeDB
 
         }
 
+        public byte[] GetBytes()
+        {
+            if (BaseStream is not MemoryStream ms)
+                throw new InvalidOperationException();
+
+            ms.Position = 0;
+
+            return ms.ToArray();
+        }
+
         public void Write(IEnumerable<Header>? headers)
         {
             // write length

@@ -32,7 +32,7 @@ namespace EdgeDB.Examples.ExampleTODOApi.Controllers
             {
                 {"title", todo.Title},
                 {"description", todo.Description},
-                {"state", todo.State.ToString() }
+                {"state", todo.State }
             });
 
             return NoContent();
@@ -52,7 +52,7 @@ namespace EdgeDB.Examples.ExampleTODOApi.Controllers
             var result = await _client.QueryAsync<object>("update TODO filter .title = <str>$title set { state := <State>$state }", new Dictionary<string, object?> 
             { 
                 { "title", title } ,
-                { "state", state.ToString() }
+                { "state", state }
             });
             return result.Count > 0 ? NoContent() : NotFound();
         }

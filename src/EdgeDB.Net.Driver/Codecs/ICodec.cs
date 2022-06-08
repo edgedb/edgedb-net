@@ -15,11 +15,7 @@ namespace EdgeDB.Codecs
         {
             using var writer = new PacketWriter();
             SerializeArguments(writer, value);
-
-            writer.BaseStream.Position = 0;
-            using var ms = new MemoryStream();
-            writer.BaseStream.CopyTo(ms);
-            return ms.ToArray();
+            return writer.GetBytes();
         }
     }
 
@@ -45,11 +41,7 @@ namespace EdgeDB.Codecs
         {
             var writer = new PacketWriter();
             Serialize(writer, value);
-
-            writer.BaseStream.Position = 0;
-            using var ms = new MemoryStream();
-            writer.BaseStream.CopyTo(ms);
-            return ms.ToArray();
+            return writer.GetBytes();
         }
 
         // ICodec
@@ -92,11 +84,7 @@ namespace EdgeDB.Codecs
         {
             var writer = new PacketWriter();
             Serialize(writer, value);
-
-            writer.BaseStream.Position = 0;
-            using var ms = new MemoryStream();
-            writer.BaseStream.CopyTo(ms);
-            return ms.ToArray();
+            return writer.GetBytes();
         }
 
         private static readonly List<ICodec> _codecs;

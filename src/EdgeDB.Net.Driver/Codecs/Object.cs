@@ -85,6 +85,10 @@ namespace EdgeDB.Codecs
                 }
                 else
                 {
+                    // special case for enums
+                    if (element.GetType().IsEnum && innerCodec is Text)
+                        element = element.ToString();
+
                     var elementBuff = innerCodec.Serialize(element);
 
                     innerWriter.Write(elementBuff.Length);
