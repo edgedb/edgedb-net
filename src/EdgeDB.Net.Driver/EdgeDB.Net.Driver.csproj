@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../../EdgeDB.Net.targets" />
   <PropertyGroup>
     <AssemblyName>EdgeDB.Net.Driver</AssemblyName>
     <RootNamespace>EdgeDB</RootNamespace>
