@@ -595,7 +595,7 @@ namespace EdgeDB
             await base.ConnectAsync(token);
         }
 
-        private async Task ConnectInternalAsync(CancellationToken token = default)
+        private async Task ConnectInternalAsync(CancellationToken token = default, int attempts = 0)
         {
             try
             {
@@ -604,7 +604,24 @@ namespace EdgeDB
 
                 await Duplexer.ResetAsync();
 
-                var stream = await GetStreamAsync(token).ConfigureAwait(false);
+                Stream? stream;
+
+                try
+                {
+                    stream = await GetStreamAsync(token).ConfigureAwait(false);
+                }
+                catch(EdgeDBException x) when (x.ShouldReconnect)
+                {
+                    attempts++;
+                    Logger.AttemptToReconnect((uint)attempts, _config.MaxConnectionRetries);
+                    if (attempts == _config.MaxConnectionRetries)
+                        throw new ConnectionFailedException(attempts);
+                    else
+                    {
+                        await ConnectInternalAsync(token, attempts);
+                        return;
+                    }
+                } 
 
                 Duplexer.Start(stream);
 

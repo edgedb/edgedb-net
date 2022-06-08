@@ -64,8 +64,7 @@ namespace EdgeDB
                         or SocketError.ConnectionReset
                         or SocketError.HostNotFound
                         or SocketError.NotInitialized:
-                        throw new ConnectionFailedTemporarilyException();
-
+                        throw new ConnectionFailedTemporarilyException(x.SocketErrorCode);
                     default:
                         throw;
                 }
