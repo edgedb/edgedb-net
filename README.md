@@ -1,4 +1,4 @@
-![EdgeDB.Net](./branding/Banner.png)
+![EdgeDB.Net](https://raw.githubusercontent.com/quinchs/EdgeDB.Net/dev/branding/Banner.png)
 
 <p align="center">
   <a href="https://www.nuget.org/packages/EdgeDB.Net.Driver/">
