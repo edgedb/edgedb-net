@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB.Models
+namespace EdgeDB
 {
     /// <summary>
     ///     A enum containing the cardinality specification of a command.

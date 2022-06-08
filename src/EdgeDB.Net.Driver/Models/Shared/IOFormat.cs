@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB.Models
+namespace EdgeDB
 {
     /// <summary>
     ///     An enum representing the format of a commands result.

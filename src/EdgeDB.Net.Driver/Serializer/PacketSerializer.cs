@@ -1,4 +1,6 @@
-﻿using EdgeDB.Codecs;
+﻿using EdgeDB.Binary;
+using EdgeDB.Binary.Packets;
+using EdgeDB.Codecs;
 using EdgeDB.Models;
 using System.Collections.Concurrent;
 using System.Numerics;
@@ -26,7 +28,7 @@ namespace EdgeDB
         }
 
 
-        public static IReceiveable? DeserializePacket(ServerMessageType type, Memory<byte> buffer, int length, EdgeDBBinaryClient client)
+        public static IReceiveable? DeserializePacket(ServerMessageType type, ref Memory<byte> buffer, int length, EdgeDBBinaryClient client)
         {
             var reader = new PacketReader(buffer.Span);
 

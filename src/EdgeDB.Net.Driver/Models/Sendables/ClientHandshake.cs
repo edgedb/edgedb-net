@@ -1,4 +1,4 @@
-﻿namespace EdgeDB.Models
+﻿namespace EdgeDB.Binary.Packets
 {
     internal class ClientHandshake : Sendable
     {

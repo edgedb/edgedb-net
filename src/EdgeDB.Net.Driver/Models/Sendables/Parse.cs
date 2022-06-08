@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB.Models
+namespace EdgeDB.Binary.Packets
 {
     /// <summary>
     ///     https://www.edgedb.com/docs/reference/protocol/messages#prepare

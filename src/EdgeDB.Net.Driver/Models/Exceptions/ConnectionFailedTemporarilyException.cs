@@ -10,7 +10,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents a temporary connection failiure exception.
     /// </summary>
-    public class ConnectionFailedTemporarilyException : EdgeDBException
+    public sealed class ConnectionFailedTemporarilyException : EdgeDBException
     {
         /// <summary>
         ///     Gets the socket error that caused the connection to fail.

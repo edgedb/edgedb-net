@@ -1,7 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Security.Cryptography;
 
-namespace EdgeDB.Models
+namespace EdgeDB.Binary.Packets
 {
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#dump-block">Dump Block</see> packet.

@@ -1,4 +1,5 @@
-﻿using EdgeDB.Models;
+﻿using EdgeDB.Binary;
+using EdgeDB.Models;
 using EdgeDB.Utils;
 using System.Buffers.Binary;
 using System.Text;

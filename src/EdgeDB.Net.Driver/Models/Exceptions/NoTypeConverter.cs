@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
+    /// <summary>
+    ///     Represents an exception thrown when no type converter could be found.
+    /// </summary>
     public class NoTypeConverter : EdgeDBException
     {
         public NoTypeConverter(Type target, Type source)

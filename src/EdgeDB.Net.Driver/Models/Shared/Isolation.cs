@@ -1,4 +1,4 @@
-﻿namespace EdgeDB.Models
+﻿namespace EdgeDB
 {
     /// <summary>
     ///     An enum representing the transaction mode within a <see cref="Transaction"/>.

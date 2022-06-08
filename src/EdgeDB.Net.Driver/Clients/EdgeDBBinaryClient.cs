@@ -1,4 +1,6 @@
-﻿using EdgeDB.Codecs;
+﻿using EdgeDB.Binary;
+using EdgeDB.Binary.Packets;
+using EdgeDB.Codecs;
 using EdgeDB.Models;
 using EdgeDB.Utils;
 using Microsoft.Extensions.Logging;
@@ -26,6 +28,12 @@ namespace EdgeDB
         {
             add => _onMessage.Add(value);
             remove => _onMessage.Remove(value);
+        }
+
+        public event Func<LogMessage, ValueTask> OnServerLog
+        {
+            add => _onServerLog.Add(value);
+            remove => _onServerLog.Remove(value);
         }
 
         /// <summary>
@@ -76,6 +84,7 @@ namespace EdgeDB
 
         private readonly AsyncEvent<Func<IReceiveable, ValueTask>> _onMessage = new();
         private readonly AsyncEvent<Func<ExecuteResult, ValueTask>> _queryExecuted = new();
+        private readonly AsyncEvent<Func<LogMessage, ValueTask>> _onServerLog = new();
 
         protected CancellationToken DisconnectCancelToken
             => Duplexer.DisconnectToken;
@@ -405,7 +414,16 @@ namespace EdgeDB
                     TransactionState = cmd.TransactionState;
                     _readySource.TrySetResult();
                     break;
-
+                case LogMessage log:
+                    try
+                    {
+                        await _onServerLog.InvokeAsync(log).ConfigureAwait(false);
+                    }
+                    catch(Exception x)
+                    {
+                        Logger.EventHandlerError(x);
+                    }
+                    break;
                 default:
                     break;
             }

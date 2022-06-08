@@ -1,4 +1,6 @@
-﻿using EdgeDB.Codecs;
+﻿using EdgeDB.Binary;
+using EdgeDB.Binary.Packets;
+using EdgeDB.Codecs;
 using EdgeDB.Models;
 using System.Security.Cryptography;
 using System.Text;

@@ -1,4 +1,6 @@
-﻿using EdgeDB.Models;
+﻿using EdgeDB.Binary;
+using EdgeDB.Binary.Packets;
+using EdgeDB.Models;
 using EdgeDB.Utils;
 using System.Buffers;
 using System.Buffers.Binary;
@@ -8,7 +10,7 @@ namespace EdgeDB
 {
     internal class ClientPacketDuplexer
     {
-        public bool Connected
+        public bool IsConnected
             => _stream != null && (_client?.IsConnected ?? false);
 
         public bool IsReading
@@ -105,7 +107,7 @@ namespace EdgeDB
                         return;
                     }
 
-                    var msg = PacketSerializer.DeserializePacket(type, buffer, length, _client);
+                    var msg = PacketSerializer.DeserializePacket(type, ref buffer, length, _client);
 
                     if (msg != null)
                     {
@@ -152,7 +154,7 @@ namespace EdgeDB
         {
             var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectTokenSource.Token);
 
-            if (_stream == null || !Connected)
+            if (_stream == null || !IsConnected)
                 throw new EdgeDBException("Cannot send message to a closed connection");
 
             using var ms = new MemoryStream();

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB.Models
+namespace EdgeDB.Binary
 {
     /// <summary>
     ///     Represents a generic packet received from the server.

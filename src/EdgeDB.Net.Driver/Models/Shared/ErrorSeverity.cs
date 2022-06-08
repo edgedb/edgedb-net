@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB.Models
+namespace EdgeDB
 {
     /// <summary>
     ///     An enum representing the error severity of a <see cref="ErrorResponse"/>.

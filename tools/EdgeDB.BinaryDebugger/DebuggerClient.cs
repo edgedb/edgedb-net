@@ -1,4 +1,5 @@
-﻿using EdgeDB.Models;
+﻿using EdgeDB.Binary;
+using EdgeDB.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -68,7 +69,7 @@ namespace EdgeDB.BinaryDebugger
                         or SocketError.ConnectionReset
                         or SocketError.HostNotFound
                         or SocketError.NotInitialized:
-                        throw new ConnectionFailedTemporarilyException();
+                        throw new ConnectionFailedTemporarilyException(x.SocketErrorCode);
 
                     default:
                         throw;

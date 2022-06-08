@@ -1,4 +1,5 @@
-﻿using EdgeDB.Models;
+﻿using EdgeDB.Binary.Packets;
+using EdgeDB.Models;
 
 namespace EdgeDB.Dumps
 {

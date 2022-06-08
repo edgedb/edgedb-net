@@ -1,4 +1,5 @@
 ﻿using BenchmarkDotNet.Attributes;
+using EdgeDB.Binary;
 using EdgeDB.Models;
 using EdgeDB.Utils;
 using System;
@@ -54,7 +55,8 @@ namespace EdgeDB.Tests.Benchmarks
         [Benchmark]
         public IReceiveable? Deserialize()
         {
-            return PacketSerializer.DeserializePacket(Packet.Type, Packet.Data, Packet.Data.Length, null!); // client as null is OK as its only used for logging unknown packet
+            var data = Packet.Data.AsMemory();
+            return PacketSerializer.DeserializePacket(Packet.Type, ref data, Packet.Data.Length, null!); // client as null is OK as its only used for logging unknown packet
         }
     }
 }

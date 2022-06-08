@@ -1,4 +1,4 @@
-﻿namespace EdgeDB.Models
+﻿namespace EdgeDB.Binary
 {
     /// <summary>
     ///		Represents all supported message types sent by the server.

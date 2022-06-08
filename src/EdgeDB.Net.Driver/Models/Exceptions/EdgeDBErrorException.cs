@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EdgeDB.Binary.Packets;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -15,9 +16,9 @@ namespace EdgeDB
         public string? Details { get; }
         public string? ServerTraceBack { get; }
         public string? Hint { get; }
-        public Models.ErrorResponse ErrorResponse { get; }
+        public ErrorResponse ErrorResponse { get; }
 
-        public EdgeDBErrorException(Models.ErrorResponse error)
+        public EdgeDBErrorException(ErrorResponse error)
             : base(error.Message, typeof(ServerErrorCodes).GetField(error.ErrorCode.ToString())?.IsDefined(typeof(ShouldRetryAttribute), false) ?? false)
         {
             if(error.Headers.Any(x => x.Code == 0x0002))

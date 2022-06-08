@@ -1,4 +1,6 @@
-﻿using EdgeDB.Models;
+﻿using EdgeDB.Binary;
+using EdgeDB.Binary.Packets;
+using EdgeDB.Models;
 using EdgeDB.Utils;
 using System.Security.Cryptography;
 
@@ -33,41 +35,40 @@ namespace EdgeDB.Dumps
                     throw new EdgeDBException("Failed to get buffer from the stream");
             }
 
-            using (var reader = new PacketReader(buff))
+            var reader = new PacketReader(ref buff);
+
+            var version = reader.ReadInt64();
+
+            if (version > DumpWriter.DumpVersion)
+                throw new ArgumentException($"Unsupported dump version {version}");
+
+            var header = ReadPacket(ref reader);
+
+            if (header is not DumpHeader dumpHeader)
+                throw new FormatException($"Expected dump header but got {header?.Type}");
+
+            restore = new Restore()
             {
-                var version = reader.ReadInt64();
+                HeaderData = dumpHeader.Raw
+            };
 
-                if (version > DumpWriter.DumpVersion)
-                    throw new ArgumentException($"Unsupported dump version {version}");
+            while (stream.Position < stream.Length)
+            {
+                var packet = ReadPacket(ref reader);
 
-                var header = ReadPacket(reader);
+                if (packet is not DumpBlock dumpBlock)
+                    throw new FormatException($"Expected dump block but got {header?.Type}");
 
-                if (header is not DumpHeader dumpHeader)
-                    throw new FormatException($"Expected dump header but got {header?.Type}");
-
-                restore = new Restore()
+                blocks.Add(new RestoreBlock
                 {
-                    HeaderData = dumpHeader.Raw
-                };
-
-                while (stream.Position < stream.Length)
-                {
-                    var packet = ReadPacket(reader);
-
-                    if(packet is not DumpBlock dumpBlock)
-                        throw new FormatException($"Expected dump block but got {header?.Type}");
-                    
-                    blocks.Add(new RestoreBlock
-                    {
-                        BlockData = dumpBlock.Raw
-                    });
-                }
+                    BlockData = dumpBlock.Raw
+                });
             }
 
             return (restore!, blocks);
         }
 
-        private static IReceiveable ReadPacket(PacketReader reader)
+        private static IReceiveable ReadPacket(ref PacketReader reader)
         {
             var type = reader.ReadChar();
 
@@ -85,7 +86,7 @@ namespace EdgeDB.Dumps
                     throw new ArgumentException("Hash did not match");
             }
 
-            var innerReader = new PacketReader(packetData);
+            var innerReader = new PacketReader(ref packetData);
 
             return type switch
             {
