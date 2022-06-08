@@ -1,0 +1,37 @@
+name: Tests
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Run test suite
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 6.0.x
+
+    - uses: edgedb/setup-edgedb@v1
+      with:
+        server-version: stable
+        instance-name: EdgeDB_Dotnet_Test
+
+    - run: edgedb instance list
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --no-restore
+
+    - name: Unit test
+      run: dotnet test ./tests/EdgeDB.Tests.Unit --no-build --verbosity normal
+
+    - name: Integration Tests
+      run: dotnet test ./tests/EdgeDB.Tests.Integration --no-build --verbosity normal 
