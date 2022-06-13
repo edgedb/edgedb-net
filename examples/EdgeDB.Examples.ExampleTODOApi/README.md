@@ -548,7 +548,7 @@ This route will take in a title and a state as query parameters and update the t
 
 Lets run the same `POST` request we did earlier to create another todo, then lets call `PATCH` to update the state of our todo.
 
-```json
+```
 PATCH /todos
 
 ?title=Hello$state=1
