@@ -279,16 +279,6 @@ namespace EdgeDB
                 return result;
             }
 
-            // try to get a disconnected client that can be connected again
-            if((result = _clients.FirstOrDefault(x => !x.Value.IsConnected).Value) != null)
-            {
-                await result.ConnectAsync(token).ConfigureAwait(false);
-                return result;
-            }
-
-            // create new clinet
-            var clientIndex = Interlocked.Increment(ref _clientIndex);
-
             if (_totalClients >= _poolSize)
             {
                 await _clientWaitSemaphore.WaitAsync(token).ConfigureAwait(false);
@@ -310,6 +300,16 @@ namespace EdgeDB
             }
             else
             {
+                // try to get a disconnected client that can be connected again
+                if ((result = _clients.FirstOrDefault(x => !x.Value.IsConnected).Value) != null)
+                {
+                    await result.ConnectAsync(token).ConfigureAwait(false);
+                    return result;
+                }
+
+                // create new clinet
+                var clientIndex = Interlocked.Increment(ref _clientIndex);
+
                 var numClients = Interlocked.Increment(ref _totalClients);
 
                 return await CreateClientAsync(clientIndex, token).ConfigureAwait(false);
@@ -328,13 +328,6 @@ namespace EdgeDB
                         {
                             Interlocked.Decrement(ref _totalClients);
                             RemoveClient(id);
-                            return ValueTask.CompletedTask;
-                        };
-
-                        client.OnConnect += (c) =>
-                        {
-                            // add back client if it isn't there
-                            AddClient(id, c);
                             return ValueTask.CompletedTask;
                         };
 
@@ -418,19 +411,7 @@ namespace EdgeDB
             lock (_clientsLock)
             {
                 _availableClients = new ConcurrentStack<BaseEdgeDBClient>(_availableClients.Where(x => x.ClientId != id).ToArray());
-                //_clients.TryRemove(id, out _);
-            }
-        }
-
-        private void AddClient(ulong id, BaseEdgeDBClient client)
-        {
-            lock (_clientsLock)
-            {
-                if(!_availableClients.Any(x => x.ClientId == id))
-                {
-                    _availableClients = new ConcurrentStack<BaseEdgeDBClient>(_availableClients.Append(client));
-                }
-                //_clients.TryAdd(id, client);
+                _clients.TryRemove(id, out _);
             }
         }
 

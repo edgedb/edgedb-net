@@ -118,6 +118,8 @@ namespace EdgeDB
             MessageTimeout = TimeSpan.FromMilliseconds(config.MessageTimeout);
             ConnectionTimeout = TimeSpan.FromMilliseconds(config.ConnectionTimeout);
             Duplexer = new ClientPacketDuplexer(this);
+
+            Duplexer.OnDisconnected += HandleDuplexerDisconnectAsync;
         }
 
         #region Commands/queries
@@ -600,7 +602,7 @@ namespace EdgeDB
         {
             _authCompleteSource = new();
 
-            await ConnectInternalAsync(token);
+            await ConnectInternalAsync(token: token);
 
             var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _readyCancelTokenSource.Token);
 
@@ -613,7 +615,7 @@ namespace EdgeDB
             await base.ConnectAsync(token);
         }
 
-        private async Task ConnectInternalAsync(CancellationToken token = default, int attempts = 0)
+        private async Task ConnectInternalAsync(int attempts = 0, CancellationToken token = default)
         {
             try
             {
@@ -636,7 +638,7 @@ namespace EdgeDB
                         throw new ConnectionFailedException(attempts);
                     else
                     {
-                        await ConnectInternalAsync(token, attempts);
+                        await ConnectInternalAsync(attempts, token);
                         return;
                     }
                 } 
@@ -673,7 +675,7 @@ namespace EdgeDB
                 }
 
                 _currentRetries++;
-                await ConnectInternalAsync(token).ConfigureAwait(false);
+                await ConnectInternalAsync(token: token).ConfigureAwait(false);
             }
         }
 
@@ -693,11 +695,14 @@ namespace EdgeDB
         /// </summary>
         /// <remarks/> <!-- clears the remarks about calling base -->
         /// <inheritdoc/>
-        public override async ValueTask DisconnectAsync(CancellationToken token = default)
+        public override ValueTask DisconnectAsync(CancellationToken token = default)
+            => Duplexer.DisconnectAsync(token);
+
+        private async ValueTask HandleDuplexerDisconnectAsync()
         {
-            await Duplexer.DisconnectAsync(token).ConfigureAwait(false);
-            await CloseStreamAsync(token).ConfigureAwait(false);
-            await base.DisconnectAsync(token);
+            // if we receive a disconnect from the duplexer we should call our disconnect methods to property close down our client.
+            await CloseStreamAsync().ConfigureAwait(false);
+            await base.DisconnectAsync();
         }
 
         #endregion
