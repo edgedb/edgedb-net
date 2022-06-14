@@ -1,7 +1,7 @@
-﻿using System.Collections;
+﻿using EdgeDB.Serializer;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Reflection;
-using System.Reflection.Emit;
 
 namespace EdgeDB
 {
@@ -29,6 +29,12 @@ namespace EdgeDB
 
             if (valueType.IsAssignableTo(type))
                 return value;
+
+            // check for enums
+            if(value is string str && type.IsEnum)
+            {
+                return Enum.Parse(type, str);
+            }
 
             // check for arrays or sets
             if (valueType.IsArray || valueType.IsAssignableTo(typeof(IEnumerable)))

@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using EdgeDB.Serializer;
+using Microsoft.Extensions.Logging;
 
 namespace EdgeDB
 {
@@ -105,5 +106,17 @@ namespace EdgeDB
         ///     (equivalent to having an implicit “__tid__ := .__type__.id” computed property.)
         /// </remarks>
         public bool ImplicitTypeIds { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the default naming strategy for the type builder.
+        /// </summary>
+        /// <remarks>
+        /// See <seealso cref="TypeBuilder.NamingStrategy"/>
+        /// </remarks>
+        public INamingStrategy SerializerNamingStrategy
+        {
+            get => TypeBuilder.NamingStrategy;
+            set => TypeBuilder.NamingStrategy = value;
+        }
     }
 }

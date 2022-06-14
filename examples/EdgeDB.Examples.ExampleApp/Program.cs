@@ -20,14 +20,7 @@ using var host = Host.CreateDefaultBuilder()
             loggingBuilder.AddSerilog(dispose: true);
         });
 
-        services.AddSingleton((provider) =>
-        {
-            return new EdgeDBClient(new EdgeDBClientPoolConfig
-            {
-                Logger = provider.GetService<ILoggerFactory>()!.CreateLogger("EdgeDB"),
-                ExplicitObjectIds = true,
-            });
-        });
+        services.AddEdgeDB();
 
         services.AddSingleton<ExampleRunner>();
     }).Build();

@@ -74,18 +74,18 @@ We can write at class that represents person as follows:
 
   public class Person
   {
-    [EdgeDBProperty("name")]
     public string? Name { get; set; }
     
-    [EdgeDBProperty("email")]
     public string? Email { get; set; }
   }
 
 .. note:: 
 
-  Since the naming convention of properties is diffent from the EdgeDB naming convention,
-  you can specify the name with the ``EdgeDBProperty`` attribute. You can also specify 
-  the name of the type with the ``EdgeDBType`` attribute.
+  Since the naming convention of properties is diffent from the EdgeDB naming convention, 
+  The class responsible for deserializing the schema type will use a ``INamingStrategy`` 
+  to map the EdgeDB properties to the dotnet properties. You can change the default naming 
+  strategy in the config. You can also specify the name with the ``EdgeDBProperty`` attribute. 
+  You can also specify the name of the type with the ``EdgeDBType`` attribute.
 
 You can find an example with custom types `here <https://github.com/quinchs/EdgeDB.Net/blob/dev/examples/EdgeDB.ExampleApp/Examples/QueryResults.cs>`_
 

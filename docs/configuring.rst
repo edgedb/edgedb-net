@@ -41,3 +41,15 @@ with the ``EdgeDBConfig`` class like so:
   * - RetryMode
     -  ``ConnectionRetryMode``
     - The retry mode for when a connection can't be established 
+  * - ExplicitObjectIds
+    - ``bool``
+    - Whether or not to always return object ids.
+  * - ImplicitTypeNames
+    - ``bool``
+    - Whether or not to implicitly return type names.
+  * - ImplicitTypeIds
+    - ``bool`` 
+    - Whether or not to implicitly return type ids.
+  * - SerializerNamingStrategy
+    - ``INamingStrategy`` 
+    - The default naming strategy for the type builder.

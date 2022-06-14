@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,12 +14,21 @@ namespace EdgeDB
             Action<EdgeDBClientPoolConfig>? configure = null)
         {
             var conn = connection ?? EdgeDBConnection.ResolveConnection();
-            var config = new EdgeDBClientPoolConfig();
-            configure?.Invoke(config);
 
             collection.AddSingleton(conn);
-            collection.AddSingleton(config);
+            collection.AddSingleton<EdgeDBClientPoolConfig>((provider) =>
+            {
+                var config = new EdgeDBClientPoolConfig();
+                configure?.Invoke(config);
+
+                if (config.Logger is null)
+                {
+                    config.Logger = provider.GetService<ILoggerFactory>()?.CreateLogger("EdgeDB");
+                }
+                return config;
+            });
             collection.AddSingleton<EdgeDBClient>();
+
             return collection;
         }
     }

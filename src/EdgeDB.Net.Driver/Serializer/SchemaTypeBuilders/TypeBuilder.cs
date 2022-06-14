@@ -3,14 +3,32 @@ using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
-namespace EdgeDB
+namespace EdgeDB.Serializer
 {
     /// <summary>
     ///     Represents the class used to build types from edgedb query results.
     /// </summary>
     public static class TypeBuilder
     {
+        /// <summary>
+        ///     Gets or sets the naming strategy used when mapping type names returned 
+        ///     from EdgeDB to C# classes.
+        /// </summary>
+        /// <remarks>
+        ///     If the naming strategy doesn't find a match, the 
+        ///     <see cref="AttributeNamingStrategy"/> will be used.
+        /// </remarks>
+        public static INamingStrategy NamingStrategy { get; set; }
+
         internal static ConcurrentDictionary<Type, Func<IDictionary<string, object?>, object>> _typeInfo = new();
+
+        private static readonly INamingStrategy _attributeNamingStrategy;
+
+        static TypeBuilder()
+        {
+            _attributeNamingStrategy = INamingStrategy.AttributeNamingStrategy;
+            NamingStrategy ??= INamingStrategy.SnakeCaseNamingStrategy;
+        }
 
         /// <summary>
         ///     Adds or updates a custom type builder.
@@ -135,26 +153,28 @@ namespace EdgeDB
 
                 foreach (var prop in propertyMap)
                 {
-                    if (data.TryGetValue(prop.Key, out var value))
+                    var foundProperty = data.TryGetValue(NamingStrategy.GetName(prop), out object? value) || data.TryGetValue(_attributeNamingStrategy.GetName(prop), out value);
+
+                    if (!foundProperty || value is null)
+                        continue;
+
+                    var valueType = value?.GetType();
+
+                    if (valueType == null)
+                        continue;
+
+                    if (valueType.IsAssignableTo(prop.PropertyType))
                     {
-                        var valueType = value?.GetType();
-
-                        if (valueType == null)
-                            continue;
-
-                        if (valueType.IsAssignableTo(prop.Value.PropertyType))
-                        {
-                            prop.Value.SetValue(instance, value);
-                            continue;
-                        }
-                        else if (prop.Value.PropertyType.IsEnum && value is string str) // enums
-                        {
-                            prop.Value.SetValue(instance, Enum.Parse(prop.Value.PropertyType, str));
-                            continue;
-                        }
-
-                        prop.Value.SetValue(instance, prop.Value.PropertyType.ConvertValue(value));
+                        prop.SetValue(instance, value);
+                        continue;
                     }
+                    else if (prop.PropertyType.IsEnum && value is string str) // enums
+                    {
+                        prop.SetValue(instance, Enum.Parse(prop.PropertyType, str));
+                        continue;
+                    }
+
+                    prop.SetValue(instance, prop.PropertyType.ConvertValue(value));
                 }
 
                 return instance;
@@ -226,16 +246,12 @@ namespace EdgeDB
             return method is not null;
         }
 
-        internal static Dictionary<string, PropertyInfo> GetPropertyMap(this Type objectType)
+        internal static IEnumerable<PropertyInfo> GetPropertyMap(this Type objectType)
         {
-            var properties = objectType.GetProperties().Where(x =>
+            return objectType.GetProperties().Where(x =>
                 x.CanWrite &&
                 x.GetCustomAttribute<EdgeDBIgnoreAttribute>() == null &&
                 x.SetMethod != null);
-
-            return properties.ToDictionary(
-                x => x.GetCustomAttribute<EdgeDBPropertyAttribute>()?.Name ?? x.Name,
-                x => x);
         }
     }
 }

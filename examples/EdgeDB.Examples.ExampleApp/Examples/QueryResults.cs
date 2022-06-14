@@ -23,10 +23,7 @@ namespace EdgeDB.ExampleApp.Examples
         // We have a type called 'Person' with a few properties, we can create a class that resembles this object like so
         public class Person
         {
-            [EdgeDBProperty("name")]
             public string? Name { get; set; }
-
-            [EdgeDBProperty("email")]
             public string? Email { get; set; }
         }
 
