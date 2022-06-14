@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace EdgeDB
 {
     /// <summary>
-    ///     An enum representing the error severity of a <see cref="ErrorResponse"/>.
+    ///     An enum representing the error severity of a <see cref="Binary.Packets.ErrorResponse"/>.
     /// </summary>
     public enum ErrorSeverity : byte
     {
