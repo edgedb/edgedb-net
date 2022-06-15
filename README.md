@@ -25,7 +25,7 @@ $ dotnet add package EdgeDB.Net.Driver
 ```
 
 ## Examples
-You can view our curated examples [here](https://github.com/quinchs/EdgeDB.Net/tree/master/examples/EdgeDB.ExampleApp/Examples). You're more than welcome to contribute to the examples!
+You can view our curated examples [here](https://github.com/quinchs/EdgeDB.Net/tree/dev/examples/EdgeDB.Examples.ExampleApp/Examples). You're more than welcome to contribute to the examples!
 
 ## Compiling
 If you want to build the EdgeDB.Net project from source, you will need the [.NET 6 SDK](https://dotnet.microsoft.com/en-us/download).
