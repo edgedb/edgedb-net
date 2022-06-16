@@ -1,7 +1,9 @@
-﻿using EdgeDB.Serializer;
+﻿using EdgeDB.DataTypes;
+using EdgeDB.Serializer;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace EdgeDB
 {
@@ -15,10 +17,10 @@ namespace EdgeDB
             if (value is IDictionary<string, object?> raw)
                 return BuildResult<TType>(raw);
 
-            return (TType?)ConvertTo(typeDescriptorId, typeof(TType), value);
+            return (TType?)ConvertTo(typeof(TType), value);
         }
 
-        private static object? ConvertTo(Guid descriptorId, Type type, object? value)
+        private static object? ConvertTo(Type type, object? value)
         {
             if (value is null)
             {
@@ -39,7 +41,7 @@ namespace EdgeDB
             // check for arrays or sets
             if (valueType.IsArray || valueType.IsAssignableTo(typeof(IEnumerable)))
             {
-                return ConvertCollection(descriptorId, type, valueType, value);
+                return ConvertCollection(type, valueType, value);
             }
 
             // check for computed values
@@ -55,6 +57,15 @@ namespace EdgeDB
             if (TypeBuilder.IsValidObjectType(type) && value is IDictionary<string, object?> dict)
                 return TypeBuilder.BuildObject(type, dict);
 
+            // check for tuple
+            if(value is TransientTuple tuple && type.GetInterface("ITuple") != null)
+            {
+                if (type.Name.StartsWith("ValueTuple"))
+                    return tuple.ToValueTuple();
+                else
+                    return tuple.ToReferenceTuple();
+            }
+
             try
             {
                 return Convert.ChangeType(value, type);
@@ -69,7 +80,7 @@ namespace EdgeDB
             }
         }
 
-        private static object? ConvertCollection(Guid descriptorId, Type targetType, Type valueType, object value)
+        private static object? ConvertCollection(Type targetType, Type valueType, object value)
         {
             List<object?> converted = new();
             var strongInnerType = targetType.GenericTypeArguments.FirstOrDefault();
@@ -81,7 +92,7 @@ namespace EdgeDB
                     converted.Add(strongInnerType is not null ? TypeBuilder.BuildObject(strongInnerType, raw) : val);
                 }
                 else
-                    converted.Add(strongInnerType is not null ? ConvertTo(descriptorId, strongInnerType, val) : val);
+                    converted.Add(strongInnerType is not null ? ConvertTo(strongInnerType, val) : val);
 
             }
 

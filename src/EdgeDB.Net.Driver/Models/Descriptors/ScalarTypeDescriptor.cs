@@ -15,7 +15,7 @@ namespace EdgeDB.Binary
 
         public readonly ushort BaseTypePos;
 
-        public ScalarTypeDescriptor(Guid id, PacketReader reader)
+        public ScalarTypeDescriptor(Guid id, ref PacketReader reader)
         {
             Id = id;
             BaseTypePos = reader.ReadUInt16();

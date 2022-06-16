@@ -38,17 +38,17 @@
         }
     }
 
-    internal class LocalDate : IScalarCodec<DateTime>
+    internal class LocalDate : IScalarCodec<DateOnly>
     {
-        public static readonly DateTime EdgedbEpoc = new(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
+        public static readonly DateOnly EdgedbEpoc = new(2000, 1, 1);
 
-        public void Serialize(PacketWriter writer, DateTime value)
+        public void Serialize(PacketWriter writer, DateOnly value)
         {
-            var days = (int)Math.Floor((value - EdgedbEpoc).TotalDays);
+            var days = (int)Math.Floor((value.ToDateTime(default) - EdgedbEpoc.ToDateTime(default)).TotalDays);
             writer.Write(days);
         }
 
-        public DateTime Deserialize(ref PacketReader reader)
+        public DateOnly Deserialize(ref PacketReader reader)
         {
             var val = reader.ReadInt32();
             return EdgedbEpoc.AddDays(val);
@@ -61,9 +61,12 @@
         {
             var microseconds = reader.ReadInt64();
 
-            // skip days and months (depricated)
-            reader.ReadInt32();
-            reader.ReadInt32();
+            if (!reader.Empty)
+            {
+                // skip days and months (depricated)
+                reader.ReadInt32();
+                reader.ReadInt32();
+            }
 
             return TimeSpan.FromTicks(microseconds * 10);
         }

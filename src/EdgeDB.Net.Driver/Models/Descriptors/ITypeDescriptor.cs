@@ -24,10 +24,10 @@ namespace EdgeDB.Binary
                 DescriptorType.EnumerationTypeDescriptor => new EnumerationTypeDescriptor(id, ref reader),
                 DescriptorType.NamedTupleDescriptor => new NamedTupleTypeDescriptor(id, ref reader),
                 DescriptorType.ObjectShapeDescriptor => new ObjectShapeDescriptor(id, ref reader),
-                DescriptorType.ScalarTypeDescriptor => new ScalarTypeDescriptor(id, reader),
-                DescriptorType.ScalarTypeNameAnnotation => new ScalarTypeNameAnnotation(id, reader),
+                DescriptorType.ScalarTypeDescriptor => new ScalarTypeDescriptor(id, ref reader),
+                DescriptorType.ScalarTypeNameAnnotation => new ScalarTypeNameAnnotation(id, ref reader),
                 DescriptorType.SetDescriptor => new SetDescriptor(id, ref reader),
-                DescriptorType.TupleTypeDescriptor => new TupleTypeDescriptor(id, reader),
+                DescriptorType.TupleTypeDescriptor => new TupleTypeDescriptor(id, ref reader),
                 _ => null
             };
 

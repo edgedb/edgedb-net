@@ -18,7 +18,7 @@ namespace EdgeDB.Binary
 
         public readonly ushort[] ElementTypeDescriptorsIndex;
 
-        public TupleTypeDescriptor(Guid id, PacketReader reader)
+        public TupleTypeDescriptor(Guid id, ref PacketReader reader)
         {
             Id = id;
             var count = reader.ReadUInt16();

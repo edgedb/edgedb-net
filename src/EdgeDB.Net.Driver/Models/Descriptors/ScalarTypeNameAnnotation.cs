@@ -15,7 +15,7 @@ namespace EdgeDB.Binary
 
         public readonly string Name;
 
-        public ScalarTypeNameAnnotation(Guid id, PacketReader reader)
+        public ScalarTypeNameAnnotation(Guid id, ref PacketReader reader)
         {
             Id = id;
             Name = reader.ReadString();

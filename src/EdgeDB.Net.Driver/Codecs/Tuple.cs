@@ -1,8 +1,9 @@
-﻿using System.Runtime.CompilerServices;
+﻿using EdgeDB.DataTypes;
+using System.Runtime.CompilerServices;
 
 namespace EdgeDB.Codecs
 {
-    internal class Tuple : ICodec<ITuple>
+    internal class Tuple : ICodec<TransientTuple>
     {
         private readonly ICodec[] _innerCodecs;
         
@@ -11,7 +12,7 @@ namespace EdgeDB.Codecs
             _innerCodecs = innerCodecs;
         }
 
-        public ITuple Deserialize(ref PacketReader reader)
+        public TransientTuple Deserialize(ref PacketReader reader)
         {
             var numElements = reader.ReadInt32();
 
@@ -19,17 +20,6 @@ namespace EdgeDB.Codecs
             {
                 throw new ArgumentException($"codecs mismatch for tuple: expected {numElements} codecs, got {_innerCodecs.Length} codecs");
             }
-
-            // create tuple dynamically
-            var tupleType = Type.GetType($"System.Tuple`{numElements}");
-
-            // TODO: support extended tuple types.
-            if(tupleType is null)
-            {
-                throw new NotSupportedException("Failed to find tuple match.");
-            }
-
-            var constructedTupleType = tupleType.MakeGenericType(_innerCodecs.Select(x => x.ConverterType!).ToArray());
 
             // deserialize our values
             object?[] values = new object?[numElements];
@@ -54,11 +44,10 @@ namespace EdgeDB.Codecs
                 values[i] = _innerCodecs[i].Deserialize(ref innerReader);
             }
 
-            // construct our tuple
-            return (ITuple)Activator.CreateInstance(constructedTupleType, values)!;
+            return new TransientTuple(_innerCodecs.Select(x => x.ConverterType).ToArray(), values);
         }
 
-        public void Serialize(PacketWriter writer, ITuple? value)
+        public void Serialize(PacketWriter writer, TransientTuple value)
         {
             throw new NotSupportedException("Tuples cannot be passed in query arguments");
         }
