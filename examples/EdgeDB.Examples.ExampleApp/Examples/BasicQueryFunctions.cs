@@ -20,8 +20,6 @@ namespace EdgeDB.ExampleApp.Examples
 
         public async Task ExecuteAsync(EdgeDBClient client)
         {
-            var enm = await client.QueryRequiredSingleAsync<TODOState>("select <State>$state", new Dictionary<string, object?> { { "state", TODOState.InProgress } });
-
             // We can preform basic scalar queries with our client.
             // forach query function that can return a result, we must specify
             // the return type as a generic parameter.
