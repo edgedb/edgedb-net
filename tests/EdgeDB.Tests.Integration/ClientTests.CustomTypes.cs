@@ -43,31 +43,31 @@ namespace EdgeDB.Tests.Integration
             Assert.Equal("test@example.com", person.Email);
         }
 
-        //[Fact]
-        //public async Task SchemaAbstractTypeDeserialize()
-        //{
-        //    // insert some types
-        //    await _edgedb.ExecuteAsync("insert Thing { name := \"Thing1\", description := \"This is thing one!\" } unless conflict on .name");
-        //    await _edgedb.ExecuteAsync("insert OtherThing { name := \"Thing2\", attribute := \"<readonly>\" } unless conflict on .name");
+        [Fact]
+        public async Task SchemaAbstractTypeDeserialize()
+        {
+            // insert some types
+            await _edgedb.ExecuteAsync("insert Thing { name := \"Thing1\", description := \"This is thing one!\" } unless conflict on .name");
+            await _edgedb.ExecuteAsync("insert OtherThing { name := \"Thing2\", attribute := \"<readonly>\" } unless conflict on .name");
 
-        //    var abstractSelect = await _edgedb.QueryAsync<AbstractThing>("select AbstractThing { name, [is Thing].description, [is OtherThing].attribute }");
+            var abstractSelect = await _edgedb.QueryAsync<AbstractThing>("select AbstractThing { name, [is Thing].description, [is OtherThing].attribute }");
 
-        //    foreach(var result in abstractSelect)
-        //    {
-        //        if (result is Thing thing)
-        //        {
-        //            Assert.Equal("Thing1", thing.Name);
-        //            Assert.Equal("This is thing one!", thing.Description);
-        //        }
-        //        else if (result is OtherThing otherThing)
-        //        {
-        //            Assert.Equal("Thing2", otherThing.Name);
-        //            Assert.Equal("<readonly>", otherThing.Attribute);
-        //        }
-        //        else
-        //            throw new Exception("Unexpected type");
-        //    }
-        //}
+            foreach (var result in abstractSelect)
+            {
+                if (result is Thing thing)
+                {
+                    Assert.Equal("Thing1", thing.Name);
+                    Assert.Equal("This is thing one!", thing.Description);
+                }
+                else if (result is OtherThing otherThing)
+                {
+                    Assert.Equal("Thing2", otherThing.Name);
+                    Assert.Equal("<readonly>", otherThing.Attribute);
+                }
+                else
+                    throw new Exception("Unexpected type");
+            }
+        }
 
         public class Person 
         {
