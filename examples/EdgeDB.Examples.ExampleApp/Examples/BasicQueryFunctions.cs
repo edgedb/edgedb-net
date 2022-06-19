@@ -11,13 +11,6 @@ namespace EdgeDB.ExampleApp.Examples
     {
         public ILogger? Logger { get; set; }
 
-        public enum TODOState
-        {
-            NotStarted,
-            InProgress,
-            Complete
-        }
-
         public async Task ExecuteAsync(EdgeDBClient client)
         {
             // We can preform basic scalar queries with our client.

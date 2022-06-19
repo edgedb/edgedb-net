@@ -162,8 +162,8 @@ namespace EdgeDB
                     Format = format,
                     ExpectedCardinality = card ?? Cardinality.Many,
                     ExplicitObjectIds = _config.ExplicitObjectIds,
-                    ImplicitTypeNames = _config.ImplicitTypeNames,
-                    ImplicitTypeIds = _config.ImplicitTypeIds,
+                    ImplicitTypeNames = true, // used for type builder
+                    ImplicitTypeIds = true,  // used for type builder
                 }, x => x.Type is ServerMessageType.ParseComplete, linkedToken).ConfigureAwait(false)).ThrowIfErrorOrNot<ParseComplete>();
 
                 // pop ready 

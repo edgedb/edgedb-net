@@ -24,4 +24,17 @@ module default {
     }
     required property state -> State;
   }
+
+  # for integration tests & examples
+  abstract type AbstractThing {
+    required property name -> str {
+      constraint exclusive;
+    }
+  }
+  type Thing extending AbstractThing {
+    required property description -> str;
+  }
+  type OtherThing extending AbstractThing {
+    required property attribute -> str;
+  }
 }
