@@ -10,6 +10,7 @@ namespace EdgeDB
 {
     internal class ClientPacketDuplexer
     {
+        public const int MAX_CHUNK_SIZE = 2048;
         public bool IsConnected
             => _stream != null && (_client?.IsConnected ?? false);
 
@@ -98,8 +99,17 @@ namespace EdgeDB
 
                     using var memoryOwner = MemoryPool<byte>.Shared.Rent(length);
                     var buffer = memoryOwner.Memory[..length];
+                    
+                    int read = await _stream.ReadAsync(buffer, _disconnectTokenSource.Token).ConfigureAwait(false);
 
-                    if (await _stream.ReadAsync(buffer, _disconnectTokenSource.Token).ConfigureAwait(false) != length)
+                    if (read != length && read != 0)
+                    {
+                        var handle = buffer.Pin();
+                        read = ReadIntoHandle(length, read, ref handle);
+                        handle.Dispose();
+                    }
+
+                    if (read == 0)
                     {
                         // disconnected
                         _disconnectTokenSource?.Cancel();
@@ -127,6 +137,25 @@ namespace EdgeDB
             {
                 _client.Logger.ReadException(x);
             }
+        }
+
+        private unsafe int ReadIntoHandle(int length, int offset, ref MemoryHandle handle)
+        {
+            if (_stream == null)
+                return 0;
+
+            int read = offset;
+            byte* ptr = ((byte*)handle.Pointer) + offset;
+            while (read < length)
+            {
+                // should be no allocations with this span as we're giving it a pointer
+                var span = new Span<byte>(ptr, length - read);
+                var count = _stream.Read(span);
+                ptr += count;
+                read += count;
+            }
+
+            return read;
         }
 
         public async Task<IReceiveable> DuplexAsync(Predicate<IReceiveable>? predicate = null, CancellationToken token = default, params Sendable[] packets)
