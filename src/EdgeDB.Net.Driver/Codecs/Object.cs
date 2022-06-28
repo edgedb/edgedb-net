@@ -60,7 +60,7 @@ namespace EdgeDB.Codecs
             object?[]? values = null;
 
             if (value is IDictionary<string, object?> dict)
-                values = dict.Values.ToArray();
+                values = _propertyNames.Select(x => dict[x]).ToArray();
             else if (value is object?[] arr)
                 value = arr;
 
