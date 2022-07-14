@@ -17,7 +17,7 @@ jobs:
       with:
         dotnet-version: 6.0.x
 
-    - uses: edgedb/setup-edgedb@v1
+    - uses: edgedb/setup-edgedb@v1.2.2
       with:
         server-version: stable
         instance-name: EdgeDB_Dotnet_Test
