@@ -64,7 +64,12 @@ namespace EdgeDB
 
         public async ValueTask DisconnectAsync(CancellationToken token = default)
         {
-            await SendAsync(token, packets: new Terminate()).ConfigureAwait(false);
+            try
+            {
+                await SendAsync(token, packets: new Terminate()).ConfigureAwait(false);
+            }
+            catch(EdgeDBException) { } // assume its because the connection is closed.
+            
             _disconnectTokenSource.Cancel();
             await _onDisconnected.InvokeAsync().ConfigureAwait(false);
         }
