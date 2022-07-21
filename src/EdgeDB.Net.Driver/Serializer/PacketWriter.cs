@@ -12,6 +12,9 @@ namespace EdgeDB
 {
     internal unsafe class PacketWriter : BinaryWriter
     {
+        public long Length
+            => base.OutStream.Length;
+
         public PacketWriter()
             : base(new MemoryStream())
         {

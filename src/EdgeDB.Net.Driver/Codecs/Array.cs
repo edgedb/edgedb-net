@@ -2,6 +2,15 @@
 {
     internal class Array<TInner> : ICodec<IEnumerable<TInner?>>
     {
+        public static readonly byte[] EMPTY_ARRAY = new byte[]
+        {
+            0,0,0,0,
+            0,0,0,0,
+            0,0,0,0,
+            0,0,0,0,
+            0,0,0,1
+        };
+        
         private readonly ICodec<TInner> _innerCodec;
 
         public Array(ICodec<TInner> innerCodec)
@@ -47,11 +56,7 @@
         {
             if(value is null)
             {
-                writer.Write(0);
-                writer.Write(0); // flags
-                writer.Write(0); // reserved
-                writer.Write(0); // zero upper
-                writer.Write(1); // one lower
+                writer.Write(EMPTY_ARRAY);
                 return;
             }
 
@@ -69,12 +74,15 @@
                 }
                 else
                 {
-                    _innerCodec.Serialize(elementWriter, element);
+                    var subWriter = new PacketWriter();
+                    _innerCodec.Serialize(subWriter, element);
+                    elementWriter.Write((int)subWriter.Length);
+                    elementWriter.Write(subWriter);
                 }
             }
 
-            writer.Write(1); // dimensions
-            writer.Write(0); // flags
+            writer.Write(1); // num dimensions
+            writer.Write(0); // reserved
             writer.Write(0); // reserved
 
             // dimension (our length for upper and 1 for lower)
