@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace EdgeDB
 {
     /// <summary>
-    ///     Represents a bitfield of capabilities used when executing commands.
+    ///     Represents a bitfield of capabilities used when executing queries.
     /// </summary>
     [Flags]
     public enum Capabilities : ulong
@@ -38,7 +38,7 @@ namespace EdgeDB
         DDL = 1 << 3,
 
         /// <summary>
-        ///     The command changes serve ror database configs.
+        ///     The command changes server or database configs.
         /// </summary>
         PersistantConfig = 1 << 4,
 
