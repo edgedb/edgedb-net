@@ -15,7 +15,7 @@ namespace EdgeDB
 
         public static string? GetEdgeQLType(Type t)
         {
-            if (t.Name is not "Nullable`1")
+            if (t.Name == "Nullable`1")
                 t = t.GenericTypeArguments[0];
             return _scalarTypeMap.TryGetValue(t, out var result) ? result : null;
         }
