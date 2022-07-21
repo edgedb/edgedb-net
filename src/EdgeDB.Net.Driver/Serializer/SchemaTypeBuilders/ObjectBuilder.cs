@@ -80,7 +80,7 @@ namespace EdgeDB
             }
         }
 
-        private static object? ConvertCollection(Type targetType, Type valueType, object value)
+        internal static object? ConvertCollection(Type targetType, Type valueType, object value)
         {
             List<object?> converted = new();
             var strongInnerType = targetType.GenericTypeArguments.FirstOrDefault();
