@@ -229,7 +229,12 @@ namespace EdgeDB.Serializer
 
                 // register them with the default builder
                 foreach (var type in types)
-                    _typeInfo.TryAdd(type, new(type));
+                {
+                    var info = new TypeDeserializeInfo(type);
+                    _typeInfo.TryAdd(type, info);
+                    foreach (var parentType in _typeInfo.Where(x => (x.Key.IsInterface || x.Key.IsAbstract) && x.Key != type && type.IsAssignableTo(x.Key)))
+                        parentType.Value.AddOrUpdateChildren(info);
+                }
 
                 // mark this assembly as scanned
                 _scannedAssemblies.Add(identifier);
@@ -246,7 +251,7 @@ namespace EdgeDB.Serializer
             // look for any types that inherit already defined abstract types
             foreach (var abstractType in _typeInfo.Where(x => x.Value.IsAbtractType))
             {
-                var childTypes = assembly.DefinedTypes.Where(x => !_typeInfo.ContainsKey(x) && x.IsSubclassOf(abstractType.Key));
+                var childTypes = assembly.DefinedTypes.Where(x => (x.IsSubclassOf(abstractType.Key) || x.ImplementedInterfaces.Contains(abstractType.Key) || x.IsAssignableTo(abstractType.Key)));
                 abstractType.Value.AddOrUpdateChildren(childTypes.Select(x => new TypeDeserializeInfo(x)));
             }
         }
@@ -260,7 +265,7 @@ namespace EdgeDB.Serializer
         public string EdgeDBTypeName { get; }
 
         public bool IsAbtractType
-            => _type.IsAbstract;
+            => _type.IsAbstract || _type.IsInterface;
 
         public Dictionary<Type, TypeDeserializeInfo> Children { get; } = new();
 
@@ -282,12 +287,13 @@ namespace EdgeDB.Serializer
             EdgeDBTypeName = _type.GetCustomAttribute<EdgeDBTypeAttribute>()?.Name ?? _type.Name;
         }
 
+        public void AddOrUpdateChildren(TypeDeserializeInfo child)
+           => Children[child._type] = child;
+        
         public void AddOrUpdateChildren(IEnumerable<TypeDeserializeInfo> children)
         {
-            foreach(var child in children)
-            {
-                Children[child._type] = child;
-            }
+            foreach (var child in children)
+                AddOrUpdateChildren(child);
         }
 
         public void UpdateFactory(TypeDeserializerFactory factory)
