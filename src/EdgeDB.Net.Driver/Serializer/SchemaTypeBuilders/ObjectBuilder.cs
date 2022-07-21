@@ -83,7 +83,7 @@ namespace EdgeDB
         internal static object? ConvertCollection(Type targetType, Type valueType, object value)
         {
             List<object?> converted = new();
-            var strongInnerType = targetType.GenericTypeArguments.FirstOrDefault();
+            var strongInnerType = targetType.IsArray ? targetType.GetElementType()! : targetType.GenericTypeArguments.FirstOrDefault();
 
             foreach (var val in (IEnumerable)value)
             {
