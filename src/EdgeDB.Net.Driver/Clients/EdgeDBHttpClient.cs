@@ -1,9 +1,11 @@
-﻿using EdgeDB.Models;
+﻿using EdgeDB.DataTypes;
+using EdgeDB.Models;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Net.Security;
 using System.Security.Authentication;
@@ -198,17 +200,23 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
+        /// <remarks>
+        ///     <paramref name="capabilities"/> has no effect as the HTTP protocol does not support capabilities.
+        /// </remarks>
         /// <exception cref="EdgeDBException">The server returned a status code other than 200.</exception>
-        public override async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null, 
-            CancellationToken token = default)
+        public override async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
             await ExecuteInternalAsync(query, args, token).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
+        /// <remarks>
+        ///     <paramref name="capabilities"/> has no effect as the HTTP protocol does not support capabilities.
+        /// </remarks>
         /// <exception cref="EdgeDBException">The server returned a status code other than 200.</exception>
         public override async Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null,
-            CancellationToken token = default)
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
             where TResult : default
         {
             var result = await ExecuteInternalAsync(query, args, token);
@@ -221,9 +229,12 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
+        /// <remarks>
+        ///     <paramref name="capabilities"/> has no effect as the HTTP protocol does not support capabilities.
+        /// </remarks>
         /// <exception cref="EdgeDBException">The server returned a status code other than 200.</exception>
         public override async Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null,
-            CancellationToken token = default)
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
             var result = await ExecuteInternalAsync(query, args, token);
 
@@ -239,9 +250,12 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
+        /// <remarks>
+        ///     <paramref name="capabilities"/> has no effect as the HTTP protocol does not support capabilities.
+        /// </remarks>
         /// <exception cref="EdgeDBException">The server returned a status code other than 200.</exception>
         public override async Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null,
-            CancellationToken token = default)
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
             where TResult : default
         {
             var result = await ExecuteInternalAsync(query, args, token);
@@ -251,10 +265,44 @@ namespace EdgeDB
 
             var arr = (JArray)result.Data;
 
-            if (arr.Count != 1)
-                throw new InvalidDataException($"Expected 1 element but got {arr.Count}", new MissingRequiredException());
+            if (arr.Count > 1)
+                throw new ResultCardinalityMismatchException(Cardinality.AtMostOne, Cardinality.Many);
 
-            return arr[0].ToObject<TResult>();
+            return arr.Any()
+                ? arr[0].ToObject<TResult>()
+                : default;
+        }
+
+        /// <inheritdoc/>
+        /// <remarks>
+        ///     <paramref name="capabilities"/> has no effect as the HTTP protocol does not support capabilities.
+        /// </remarks>
+        public override async Task<Json> QueryJsonAsync(string query, IDictionary<string, object?>? args = null, Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+        {
+            var result = await ExecuteInternalAsync(query, args, token);
+
+            if (result.Data is null)
+                return default;
+
+            return new(((JToken)result.Data).ToString());
+        }
+
+        /// <inheritdoc/>
+        /// <remarks>
+        ///     <paramref name="capabilities"/> has no effect as the HTTP protocol does not support capabilities.
+        /// </remarks>
+        /// <exception cref="ResultCardinalityMismatchException">The result didn't return multiple json elements.</exception>
+        public override async Task<IReadOnlyCollection<Json>> QueryJsonElementsAsync(string query, IDictionary<string, object?>? args = null, Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+        {
+            var result = await ExecuteInternalAsync(query, args, token);
+
+            if (result.Data is null)
+                return Array.Empty<Json>();
+
+            if (result.Data is not JArray jArray)
+                throw new ResultCardinalityMismatchException(Cardinality.Many, Cardinality.One);
+
+            return jArray.Select(x => new Json(x.ToString())).ToImmutableArray();
         }
 
         private async Task InvokeResultEventAsync(HttpQueryResult result)

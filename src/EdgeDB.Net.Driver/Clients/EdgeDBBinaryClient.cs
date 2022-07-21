@@ -316,8 +316,9 @@ namespace EdgeDB
         /// <exception cref="EdgeDBErrorException">The client received an <see cref="ErrorResponse"/>.</exception>
         /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
-        public override async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null, CancellationToken token = default)
-            => await ExecuteInternalAsync(query, args, Cardinality.Many, token: token).ConfigureAwait(false);
+        public override async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, token: token).ConfigureAwait(false);
 
         /// <inheritdoc/>
         /// <exception cref="EdgeDBException">A general error occored.</exception>
@@ -327,10 +328,10 @@ namespace EdgeDB
         /// <exception cref="InvalidOperationException">Target type doesn't match received type.</exception>
         /// <exception cref="TargetInvocationException">Cannot construct a <typeparamref name="TResult"/>.</exception>
         public override async Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null,
-            CancellationToken token = default)
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
             where TResult : default
         {
-            var result = await ExecuteInternalAsync(query, args, Cardinality.Many, token: token);
+            var result = await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, token: token);
 
             List<TResult?> returnResults = new();
 
@@ -352,10 +353,10 @@ namespace EdgeDB
         /// <exception cref="InvalidOperationException">Target type doesn't match received type.</exception>
         /// <exception cref="TargetInvocationException">Cannot construct a <typeparamref name="TResult"/>.</exception>
         public override async Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null,
-            CancellationToken token = default)
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
             where TResult : default
         {
-            var result = await ExecuteInternalAsync(query, args, Cardinality.AtMostOne, token: token);
+            var result = await ExecuteInternalAsync(query, args, Cardinality.AtMostOne, capabilities, token: token);
 
             if (result.Data.Count > 1)
                 throw new ResultCardinalityMismatchException(Cardinality.AtMostOne, Cardinality.Many);
@@ -377,9 +378,9 @@ namespace EdgeDB
         /// <exception cref="InvalidOperationException">Target type doesn't match received type.</exception>
         /// <exception cref="TargetInvocationException">Cannot construct a <typeparamref name="TResult"/>.</exception>
         public override async Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null,
-            CancellationToken token = default)
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
-            var result = await ExecuteInternalAsync(query, args, Cardinality.AtMostOne, token: token);
+            var result = await ExecuteInternalAsync(query, args, Cardinality.AtMostOne, capabilities, token: token);
 
             if (result.Data.Count is > 1 or 0)
                 throw new ResultCardinalityMismatchException(Cardinality.One, result.Data.Count > 1 ? Cardinality.Many : Cardinality.AtMostOne);
@@ -389,6 +390,38 @@ namespace EdgeDB
             return queryResult.PayloadBuffer is null
                 ? throw new MissingRequiredException()
                 : ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(queryResult.PayloadBuffer))!;
+        }
+
+        /// <inheritdoc/>
+        /// <exception cref="ResultCardinalityMismatchException">The results cardinality was not what the query expected.</exception>
+        /// <exception cref="EdgeDBException">A general error occored.</exception>
+        /// <exception cref="EdgeDBErrorException">The client received an <see cref="ErrorResponse"/>.</exception>
+        /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
+        /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
+        public override async Task<DataTypes.Json> QueryJsonAsync(string query, IDictionary<string, object?>? args = null, Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+        {
+            var result = await ExecuteInternalAsync(query, args, Cardinality.AtMostOne, capabilities, IOFormat.Json, token: token);
+            
+            if (result.Data.Count > 1)
+                throw new ResultCardinalityMismatchException(Cardinality.AtMostOne, Cardinality.Many);
+
+            return result.Data.Count == 1
+                ? (string)result.Deserializer.Deserialize(result.Data[0].PayloadBuffer)!
+                : "[]";
+        }
+
+        /// <inheritdoc/>
+        /// <exception cref="EdgeDBException">A general error occored.</exception>
+        /// <exception cref="EdgeDBErrorException">The client received an <see cref="ErrorResponse"/>.</exception>
+        /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
+        /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
+        public override async Task<IReadOnlyCollection<DataTypes.Json>> QueryJsonElementsAsync(string query, IDictionary<string, object?>? args = null, Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+        {
+            var result = await ExecuteInternalAsync(query, args, Cardinality.AtMostOne, capabilities, IOFormat.Json, token: token);
+
+            return result.Data.Any()
+                ? result.Data.Select(x => new DataTypes.Json((string?)result.Deserializer.Deserialize(x.PayloadBuffer))).ToImmutableArray()
+                : ImmutableArray<DataTypes.Json>.Empty;
         }
         #endregion
 

@@ -1,4 +1,5 @@
-﻿using EdgeDB.Models;
+﻿using EdgeDB.DataTypes;
+using EdgeDB.Models;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
@@ -7,7 +8,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents a client pool used to interact with EdgeDB.
     /// </summary>
-    public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
+    public sealed class EdgeDBClient :  IEdgeDBQueryable, IAsyncDisposable
     {
         /// <summary>
         ///     Fired when a client in the client pool executes a query.
@@ -186,46 +187,67 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
-        public async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null, CancellationToken token = default)
+        public async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
             if (!_isInitialized)
                 await InitializeAsync(token).ConfigureAwait(false);
 
             await using var client = await GetOrCreateClientAsync(token).ConfigureAwait(false);
-            await client.ExecuteAsync(query, args, token).ConfigureAwait(false);
+            await client.ExecuteAsync(query, args, capabilities, token).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         public async Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null,
-            CancellationToken token = default)
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
             if (!_isInitialized)
                 await InitializeAsync(token).ConfigureAwait(false);
 
             await using var client = await GetOrCreateClientAsync(token).ConfigureAwait(false);
-            return await client.QueryAsync<TResult>(query, args, token).ConfigureAwait(false);
+            return await client.QueryAsync<TResult>(query, args, capabilities, token).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         public async Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null,
-            CancellationToken token = default)
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
             if (!_isInitialized)
                 await InitializeAsync(token).ConfigureAwait(false);
 
             await using var client = await GetOrCreateClientAsync(token).ConfigureAwait(false);
-            return await client.QuerySingleAsync<TResult>(query, args, token).ConfigureAwait(false);
+            return await client.QuerySingleAsync<TResult>(query, args, capabilities, token).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         public async Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null,
-            CancellationToken token = default)
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
             if (!_isInitialized)
                 await InitializeAsync(token).ConfigureAwait(false);
 
             await using var client = await GetOrCreateClientAsync(token).ConfigureAwait(false);
-            return await client.QueryRequiredSingleAsync<TResult>(query, args, token).ConfigureAwait(false);
+            return await client.QueryRequiredSingleAsync<TResult>(query, args, capabilities, token).ConfigureAwait(false);
+        }
+
+        public async Task<Json> QueryJsonAsync(string query, IDictionary<string, object?>? args = null,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+        {
+            if (!_isInitialized)
+                await InitializeAsync(token).ConfigureAwait(false);
+
+            await using var client = await GetOrCreateClientAsync(token).ConfigureAwait(false);
+            return await client.QueryJsonAsync(query, args, capabilities, token).ConfigureAwait(false);
+        }
+
+        public async Task<IReadOnlyCollection<Json>> QueryJsonElementsAsync(string query, IDictionary<string, object?>? args = null,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+        {
+            if (!_isInitialized)
+                await InitializeAsync(token).ConfigureAwait(false);
+
+            await using var client = await GetOrCreateClientAsync(token).ConfigureAwait(false);
+            return await client.QueryJsonElementsAsync(query, args, capabilities, token).ConfigureAwait(false);
         }
 
         /// <summary>

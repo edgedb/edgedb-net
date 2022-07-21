@@ -127,51 +127,5 @@ namespace EdgeDB
             return await client.RestoreDatabaseAsync(stream, token).ConfigureAwait(false);
         }
         #endregion
-
-        #region Json queries
-        /// <summary>
-        ///     Executes a given query and returns the result as a single json string.
-        /// </summary>
-        /// <remarks>
-        ///     This method will pull a client from the client pool, if the pool is full 
-        ///     and all clients are in use this method can hang.
-        /// </remarks>
-        /// <param name="pool">The client pool on which to get a client from.</param>
-        /// <param name="query">The query to execute.</param>
-        /// <param name="args">Optional collection of arguments within the query.</param>
-        ///     A task representing the asynchronous query operation. The tasks result is 
-        ///     the json result of the query.
-        /// <exception cref="CustomClientException">
-        ///     The client returned from the pool doesn't support json querying.
-        /// </exception>
-        public static async Task<string> QueryJsonAsync(this EdgeDBClient pool, string query, IDictionary<string, object?>? args = null)
-        {
-            await using var client = await pool.GetOrCreateClientAsync<EdgeDBBinaryClient>().ConfigureAwait(false);
-            return await client.QueryJsonAsync(query, args).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        ///     Executes a given query and returns the result as an array of json objects.
-        /// </summary>
-        /// <remarks>
-        ///     This method will pull a client from the client pool, if the pool is full 
-        ///     and all clients are in use this method can hang.
-        /// </remarks>
-        /// <param name="pool">The client pool on which to get a client from.</param>
-        /// <param name="query">The query to execute.</param>
-        /// <param name="args">Optional collection of arguments within the query.</param>
-        /// <returns>
-        ///     A task representing the asynchronous query operation. The tasks result is 
-        ///     the json result of the query.
-        /// </returns>
-        /// <exception cref="CustomClientException">
-        ///     The client returned from the pool doesn't support json querying.
-        /// </exception>
-        public static async Task<string[]> QueryJsonElementsAsync(this EdgeDBClient pool, string query, IDictionary<string, object?>? args = null)
-        {
-            await using var client = await pool.GetOrCreateClientAsync<EdgeDBBinaryClient>().ConfigureAwait(false);
-            return await client.QueryJsonElementsAsync(query, args).ConfigureAwait(false);
-        }
-        #endregion
     }
 }

@@ -1,4 +1,5 @@
-﻿using EdgeDB.Models;
+﻿using EdgeDB.DataTypes;
+using EdgeDB.Models;
 
 namespace EdgeDB
 {
@@ -87,23 +88,32 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
-        public Task ExecuteAsync(string query, IDictionary<string, object?>? args = null, CancellationToken token = default)
-            => ExecuteInternalAsync(() => _client.ExecuteAsync(query, args, token));
+        public Task ExecuteAsync(string query, IDictionary<string, object?>? args = null, 
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => ExecuteInternalAsync(() => _client.ExecuteAsync(query, args, capabilities, token));
 
         /// <inheritdoc/>
         public Task<IReadOnlyCollection<TResult?>> QueryAsync<TResult>(string query, IDictionary<string, object?>? args = null,
-            CancellationToken token = default)
-            => ExecuteInternalAsync(() => _client.QueryAsync<TResult>(query, args, token));
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => ExecuteInternalAsync(() => _client.QueryAsync<TResult>(query, args, capabilities, token));
 
         /// <inheritdoc/>
         public Task<TResult?> QuerySingleAsync<TResult>(string query, IDictionary<string, object?>? args = null,
-            CancellationToken token = default)
-            => ExecuteInternalAsync(() => _client.QuerySingleAsync<TResult>(query, args, token));
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => ExecuteInternalAsync(() => _client.QuerySingleAsync<TResult>(query, args, capabilities, token));
 
         /// <inheritdoc/>
         public Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null,
-            CancellationToken token = default)
-            => ExecuteInternalAsync(() => _client.QueryRequiredSingleAsync<TResult>(query, args, token));
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => ExecuteInternalAsync(() => _client.QueryRequiredSingleAsync<TResult>(query, args, capabilities, token));
+
+        public Task<Json> QueryJsonAsync(string query, IDictionary<string, object?>? args = null,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => ExecuteInternalAsync(() => _client.QueryJsonAsync(query, args, capabilities, token));
+
+        public Task<IReadOnlyCollection<Json>> QueryJsonElementsAsync(string query, IDictionary<string, object?>? args = null,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => ExecuteInternalAsync(() => _client.QueryJsonElementsAsync(query, args, capabilities, token));
     }
 
     public sealed class TransactionSettings
