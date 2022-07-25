@@ -96,12 +96,6 @@ namespace EdgeDB
         public static void ProtocolMajorMismatch(this ILogger logger, string serverVersion, string clientVersion)
             => _protocolMajorMismatch(logger, serverVersion, clientVersion, null);
 
-        public static void ProtocolMinorMismatch(this ILogger logger, string serverVersion, string clientVersion)
-            => _protocolMinorMismatch(logger, serverVersion, clientVersion, null);
-
-        public static void ProtocolMajorMismatch(this ILogger logger, string serverVersion, string clientVersion)
-            => _protocolMajorMismatch(logger, serverVersion, clientVersion, null);
-
         public static void DidntReadTillEnd(this ILogger logger, ServerMessageType type, int length)
             => _didntReadTillEnd(logger, type, length, null);
 

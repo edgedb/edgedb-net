@@ -451,14 +451,6 @@ namespace EdgeDB
                         Logger.ProtocolMinorMismatch($"{handshake.MajorVersion}.{handshake.MinorVersion}", $"{PROTOCOL_MAJOR_VERSION}.{PROTOCOL_MINOR_VERSION}");
                     break;
                 case ErrorResponse err:
-                    {
-                        Logger.ProtocolMajorMismatch($"{handshake.MajorVersion}.{handshake.MinorVersion}", $"{PROTOCOL_MAJOR_VERSION}.{PROTOCOL_MINOR_VERSION}");
-                        await DisconnectAsync().ConfigureAwait(false);
-                    }
-                    else if (handshake.MajorVersion == PROTOCOL_MAJOR_VERSION && handshake.MinorVersion > PROTOCOL_MINOR_VERSION)
-                        Logger.ProtocolMinorMismatch($"{handshake.MajorVersion}.{handshake.MinorVersion}", $"{PROTOCOL_MAJOR_VERSION}.{PROTOCOL_MINOR_VERSION}");
-                    break;
-                case ErrorResponse err:
                     Logger.ErrorResponseReceived(err.Severity, err.Message);
                     if (!_readyCancelTokenSource.IsCancellationRequested)
                         _readyCancelTokenSource.Cancel();
