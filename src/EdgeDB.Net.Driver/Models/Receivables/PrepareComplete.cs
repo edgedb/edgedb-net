@@ -40,7 +40,7 @@ namespace EdgeDB.Binary.Packets
 
         internal ParseComplete(ref PacketReader reader)
         {
-            var headers = reader.ReadHeaders();
+            var headers = reader.ReadAnnotaions();
             Capabilities = null;
             for (int i = 0; i != headers.Length; i++)
             {

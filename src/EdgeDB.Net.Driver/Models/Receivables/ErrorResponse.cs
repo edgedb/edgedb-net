@@ -34,14 +34,14 @@ namespace EdgeDB.Binary.Packets
         /// <summary>
         ///     Gets a collection of headers sent with this error.
         /// </summary>
-        public IReadOnlyCollection<Header> Headers { get; }
+        public IReadOnlyCollection<Annotation> Headers { get; }
 
         internal ErrorResponse(ref PacketReader reader)
         {
             Severity = (ErrorSeverity)reader.ReadByte();
             ErrorCode = (ServerErrorCodes)reader.ReadUInt32();
             Message = reader.ReadString();
-            Headers = reader.ReadHeaders();
+            Headers = reader.ReadAnnotaions();
         }
 
         string? IExecuteError.Message => Message;

@@ -19,7 +19,7 @@ namespace EdgeDB.Binary.Packets
         /// <summary>
         ///     Gets a collection of headers that was sent with this packet.
         /// </summary>
-        public IReadOnlyCollection<Header> Headers
+        public IReadOnlyCollection<Annotation> Headers
             => _headers.ToImmutableArray();
 
         /// <summary>
@@ -27,11 +27,11 @@ namespace EdgeDB.Binary.Packets
         /// </summary>
         public ushort Jobs { get; }
 
-        private readonly Header[] _headers;
+        private readonly Annotation[] _headers;
 
         internal RestoreReady(ref PacketReader reader)
         {
-            _headers = reader.ReadHeaders();
+            _headers = reader.ReadAnnotaions();
             Jobs = reader.ReadUInt16();
         }
     }

@@ -38,7 +38,6 @@ namespace EdgeDB.DataTypes
             typeof(Tuple<,,,,,,,>)
         };
 
-
         public TransientTuple(Type[] types, object?[] values)
         {
             _values = values;

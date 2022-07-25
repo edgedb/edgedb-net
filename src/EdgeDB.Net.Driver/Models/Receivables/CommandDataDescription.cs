@@ -19,7 +19,9 @@ namespace EdgeDB.Binary.Packets
         /// <summary>
         ///     Gets a read-only collection of headers.
         /// </summary>
-        public IReadOnlyCollection<Header> Headers { get; }
+        public IReadOnlyCollection<Annotation> Headers { get; }
+        
+        public Capabilities Capabilities { get; }
 
         /// <summary>
         ///     Gets the cardinality of the command.
@@ -53,7 +55,8 @@ namespace EdgeDB.Binary.Packets
 
         internal CommandDataDescription(ref PacketReader reader)
         {
-            Headers = reader.ReadHeaders();
+            Headers = reader.ReadAnnotaions();
+            Capabilities = (Capabilities)reader.ReadUInt64();
             Cardinality = (Cardinality)reader.ReadByte();
             InputTypeDescriptorId = reader.ReadGuid();
             InputTypeDescriptorBuffer = reader.ReadByteArray();

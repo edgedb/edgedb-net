@@ -4,6 +4,7 @@ using EdgeDB.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -37,7 +38,12 @@ namespace EdgeDB
             return ms.ToArray();
         }
 
-        public void Write(IEnumerable<Header>? headers)
+        public void WriteBigInt(BigInteger bigInt)
+        {
+
+        }
+
+        public void Write(IEnumerable<Annotation>? headers)
         {
             // write length
             Write((ushort)(headers?.Count() ?? 0));
@@ -58,7 +64,7 @@ namespace EdgeDB
             value.BaseStream.CopyTo(base.BaseStream);
         }
 
-        public void Write(Header header)
+        public void Write(Annotation header)
         {
             Write(header.Code);
             Write(header.Value);

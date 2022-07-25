@@ -29,6 +29,8 @@ namespace EdgeDB
         UnexpectedMessageError = 0x_03_01_00_03,
 
         InputDataError = 0x_03_02_00_00,
+        ParameterTypeMismatchError = 0x_03_02_01_00,
+        StateMismatchError = 0x_03_02_02_00,
 
         ResultCardinalityMismatchError = 0x_03_03_00_00,
 

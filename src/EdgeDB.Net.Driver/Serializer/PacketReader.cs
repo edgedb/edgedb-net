@@ -126,11 +126,11 @@ namespace EdgeDB
             return str;
         }
 
-        public Header[] ReadHeaders()
+        public Annotation[] ReadAnnotaions()
         {
             var length = ReadUInt16();
 
-            Header[] arr = new Header[length];
+            Annotation[] arr = new Annotation[length];
 
             for (ushort i = 0; i != length; i++)
             {
@@ -140,13 +140,13 @@ namespace EdgeDB
             return arr;
         }
 
-        public Header ReadHeader()
+        public Annotation ReadHeader()
         {
             var code = ReadUInt16();
 
             var arr = ReadByteArray();
 
-            return new Header(code, arr);
+            return new Annotation(code, arr);
         }
 
         public byte[] ReadByteArray()

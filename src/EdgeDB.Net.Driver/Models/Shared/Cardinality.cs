@@ -9,7 +9,7 @@ namespace EdgeDB
     /// <summary>
     ///     A enum containing the cardinality specification of a command.
     /// </summary>
-    public enum Cardinality
+    public enum Cardinality : byte
     {
         /// <summary>
         ///     The command will return no result.

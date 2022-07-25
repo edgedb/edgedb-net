@@ -45,6 +45,6 @@ namespace EdgeDB
         /// <summary>
         ///     Represents all capabilities except <see cref="ReadOnly"/>
         /// </summary>
-        All = Modifications | SessionConfig | Transaction | DDL | PersistantConfig
+        All = 0xffffffffffffffff
     }
 }

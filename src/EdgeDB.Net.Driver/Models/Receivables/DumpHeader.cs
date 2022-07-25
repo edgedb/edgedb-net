@@ -31,7 +31,7 @@ namespace EdgeDB.Binary.Packets
         /// <summary>
         ///     Gets a collection of headers sent with this packet.
         /// </summary>
-        public IReadOnlyCollection<Header> Headers { get; }
+        public IReadOnlyCollection<Annotation> Headers { get; }
 
         /// <summary>
         ///     Gets the EdgeDB major version.
@@ -72,7 +72,7 @@ namespace EdgeDB.Binary.Packets
 
             var r = new PacketReader(rawBuffer);
 
-            Headers = r.ReadHeaders();
+            Headers = r.ReadAnnotaions();
             MajorVersion = r.ReadUInt16();
             MinorVersion = r.ReadUInt16();
             SchemaDDL = r.ReadString();

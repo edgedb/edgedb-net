@@ -7,24 +7,14 @@ namespace EdgeDB.Binary
     public enum ServerMessageType : sbyte
     {
         /// <summary>
-        ///		A <see cref="Packets.AuthenticationStatus"/> message.
+        ///		A <see cref="Packets.RestoreReady"/> message.
         /// </summary>
-        Authentication = 0x52,
+        RestoreReady = 0x2b,
 
         /// <summary>
-        ///		A <see cref="Packets.CommandComplete"/> message.
+        ///		A <see cref="Packets.ParseComplete"/> message.
         /// </summary>
-        CommandComplete = 0x43,
-
-        /// <summary>
-        ///		A <see cref="Packets.CommandDataDescription"/> message.
-        /// </summary>
-        CommandDataDescription = 0x54,
-
-        /// <summary>
-        ///		A <see cref="Packets.Data"/> message.
-        /// </summary>
-        Data = 0x44,
+        ParseComplete = 0x31,
 
         /// <summary>
         ///		A <see cref="Packets.DumpBlock"/> message.
@@ -37,9 +27,24 @@ namespace EdgeDB.Binary
         DumpHeader = 0x40,
 
         /// <summary>
+        ///		A <see cref="Packets.CommandComplete"/> message.
+        /// </summary>
+        CommandComplete = 0x43,
+        
+        /// <summary>
+        ///		A <see cref="Packets.Data"/> message.
+        /// </summary>
+        Data = 0x44,
+        
+        /// <summary>
         ///		A <see cref="Packets.ErrorResponse"/> message.
         /// </summary>
         ErrorResponse = 0x45,
+        
+        /// <summary>
+        ///		A <see cref="Packets.ServerKeyData"/> message.
+        /// </summary>
+        ServerKeyData = 0x4b,
 
         /// <summary>
         ///		A <see cref="LogMessage"/> message.
@@ -47,14 +52,19 @@ namespace EdgeDB.Binary
         LogMessage = 0x4c,
 
         /// <summary>
+        ///		A <see cref="Packets.AuthenticationStatus"/> message.
+        /// </summary>
+        Authentication = 0x52,
+
+        /// <summary>
+        ///		A <see cref="Packets.CommandDataDescription"/> message.
+        /// </summary>
+        CommandDataDescription = 0x54,
+
+        /// <summary>
         ///		A <see cref="Packets.ParameterStatus"/> message.
         /// </summary>
         ParameterStatus = 0x53,
-
-        /// <summary>
-        ///		A <see cref="Packets.ParseComplete"/> message.
-        /// </summary>
-        ParseComplete = 0x31,
 
         /// <summary>
         ///		A <see cref="Packets.ReadyForCommand"/> message.
@@ -62,18 +72,14 @@ namespace EdgeDB.Binary
         ReadyForCommand = 0x5a,
 
         /// <summary>
-        ///		A <see cref="Packets.RestoreReady"/> message.
+        ///     A <see cref="Packets.StateDataDescription"/> message.
         /// </summary>
-        RestoreReady = 0x2b,
+        StateDataDescription = 0x73,
 
         /// <summary>
         ///		A <see cref="Packets.ServerHandshake"/> message.
         /// </summary>
         ServerHandshake = 0x76,
 
-        /// <summary>
-        ///		A <see cref="Packets.ServerKeyData"/> message.
-        /// </summary>
-        ServerKeyData = 0x4b
     }
 }

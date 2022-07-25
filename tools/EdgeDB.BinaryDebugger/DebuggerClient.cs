@@ -173,6 +173,7 @@ namespace EdgeDB.BinaryDebugger
         protected override ValueTask CloseStreamAsync(CancellationToken token = default)
         {
             _proxy?.Close();
+            FileStream.Flush();
             FileStream.Close();
 
             return ValueTask.CompletedTask;

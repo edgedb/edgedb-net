@@ -12,7 +12,7 @@ namespace EdgeDB
         public static TType? BuildResult<TType>(IDictionary<string, object?> rawResult)
             => (TType?)TypeBuilder.BuildObject(typeof(TType), rawResult);
 
-        public static TType? BuildResult<TType>(Guid typeDescriptorId, object? value)
+        public static TType? BuildResult<TType>(object? value)
         {
             if (value is IDictionary<string, object?> raw)
                 return BuildResult<TType>(raw);

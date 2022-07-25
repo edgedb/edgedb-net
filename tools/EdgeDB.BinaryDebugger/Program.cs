@@ -12,10 +12,16 @@ var client = new EdgeDBClient(new EdgeDBClientPoolConfig
     ClientType = EdgeDBClientType.Custom
 });
 
+var debugClient = await client.GetOrCreateClientAsync();
 
-var str = await client.TransactionAsync(async (tx) =>
+try
 {
-    return await tx.QueryAsync<string>("select \"Hello, World!\"");
-});
+    await debugClient.QueryAsync<string>("select \"Hello, World!\"");
+}
+catch (Exception) { }
+finally
+{
+    ((DebuggerClient)debugClient).FileStream.Close();
+}
 
 await Task.Delay(-1);

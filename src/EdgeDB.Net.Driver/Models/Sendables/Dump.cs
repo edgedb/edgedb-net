@@ -11,7 +11,7 @@ namespace EdgeDB.Binary.Packets
         public override ClientMessageTypes Type 
             => ClientMessageTypes.Dump;
 
-        public Header[]? Headers { get; set; }
+        public Annotation[]? Headers { get; set; }
 
         protected override void BuildPacket(PacketWriter writer, EdgeDBBinaryClient client)
         {

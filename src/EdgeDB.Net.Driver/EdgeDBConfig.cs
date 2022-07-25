@@ -1,5 +1,6 @@
 ﻿using EdgeDB.Serializer;
 using Microsoft.Extensions.Logging;
+using System.Numerics;
 
 namespace EdgeDB
 {
@@ -87,12 +88,17 @@ namespace EdgeDB
         ///     shapes will have to explicitly list id properties.
         /// </remarks>
         public bool ExplicitObjectIds { get; set; }
+        
+        /// <summary>
+        ///     Gets or sets the implicit object limit for all queries. By default there is not limit.
+        /// </summary>
+        public ulong ImplicitLimit { get; set; }
 
         /// <summary>
         ///     Gets or sets the default naming strategy for the type builder.
         /// </summary>
         /// <remarks>
-        /// See <seealso cref="TypeBuilder.NamingStrategy"/>
+        ///     See <seealso cref="TypeBuilder.NamingStrategy"/>
         /// </remarks>
         public INamingStrategy SerializerNamingStrategy
         {

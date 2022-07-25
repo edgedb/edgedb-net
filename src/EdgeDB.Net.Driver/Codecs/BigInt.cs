@@ -4,6 +4,8 @@ namespace EdgeDB.Codecs
 {
     internal class BigInt : IScalarCodec<BigInteger>
     {
+        public static readonly BigInteger Base = 10000;
+
         public BigInteger Deserialize(ref PacketReader reader)
         {
             var numDigits = reader.ReadUInt16();
@@ -37,7 +39,34 @@ namespace EdgeDB.Codecs
             return BigInteger.Parse(result);
         }
 
-        public void Serialize(PacketWriter writer, BigInteger value) 
-            => throw new NotImplementedException();
+        public void Serialize(PacketWriter writer, BigInteger value)
+        {
+            if(value == 0)
+            {
+                writer.Write(0u); // ndigits & weight
+                writer.Write((ushort)NumericSign.POS);
+                writer.Write((ushort)0); // reserved
+                return;
+            }
+
+            var sign = value > 0 ? NumericSign.POS : NumericSign.NEG;
+            var absValue = value < 0 ? -value : value;
+            var mutableValue = value;
+            List<ushort> digits = new();
+            
+            while(mutableValue != 0)
+            {
+                var mod = absValue % Base;
+                mutableValue /= Base;
+                digits.Add((ushort)mod);
+            }
+
+            writer.Write((ushort)digits.Count); // ndigits
+            writer.Write((ushort)digits.Count - 1); // weight
+            writer.Write((ushort)sign); // sign
+            writer.Write((ushort)0); // reserved
+            for (int i = 0; i != digits.Count; i++)
+                writer.Write(digits[i]);
+        }
     }
 }

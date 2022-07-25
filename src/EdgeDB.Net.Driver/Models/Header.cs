@@ -9,7 +9,7 @@ namespace EdgeDB.Binary
     /// <summary>
     ///     Represents a dynamic header received in a <see cref="IReceiveable"/>.
     /// </summary>
-    public readonly struct Header
+    public readonly struct Annotation
     {
         /// <summary>
         ///     Gets the code of the header.
@@ -21,7 +21,7 @@ namespace EdgeDB.Binary
         /// </summary>
         public byte[] Value { get; init; }
 
-        internal Header(ushort code, byte[] value)
+        internal Annotation(ushort code, byte[] value)
         {
             Code = code;
             Value = value;

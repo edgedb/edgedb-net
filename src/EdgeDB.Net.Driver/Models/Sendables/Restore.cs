@@ -11,7 +11,7 @@ namespace EdgeDB.Binary.Packets
         public override ClientMessageTypes Type 
             => ClientMessageTypes.Restore;
 
-        public Header[]? Headers { get; set; }
+        public Annotation[]? Headers { get; set; }
 
         public ushort Jobs { get; } = 1;
 

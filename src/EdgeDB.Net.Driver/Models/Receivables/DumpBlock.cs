@@ -26,7 +26,7 @@ namespace EdgeDB.Binary.Packets
         /// <summary>
         ///     Gets a collection of headers for this packet.
         /// </summary>
-        public IReadOnlyCollection<Header> Headers { get; }
+        public IReadOnlyCollection<Annotation> Headers { get; }
 
         internal byte[] Raw { get; }
 
@@ -42,7 +42,7 @@ namespace EdgeDB.Binary.Packets
             HashBuffer = SHA1.Create().ComputeHash(Raw);
 
             using var r = new PacketReader(rawBuff);
-            Headers = r.ReadHeaders();
+            Headers = r.ReadAnnotaions();
         }
     }
 }

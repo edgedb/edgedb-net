@@ -163,7 +163,7 @@ namespace EdgeDB
             return read;
         }
 
-        public async Task<IReceiveable> DuplexAsync(Predicate<IReceiveable>? predicate = null, CancellationToken token = default, params Sendable[] packets)
+        public async Task<IReceiveable> DuplexAsync(Predicate<IReceiveable>? predicate = null, bool alwaysReturnError = true, CancellationToken token = default, params Sendable[] packets)
         {
             var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectTokenSource.Token);
 
@@ -172,7 +172,7 @@ namespace EdgeDB
 
             try
             {
-                var receiveTask = NextAsync(predicate, token: token);
+                var receiveTask = NextAsync(predicate, alwaysReturnError: alwaysReturnError, token: token);
 
                 await SendAsync(token, packets).ConfigureAwait(false);
 
@@ -201,7 +201,7 @@ namespace EdgeDB
             await _stream.WriteAsync(ms.ToArray(), linkedToken.Token).ConfigureAwait(false);
         }
 
-        public async Task<IReceiveable> NextAsync(Predicate<IReceiveable>? predicate = null, Action? readyCallback = null, CancellationToken token = default)
+        public async Task<IReceiveable> NextAsync(Predicate<IReceiveable>? predicate = null, bool alwaysReturnError = true, CancellationToken token = default)
         {
             // stop all modifications to the data event.
             await _onMessageLock.WaitAsync(token).ConfigureAwait(false);
@@ -219,7 +219,7 @@ namespace EdgeDB
                     got.Add(t);
 
                     // always return errors.
-                    if (t.Type == ServerMessageType.ErrorResponse)
+                    if (alwaysReturnError && t.Type == ServerMessageType.ErrorResponse)
                     {
                         tcs.TrySetResult(t);
                         return ValueTask.CompletedTask;
@@ -253,8 +253,6 @@ namespace EdgeDB
                 _onMessageLock.Release();
                 released = true;
 
-                readyCallback?.Invoke();
-
                 try
                 {
                     return await tcs.Task.ConfigureAwait(false);
@@ -282,10 +280,10 @@ namespace EdgeDB
             => duplexer.SendAsync(token, packet, new Sync());
 
         public static Task<IReceiveable> DuplexAndSyncAsync(this ClientPacketDuplexer duplexer, Sendable packet,
-            Predicate<IReceiveable>? predicate = null, CancellationToken token = default)
-            => duplexer.DuplexAsync(predicate, token, packet, new Sync());
+            Predicate<IReceiveable>? predicate = null, bool alwaysReturnError = true, CancellationToken token = default)
+            => duplexer.DuplexAsync(predicate, alwaysReturnError, token, packet, new Sync());
         public static Task<IReceiveable> DuplexAsync(this ClientPacketDuplexer duplexer, Sendable packet,
-            Predicate<IReceiveable>? predicate = null, CancellationToken token = default)
-            => duplexer.DuplexAsync(predicate, token, packet);
+            Predicate<IReceiveable>? predicate = null, bool alwaysReturnError = true, CancellationToken token = default)
+            => duplexer.DuplexAsync(predicate, alwaysReturnError, token, packet);
     }
 }

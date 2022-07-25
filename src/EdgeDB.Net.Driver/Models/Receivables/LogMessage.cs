@@ -17,17 +17,17 @@ namespace EdgeDB.Binary.Packets
 
         public string Text { get; }
 
-        public IReadOnlyCollection<Header> Attributes
+        public IReadOnlyCollection<Annotation> Attributes
             => _attributes.ToImmutableArray();
 
-        private readonly Header[] _attributes;
+        private readonly Annotation[] _attributes;
 
         internal LogMessage(ref PacketReader reader)
         {
             Severity = (MessageSeverity)reader.ReadByte();
             Code = (ServerErrorCodes)reader.ReadUInt32();
             Text = reader.ReadString();
-            _attributes = reader.ReadHeaders();
+            _attributes = reader.ReadAnnotaions();
         }
 
     }

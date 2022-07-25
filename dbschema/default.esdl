@@ -1,4 +1,6 @@
 module default {
+  global current_user_id -> uuid;
+  
   type Movie {
     required property title -> str {
       constraint exclusive;

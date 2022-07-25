@@ -20,6 +20,36 @@ namespace EdgeDB.Tests.Integration
         }
 
         [Fact]
+        public async Task TestPoolCapability()
+        {
+            // create 1000 tasks
+            var numTasks = 1000;
+            Task[] tasks = new Task[numTasks];
+            ConcurrentBag<string> results = new();
+
+            for (int i = 0; i != numTasks; i++)
+            {
+                tasks[i] = Task.Run(async () =>
+                {
+                    results.Add(await _edgedb.QueryRequiredSingleAsync<string>("select \"Hello, Dotnet!\""));
+                });
+            }
+
+            _output.WriteLine("Starting 1000 query test...");
+
+            Stopwatch sw = Stopwatch.StartNew();
+
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+
+            sw.Stop();
+
+            Assert.Equal(1000, results.Count);
+            Assert.All(results, x => Assert.Equal("Hello, Dotnet!", x));
+
+            _output.WriteLine($"Executed 1000 query test in {sw.ElapsedMilliseconds}ms");
+        }
+
+        [Fact]
         public async Task TestPoolQueryMethods()
         {
             var jsonResult = await _edgedb.QueryJsonAsync("select {(a := 1), (a := 2)}");

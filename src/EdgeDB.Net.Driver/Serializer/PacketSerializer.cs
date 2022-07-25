@@ -10,9 +10,6 @@ namespace EdgeDB
 {
     internal class PacketSerializer
     {
-        public static readonly Guid NullCodec = Guid.Empty;
-        private static readonly ConcurrentDictionary<Guid, ICodec> _codecCache = new();
-
         public static string? GetEdgeQLType(Type t)
         {
             if (t.Name == "Nullable`1")
@@ -26,7 +23,6 @@ namespace EdgeDB
 
             return val.Key;
         }
-
 
         public static IReceiveable? DeserializePacket(ServerMessageType type, ref Memory<byte> buffer, int length, EdgeDBBinaryClient client)
         {
@@ -64,6 +60,8 @@ namespace EdgeDB
                         return new ServerHandshake(ref reader);
                     case ServerMessageType.ServerKeyData:
                         return new ServerKeyData(ref reader);
+                    case ServerMessageType.StateDataDescription:
+                        return new StateDataDescription(ref reader);
                     default:
                         // skip the packet length
                         reader.Skip(length);
@@ -85,130 +83,6 @@ namespace EdgeDB
             }
 
         }
-
-        public static ICodec? GetCodec(Guid id)
-            => _codecCache.TryGetValue(id, out var codec) ? codec : GetScalarCodec(id);
-
-        public static ICodec? BuildCodec(Guid id, byte[] buff)
-        {
-            var reader = new PacketReader(buff.AsSpan());
-            return BuildCodec(id, ref reader);
-        }
-
-        public static ICodec? BuildCodec(Guid id, ref PacketReader reader)
-        {
-            if (id == NullCodec)
-                return new NullCodec();
-
-            List<ICodec> codecs = new();
-
-            while (!reader.Empty)
-            {
-                var typeDescriptor = ITypeDescriptor.GetDescriptor(ref reader);
-
-                var codec = GetScalarCodec(typeDescriptor.Id);
-
-                if (codec is not null)
-                    codecs.Add(codec);
-                else
-                {
-                    // create codec based on type descriptor
-                    switch (typeDescriptor)
-                    {
-                        case EnumerationTypeDescriptor enumeration:
-                            {
-                                // decode as string like
-                                codecs.Add(new Text());
-                            }
-                            break;
-                        case ObjectShapeDescriptor shapeDescriptor:
-                            {
-                                var codecArguments = shapeDescriptor.Shapes.Select(x => (x.Name, codecs[x.TypePos]));
-                                codec = new Codecs.Object(codecArguments.Select(x => x.Item2).ToArray(), codecArguments.Select(x => x.Name).ToArray());
-                                codecs.Add(codec);
-                            }
-                            break;
-                        case TupleTypeDescriptor tuple:
-                            {
-                                codec = new Codecs.Tuple(tuple.ElementTypeDescriptorsIndex.Select(x => codecs[x]).ToArray());
-                                codecs.Add(codec);
-                            }
-                            break;
-                        case NamedTupleTypeDescriptor namedTuple:
-                            {
-                                // TODO: better datatype than an object?
-                                var codecArguments = namedTuple.Elements.Select(x => (x.Name, codecs[x.TypePos]));
-                                codec = new Codecs.Object(codecArguments.Select(x => x.Item2).ToArray(), codecArguments.Select(x => x.Name).ToArray());
-                                codecs.Add(codec);
-                            }
-                            break;
-                        case ArrayTypeDescriptor array:
-                            {
-                                var innerCodec = codecs[array.TypePos];
-
-                                // create the array codec with reflection
-                                var codecType = typeof(Array<>).MakeGenericType(innerCodec.ConverterType);
-                                codec = (ICodec)Activator.CreateInstance(codecType, innerCodec)!;
-                                codecs.Add(codec);
-                            }
-                            break;
-                        case SetDescriptor set:
-                            {
-                                var innerCodec = codecs[set.TypePos];
-
-                                var codecType = typeof(Set<>).MakeGenericType(innerCodec.ConverterType);
-                                codec = (ICodec)Activator.CreateInstance(codecType, innerCodec)!;
-                                codecs.Add(codec);
-                            }
-                            break;
-
-                        default:
-                            break;
-                    }
-                }
-            }
-
-            _codecCache[id] = codecs.Last();
-
-            return codecs.Last();
-        }
-
-        public static ICodec? GetScalarCodec(Guid typeId)
-        {
-            if (_defaultCodecs.TryGetValue(typeId, out var codec))
-            {
-                // construct the codec
-                var builtCodec = (ICodec)Activator.CreateInstance(codec)!;
-                _codecCache[typeId] = builtCodec;
-                return builtCodec;
-            }
-
-            return null;
-        }
-
-        private static readonly Dictionary<Guid, Type> _defaultCodecs = new()
-        {
-            { NullCodec, typeof(NullCodec) },
-            { new Guid("00000000-0000-0000-0000-000000000100"), typeof(UUID) },
-            { new Guid("00000000-0000-0000-0000-000000000101"), typeof(Text) },
-            { new Guid("00000000-0000-0000-0000-000000000102"), typeof(Bytes) },
-            { new Guid("00000000-0000-0000-0000-000000000103"), typeof(Integer16) },
-            { new Guid("00000000-0000-0000-0000-000000000104"), typeof(Integer32) },
-            { new Guid("00000000-0000-0000-0000-000000000105"), typeof(Integer64) },
-            { new Guid("00000000-0000-0000-0000-000000000106"), typeof(Float32) },
-            { new Guid("00000000-0000-0000-0000-000000000107"), typeof(Float64) },
-            { new Guid("00000000-0000-0000-0000-000000000108"), typeof(Codecs.Decimal) },
-            { new Guid("00000000-0000-0000-0000-000000000109"), typeof(Bool) },
-            { new Guid("00000000-0000-0000-0000-00000000010A"), typeof(Datetime) },
-            { new Guid("00000000-0000-0000-0000-00000000010B"), typeof(LocalDateTime) },
-            { new Guid("00000000-0000-0000-0000-00000000010C"), typeof(LocalDate) },
-            { new Guid("00000000-0000-0000-0000-00000000010D"), typeof(LocalTime) },
-            { new Guid("00000000-0000-0000-0000-00000000010E"), typeof(Duration) },
-            { new Guid("00000000-0000-0000-0000-00000000010F"), typeof(Json) },
-            { new Guid("00000000-0000-0000-0000-000000000110"), typeof(BigInt) },
-            { new Guid("00000000-0000-0000-0000-000000000111"), typeof(RelativeDuration) },
-
-        };
 
         private static readonly Dictionary<Type, string> _scalarTypeMap = new()
         {

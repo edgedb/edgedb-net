@@ -1,5 +1,6 @@
 ﻿using EdgeDB.DataTypes;
 using EdgeDB.Models;
+using EdgeDB.State;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
@@ -18,12 +19,7 @@ namespace EdgeDB
             add => _queryExecuted.Add(value);
             remove => _queryExecuted.Remove(value);
         }
-        internal event Func<BaseEdgeDBClient, ValueTask> ClientReturnedToPool
-        {
-            add => _clientReturnedToPool.Add(value);
-            remove => _clientReturnedToPool.Remove(value);
-        }
-
+        
         /// <summary>
         ///     Gets all clients within the client pool.
         /// </summary>
@@ -50,6 +46,14 @@ namespace EdgeDB
                     return binaryCliet.IsIdle;
                 return x.IsConnected;
             });
+
+        /// <summary>
+        ///     Gets the default state that all clients will be initialized with.
+        /// </summary>
+        /// <remarks>
+        ///     You can modify this state by calling any of the <c>With...</c> methods on it.
+        /// </remarks>
+        public Session DefaultSession { get; }
 
         /// <summary>
         ///     Gets the EdgeDB server config.
@@ -80,8 +84,6 @@ namespace EdgeDB
 
         private ulong _clientIndex;
         private int _totalClients;
-
-        private readonly AsyncEvent<Func<BaseEdgeDBClient, ValueTask>> _clientReturnedToPool = new();
 
         /// <summary>
         ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
@@ -118,8 +120,9 @@ namespace EdgeDB
             if (config.ClientType == EdgeDBClientType.Custom && config.ClientFactory == null)
                 throw new CustomClientException("You must specify a client factory in order to use custom clients");
 
-            _clientFactory = config.ClientFactory;
+            DefaultSession = Session.Default;
 
+            _clientFactory = config.ClientFactory;
             _config = config;
             _clients = new();
             _poolSize = config.DefaultPoolSize;
@@ -338,6 +341,30 @@ namespace EdgeDB
             }
         }
 
+        /// <summary>
+        ///     Gets or creates a client in the client pool used to interact with edgedb.
+        /// </summary>
+        /// <remarks>
+        ///     This method can hang if the client pool is full and all connections are in use. 
+        ///     It's recommended to use the query methods defined in the <see cref="EdgeDBClient"/> class.
+        ///     <br/>
+        ///     <br/>
+        ///     Disposing the returned client with the <see cref="EdgeDBTcpClient.DisposeAsync"/> method
+        ///     will return that client to this client pool.
+        /// </remarks>
+        /// <param name="stateConfigure">A delegate to configure the clients state.</param>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
+        /// <returns>
+        ///     A task that represents the asynchonous operation of getting an available client. The tasks
+        ///     result is a <see cref="BaseEdgeDBClient"/> instance.
+        /// </returns>
+        public async ValueTask<BaseEdgeDBClient> GetOrCreateClientAsync(Action<Session> stateConfigure, CancellationToken token = default)
+        {
+            var client = await GetOrCreateClientAsync(token).ConfigureAwait(false);
+            stateConfigure(client.Session);
+            return client;
+        }
+
         private async ValueTask<BaseEdgeDBClient> CreateClientAsync(ulong id, CancellationToken token = default)
         {
             switch (_config.ClientType)
@@ -345,6 +372,9 @@ namespace EdgeDB
                 case EdgeDBClientType.Tcp:
                     {
                         var client = new EdgeDBTcpClient(_connection, _config, id);
+
+                        // clone the default state to prevent modification to our reference to default state
+                        client.WithSession(DefaultSession.Clone());
 
                         client.OnDisconnect += () =>
                         {
@@ -357,17 +387,16 @@ namespace EdgeDB
 
                         await client.ConnectAsync(token).ConfigureAwait(false);
 
-                        client.OnDisposed += async (c) =>
+                        client.OnDisposed += (c) =>
                         {
-                            if (_clientReturnedToPool.HasSubscribers)
-                                await _clientReturnedToPool.InvokeAsync(c).ConfigureAwait(false);
-                            else if(c.IsConnected)
+                            if(c.IsConnected)
                             {
+                                // reset state
+                                c.WithSession(DefaultSession.Clone());
                                 _availableClients.Push(c);
-                                return false;
+                                return ValueTask.FromResult(false);
                             }
-                            _clients.TryRemove(c.ClientId, out _);
-                            return true;
+                            return ValueTask.FromResult(_clients.TryRemove(c.ClientId, out _));
                         };
 
                         _clients[id] = client;
@@ -377,16 +406,15 @@ namespace EdgeDB
                 case EdgeDBClientType.Http:
                     {
                         var client = new EdgeDBHttpClient(_connection, _config, id);
+                        client.WithSession(DefaultSession.Clone());
 
                         client.QueryExecuted += (i) => _queryExecuted.InvokeAsync(i);
 
-                        client.OnDisposed += async (c) =>
+                        client.OnDisposed += (c) =>
                         {
-                            if (_clientReturnedToPool.HasSubscribers)
-                                await _clientReturnedToPool.InvokeAsync(c).ConfigureAwait(false);
-                            else
-                                _availableClients.Push(c);
-                            return false;
+                            _availableClients.Push(c);
+                            c.WithSession(DefaultSession.Clone());
+                            return ValueTask.FromResult(false);
                         };
 
                         client.OnDisconnect += (c) =>
@@ -403,13 +431,13 @@ namespace EdgeDB
                     {
                         var client = await _clientFactory(id, _connection, _config).ConfigureAwait(false)!;
 
-                        client.OnDisposed += async (c) =>
+                        client.WithSession(DefaultSession.Clone());
+
+                        client.OnDisposed += (c) =>
                         {
-                            if (_clientReturnedToPool.HasSubscribers)
-                                await _clientReturnedToPool.InvokeAsync(c).ConfigureAwait(false);
-                            else
-                                _availableClients.Push(c);
-                            return false;
+                            _availableClients.Push(c);
+                            c.WithSession(DefaultSession.Clone());
+                            return ValueTask.FromResult(false);
                         };
 
                         client.OnDisconnect += (c) =>

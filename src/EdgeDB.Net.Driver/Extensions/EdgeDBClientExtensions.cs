@@ -133,7 +133,7 @@ namespace EdgeDB
                 {
                     switch (msg)
                     {
-                        case CommandComplete:
+                        case ReadyForCommand:
                             tcs.TrySetResult();
                             break;
                         case DumpBlock block:
@@ -152,7 +152,7 @@ namespace EdgeDB
 
                 client.Duplexer.OnMessage += handler;
 
-                var dump = await client.Duplexer.DuplexAndSyncAsync(new Dump(), x => x.Type == ServerMessageType.DumpHeader, token);
+                var dump = await client.Duplexer.DuplexAndSyncAsync(new Dump(), x => x.Type == ServerMessageType.DumpHeader, token: token);
 
                 if (dump is ErrorResponse err)
                 {
@@ -206,7 +206,7 @@ namespace EdgeDB
 
             var packets = DumpReader.ReadDatabaseDump(stream);
 
-            var result = await client.Duplexer.DuplexAsync(x => x.Type == ServerMessageType.RestoreReady, token, packets.Restore).ConfigureAwait(false);
+            var result = await client.Duplexer.DuplexAsync(x => x.Type == ServerMessageType.RestoreReady, true, token, packets.Restore).ConfigureAwait(false);
 
             if (result is ErrorResponse err)
                 throw new EdgeDBErrorException(err);
@@ -219,7 +219,7 @@ namespace EdgeDB
                 await client.Duplexer.SendAsync(block, token).ConfigureAwait(false);
             }
 
-            result = await client.Duplexer.DuplexAsync(x => x.Type == ServerMessageType.CommandComplete, token, new RestoreEOF()).ConfigureAwait(false);
+            result = await client.Duplexer.DuplexAsync(x => x.Type == ServerMessageType.CommandComplete, true, token, new RestoreEOF()).ConfigureAwait(false);
 
             return result is ErrorResponse error
                 ? throw new EdgeDBErrorException(error)

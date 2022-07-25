@@ -20,14 +20,14 @@ namespace EdgeDB.Binary
         /// <summary>
         ///     Gets a collection of headers for this protocol extension.
         /// </summary>
-        public readonly IReadOnlyCollection<Header> Headers
+        public readonly IReadOnlyCollection<Annotation> Headers
             => _headers.ToImmutableArray();
 
-        private readonly Header[] _headers;
+        private readonly Annotation[] _headers;
         internal ProtocolExtension(ref PacketReader reader)
         {
             Name = reader.ReadString();
-            _headers = reader.ReadHeaders();
+            _headers = reader.ReadAnnotaions();
         }
 
         internal void Write(PacketWriter writer)

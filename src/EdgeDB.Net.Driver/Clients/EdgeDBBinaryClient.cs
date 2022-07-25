@@ -24,13 +24,14 @@ namespace EdgeDB
         /// <summary>
         ///     The major version of the protocol that this client supports.
         /// </summary>
-        public const int PROTOCOL_MAJOR_VERSION = 0;
+        public const int PROTOCOL_MAJOR_VERSION = 1;
 
         /// <summary>
         ///     The minor version of the protocol that this client supports.
         /// </summary>
-        public const int PROTOCOL_MINOR_VERSION = 13;
+        public const int PROTOCOL_MINOR_VERSION = 0;
 
+        #region Events
         /// <summary>
         ///     Fired when the client receives a message.
         /// </summary>
@@ -66,7 +67,8 @@ namespace EdgeDB
             add => OnDisconnectInternal.Add((c) => value());
             remove => OnDisconnectInternal.Remove((c) => value());
         }
-
+        #endregion
+        
         /// <summary>
         ///     Gets whether or not this connection is idle.
         /// </summary>
@@ -94,13 +96,16 @@ namespace EdgeDB
         internal readonly TimeSpan MessageTimeout;
         internal readonly TimeSpan ConnectionTimeout;
         internal readonly EdgeDBConnection Connection;
+        
         protected CancellationToken DisconnectCancelToken
             => Duplexer.DisconnectToken;
-        
+            
         private readonly AsyncEvent<Func<IReceiveable, ValueTask>> _onMessage = new();
         private readonly AsyncEvent<Func<ExecuteResult, ValueTask>> _queryExecuted = new();
         private readonly AsyncEvent<Func<LogMessage, ValueTask>> _onServerLog = new();
 
+        private ICodec? _stateCodec;
+        private Guid _stateDescriptorId;
         private TaskCompletionSource _readySource;
         private TaskCompletionSource _authCompleteSource;
         private CancellationTokenSource _readyCancelTokenSource;
@@ -119,44 +124,44 @@ namespace EdgeDB
         public EdgeDBBinaryClient(EdgeDBConnection connection, EdgeDBConfig config, ulong? clientId = null)
             : base(clientId ?? 0)
         {
-            _config = config;
             Logger = config.Logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
-            _semaphore = new(1, 1);
-            _commandSemaphore = new(1, 1);
-            _connectSemaphone = new(1, 1);
             Connection = connection;
-            _readySource = new();
-            _readyCancelTokenSource = new();
-            _authCompleteSource = new();
             ServerKey = new byte[32];
             MessageTimeout = TimeSpan.FromMilliseconds(config.MessageTimeout);
             ConnectionTimeout = TimeSpan.FromMilliseconds(config.ConnectionTimeout);
             Duplexer = new ClientPacketDuplexer(this);
-
             Duplexer.OnDisconnected += HandleDuplexerDisconnectAsync;
+            _stateDescriptorId = CodecBuilder.InvalidCodec;
+            _config = config;
+            _semaphore = new(1, 1);
+            _commandSemaphore = new(1, 1);
+            _connectSemaphone = new(1, 1);
+            _readySource = new();
+            _readyCancelTokenSource = new();
+            _authCompleteSource = new();
         }
 
         #region Commands/queries
         internal readonly struct RawExecuteResult
         {
-            public ParseComplete PrepareStatement { get; init; }
+            public readonly ICodec Deserializer;
+            public readonly List<Data> Data;
 
-            public ICodec Deserializer { get; init; }
-
-            public List<Data> Data { get; init; }
-
-            public CommandComplete CompleteStatus { get; init; }
+            public RawExecuteResult(ICodec codec, List<Data> data)
+            {
+                Data = data;
+                Deserializer = codec;
+            }
         }
 
         /// <exception cref="EdgeDBException">A general error occored.</exception>
         /// <exception cref="EdgeDBErrorException">The client received an <see cref="ErrorResponse"/>.</exception>
         /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
-        internal async Task<RawExecuteResult> ExecuteInternalAsync(string query, IDictionary<string, object?>? args = null, Cardinality? card = null,
+        internal async Task<RawExecuteResult> ExecuteInternalAsync(string query, IDictionary<string, object?>? args = null, Cardinality? cardinality = null,
             Capabilities? capabilities = Capabilities.Modifications, IOFormat format = IOFormat.Binary, bool isRetry = false, 
             CancellationToken token = default)
         {
-
             // if the current client is not connected, reconnect it
             if (!Duplexer.IsConnected)
                 await ReconnectAsync(token);
@@ -175,62 +180,73 @@ namespace EdgeDB
 
             try
             {
-                var nextTask = Duplexer.NextAsync(x => x.Type == ServerMessageType.ReadyForCommand, token: linkedToken).ConfigureAwait(false);
+                var cacheKey = CodecBuilder.GetCacheHashKey(query, cardinality ?? Cardinality.Many, format);
 
-                var result = (await Duplexer.DuplexAndSyncAsync(new Parse
+                var serializedState = Session.Serialize();
+
+                List<IReceiveable?> p = new();
+
+                if (!CodecBuilder.TryGetCodecs(cacheKey, out var inCodec, out var outCodec))
                 {
-                    Capabilities = capabilities,
-                    Command = query,
-                    Format = format,
-                    ExpectedCardinality = card ?? Cardinality.Many,
-                    ExplicitObjectIds = _config.ExplicitObjectIds,
-                    ImplicitTypeNames = true, // used for type builder
-                    ImplicitTypeIds = true,  // used for type builder
-                }, x => x.Type is ServerMessageType.ParseComplete, linkedToken).ConfigureAwait(false)).ThrowIfErrorOrNot<ParseComplete>();
+                    bool parseHandlerPredicate(IReceiveable? packet)
+                    {
+                        p.Add(packet);
+                        switch (packet)
+                        {
+                            case ErrorResponse err when err.ErrorCode is not ServerErrorCodes.StateMismatchError:
+                                throw new EdgeDBErrorException(err);
+                            case CommandDataDescription descriptor:
+                                {
+                                    outCodec = CodecBuilder.BuildCodec(descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer);
+                                    inCodec = CodecBuilder.BuildCodec(descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer);
 
-                // pop ready 
-                _ = await nextTask;
+                                    CodecBuilder.UpdateKeyMap(cacheKey, descriptor.InputTypeDescriptorId, descriptor.OutputTypeDescriptorId);
+                                }
+                                break;
+                            case StateDataDescription stateDescriptor:
+                                {
+                                    _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                                    _stateDescriptorId = stateDescriptor.TypeDescriptorId;
+                                }
+                                break;
+                            case ReadyForCommand ready:
+                                TransactionState = ready.TransactionState;
+                                return true;
+                            default:
+                                break;
+                        }
 
-                // get the codec for the return type
-                var outCodec = PacketSerializer.GetCodec(result.OutputTypedescId);
-                var inCodec = PacketSerializer.GetCodec(result.InputTypedescId);
-                CommandDataDescription? descriptor = null;
+                        return false;
+                    }
 
-                // if its not cached or we dont have a default one for it, ask the server to describe it for us
-                if (outCodec is null || inCodec is null)
-                {
-                    descriptor = (await Duplexer.DuplexAndSyncAsync(new DescribeStatement(), x => x.Type == ServerMessageType.CommandDataDescription, linkedToken)).ThrowIfErrorOrNot<CommandDataDescription>();
+                    var stateBuf = _stateCodec?.Serialize(serializedState)!;
+
+                    var h = $"{string.Join(" ", stateBuf.Select(x => $"{x:X2}"))}";
+
+                    var result = (await Duplexer.DuplexAndSyncAsync(new Parse
+                    {
+                        Capabilities = capabilities,
+                        Query = query,
+                        Format = format,
+                        ExpectedCardinality = cardinality ?? Cardinality.Many,
+                        ExplicitObjectIds = _config.ExplicitObjectIds,
+                        StateTypeDescriptorId = _stateDescriptorId,
+                        StateData = stateBuf,
+                        ImplicitTypeNames = true, // used for type builder
+                        ImplicitTypeIds = true,  // used for type builder
+                    }, parseHandlerPredicate, alwaysReturnError: false).ConfigureAwait(false));
 
                     if (outCodec is null)
-                    {
-                        outCodec = PacketSerializer.BuildCodec(descriptor.Value.OutputTypeDescriptorId, descriptor.Value.OutputTypeDescriptorBuffer);
-                    }
+                        throw new MissingCodecException("Couldn't find a valid output codec");
 
                     if (inCodec is null)
-                    {
-                        inCodec = PacketSerializer.BuildCodec(descriptor.Value.InputTypeDescriptorId, descriptor.Value.InputTypeDescriptorBuffer);
-                    }
-                }
-
-                if (outCodec is null)
-                {
-                    throw new MissingCodecException("Couldn't find a valid output codec", result.OutputTypedescId, descriptor!.Value.OutputTypeDescriptorBuffer);
-                }
-
-                if (inCodec is null)
-                {
-                    throw new MissingCodecException("Couldn't find a valid input codec", result.InputTypedescId, descriptor!.Value.InputTypeDescriptorBuffer);
+                        throw new MissingCodecException("Couldn't find a valid input codec");
                 }
 
                 if (inCodec is not IArgumentCodec argumentCodec)
-                    throw new MissingCodecException($"Cannot encode arguments, {inCodec} is not a registered argument codec", result.InputTypedescId, descriptor.HasValue
-                        ? descriptor!.Value.InputTypeDescriptorBuffer
-                        : Array.Empty<byte>());
+                    throw new MissingCodecException($"Cannot encode arguments, {inCodec} is not a registered argument codec");
 
                 List<Data> receivedData = new();
-
-                CommandComplete? commandComplete = null;
-                ReadyForCommand? readyForCommand = null;
 
                 bool handler(IReceiveable msg)
                 {
@@ -239,51 +255,35 @@ namespace EdgeDB
                         case Data data:
                             receivedData.Add(data);
                             break;
-                        case CommandComplete comp:
-                            commandComplete = comp;
-                            break;
-                        case ErrorResponse err:
+                        case ErrorResponse err when err.ErrorCode is not ServerErrorCodes.ParameterTypeMismatchError:
                             throw new EdgeDBErrorException(err);
                         case ReadyForCommand ready:
-                            readyForCommand = ready;
-                            break;
-                        default:
-                            throw new UnexpectedMessageException(msg.Type);
+                            TransactionState = ready.TransactionState;
+                            return true;
                     }
 
-                    return readyForCommand.HasValue && commandComplete.HasValue;
+                    return false;
                 }
 
                 var executeResult = await Duplexer.DuplexAndSyncAsync(new Execute() 
-                { 
-                    Capabilities = (result.Capabilities ?? capabilities) ?? Capabilities.Modifications, 
-                    Arguments = argumentCodec.SerializeArguments(args) 
-                }, handler, linkedToken).ConfigureAwait(false);
+                {
+                    Capabilities = capabilities,
+                    Query = query,
+                    Format = format,
+                    ExpectedCardinality = cardinality ?? Cardinality.Many,
+                    ExplicitObjectIds = _config.ExplicitObjectIds,
+                    StateTypeDescriptorId = _stateDescriptorId,
+                    StateData = _stateCodec?.Serialize(serializedState),
+                    ImplicitTypeNames = true, // used for type builder
+                    ImplicitTypeIds = true,  // used for type builder
+                    Arguments = argumentCodec?.SerializeArguments(args) 
+                }, handler, alwaysReturnError: false, token: linkedToken).ConfigureAwait(false);
 
                 executeResult.ThrowIfErrrorResponse();
 
-                if (!commandComplete.HasValue)
-                    throw new UnexpectedMessageException(ServerMessageType.CommandComplete);
-
-                if(!readyForCommand.HasValue)
-                    throw new UnexpectedMessageException(ServerMessageType.ReadyForCommand);
-
-                // update transaction state
-                TransactionState = commandComplete.Value.Status switch 
-                {
-                    "START TRANSACTION" => TransactionState.InTransaction,
-                    _ => readyForCommand.Value.TransactionState
-                };
-
                 execResult = new ExecuteResult(true, null, null, query);
 
-                return new RawExecuteResult
-                {
-                    CompleteStatus = commandComplete.Value,
-                    Data = receivedData,
-                    Deserializer = outCodec,
-                    PrepareStatement = result
-                };
+                return new RawExecuteResult(outCodec!, receivedData);
             }
             catch (OperationCanceledException)
             {
@@ -297,20 +297,20 @@ namespace EdgeDB
                 _semaphore.Release();
                 released = true;
 
-                return await ExecuteInternalAsync(query, args, card, capabilities, format, true, token).ConfigureAwait(false);
+                return await ExecuteInternalAsync(query, args, cardinality, capabilities, format, true, token).ConfigureAwait(false);
             }
             catch (EdgeDBException x) when (x.ShouldRetry && !isRetry)
             {
                 _semaphore.Release();
                 released = true;
 
-                return await ExecuteInternalAsync(query, args, card, capabilities, format, true, token).ConfigureAwait(false);
+                return await ExecuteInternalAsync(query, args, cardinality, capabilities, format, true, token).ConfigureAwait(false);
             }
             catch (Exception x)
             {
                 execResult = x is EdgeDBErrorException err
-                    ? (ExecuteResult?)new ExecuteResult(false, err.ErrorResponse, err, query)
-                    : (ExecuteResult?)new ExecuteResult(false, null, x, query);
+                    ? new ExecuteResult(false, err.ErrorResponse, err, query)
+                    : new ExecuteResult(false, null, x, query);
 
                 Logger.InternalExecuteFailed(x);
 
@@ -351,7 +351,7 @@ namespace EdgeDB
 
             foreach (var item in result.Data)
             {
-                var obj = ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(item.PayloadBuffer));
+                var obj = ObjectBuilder.BuildResult<TResult>(result.Deserializer.Deserialize(item.PayloadBuffer));
                 returnResults.Add(obj);
             }
 
@@ -379,7 +379,7 @@ namespace EdgeDB
 
             return queryResult.PayloadBuffer is null
                 ? default
-                : ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(queryResult.PayloadBuffer));
+                : ObjectBuilder.BuildResult<TResult>(result.Deserializer.Deserialize(queryResult.PayloadBuffer));
         }
 
         /// <inheritdoc/>
@@ -403,7 +403,7 @@ namespace EdgeDB
 
             return queryResult.PayloadBuffer is null
                 ? throw new MissingRequiredException()
-                : ObjectBuilder.BuildResult<TResult>(result.PrepareStatement.OutputTypedescId, result.Deserializer.Deserialize(queryResult.PayloadBuffer))!;
+                : ObjectBuilder.BuildResult<TResult>(result.Deserializer.Deserialize(queryResult.PayloadBuffer))!;
         }
 
         /// <inheritdoc/>
@@ -414,11 +414,8 @@ namespace EdgeDB
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         public override async Task<DataTypes.Json> QueryJsonAsync(string query, IDictionary<string, object?>? args = null, Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
-            var result = await ExecuteInternalAsync(query, args, Cardinality.AtMostOne, capabilities, IOFormat.Json, token: token);
+            var result = await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, IOFormat.Json, token: token);
             
-            if (result.Data.Count > 1)
-                throw new ResultCardinalityMismatchException(Cardinality.AtMostOne, Cardinality.Many);
-
             return result.Data.Count == 1
                 ? (string)result.Deserializer.Deserialize(result.Data[0].PayloadBuffer)!
                 : "[]";
@@ -455,23 +452,29 @@ namespace EdgeDB
                     break;
                 case ErrorResponse err:
                     {
-                        Logger.ErrorResponseReceived(err.Severity, err.Message);
-
-                        if (!_readyCancelTokenSource.IsCancellationRequested)
-                            _readyCancelTokenSource.Cancel();
+                        Logger.ProtocolMajorMismatch($"{handshake.MajorVersion}.{handshake.MinorVersion}", $"{PROTOCOL_MAJOR_VERSION}.{PROTOCOL_MINOR_VERSION}");
+                        await DisconnectAsync().ConfigureAwait(false);
                     }
+                    else if (handshake.MajorVersion == PROTOCOL_MAJOR_VERSION && handshake.MinorVersion > PROTOCOL_MINOR_VERSION)
+                        Logger.ProtocolMinorMismatch($"{handshake.MajorVersion}.{handshake.MinorVersion}", $"{PROTOCOL_MAJOR_VERSION}.{PROTOCOL_MINOR_VERSION}");
+                    break;
+                case ErrorResponse err:
+                    Logger.ErrorResponseReceived(err.Severity, err.Message);
+                    if (!_readyCancelTokenSource.IsCancellationRequested)
+                        _readyCancelTokenSource.Cancel();
                     break;
                 case AuthenticationStatus authStatus:
                     if (authStatus.AuthStatus == AuthStatus.AuthenticationRequiredSASLMessage)
                         _ = Task.Run(async () => await StartSASLAuthenticationAsync(authStatus).ConfigureAwait(false));
                     else if (authStatus.AuthStatus == AuthStatus.AuthenticationOK)
                         _authCompleteSource.TrySetResult();
-
                     break;
                 case ServerKeyData keyData:
-                    {
-                        ServerKey = keyData.KeyBuffer;
-                    }
+                    ServerKey = keyData.KeyBuffer;
+                    break;
+                case StateDataDescription stateDescriptor:
+                    _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                    _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                     break;
                 case ParameterStatus parameterStatus:
                     ParseServerSettings(parameterStatus);
@@ -622,15 +625,15 @@ namespace EdgeDB
                         var descriptorId = reader.ReadGuid();
                         reader.ReadBytes(length, out var typeDesc);
 
-                        ICodec? codec = PacketSerializer.GetCodec(descriptorId);
+                        ICodec? codec = CodecBuilder.GetCodec(descriptorId);
 
                         if (codec is null)
                         {
                             var innerReader = new PacketReader(ref typeDesc);
-                            codec = PacketSerializer.BuildCodec(descriptorId, ref innerReader);
+                            codec = CodecBuilder.BuildCodec(descriptorId, ref innerReader);
 
                             if (codec is null)
-                                throw new MissingCodecException("Failed to build codec for system_config", descriptorId, status.ValueBuffer);
+                                throw new MissingCodecException("Failed to build codec for system_config");
                         }
 
                         // disard length
@@ -727,8 +730,8 @@ namespace EdgeDB
                 // send handshake
                 await Duplexer.SendAsync(new ClientHandshake
                 {
-                    MajorVersion = 1,
-                    MinorVersion = 0,
+                    MajorVersion = PROTOCOL_MAJOR_VERSION,
+                    MinorVersion = PROTOCOL_MINOR_VERSION,
                     ConnectionParameters = new ConnectionParam[]
                     {
                         new ConnectionParam
@@ -763,6 +766,7 @@ namespace EdgeDB
         /// <returns>A task representing the asynchronous disconnect and reconnection operations.</returns>
         public async Task ReconnectAsync(CancellationToken token = default)
         {
+            Duplexer.OnMessage -= HandlePayloadAsync;
             await DisconnectAsync(token).ConfigureAwait(false);
             await ConnectAsync(token).ConfigureAwait(false);
         }
@@ -780,7 +784,6 @@ namespace EdgeDB
             // if we receive a disconnect from the duplexer we should call our disconnect methods to property close down our client.
             await CloseStreamAsync().ConfigureAwait(false);
             await base.DisconnectAsync();
-            Duplexer.OnMessage -= HandlePayloadAsync;
         }
 
         #endregion
@@ -867,11 +870,11 @@ namespace EdgeDB
 
         /// <inheritdoc/>
         async Task ITransactibleClient.CommitAsync(CancellationToken token)
-            => await ExecuteInternalAsync($"commit", capabilities: null, token: token).ConfigureAwait(false);
+            => await ExecuteInternalAsync($"commit", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
 
         /// <inheritdoc/>
         async Task ITransactibleClient.RollbackAsync(CancellationToken token)
-            => await ExecuteInternalAsync($"rollback", capabilities: null, token: token).ConfigureAwait(false);
+            => await ExecuteInternalAsync($"rollback", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
 
         /// <inheritdoc/>
         TransactionState ITransactibleClient.TransactionState => TransactionState;

@@ -14,7 +14,7 @@ namespace EdgeDB.Binary.Packets
         /// <summary>
         ///     Gets a collection of headers sent with this prepare packet.
         /// </summary>
-        public IReadOnlyCollection<Header> Headers
+        public IReadOnlyCollection<Annotation> Headers
             => _headers.ToImmutableArray();
 
         /// <summary>
@@ -22,11 +22,11 @@ namespace EdgeDB.Binary.Packets
         /// </summary>
         public TransactionState TransactionState { get; }
 
-        private readonly Header[] _headers;
+        private readonly Annotation[] _headers;
 
         internal ReadyForCommand(ref PacketReader reader)
         {
-            _headers = reader.ReadHeaders();
+            _headers = reader.ReadAnnotaions();
             TransactionState = (TransactionState)reader.ReadByte();
         }
     }
