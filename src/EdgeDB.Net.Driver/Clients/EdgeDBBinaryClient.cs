@@ -22,6 +22,16 @@ namespace EdgeDB
     public abstract class EdgeDBBinaryClient : BaseEdgeDBClient, ITransactibleClient
     {
         /// <summary>
+        ///     The major version of the protocol that this client supports.
+        /// </summary>
+        public const int PROTOCOL_MAJOR_VERSION = 0;
+
+        /// <summary>
+        ///     The minor version of the protocol that this client supports.
+        /// </summary>
+        public const int PROTOCOL_MINOR_VERSION = 13;
+
+        /// <summary>
         ///     Fired when the client receives a message.
         /// </summary>
         public event Func<IReceiveable, ValueTask> OnMessage
@@ -30,6 +40,9 @@ namespace EdgeDB
             remove => _onMessage.Remove(value);
         }
 
+        /// <summary>
+        ///     Fired when the client receives a <see cref="LogMessage"/>.
+        /// </summary>
         public event Func<LogMessage, ValueTask> OnServerLog
         {
             add => _onServerLog.Add(value);
@@ -81,13 +94,12 @@ namespace EdgeDB
         internal readonly TimeSpan MessageTimeout;
         internal readonly TimeSpan ConnectionTimeout;
         internal readonly EdgeDBConnection Connection;
-
+        protected CancellationToken DisconnectCancelToken
+            => Duplexer.DisconnectToken;
+        
         private readonly AsyncEvent<Func<IReceiveable, ValueTask>> _onMessage = new();
         private readonly AsyncEvent<Func<ExecuteResult, ValueTask>> _queryExecuted = new();
         private readonly AsyncEvent<Func<LogMessage, ValueTask>> _onServerLog = new();
-
-        protected CancellationToken DisconnectCancelToken
-            => Duplexer.DisconnectToken;
 
         private TaskCompletionSource _readySource;
         private TaskCompletionSource _authCompleteSource;
@@ -155,6 +167,8 @@ namespace EdgeDB
             // dont pass linked token as we want to check our connection state below
             await _semaphore.WaitAsync(token).ConfigureAwait(false);
 
+            await _readySource.Task;
+            
             IsIdle = false;
             bool released = false;
             ExecuteResult? execResult = null;
@@ -430,6 +444,15 @@ namespace EdgeDB
         {
             switch (payload)
             {
+                case ServerHandshake handshake:
+                    if (handshake.MajorVersion != PROTOCOL_MAJOR_VERSION || handshake.MinorVersion < PROTOCOL_MINOR_VERSION)
+                    {
+                        Logger.ProtocolMajorMismatch($"{handshake.MajorVersion}.{handshake.MinorVersion}", $"{PROTOCOL_MAJOR_VERSION}.{PROTOCOL_MINOR_VERSION}");
+                        await DisconnectAsync().ConfigureAwait(false);
+                    }
+                    else if (handshake.MajorVersion == PROTOCOL_MAJOR_VERSION && handshake.MinorVersion > PROTOCOL_MINOR_VERSION)
+                        Logger.ProtocolMinorMismatch($"{handshake.MajorVersion}.{handshake.MinorVersion}", $"{PROTOCOL_MAJOR_VERSION}.{PROTOCOL_MINOR_VERSION}");
+                    break;
                 case ErrorResponse err:
                     {
                         Logger.ErrorResponseReceived(err.Severity, err.Message);
@@ -453,7 +476,7 @@ namespace EdgeDB
                 case ParameterStatus parameterStatus:
                     ParseServerSettings(parameterStatus);
                     break;
-                case ReadyForCommand cmd:
+                case ReadyForCommand cmd when !DisconnectCancelToken.IsCancellationRequested:
                     TransactionState = cmd.TransactionState;
                     _readySource.TrySetResult();
                     break;

@@ -18,6 +18,8 @@ namespace EdgeDB
         private static readonly Action<ILogger, string, Exception?> _unknownPacket;
         private static readonly Action<ILogger, Exception> _readException;
         private static readonly Action<ILogger, ServerMessageType, int, Exception?> _didntReadTillEnd;
+        private static readonly Action<ILogger, string, string, Exception?> _protocolMajorMismatch;
+        private static readonly Action<ILogger, string, string, Exception?> _protocolMinorMismatch;
         #endregion
 
         static LoggerExtensions()
@@ -76,7 +78,23 @@ namespace EdgeDB
                 LogLevel.Warning,
                 new EventId(11, nameof(DidntReadTillEnd)),
                 "Packet reader was left with data remaining while deserializing {PacketType} of length {Length}");
+
+            _protocolMajorMismatch = LoggerMessage.Define<string, string>(
+                LogLevel.Critical,
+                new EventId(12, nameof(ProtocolMajorMismatch)),
+                "The server requested protocol version {ServerVersion} but the currently installed client only supports {ClientVersion}. Please switch to a different client version that supports the requested protocol.");
+
+            _protocolMinorMismatch = LoggerMessage.Define<string, string>(
+                LogLevel.Warning,
+                new EventId(13, nameof(ProtocolMinorMismatch)),
+                "The server requested protocol version {ServerVersion} but the currently installed client only supports {ClientVersion}. Functionality may be limited and bugs may arise, please switch to a different client version that supports the requested protocol.");
         }
+        
+        public static void ProtocolMinorMismatch(this ILogger logger, string serverVersion, string clientVersion)
+            => _protocolMinorMismatch(logger, serverVersion, clientVersion, null);
+
+        public static void ProtocolMajorMismatch(this ILogger logger, string serverVersion, string clientVersion)
+            => _protocolMajorMismatch(logger, serverVersion, clientVersion, null);
 
         public static void DidntReadTillEnd(this ILogger logger, ServerMessageType type, int length)
             => _didntReadTillEnd(logger, type, length, null);
