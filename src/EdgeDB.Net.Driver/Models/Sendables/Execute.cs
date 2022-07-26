@@ -51,7 +51,7 @@ namespace EdgeDB.Binary.Packets
                 compilationFlags |= 1 << 0;
             if (ImplicitTypeNames)
                 compilationFlags |= 1 << 1;
-            if (ExplicitObjectIds)
+            if (!ExplicitObjectIds)
                 compilationFlags |= 1 << 2;
             writer.Write(compilationFlags);
             writer.Write(ImplicitLimit);
