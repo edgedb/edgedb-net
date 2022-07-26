@@ -186,7 +186,7 @@ namespace EdgeDB
 
                 List<IReceiveable?> p = new();
 
-                if (!CodecBuilder.TryGetCodecs(cacheKey, out var inCodec, out var outCodec))
+                if (!CodecBuilder.TryGetCodecs(cacheKey, out var inCodecInfo, out var outCodecInfo))
                 {
                     bool parseHandlerPredicate(IReceiveable? packet)
                     {
@@ -197,8 +197,11 @@ namespace EdgeDB
                                 throw new EdgeDBErrorException(err);
                             case CommandDataDescription descriptor:
                                 {
-                                    outCodec = CodecBuilder.BuildCodec(descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer);
-                                    inCodec = CodecBuilder.BuildCodec(descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer);
+                                    outCodecInfo = new(descriptor.OutputTypeDescriptorId,
+                                        CodecBuilder.BuildCodec(descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer));
+
+                                    inCodecInfo = new(descriptor.InputTypeDescriptorId,
+                                        CodecBuilder.BuildCodec(descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer));
 
                                     CodecBuilder.UpdateKeyMap(cacheKey, descriptor.InputTypeDescriptorId, descriptor.OutputTypeDescriptorId);
                                 }
@@ -232,19 +235,20 @@ namespace EdgeDB
                         ExplicitObjectIds = _config.ExplicitObjectIds,
                         StateTypeDescriptorId = _stateDescriptorId,
                         StateData = stateBuf,
+                        ImplicitLimit = _config.ImplicitLimit,
                         ImplicitTypeNames = true, // used for type builder
                         ImplicitTypeIds = true,  // used for type builder
                     }, parseHandlerPredicate, alwaysReturnError: false).ConfigureAwait(false));
 
-                    if (outCodec is null)
+                    if (outCodecInfo is null)
                         throw new MissingCodecException("Couldn't find a valid output codec");
 
-                    if (inCodec is null)
+                    if (inCodecInfo is null)
                         throw new MissingCodecException("Couldn't find a valid input codec");
                 }
 
-                if (inCodec is not IArgumentCodec argumentCodec)
-                    throw new MissingCodecException($"Cannot encode arguments, {inCodec} is not a registered argument codec");
+                if (inCodecInfo.Codec is not IArgumentCodec argumentCodec)
+                    throw new MissingCodecException($"Cannot encode arguments, {inCodecInfo.Codec} is not a registered argument codec");
 
                 List<Data> receivedData = new();
 
@@ -276,14 +280,17 @@ namespace EdgeDB
                     StateData = _stateCodec?.Serialize(serializedState),
                     ImplicitTypeNames = true, // used for type builder
                     ImplicitTypeIds = true,  // used for type builder
-                    Arguments = argumentCodec?.SerializeArguments(args) 
+                    Arguments = argumentCodec?.SerializeArguments(args) ,
+                    ImplicitLimit = _config.ImplicitLimit,
+                    InputTypeDescriptorId = inCodecInfo.Id,
+                    OutputTypeDescriptorId = outCodecInfo.Id,
                 }, handler, alwaysReturnError: false, token: linkedToken).ConfigureAwait(false);
 
                 executeResult.ThrowIfErrrorResponse();
 
                 execResult = new ExecuteResult(true, null, null, query);
 
-                return new RawExecuteResult(outCodec!, receivedData);
+                return new RawExecuteResult(outCodecInfo.Codec!, receivedData);
             }
             catch (OperationCanceledException)
             {

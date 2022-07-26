@@ -10,6 +10,18 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
+    internal class CodecInfo
+    {
+        public Guid Id { get; }
+        public ICodec Codec { get; }
+
+        public CodecInfo(Guid id, ICodec codec)
+        {
+            Id = id;
+            Codec = codec;
+        }
+    }
+
     internal class CodecBuilder
     {
         public static readonly Guid NullCodec = Guid.Empty;
@@ -18,20 +30,26 @@ namespace EdgeDB
         private static readonly ConcurrentDictionary<ulong, (Guid InCodec, Guid OutCodec)> _codecKeyMap = new();
 
         public static ulong GetCacheHashKey(string query, Cardinality cardinality, IOFormat format)
-            => unchecked(CalculateKnuthHash(query)* (ulong) cardinality * (ulong) format);
+            => unchecked(CalculateKnuthHash(query) * (ulong)cardinality * (ulong)format);
 
 
-
-        public static bool TryGetCodecs(ulong hash, 
-            [MaybeNullWhen(false)] out ICodec inCodec, 
-            [MaybeNullWhen(false)] out ICodec outCodec)
+        public static bool TryGetCodecs(ulong hash,
+            [MaybeNullWhen(false)] out CodecInfo inCodecInfo,
+            [MaybeNullWhen(false)] out CodecInfo outCodecInfo)
         {
-            inCodec = null;
-            outCodec = null;
+            inCodecInfo = null;
+            outCodecInfo = null;
 
-            return _codecKeyMap.TryGetValue(hash, out var codecIds)
-                && _codecCache.TryGetValue(codecIds.InCodec, out inCodec)
-                && _codecCache.TryGetValue(codecIds.OutCodec, out outCodec);
+            if (_codecKeyMap.TryGetValue(hash, out var codecIds)
+                && _codecCache.TryGetValue(codecIds.InCodec, out var inCodec)
+                && _codecCache.TryGetValue(codecIds.OutCodec, out var outCodec))
+            {
+                inCodecInfo = new(codecIds.InCodec, inCodec);
+                outCodecInfo = new(codecIds.OutCodec, outCodec);
+                return true;
+            }
+
+            return false;
         }
 
         public static void UpdateKeyMap(ulong hash, Guid inCodec, Guid outCodec)
@@ -40,13 +58,13 @@ namespace EdgeDB
         public static ICodec? GetCodec(Guid id)
             => _codecCache.TryGetValue(id, out var codec) ? codec : GetScalarCodec(id);
 
-        public static ICodec? BuildCodec(Guid id, byte[] buff)
+        public static ICodec BuildCodec(Guid id, byte[] buff)
         {
             var reader = new PacketReader(buff.AsSpan());
             return BuildCodec(id, ref reader);
         }
 
-        public static ICodec? BuildCodec(Guid id, ref PacketReader reader)
+        public static ICodec BuildCodec(Guid id, ref PacketReader reader)
         {
             if (id == NullCodec)
                 return new NullCodec();
