@@ -1,6 +1,7 @@
 ﻿using EdgeDB.Models;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -32,16 +33,19 @@ namespace EdgeDB.Binary.Packets
         public string Message { get; }
 
         /// <summary>
-        ///     Gets a collection of headers sent with this error.
+        ///     Gets a collection of attributes sent with this error.
         /// </summary>
-        public IReadOnlyCollection<Annotation> Headers { get; }
+        public IReadOnlyCollection<Annotation> Attributes
+            => _attributes.ToImmutableArray();
+
+        private readonly Annotation[] _attributes;
 
         internal ErrorResponse(ref PacketReader reader)
         {
             Severity = (ErrorSeverity)reader.ReadByte();
             ErrorCode = (ServerErrorCodes)reader.ReadUInt32();
             Message = reader.ReadString();
-            Headers = reader.ReadAnnotaions();
+            _attributes = reader.ReadKeyValues();
         }
 
         string? IExecuteError.Message => Message;

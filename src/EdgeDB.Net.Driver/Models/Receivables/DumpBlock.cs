@@ -24,13 +24,16 @@ namespace EdgeDB.Binary.Packets
         public int Length { get; }
 
         /// <summary>
-        ///     Gets a collection of headers for this packet.
+        ///     Gets a collection of attributes for this packet.
         /// </summary>
-        public IReadOnlyCollection<Annotation> Headers { get; }
+        public IReadOnlyCollection<Annotation> Attributes
+            => _attributes.ToImmutableArray();
 
         internal byte[] Raw { get; }
 
         internal byte[] HashBuffer { get; }
+
+        private readonly Annotation[] _attributes;
 
         internal DumpBlock(ref PacketReader reader, in int length)
         {
@@ -42,7 +45,7 @@ namespace EdgeDB.Binary.Packets
             HashBuffer = SHA1.Create().ComputeHash(Raw);
 
             using var r = new PacketReader(rawBuff);
-            Headers = r.ReadAnnotaions();
+            _attributes = r.ReadKeyValues();
         }
     }
 }

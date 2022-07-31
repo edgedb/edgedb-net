@@ -11,7 +11,6 @@ namespace EdgeDB
     /// </summary>
     public enum IOFormat : byte
     {
-        None = 0x6e,
         /// <summary>
         ///     The format will be encoded as binary following the 
         ///     <see href="https://www.edgedb.com/docs/reference/protocol/dataformats#data-wire-formats">Data Wire Formats</see> protocol.
@@ -26,6 +25,11 @@ namespace EdgeDB
         /// <summary>
         ///     The format will be encoded as json elements.
         /// </summary>
-        JsonElements = 0x4a
+        JsonElements = 0x4a,
+        
+        /// <summary>
+        ///     The format will be nothing.
+        /// </summary>
+        None = 0x6e,
     }
 }

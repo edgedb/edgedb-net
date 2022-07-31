@@ -29,9 +29,10 @@ namespace EdgeDB.Binary.Packets
         public int Length { get; }
 
         /// <summary>
-        ///     Gets a collection of headers sent with this packet.
+        ///     Gets a collection of attributes sent with this packet.
         /// </summary>
-        public IReadOnlyCollection<Annotation> Headers { get; }
+        public IReadOnlyCollection<Annotation> Attributes
+            => _attributes.ToImmutableArray();
 
         /// <summary>
         ///     Gets the EdgeDB major version.
@@ -61,6 +62,8 @@ namespace EdgeDB.Binary.Packets
         internal byte[] Raw { get; }
         internal byte[] RawHash { get; }
 
+        private readonly Annotation[] _attributes;
+
         internal DumpHeader(ref PacketReader reader, in int length)
         {
             Length = length;
@@ -72,7 +75,7 @@ namespace EdgeDB.Binary.Packets
 
             var r = new PacketReader(rawBuffer);
 
-            Headers = r.ReadAnnotaions();
+            _attributes = r.ReadKeyValues();
             MajorVersion = r.ReadUInt16();
             MinorVersion = r.ReadUInt16();
             SchemaDDL = r.ReadString();

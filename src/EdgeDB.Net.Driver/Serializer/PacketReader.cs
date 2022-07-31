@@ -69,6 +69,28 @@ namespace EdgeDB
             return value;
         }
 
+        public Annotation[] ReadKeyValues()
+        {
+            var length = ReadUInt16();
+
+            Annotation[] arr = new Annotation[length];
+
+            for (ushort i = 0; i != length; i++)
+            {
+                arr[i] = ReadKeyValue();
+            }
+
+            return arr;
+        }
+
+        public Annotation ReadKeyValue()
+        {
+            var code = ReadUInt16();
+            var value = ReadByteArray();
+
+            return new Annotation(code, value);
+        }
+
         public float ReadSingle()
         {
             var value = BinaryPrimitives.ReadSingleBigEndian(_span);
@@ -126,7 +148,7 @@ namespace EdgeDB
             return str;
         }
 
-        public Annotation[] ReadAnnotaions()
+        public Annotation[] ReadAnnotations()
         {
             var length = ReadUInt16();
 
@@ -134,19 +156,18 @@ namespace EdgeDB
 
             for (ushort i = 0; i != length; i++)
             {
-                arr[i] = ReadHeader();
+                arr[i] = ReadAnnotation();
             }
 
             return arr;
         }
 
-        public Annotation ReadHeader()
+        public Annotation ReadAnnotation()
         {
-            var code = ReadUInt16();
+            var name = ReadString();
+            var value = ReadString();
 
-            var arr = ReadByteArray();
-
-            return new Annotation(code, arr);
+            return new Annotation(name, value);
         }
 
         public byte[] ReadByteArray()

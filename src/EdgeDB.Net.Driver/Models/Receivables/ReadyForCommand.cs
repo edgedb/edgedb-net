@@ -12,21 +12,21 @@ namespace EdgeDB.Binary.Packets
             => ServerMessageType.ReadyForCommand;
 
         /// <summary>
-        ///     Gets a collection of headers sent with this prepare packet.
+        ///     Gets a collection of annotations sent with this prepare packet.
         /// </summary>
-        public IReadOnlyCollection<Annotation> Headers
-            => _headers.ToImmutableArray();
+        public IReadOnlyCollection<Annotation> Annotations
+            => _annotations.ToImmutableArray();
 
         /// <summary>
         ///     Gets the transaction state of the next command.
         /// </summary>
         public TransactionState TransactionState { get; }
 
-        private readonly Annotation[] _headers;
+        private readonly Annotation[] _annotations;
 
         internal ReadyForCommand(ref PacketReader reader)
         {
-            _headers = reader.ReadAnnotaions();
+            _annotations = reader.ReadAnnotations();
             TransactionState = (TransactionState)reader.ReadByte();
         }
     }

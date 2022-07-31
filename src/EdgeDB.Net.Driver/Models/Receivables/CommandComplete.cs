@@ -42,7 +42,7 @@ namespace EdgeDB.Binary.Packets
 
         internal CommandComplete(ref PacketReader reader)
         {
-            _annotations = reader.ReadAnnotaions();
+            _annotations = reader.ReadAnnotations();
             UsedCapabilities = (Capabilities)reader.ReadUInt64();
             Status = reader.ReadString();
             StateTypeDescriptorId = reader.ReadGuid();

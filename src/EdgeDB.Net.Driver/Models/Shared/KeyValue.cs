@@ -12,12 +12,12 @@ namespace EdgeDB.Binary
     public readonly struct Annotation
     {
         /// <summary>
-        ///     Gets the code of the header.
+        ///     Gets the key code.
         /// </summary>
         public ushort Code { get; init; }
 
         /// <summary>
-        ///     Gets the value stored within this header.
+        ///     Gets the value stored within this keyvalue.
         /// </summary>
         public byte[] Value { get; init; }
 

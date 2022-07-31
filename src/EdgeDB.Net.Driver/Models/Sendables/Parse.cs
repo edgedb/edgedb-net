@@ -13,12 +13,6 @@ namespace EdgeDB.Binary.Packets
     /// </summary>
     internal class Parse : Sendable
     {
-        public const int IMPLICIT_LIMITS = 0xFF01;
-        public const int IMPLICIT_TYPENAMES = 0xFF02;
-        public const int IMPLICIT_TYPEIDS = 0xFF03;
-        public const int ALLOW_CAPABILITIES = 0xFF04;
-        public const int EXPLICIT_OBJECTIDS = 0xFF05;
-
         public override ClientMessageTypes Type 
             => ClientMessageTypes.Parse;
 

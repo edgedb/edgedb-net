@@ -17,10 +17,11 @@ namespace EdgeDB.Binary.Packets
             => ServerMessageType.CommandDataDescription;
 
         /// <summary>
-        ///     Gets a read-only collection of headers.
+        ///     Gets a read-only collection of annotations.
         /// </summary>
-        public IReadOnlyCollection<Annotation> Headers { get; }
-        
+        public IReadOnlyCollection<Annotation> Annotations
+            => _annotations.ToImmutableArray();
+
         public Capabilities Capabilities { get; }
 
         /// <summary>
@@ -50,12 +51,13 @@ namespace EdgeDB.Binary.Packets
         public IReadOnlyCollection<byte> OutputTypeDescriptor
             => OutputTypeDescriptorBuffer.ToImmutableArray();
 
+        private readonly Annotation[] _annotations;
         internal byte[] InputTypeDescriptorBuffer { get; }
         internal byte[] OutputTypeDescriptorBuffer { get; }
 
         internal CommandDataDescription(ref PacketReader reader)
         {
-            Headers = reader.ReadAnnotaions();
+            _annotations = reader.ReadAnnotations();
             Capabilities = (Capabilities)reader.ReadUInt64();
             Cardinality = (Cardinality)reader.ReadByte();
             InputTypeDescriptorId = reader.ReadGuid();

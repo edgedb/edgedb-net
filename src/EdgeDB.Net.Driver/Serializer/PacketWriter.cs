@@ -38,11 +38,6 @@ namespace EdgeDB
             return ms.ToArray();
         }
 
-        public void WriteBigInt(BigInteger bigInt)
-        {
-
-        }
-
         public void Write(IEnumerable<Annotation>? headers)
         {
             // write length
@@ -54,6 +49,21 @@ namespace EdgeDB
                 {
                     Write(header.Code);
                     WriteArray(header.Value);
+                }
+            }
+        }
+
+        public void Write(IEnumerable<Annotation>? headers)
+        {
+            // write length
+            Write((ushort)(headers?.Count() ?? 0));
+
+            if (headers is not null)
+            {
+                foreach (var header in headers)
+                {
+                    Write(header.Name);
+                    Write(header.Value);
                 }
             }
         }
