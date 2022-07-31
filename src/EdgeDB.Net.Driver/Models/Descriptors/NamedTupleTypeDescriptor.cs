@@ -8,9 +8,6 @@ namespace EdgeDB.Binary
 {
     internal readonly struct NamedTupleTypeDescriptor : ITypeDescriptor
     {
-        public DescriptorType Type 
-            => DescriptorType.NamedTupleDescriptor;
-
         public readonly Guid Id;
 
         public readonly TupleElement[] Elements;

@@ -8,9 +8,6 @@ namespace EdgeDB.Binary
 {
     internal readonly struct ScalarTypeDescriptor : ITypeDescriptor
     {
-        public DescriptorType Type 
-            => DescriptorType.ScalarTypeDescriptor;
-
         public readonly Guid Id;
 
         public readonly ushort BaseTypePos;

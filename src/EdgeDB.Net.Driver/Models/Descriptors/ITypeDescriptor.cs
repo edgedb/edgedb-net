@@ -8,8 +8,6 @@ namespace EdgeDB.Binary
 {
     internal interface ITypeDescriptor
     {
-        DescriptorType Type { get; }
-
         Guid Id { get; }
 
         public static ITypeDescriptor GetDescriptor(ref PacketReader reader)
@@ -29,6 +27,7 @@ namespace EdgeDB.Binary
                 DescriptorType.SetDescriptor => new SetDescriptor(id, ref reader),
                 DescriptorType.TupleTypeDescriptor => new TupleTypeDescriptor(id, ref reader),
                 DescriptorType.InputShapeDescriptor => new InputShapeDescriptor(id, ref reader),
+                DescriptorType.RangeTypeDescriptor => new RangeTypeDescriptor(id, ref reader),
                 _ => null
             };
 

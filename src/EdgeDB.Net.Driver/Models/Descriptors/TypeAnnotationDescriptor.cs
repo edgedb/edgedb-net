@@ -18,8 +18,7 @@ namespace EdgeDB.Binary
             Id = id;
             Annotation = reader.ReadString();
         }
-
-        DescriptorType ITypeDescriptor.Type => Type;
+        
         Guid ITypeDescriptor.Id => Id;
     }
 }

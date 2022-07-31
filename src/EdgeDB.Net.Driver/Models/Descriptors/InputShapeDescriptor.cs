@@ -8,8 +8,6 @@ namespace EdgeDB.Binary
 {
     internal readonly struct InputShapeDescriptor : ITypeDescriptor
     {
-        public DescriptorType Type => DescriptorType.InputShapeDescriptor;
-
         public readonly Guid Id;
 
         public readonly ShapeElement[] Shapes;

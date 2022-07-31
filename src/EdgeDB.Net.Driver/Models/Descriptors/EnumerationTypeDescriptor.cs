@@ -8,9 +8,6 @@ namespace EdgeDB.Binary
 {
     internal readonly struct EnumerationTypeDescriptor : ITypeDescriptor
     {
-        public DescriptorType Type 
-            => DescriptorType.EnumerationTypeDescriptor;
-
         public readonly Guid Id;
 
         public readonly string[] Members;

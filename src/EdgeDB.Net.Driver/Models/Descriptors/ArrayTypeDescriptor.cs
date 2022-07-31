@@ -8,9 +8,6 @@ namespace EdgeDB.Binary
 {
     internal readonly struct ArrayTypeDescriptor : ITypeDescriptor
     {
-        public DescriptorType Type 
-            => DescriptorType.ArrayTypeDescriptor;
-
         public readonly Guid Id; 
 
         public readonly ushort TypePos;

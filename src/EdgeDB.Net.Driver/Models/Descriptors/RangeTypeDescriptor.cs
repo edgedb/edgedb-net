@@ -6,13 +6,12 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary
 {
-    internal readonly struct SetDescriptor : ITypeDescriptor
+    internal readonly struct RangeTypeDescriptor : ITypeDescriptor
     {
         public readonly Guid Id;
-
         public readonly ushort TypePos;
 
-        public SetDescriptor(Guid id, ref PacketReader reader)
+        public RangeTypeDescriptor(Guid id, ref PacketReader reader)
         {
             Id = id;
             TypePos = reader.ReadUInt16();

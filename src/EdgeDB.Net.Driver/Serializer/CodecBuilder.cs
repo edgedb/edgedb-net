@@ -137,6 +137,13 @@ namespace EdgeDB
                                 codecs.Add(codec);
                             }
                             break;
+                        case RangeTypeDescriptor rangeType:
+                            {
+                                var innerCodec = codecs[rangeType.TypePos];
+                                codec = (ICodec)Activator.CreateInstance(typeof(RangeCodec<>).MakeGenericType(innerCodec.ConverterType), innerCodec)!;
+                                codecs.Add(codec);
+                            }
+                            break;
                         default:
                             break;
                     }
