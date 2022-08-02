@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 namespace EdgeDB.Binary
 {
     /// <summary>
-    ///     Represents a dynamic header received in a <see cref="IReceiveable"/>.
+    ///     Represents a dynamic key-value pair received in a <see cref="IReceiveable"/>.
     /// </summary>
-    public readonly struct Annotation
+    public readonly struct KeyValue
     {
         /// <summary>
         ///     Gets the key code.
@@ -21,7 +21,7 @@ namespace EdgeDB.Binary
         /// </summary>
         public byte[] Value { get; init; }
 
-        internal Annotation(ushort code, byte[] value)
+        internal KeyValue(ushort code, byte[] value)
         {
             Code = code;
             Value = value;

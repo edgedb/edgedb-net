@@ -69,11 +69,11 @@ namespace EdgeDB
             return value;
         }
 
-        public Annotation[] ReadKeyValues()
+        public KeyValue[] ReadKeyValues()
         {
             var length = ReadUInt16();
 
-            Annotation[] arr = new Annotation[length];
+            KeyValue[] arr = new KeyValue[length];
 
             for (ushort i = 0; i != length; i++)
             {
@@ -83,12 +83,12 @@ namespace EdgeDB
             return arr;
         }
 
-        public Annotation ReadKeyValue()
+        public KeyValue ReadKeyValue()
         {
             var code = ReadUInt16();
             var value = ReadByteArray();
 
-            return new Annotation(code, value);
+            return new KeyValue(code, value);
         }
 
         public float ReadSingle()

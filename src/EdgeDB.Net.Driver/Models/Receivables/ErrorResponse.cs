@@ -35,10 +35,10 @@ namespace EdgeDB.Binary.Packets
         /// <summary>
         ///     Gets a collection of attributes sent with this error.
         /// </summary>
-        public IReadOnlyCollection<Annotation> Attributes
+        public IReadOnlyCollection<KeyValue> Attributes
             => _attributes.ToImmutableArray();
 
-        private readonly Annotation[] _attributes;
+        private readonly KeyValue[] _attributes;
 
         internal ErrorResponse(ref PacketReader reader)
         {

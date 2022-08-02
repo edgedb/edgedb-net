@@ -31,7 +31,7 @@ namespace EdgeDB.Binary.Packets
         /// <summary>
         ///     Gets a collection of attributes sent with this packet.
         /// </summary>
-        public IReadOnlyCollection<Annotation> Attributes
+        public IReadOnlyCollection<KeyValue> Attributes
             => _attributes.ToImmutableArray();
 
         /// <summary>
@@ -62,7 +62,7 @@ namespace EdgeDB.Binary.Packets
         internal byte[] Raw { get; }
         internal byte[] RawHash { get; }
 
-        private readonly Annotation[] _attributes;
+        private readonly KeyValue[] _attributes;
 
         internal DumpHeader(ref PacketReader reader, in int length)
         {

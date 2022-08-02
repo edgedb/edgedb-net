@@ -26,14 +26,14 @@ namespace EdgeDB.Binary.Packets
         /// <summary>
         ///     Gets a collection of attributes for this packet.
         /// </summary>
-        public IReadOnlyCollection<Annotation> Attributes
+        public IReadOnlyCollection<KeyValue> Attributes
             => _attributes.ToImmutableArray();
 
         internal byte[] Raw { get; }
 
         internal byte[] HashBuffer { get; }
 
-        private readonly Annotation[] _attributes;
+        private readonly KeyValue[] _attributes;
 
         internal DumpBlock(ref PacketReader reader, in int length)
         {

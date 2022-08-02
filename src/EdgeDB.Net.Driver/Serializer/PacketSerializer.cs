@@ -50,8 +50,6 @@ namespace EdgeDB
                         return new LogMessage(ref reader);
                     case ServerMessageType.ParameterStatus:
                         return new ParameterStatus(ref reader);
-                    case ServerMessageType.ParseComplete:
-                        return new ParseComplete(ref reader);
                     case ServerMessageType.ReadyForCommand:
                         return new ReadyForCommand(ref reader);
                     case ServerMessageType.RestoreReady:
