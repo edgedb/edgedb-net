@@ -12,11 +12,6 @@ namespace EdgeDB.Binary
         RestoreReady = 0x2b,
 
         /// <summary>
-        ///		A <see cref="Packets.ParseComplete"/> message.
-        /// </summary>
-        ParseComplete = 0x31,
-
-        /// <summary>
         ///		A <see cref="Packets.DumpBlock"/> message.
         /// </summary>
         DumpBlock = 0x3d,
