@@ -103,7 +103,7 @@ namespace EdgeDB
             { typeof(DateTime), "local_datetime" },
             { typeof(DateTimeOffset), "datetime" },
             { typeof(TimeSpan), "duration" },
-            { typeof(Sequence), "sequence" }
+            { typeof(Sequence), "sequence" },
         };
     }
 }

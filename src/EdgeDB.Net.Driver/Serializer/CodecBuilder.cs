@@ -144,6 +144,10 @@ namespace EdgeDB
                                 codecs.Add(codec);
                             }
                             break;
+                        case BaseScalarTypeDescriptor scalar:
+                            {
+                                throw new MissingCodecException($"Could not find the scalar type {scalar.Id}. Please file a bug report with your query that caused this error.");
+                            }
                         default:
                             break;
                     }
@@ -200,6 +204,7 @@ namespace EdgeDB
             { new Guid("00000000-0000-0000-0000-00000000010F"), typeof(Json) },
             { new Guid("00000000-0000-0000-0000-000000000110"), typeof(BigInt) },
             { new Guid("00000000-0000-0000-0000-000000000111"), typeof(RelativeDuration) },
+            { new Guid("00000000-0000-0000-0000-000000000112"), typeof(RelativeDuration) }
 
         };
     }
