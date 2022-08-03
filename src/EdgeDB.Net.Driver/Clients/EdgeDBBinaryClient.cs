@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 namespace EdgeDB
 {
     /// <summary>
-    ///     Represents an abstract binary clinet.
+    ///     Represents an abstract binary client.
     /// </summary>
     public abstract class EdgeDBBinaryClient : BaseEdgeDBClient, ITransactibleClient
     {
