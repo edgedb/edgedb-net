@@ -122,8 +122,8 @@ namespace EdgeDB.Serializer
                 return true;
 
             // check constructor for builder
-            var validConstructor = type.GetConstructor(Type.EmptyTypes) != null ||
-                                   type.GetConstructor(new Type[] { typeof(IDictionary<string, object?>) })
+            var validConstructor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, Type.EmptyTypes) != null ||
+                                   type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, new Type[] { typeof(IDictionary<string, object?>) })
                                        ?.GetCustomAttribute<EdgeDBDeserializerAttribute>() != null;
 
             // allow abstract passthru
@@ -363,11 +363,10 @@ namespace EdgeDB.Serializer
             }
 
             // if type has custom constructor factory
-            var constructorIsBuilder = _type.GetConstructor(new Type[] { typeof(IDictionary<string, object?>) })
-                ?.GetCustomAttribute<EdgeDBDeserializerAttribute>() != null;
-
-            if (constructorIsBuilder)
-                return (data) => Activator.CreateInstance(_type, data) ??
+            var constructor = _type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,null, new Type[] { typeof(IDictionary<string, object?>) }, null);
+                
+            if (constructor?.GetCustomAttribute<EdgeDBDeserializerAttribute>() is not null)
+                return (data) => constructor.Invoke(new object?[] { data }) ??
                                  throw new TargetInvocationException($"Cannot create an instance of {_type.Name}", null);
 
             // is it abstract
@@ -399,7 +398,7 @@ namespace EdgeDB.Serializer
 
             return data =>
             {
-                var instance = Activator.CreateInstance(_type);
+                var instance = Activator.CreateInstance(_type, true);
 
                 if (instance is null)
                     throw new TargetInvocationException($"Cannot create an instance of {_type.Name}", null);
