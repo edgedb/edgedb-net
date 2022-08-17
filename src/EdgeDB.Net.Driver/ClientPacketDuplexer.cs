@@ -5,12 +5,13 @@ using EdgeDB.Utils;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 
 namespace EdgeDB
 {
     internal class ClientPacketDuplexer
     {
-        public const int MAX_CHUNK_SIZE = 2048;
+        public const int PACKET_HEADER_SIZE = 5;
         public bool IsConnected
             => _stream != null && (_client?.IsConnected ?? false);
 
@@ -79,7 +80,7 @@ namespace EdgeDB
 
         private async Task ReadAsync()
         {
-            byte[] packetHeaderBuffer = new byte[5];
+            byte[] packetHeaderBuffer = new byte[PACKET_HEADER_SIZE];
 
             try
             {
@@ -90,7 +91,7 @@ namespace EdgeDB
 
                     var result = await _stream.ReadAsync(packetHeaderBuffer, _disconnectTokenSource.Token).ConfigureAwait(false);
 
-                    if (result != 5)
+                    if (result == 0 || (result != 5 && ReadPartialHeader(ref packetHeaderBuffer, result) != 5))
                     {
                         // disconnected
                         _disconnectTokenSource?.Cancel();
@@ -142,6 +143,37 @@ namespace EdgeDB
             {
                 _client.Logger.ReadException(x);
             }
+        }
+
+        private unsafe int ReadPartialHeader(ref byte[] header, int totalRead)
+        {
+            if (_stream == null)
+                return 0;
+
+            int read = totalRead;
+            int numZeros = 0;
+
+            fixed(byte* pointer = header)
+            {
+                while (read < PACKET_HEADER_SIZE)
+                {
+                    var span = new Span<byte>(pointer + read, PACKET_HEADER_SIZE - read);
+
+                    var result = _stream.Read(span);
+                    if (result == 0)
+                    {
+                        numZeros++;
+
+                        if (numZeros >= 20)
+                        {
+                            _disconnectTokenSource.Cancel();
+                            return 0;
+                        }
+                    }
+                    read += result;
+                }
+            }
+            return read;
         }
 
         private unsafe int ReadIntoHandle(int length, int offset, ref MemoryHandle handle)
