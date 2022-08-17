@@ -23,7 +23,7 @@ namespace EdgeDB.Tests.Integration
         public async Task TestPoolCapability()
         {
             // create 1000 tasks
-            var numTasks = 1000;
+            var numTasks = 150;
             Task[] tasks = new Task[numTasks];
             ConcurrentBag<string> results = new();
 
@@ -35,7 +35,7 @@ namespace EdgeDB.Tests.Integration
                 });
             }
 
-            _output.WriteLine("Starting 1000 query test...");
+            _output.WriteLine("Starting 150 query test...");
 
             Stopwatch sw = Stopwatch.StartNew();
 
@@ -43,10 +43,10 @@ namespace EdgeDB.Tests.Integration
 
             sw.Stop();
 
-            Assert.Equal(1000, results.Count);
+            Assert.Equal(150, results.Count);
             Assert.All(results, x => Assert.Equal("Hello, Dotnet!", x));
 
-            _output.WriteLine($"Executed 1000 query test in {sw.ElapsedMilliseconds}ms");
+            _output.WriteLine($"Executed 150 query test in {sw.ElapsedMilliseconds}ms");
         }
 
         [Fact]
