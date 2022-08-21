@@ -224,9 +224,7 @@ namespace EdgeDB
 
                     var stateBuf = _stateCodec?.Serialize(serializedState)!;
 
-                    var h = $"{string.Join(" ", stateBuf.Select(x => $"{x:X2}"))}";
-
-                    var result = (await Duplexer.DuplexAndSyncAsync(new Parse
+                    var result = await Duplexer.DuplexAndSyncAsync(new Parse
                     {
                         Capabilities = capabilities,
                         Query = query,
@@ -238,7 +236,7 @@ namespace EdgeDB
                         ImplicitLimit = _config.ImplicitLimit,
                         ImplicitTypeNames = true, // used for type builder
                         ImplicitTypeIds = true,  // used for type builder
-                    }, parseHandlerPredicate, alwaysReturnError: false).ConfigureAwait(false));
+                    }, parseHandlerPredicate, alwaysReturnError: false, token: token).ConfigureAwait(false);
 
                     if (outCodecInfo is null)
                         throw new MissingCodecException("Couldn't find a valid output codec");
