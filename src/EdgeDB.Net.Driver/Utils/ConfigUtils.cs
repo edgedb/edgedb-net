@@ -7,13 +7,12 @@ namespace EdgeDB.Utils
     internal class ConfigUtils
     {
         public static string EdgeDBConfigDir
-            => Path.Combine(GetEdgeDBBasePath(), "config");
+            => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? Path.Combine(GetEdgeDBBasePath(), "config")
+                : GetEdgeDBBasePath();
 
         public static string CredentialsDir
             => Path.Combine(EdgeDBConfigDir, "credentials");
-
-        public static string ProjectsDir
-            => Path.Combine(EdgeDBConfigDir, "projects");
 
         private static string GetEdgeDBKnownBasePath()
         {
@@ -51,7 +50,7 @@ namespace EdgeDB.Utils
             using (var sha1 = SHA1.Create())
                 hash = HexConverter.ToHex(sha1.ComputeHash(Encoding.UTF8.GetBytes(fullPath)));
 
-            return Path.Combine(GetEdgeDBBasePath(), "config", "projects", $"{baseName}-{hash.ToLower()}");
+            return Path.Combine(EdgeDBConfigDir, "projects", $"{baseName}-{hash.ToLower()}");
         }
     }
 }
