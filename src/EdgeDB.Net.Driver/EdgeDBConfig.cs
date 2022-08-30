@@ -4,6 +4,9 @@ using System.Numerics;
 
 namespace EdgeDB
 {
+    /// <summary>
+    ///     Represents a config for a <see cref="EdgeDBClient"/>, extending <see cref="EdgeDBConfig"/>.
+    /// </summary>
     public class EdgeDBClientPoolConfig : EdgeDBConfig
     {
         /// <summary>
@@ -25,6 +28,9 @@ namespace EdgeDB
         public Func<ulong, EdgeDBConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? ClientFactory { get; set; }
     }
 
+    /// <summary>
+    ///     Represents different client types used in a <see cref="EdgeDBClient"/>.
+    /// </summary>
     public enum EdgeDBClientType
     {
         /// <summary>
