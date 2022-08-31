@@ -45,7 +45,7 @@ namespace EdgeDB.DataTypes
                 ? default
                 : serializer is not null
                     ? serializer.Deserialize<T>(new JsonTextReader(new StringReader(Value)))
-                    : JsonConvert.DeserializeObject<T>(Value);
+                    : EdgeDBConfig.JsonSerializer.DeserializeObject<T>(Value);
 
         public static implicit operator string?(Json j) => j.Value;
         public static implicit operator Json(string? value) => new(value);

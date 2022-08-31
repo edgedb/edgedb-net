@@ -181,11 +181,11 @@ namespace EdgeDB
         private async Task<HttpQueryResult> ExecuteInternalAsync(string query, IDictionary<string, object?>? args = null, 
             CancellationToken token = default)
         {
-            var content = new StringContent(JsonConvert.SerializeObject(new QueryPostBody()
+            var content = new StringContent(EdgeDBConfig.JsonSerializer.SerializeObject(new QueryPostBody()
             {
                 Query = query,
                 Variables = args
-            }, new JsonSerializerSettings() { NullValueHandling = NullValueHandling.Ignore }), Encoding.UTF8, "application/json");
+            }), Encoding.UTF8, "application/json");
 
             var httpResult = await _httpClient.PostAsync(Uri, content, token).ConfigureAwait(false);
 
@@ -194,7 +194,7 @@ namespace EdgeDB
 
             var json = await httpResult.Content.ReadAsStringAsync(token).ConfigureAwait(false);
 
-            var result = JsonConvert.DeserializeObject<HttpQueryResult>(json)!;
+            var result = EdgeDBConfig.JsonSerializer.DeserializeObject<HttpQueryResult>(json)!;
             await InvokeResultEventAsync(result).ConfigureAwait(false);
             return result;
         }
@@ -269,7 +269,7 @@ namespace EdgeDB
                 throw new ResultCardinalityMismatchException(Cardinality.AtMostOne, Cardinality.Many);
 
             return arr.Any()
-                ? arr[0].ToObject<TResult>()
+                ? arr[0].ToObject<TResult>(EdgeDBConfig.JsonSerializer)
                 : default;
         }
 
@@ -288,7 +288,7 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
-        /// <remarks>
+        /// <remarks>s
         ///     <paramref name="capabilities"/> has no effect as the HTTP protocol does not support capabilities.
         /// </remarks>
         /// <exception cref="ResultCardinalityMismatchException">The result didn't return multiple json elements.</exception>

@@ -18,4 +18,10 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
   </ItemGroup>
+  <ItemGroup>
+    <None Remove="ContractResolvers\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="ContractResolvers\" />
+  </ItemGroup>
 </Project>
