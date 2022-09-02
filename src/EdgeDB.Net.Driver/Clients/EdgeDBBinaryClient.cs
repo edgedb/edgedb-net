@@ -19,7 +19,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents an abstract binary client.
     /// </summary>
-    public abstract class EdgeDBBinaryClient : BaseEdgeDBClient, ITransactibleClient
+    internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient, ITransactibleClient
     {
         /// <summary>
         ///     The major version of the protocol that this client supports.
@@ -121,8 +121,8 @@ namespace EdgeDB
         /// <param name="connection">The connection details used to connect to the database.</param>
         /// <param name="config">The configuration for this client.</param>
         /// <param name="clientId">The optional client id of this client. This is used for logging and client pooling.</param>
-        public EdgeDBBinaryClient(EdgeDBConnection connection, EdgeDBConfig config, ulong? clientId = null)
-            : base(clientId ?? 0)
+        public EdgeDBBinaryClient(EdgeDBConnection connection, EdgeDBConfig config, IDisposable clientPoolHolder, ulong? clientId = null)
+            : base(clientId ?? 0, clientPoolHolder)
         {
             Logger = config.Logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
             Connection = connection;

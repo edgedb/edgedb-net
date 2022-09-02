@@ -22,7 +22,7 @@ namespace EdgeDB
         /// <summary>
         ///     Gets the clients session.
         /// </summary>
-        public Session Session { get; protected set; }
+        protected Session Session { get; set; }
 
         internal event Func<BaseEdgeDBClient, ValueTask<bool>> OnDisposed
         {
@@ -48,14 +48,24 @@ namespace EdgeDB
 
         internal readonly AsyncEvent<Func<BaseEdgeDBClient, ValueTask>> OnConnectInternal = new();
 
+        protected IDisposable ClientPoolHolder;
+
         /// <summary>
         ///     Initialized the base client.
         /// </summary>
         /// <param name="clientId">The id of this client.</param>
-        public BaseEdgeDBClient(ulong clientId)
+        public BaseEdgeDBClient(ulong clientId, IDisposable clientPoolHolder)
         {
             Session = Session.Default;
             ClientId = clientId;
+            ClientPoolHolder = clientPoolHolder;
+        }
+
+        public void AcceptHolder(IDisposable holder)
+        {
+            // dispose the old holder
+            ClientPoolHolder.Dispose();
+            ClientPoolHolder = holder;
         }
 
         #region State
@@ -155,7 +165,7 @@ namespace EdgeDB
         public virtual async ValueTask<bool> DisposeAsync()
         {
             bool shouldDispose = true;
-
+            ClientPoolHolder.Dispose();
             if (_onDisposed.HasSubscribers)
             {
                 var results = await _onDisposed.InvokeAsync(this).ConfigureAwait(false);

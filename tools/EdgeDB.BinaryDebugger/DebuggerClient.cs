@@ -26,13 +26,12 @@ namespace EdgeDB.BinaryDebugger
         private int _packetLength;
         private List<byte>? _packetBody;
 
-
         private TcpClient _tcpClient;
         private NetworkStream? _stream;
         private SslStream? _secureStream;
 
         public DebuggerClient(EdgeDBConnection connection, EdgeDBConfig config, ulong? clientId = null)
-            : base(connection, config, clientId)
+            : base(connection, config, null!, clientId)
         {
             if (File.Exists("./debug.log"))
                 File.Delete("./debug.log");

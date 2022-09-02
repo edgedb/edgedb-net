@@ -19,7 +19,7 @@ namespace EdgeDB
         /// <summary>
         ///     Gets or sets the client type the pool will use.
         /// </summary>
-        public EdgeDBClientType ClientType { get; set; }
+        internal EdgeDBClientType ClientType { get; set; }
 
         /// <summary>
         ///     Gets or sets the client factory to use when adding new clients to the client pool.
@@ -27,7 +27,7 @@ namespace EdgeDB
         /// <remarks>
         ///     The <see cref="ClientType"/> must be <see cref="EdgeDBClientType.Custom"/> to use this property.
         /// </remarks>
-        public Func<ulong, EdgeDBConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? ClientFactory { get; set; }
+        internal Func<ulong, EdgeDBConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? ClientFactory { get; set; }
     }
 
     /// <summary>

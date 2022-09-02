@@ -16,7 +16,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents a TCP client used to interact with EdgeDB.
     /// </summary>
-    public sealed class EdgeDBTcpClient : EdgeDBBinaryClient
+    internal sealed class EdgeDBTcpClient : EdgeDBBinaryClient
     {
         /// <inheritdoc/>
         public override bool IsConnected
@@ -33,8 +33,8 @@ namespace EdgeDB
         /// <param name="connection">The connection details used to connect to the database.</param>
         /// <param name="config">The configuration for this client.</param>
         /// <param name="clientId">The optional client id of this client. This is used for logging and client pooling.</param>
-        public EdgeDBTcpClient(EdgeDBConnection connection, EdgeDBConfig config, ulong? clientId = null) 
-            : base(connection, config, clientId)
+        public EdgeDBTcpClient(EdgeDBConnection connection, EdgeDBConfig config, IDisposable clientPoolHolder, ulong? clientId = null) 
+            : base(connection, config, clientPoolHolder, clientId)
         {
             _tcpClient = new();
         }

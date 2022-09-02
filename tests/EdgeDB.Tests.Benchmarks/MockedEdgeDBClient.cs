@@ -12,7 +12,7 @@ namespace EdgeDB.Tests.Benchmarks
         public override bool IsConnected => true;
 
         public MockedEdgeDBClient(ulong id)
-            : base(id)
+            : base(id, null!)
         {
 
         }

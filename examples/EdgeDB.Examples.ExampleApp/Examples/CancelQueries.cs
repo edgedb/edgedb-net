@@ -13,18 +13,16 @@ namespace EdgeDB.ExampleApp.Examples
 
         public async Task ExecuteAsync(EdgeDBClient client)
         {
-            await using var singleClient = await client.GetOrCreateClientAsync<EdgeDBBinaryClient>();
-
             var tokenSource = new CancellationTokenSource();
             tokenSource.CancelAfter(TimeSpan.FromTicks(5));
 
             try
             {
-                await singleClient.QueryRequiredSingleAsync<string>("select \"Hello, World\"", token: tokenSource.Token);
+                await client.QueryRequiredSingleAsync<string>("select \"Hello, World\"", token: tokenSource.Token);
             }
             catch (OperationCanceledException)
             {
-                Logger!.LogInformation("Got task cancelled exception, client is connected? {Conn}", singleClient.IsConnected);
+                Logger!.LogInformation("Got task cancelled exception");
             }
         }
     }
