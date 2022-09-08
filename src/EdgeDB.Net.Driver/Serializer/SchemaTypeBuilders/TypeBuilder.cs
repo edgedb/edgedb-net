@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
@@ -104,7 +104,7 @@ namespace EdgeDB.Serializer
         internal static object? BuildObject(Type type, IDictionary<string, object?> raw)
         {
             if (!IsValidObjectType(type))
-                throw new InvalidOperationException($"Cannot use {type.Name} to deserialize to");
+                throw new InvalidOperationException($"Cannot deserialize data to {type.Name}");
 
             if (!_typeInfo.TryGetValue(type, out TypeDeserializeInfo? info))
             {
@@ -126,8 +126,8 @@ namespace EdgeDB.Serializer
                                    type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, new Type[] { typeof(IDictionary<string, object?>) })
                                        ?.GetCustomAttribute<EdgeDBDeserializerAttribute>() != null;
 
-            // allow abstract passthru
-            return type.IsAbstract ? true : (type.IsClass || type.IsValueType) && !type.IsSealed && validConstructor;
+            // allow abstract & record passthru
+            return type.IsAbstract || type.IsRecord() || (type.IsClass || type.IsValueType) && !type.IsSealed && validConstructor;
         }
 
         internal static bool TryGetCollectionParser(Type type, out Func<Array, Type, object>? builder)
@@ -306,8 +306,8 @@ namespace EdgeDB.Serializer
             if (_type == typeof(object))
                 return (data) => data;
 
-            // if type is anon type
-            if (_type.GetCustomAttribute<CompilerGeneratedAttribute>() != null)
+            // if type is anon type or record
+            if (_type.IsRecord() || _type.GetCustomAttribute<CompilerGeneratedAttribute>() != null)
             {
                 var props = _type.GetProperties();
                 return (data) =>
