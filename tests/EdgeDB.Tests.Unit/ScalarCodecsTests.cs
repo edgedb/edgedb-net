@@ -1,4 +1,4 @@
-﻿using EdgeDB.Codecs;
+using EdgeDB.Codecs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
@@ -6,7 +6,7 @@ using System.Linq;
 namespace EdgeDB.Tests.Unit.Codecs
 {
     [TestClass]
-    public class ScalarTests
+    public class ScalarCodecsTests
     {
         internal static void TestCodec<TType>(IScalarCodec<TType>? codec, TType expectedValue, byte[] expectedSerializedValue)
         {

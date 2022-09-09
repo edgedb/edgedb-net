@@ -10,6 +10,16 @@ namespace EdgeDB
     /// </summary>
     public class EdgeDBConnection
     {
+        private const string EDGEDB_INSTANCE_ENV_NAME = "EDGEDB_INSTANCE";
+        private const string EDGEDB_DSN_ENV_NAME = "EDGEDB_DSN";
+        private const string EDGEDB_CREDENTIALS_FILE_ENV_NAME = "EDGEDB_CREDENTIALS_FILE";
+        private const string EDGEDB_USER_ENV_NAME = "EDGEDB_USER";
+        private const string EDGEDB_PASSWORD_ENV_NAME = "EDGEDB_PASSWORD";
+        private const string EDGEDB_DATABASE_ENV_NAME = "EDGEDB_DATABASE";
+        private const string EDGEDB_HOST_ENV_NAME = "EDGEDB_HOST";
+        private const string EDGEDB_PORT_ENV_NAME = "EDGEDB_PORT";
+
+        #region Main connection args
         /// <summary>
         ///     Gets or sets the username used to connect to the database.
         /// </summary>
@@ -17,13 +27,21 @@ namespace EdgeDB
         ///     This property defaults to edgedb
         /// </remarks>
         [JsonProperty("user")]
-        public string? Username { get; set; } = "edgedb";
+        public string Username
+        {
+            get => _user ?? "edgedb";
+            set => _user = value;
+        }
 
         /// <summary>
         ///     Gets or sets the password to connect to the database.
         /// </summary>
         [JsonProperty("password")]
-        public string? Password { get; set; }
+        public string? Password
+        {
+            get => _password;
+            set => _password = value;
+        }
 
         /// <summary>
         ///     Gets or sets the hostname of the edgedb instance to connect to.
@@ -31,7 +49,22 @@ namespace EdgeDB
         /// <remarks>
         ///     This property defaults to 127.0.0.1.
         /// </remarks>
-        public string? Hostname { get; set; } = "127.0.0.1";
+        public string Hostname
+        {
+            get => _hostname ?? "127.0.0.1";
+            set
+            {
+                if (value.Contains('/'))
+                {
+                    throw new ConfigurationException("Cannot use UNIX socket for 'Hostname'");
+                }
+
+                if (value.Contains(','))
+                    throw new ConfigurationException("DSN cannot contain more than one host");
+
+                _hostname = value;
+            }
+        }
 
         /// <summary>
         ///     Gets or sets the port of the edgedb instance to connect to.    
@@ -40,7 +73,11 @@ namespace EdgeDB
         ///     This property defaults to 5656
         /// </remarks>
         [JsonProperty("port")]
-        public int Port { get; set; } = 5656;
+        public int Port
+        {
+            get => _port ?? 5656;
+            set => _port = value;
+        }
 
         /// <summary>
         ///     Gets or sets the database name to use when connecting.
@@ -49,7 +86,11 @@ namespace EdgeDB
         ///     This property defaults to edgedb
         /// </remarks>
         [JsonProperty("database")]
-        public string? Database { get; set; } = "edgedb";
+        public string? Database
+        {
+            get => _database ?? "edgedb";
+            set => _database = value;
+        }
 
         /// <summary>
         ///     Gets or sets the TLS certificate data used to very the certificate when authenticating.    
@@ -65,7 +106,11 @@ namespace EdgeDB
         ///     Gets or sets the TLS Certificate Authority.
         /// </summary>
         [JsonProperty("tls_ca")]
-        public string? TLSCertificateAuthority { get; set; }
+        public string? TLSCertificateAuthority
+        {
+            get => _tlsca;
+            set => _tlsca = value;
+        }
 
         /// <summary>
         ///     Gets or sets the TLS security level.
@@ -74,27 +119,23 @@ namespace EdgeDB
         ///     The default value is <see cref="TLSSecurityMode.Strict"/>.
         /// </remarks>
         [JsonProperty("tls_security")]
-        public TLSSecurityMode TLSSecurity { get; set; }
-
-        /// <inheritdoc/>
-        public override string ToString()
+        public TLSSecurityMode TLSSecurity
         {
-            string str = "edgedb://";
-
-            if (Username is not null)
-                str += Username;
-            if (Password is not null && Username is not null)
-                str += $":{Password}";
-
-            if (Hostname is not null)
-                str += $"@{Hostname}:{Port}";
-
-            if (Database is not null)
-                str += $"/{Database}";
-
-            return str;
+            get => _tlsSecurity ?? TLSSecurityMode.Strict;
+            set => _tlsSecurity = value;
         }
+        #endregion
 
+        #region Backing fields
+        private string? _user;
+        private string? _password;
+        private string? _database;
+        private string? _hostname;
+        private int? _port;
+        private string? _tlsca;
+        private TLSSecurityMode? _tlsSecurity;
+        #endregion
+        
         /// <summary>
         ///     Creates an <see cref="EdgeDBConnection"/> from a <see href="https://www.edgedb.com/docs/reference/dsn#dsn-specification">valid DSN</see>.
         /// </summary>
@@ -106,9 +147,9 @@ namespace EdgeDB
         /// <exception cref="KeyNotFoundException">An environment variable couldn't be found.</exception>
         public static EdgeDBConnection FromDSN(string dsn)
         {
-            if (!Regex.IsMatch(dsn, @"^[a-z]+:\/\/"))
-                throw new ArgumentException("DSN doesn't match the format \"edgedb://\"");
-
+            if (!dsn.StartsWith("edgedb://"))
+                throw new ConfigurationException("DSN schema 'edgedb' expected but got 'pq'");
+            
             string? database = null, username = null, port = null, host = null, password = null;
 
             Dictionary<string, string> args = new();
@@ -148,6 +189,15 @@ namespace EdgeDB
 
             if (sub2.Length == 2)
             {
+                if (sub2[1] == "")
+                {
+                    // empty host/port
+                    goto connectionDefinition;
+                }
+
+                if (sub2[1].Contains(','))
+                    throw new ConfigurationException("DSN cannot contain more than one host");
+
                 var right = sub2[1].Split(':');
 
                 if (right.Length == 2)
@@ -181,6 +231,8 @@ namespace EdgeDB
                     host = spl[0];
             }
 
+connectionDefinition:
+            
             var conn = new EdgeDBConnection();
 
             if (database is not null)
@@ -329,7 +381,7 @@ namespace EdgeDB
         /// <exception cref="FileNotFoundException">The instances config file couldn't be found.</exception>
         public static EdgeDBConnection FromInstanceName(string name)
         {
-            var configPath = Path.Combine(ConfigUtils.CredentialsDir, $"{name}.json");
+            var configPath = Path.Combine(ConfigUtils.GetCredentialsDir(), $"{name}.json");
 
             return !File.Exists(configPath)
                 ? throw new FileNotFoundException($"Config file couldn't be found at {configPath}")
@@ -337,13 +389,14 @@ namespace EdgeDB
         }
 
         /// <summary>
-        ///     Resolves a connection by traversing the current working directory and its parents.
+        ///     Resolves a connection by traversing the current working directory and its parents
+        ///     to find an 'edgedb.toml' file.
         /// </summary>
         /// <returns>A resolved <see cref="EdgeDBConnection"/>.</returns>
-        /// <exception cref="FileNotFoundException">No config file could be found.</exception>
-        public static EdgeDBConnection ResolveConnection()
+        /// <exception cref="FileNotFoundException">No 'edgedb.toml' file could be found.</exception>
+        public static EdgeDBConnection ResolveEdgeDBTOML()
         {
-            string dir = Environment.CurrentDirectory;
+            var dir = Environment.CurrentDirectory;
 
             while (true)
             {
@@ -357,6 +410,172 @@ namespace EdgeDB
 
                 dir = parent.FullName;
             }
+        }
+
+        /// <summary>
+        ///     Parses the provided arguments to build an <see cref="EdgeDBConnection"/> class; Parse logic follows
+        ///     the <see href="https://www.edgedb.com/docs/reference/connection#ref-reference-connection-priority">Priority levels</see>
+        ///     of arguments.
+        /// </summary>
+        /// <param name="instance">The instance name to connect to.</param>
+        /// <param name="dsn">The DSN string to use to connect.</param>
+        /// <param name="configure">A configuration delegate.</param>
+        /// <param name="autoResolve">Whether or not to autoresolve a connection using <see cref="ResolveEdgeDBTOML"/>.</param>
+        /// <returns>
+        ///     A <see cref="EdgeDBConnection"/> class that can be used to connect to a EdgeDB instance.
+        /// </returns>
+        /// <exception cref="ConfigurationException">
+        ///     An error occured while parsing or configuring the <see cref="EdgeDBConnection"/>.
+        /// </exception>
+        /// <exception cref="FileNotFoundException">A configuration file could not be found.</exception>
+        public static EdgeDBConnection Parse(string? instance = null, string? dsn = null, Action<EdgeDBConnection>? configure = null, bool autoResolve = true)
+        {
+            EdgeDBConnection? connection = null;
+
+            // try to resolve the toml
+            if (autoResolve)
+            {
+                try
+                {
+                    connection = ResolveEdgeDBTOML();
+                }
+                catch (FileNotFoundException)
+                {
+                    // ignore
+                }
+            }
+
+            #region Env
+            var env = Environment.GetEnvironmentVariables();
+
+            if (env.Contains(EDGEDB_INSTANCE_ENV_NAME))
+            {
+                var fromInst = FromInstanceName((string)env[EDGEDB_INSTANCE_ENV_NAME]!);
+                connection = connection?.MergeInto(fromInst) ?? fromInst;
+            }
+
+            if (env.Contains(EDGEDB_DSN_ENV_NAME))
+            {
+                var fromDSN = FromDSN((string)env[EDGEDB_INSTANCE_ENV_NAME]!);
+                connection = connection?.MergeInto(fromDSN) ?? fromDSN;
+            }
+
+            if (env.Contains(EDGEDB_HOST_ENV_NAME))
+            {
+                connection ??= new();
+                try
+                {
+                    connection.Hostname = (string)env[EDGEDB_HOST_ENV_NAME]!;
+                }
+                catch (ConfigurationException x)
+                {
+                    switch (x.Message)
+                    {
+                        case "DSN cannot contain more than one host":
+                            throw new ConfigurationException("Enviroment variable 'EDGEDB_HOST' cannot contain more than one host", x);
+                        default:
+                            throw;
+                    }
+                }
+            }
+
+            if (env.Contains(EDGEDB_PORT_ENV_NAME))
+            {
+                connection ??= new();
+
+                if (!int.TryParse((string)env[EDGEDB_PORT_ENV_NAME]!, out var port))
+                    throw new ConfigurationException($"Expected integer for environment variable '{EDGEDB_PORT_ENV_NAME}' but got '{env[EDGEDB_PORT_ENV_NAME]}'");
+
+                connection.Port = port;
+            }
+
+            if (env.Contains(EDGEDB_CREDENTIALS_FILE_ENV_NAME))
+            {
+                // check if file exists
+                var path = (string)env[EDGEDB_CREDENTIALS_FILE_ENV_NAME]!;
+                if (!File.Exists(path))
+                    throw new FileNotFoundException($"Could not find the file specified in '{EDGEDB_CREDENTIALS_FILE_ENV_NAME}'");
+
+                var credentials = JsonConvert.DeserializeObject<EdgeDBConnection>(File.ReadAllText(path))!;
+                connection = connection?.MergeInto(credentials) ?? credentials;
+            }
+
+            if (env.Contains(EDGEDB_USER_ENV_NAME))
+            {
+                connection ??= new();
+                connection.Username = (string)env[EDGEDB_USER_ENV_NAME]!;
+            }
+
+            if (env.Contains(EDGEDB_PASSWORD_ENV_NAME))
+            {
+                connection ??= new();
+                connection.Password = (string)env[EDGEDB_PASSWORD_ENV_NAME]!;
+            }
+
+            if (env.Contains(EDGEDB_DATABASE_ENV_NAME))
+            {
+                connection ??= new();
+                connection.Database = (string)env[EDGEDB_DATABASE_ENV_NAME]!;
+            }
+            #endregion
+
+            if (instance is not null)
+            {
+                var fromInst = FromInstanceName(instance);
+                connection = connection?.MergeInto(fromInst) ?? fromInst;
+            }    
+
+            if (dsn is not null)
+            {
+                var fromDSN = FromDSN(dsn);
+                connection = connection?.MergeInto(fromDSN) ?? fromDSN;
+            }    
+            
+            if (configure is not null)
+            {
+                connection ??= new();
+
+                var cloned = (EdgeDBConnection)connection.MemberwiseClone()!;
+                configure(cloned);
+
+                if (dsn is not null && cloned._hostname is not null)
+                    throw new ConfigurationException("Cannot specify DSN and 'Hostname'; they are mutually exclusive");
+
+                connection = connection.MergeInto(cloned);
+            }
+
+            return connection ?? new();
+        }
+
+        private EdgeDBConnection MergeInto(EdgeDBConnection other)
+        {
+            other._tlsSecurity ??= _tlsSecurity;
+            other._database ??= _database;
+            other._hostname ??= _hostname;
+            other._password ??= _password;
+            other._tlsca ??= _tlsca;
+            other._port ??= _port;
+            other._user ??= _user;
+            return other;
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            var str = "edgedb://";
+
+            if (Username is not null)
+                str += Username;
+            if (Password is not null && Username is not null)
+                str += $":{Password}";
+
+            if (Hostname is not null)
+                str += $"@{Hostname}:{Port}";
+
+            if (Database is not null)
+                str += $"/{Database}";
+
+            return str;
         }
     }
 }

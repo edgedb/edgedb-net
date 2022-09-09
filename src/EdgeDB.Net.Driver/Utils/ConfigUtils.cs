@@ -1,56 +1,65 @@
-﻿using System.Runtime.InteropServices;
+using EdgeDB.Abstractions;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace EdgeDB.Utils
 {
-    internal class ConfigUtils
+    internal static class ConfigUtils
     {
-        public static string EdgeDBConfigDir
-            => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? Path.Combine(GetEdgeDBBasePath(), "config")
-                : GetEdgeDBBasePath();
+        private static readonly ISystemProvider _defaultPlatformProvider = new DefaultSystemProvider();
 
-        public static string CredentialsDir
-            => Path.Combine(EdgeDBConfigDir, "credentials");
-
-        private static string GetEdgeDBKnownBasePath()
+        private static string GetEdgeDBKnownBasePath(ISystemProvider? platform = null)
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "EdgeDB");
+            platform ??= _defaultPlatformProvider;
 
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "Application Support", "edgedb");
-
+            if (platform.IsOSPlatform(OSPlatform.Windows))
+                return platform.CombinePaths(platform.GetHomeDir(), "AppData", "Local", "EdgeDB");
+            else if (platform.IsOSPlatform(OSPlatform.OSX))
+                return platform.CombinePaths(platform.GetHomeDir(), "Library", "Application Support", "edgedb");
             else
             {
-                var xdgConfigDir = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
+                var xdgConfigDir = platform.GetEnvVariable("XDG_CONFIG_HOME");
 
-                if (xdgConfigDir is null || !Path.IsPathRooted(xdgConfigDir))
-                    xdgConfigDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config");
+                if (xdgConfigDir is null || !platform.IsRooted(xdgConfigDir))
+                    xdgConfigDir = platform.CombinePaths(platform.GetHomeDir(), ".config");
 
-                return Path.Combine(xdgConfigDir, "edgedb");
+                return platform.CombinePaths(xdgConfigDir, "edgedb");
             }
         }
-        private static string GetEdgeDBBasePath()
+        private static string GetEdgeDBBasePath(ISystemProvider? platform = null)
         {
-            var basePath = GetEdgeDBKnownBasePath();
-            return Directory.Exists(basePath) ? basePath : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".edgedb");
+            platform ??= _defaultPlatformProvider;
+            
+            var basePath = GetEdgeDBKnownBasePath(platform);
+            return platform.DirectoryExists(basePath)
+                ? basePath
+                : platform.CombinePaths(platform.GetHomeDir(), ".edgedb");
         }
 
-        public static string GetInstanceProjectDirectory(string projectDir)
+        public static string GetInstanceProjectDirectory(string projectDir, ISystemProvider? platform = null)
         {
-            var fullPath = Path.GetFullPath(projectDir);
-            var baseName = projectDir.Split(Path.DirectorySeparatorChar).Last();
-            string hash = "";
+            platform ??= _defaultPlatformProvider;
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && !fullPath.StartsWith("\\\\"))
+            var fullPath = platform.GetFullPath(projectDir);
+            var baseName = projectDir.Split(platform.DirectorySeparatorChar).Last();
+            var hash = "";
+
+            if (platform.IsOSPlatform(OSPlatform.Windows) && !fullPath.StartsWith("\\\\"))
                 fullPath = "\\\\?\\" + fullPath;
 
             using (var sha1 = SHA1.Create())
                 hash = HexConverter.ToHex(sha1.ComputeHash(Encoding.UTF8.GetBytes(fullPath)));
 
-            return Path.Combine(EdgeDBConfigDir, "projects", $"{baseName}-{hash.ToLower()}");
+            return platform.CombinePaths(GetEdgeDBConfigDir(platform), "projects", $"{baseName}-{hash.ToLower()}");
         }
+
+        public static string GetEdgeDBConfigDir(ISystemProvider? platform = null)
+            => (platform ?? _defaultPlatformProvider).IsOSPlatform(OSPlatform.Windows)
+                ? (platform ?? _defaultPlatformProvider).CombinePaths(GetEdgeDBBasePath(platform), "config")
+                : GetEdgeDBBasePath(platform);
+        
+        public static string GetCredentialsDir(ISystemProvider? platform = null)
+            => (platform ?? _defaultPlatformProvider).CombinePaths(GetEdgeDBConfigDir(platform), "credentials");
     }
 }
