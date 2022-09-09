@@ -10,5 +10,8 @@ namespace EdgeDB
     {
         public static bool IsRecord(this Type type)
             => type.GetMethods().Any(m => m.Name == "<Clone>$");
+
+        public static bool IsFSharpOption(this Type type)
+            => type.Name == "FSharpOption`1" && type.Module.Name == "FSharp.Core.dll";
     }
 }

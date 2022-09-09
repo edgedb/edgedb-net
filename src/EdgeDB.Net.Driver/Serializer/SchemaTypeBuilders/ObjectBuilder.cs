@@ -1,4 +1,4 @@
-﻿using EdgeDB.DataTypes;
+using EdgeDB.DataTypes;
 using EdgeDB.Serializer;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -9,18 +9,15 @@ namespace EdgeDB
 {
     internal class ObjectBuilder
     {
-        public static TType? BuildResult<TType>(IDictionary<string, object?> rawResult)
-            => (TType?)TypeBuilder.BuildObject(typeof(TType), rawResult);
-
         public static TType? BuildResult<TType>(object? value)
         {
             if (value is IDictionary<string, object?> raw)
-                return BuildResult<TType>(raw);
+                return (TType?)TypeBuilder.BuildObject(typeof(TType), raw);
 
             return (TType?)ConvertTo(typeof(TType), value);
         }
 
-        private static object? ConvertTo(Type type, object? value)
+        public static object? ConvertTo(Type type, object? value)
         {
             if (value is null)
             {
@@ -39,20 +36,11 @@ namespace EdgeDB
             }
 
             // check for arrays or sets
-            if (valueType.IsArray || valueType.IsAssignableTo(typeof(IEnumerable)))
+            if ((valueType.IsArray || valueType.IsAssignableTo(typeof(IEnumerable))) && (type.IsArray || type.IsAssignableFrom(typeof(IEnumerable)) || type.IsAssignableTo(typeof(IEnumerable))))
             {
                 return ConvertCollection(type, valueType, value);
             }
-
-            // check for computed values
-            if (type.Name is "ComputedValue`1" && type.GenericTypeArguments[0] == valueType)
-            {
-                var method = type.GetRuntimeMethod("op_Implicit", new Type[] { valueType });
-
-                if (method is not null)
-                    return method.Invoke(null, new object[] { value });
-            }
-
+            
             // check for edgeql types
             if (TypeBuilder.IsValidObjectType(type) && value is IDictionary<string, object?> dict)
                 return TypeBuilder.BuildObject(type, dict);
@@ -66,6 +54,14 @@ namespace EdgeDB
                     return tuple.ToReferenceTuple();
             }
 
+            // check for F# option
+            if(type.IsFSharpOption())
+            {
+                // convert inner value
+                var innerValue = ConvertTo(type.GenericTypeArguments[0], value);
+                return Activator.CreateInstance(type, new object?[] { innerValue });
+            }
+
             try
             {
                 return Convert.ChangeType(value, type);
@@ -76,7 +72,10 @@ namespace EdgeDB
                 {
                     return ReflectionUtils.DynamicCast(value, type);
                 }
-                catch { return value; }
+                catch
+                {
+                    throw new ArgumentException($"Cannot convert {valueType} to type {type}");
+                }
             }
         }
 
@@ -119,17 +118,5 @@ namespace EdgeDB
                     }
             }
         }
-
-        private static bool IsValidProperty(PropertyInfo type)
-        {
-            var shouldIgnore = type.GetCustomAttribute<EdgeDBIgnoreAttribute>() is not null;
-
-            return !shouldIgnore && type.GetSetMethod() is not null;
-        }
-
-        private static bool IsValidTargetType(Type type) =>
-            (type.IsClass || type.IsValueType) && 
-            !type.IsSealed && 
-            type.GetConstructor(Array.Empty<Type>()) != null;
     }
 }
