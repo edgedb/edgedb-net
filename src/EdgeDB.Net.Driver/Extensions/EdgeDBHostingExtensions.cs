@@ -13,7 +13,7 @@ namespace EdgeDB
         public static IServiceCollection AddEdgeDB(this IServiceCollection collection, EdgeDBConnection? connection = null, 
             Action<EdgeDBClientPoolConfig>? configure = null)
         {
-            var conn = connection ?? EdgeDBConnection.ResolveConnection();
+            var conn = connection ?? EdgeDBConnection.ResolveEdgeDBTOML();
 
             collection.AddSingleton(conn);
             collection.AddSingleton<EdgeDBClientPoolConfig>((provider) =>

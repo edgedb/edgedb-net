@@ -109,7 +109,7 @@ namespace EdgeDB
         ///     This constructor uses the default config and will attempt to find your EdgeDB project toml file in the current working directory. If 
         ///     no file is found this method will throw a <see cref="FileNotFoundException"/>.
         /// </remarks>
-        public EdgeDBClient() : this(EdgeDBConnection.ResolveConnection(), new EdgeDBClientPoolConfig()) { }
+        public EdgeDBClient() : this(EdgeDBConnection.ResolveEdgeDBTOML(), new EdgeDBClientPoolConfig()) { }
 
         /// <summary>
         ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
@@ -119,7 +119,7 @@ namespace EdgeDB
         ///     no file is found this method will throw a <see cref="FileNotFoundException"/>.
         /// </remarks>
         /// <param name="config">The config for this client pool.</param>
-        public EdgeDBClient(EdgeDBClientPoolConfig config) : this(EdgeDBConnection.ResolveConnection(), config) { }
+        public EdgeDBClient(EdgeDBClientPoolConfig config) : this(EdgeDBConnection.ResolveEdgeDBTOML(), config) { }
 
         /// <summary>
         ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.

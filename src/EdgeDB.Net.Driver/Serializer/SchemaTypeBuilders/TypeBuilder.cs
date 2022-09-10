@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
@@ -104,7 +104,7 @@ namespace EdgeDB.Serializer
         internal static object? BuildObject(Type type, IDictionary<string, object?> raw)
         {
             if (!IsValidObjectType(type))
-                throw new InvalidOperationException($"Cannot use {type.Name} to deserialize to");
+                throw new InvalidOperationException($"Cannot deserialize data to {type.Name}");
 
             if (!_typeInfo.TryGetValue(type, out TypeDeserializeInfo? info))
             {
@@ -123,11 +123,12 @@ namespace EdgeDB.Serializer
 
             // check constructor for builder
             var validConstructor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, Type.EmptyTypes) != null ||
+                                   type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, type.GetProperties().Select(x => x.PropertyType).ToArray()) != null ||
                                    type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, new Type[] { typeof(IDictionary<string, object?>) })
                                        ?.GetCustomAttribute<EdgeDBDeserializerAttribute>() != null;
 
-            // allow abstract passthru
-            return type.IsAbstract ? true : (type.IsClass || type.IsValueType) && !type.IsSealed && validConstructor;
+            // allow abstract & record passthru
+            return type.IsAbstract || type.IsRecord() || (type.IsClass || type.IsValueType) && validConstructor;
         }
 
         internal static bool TryGetCollectionParser(Type type, out Func<Array, Type, object>? builder)
@@ -150,41 +151,7 @@ namespace EdgeDB.Serializer
 
             return inst;
         }
-
-        internal static object? ConvertValue(this Type target, object? value)
-        {
-            // is it a link?
-            if (value is IDictionary<string, object?> obj)
-            {
-                if (IsValidObjectType(target))
-                {
-                    return BuildObject(target, obj);
-                }
-            }
-
-            // is it an array or can we return an array enumerable?
-            if (TryGetCollectionParser(target, out var builder) || target.IsArray)
-            {
-                var innerType = target.IsArray
-                    ? target.GetElementType()!
-                    : target.GenericTypeArguments.Length > 0
-                        ? target.GetGenericArguments()[0]
-                        : target;
-
-                if (value is not Array array)
-                    throw new NoTypeConverter(target, typeof(Array));
-
-                var parsedArray = Array.CreateInstance(innerType, array.Length);
-
-                for (int i = 0; i < array.Length; i++)
-                    parsedArray.SetValue(ConvertValue(innerType, array.GetValue(i)), i);
-
-                return builder is not null ? builder(parsedArray, innerType) : parsedArray;
-            }
-
-            throw new NoTypeConverter(target, value?.GetType() ?? typeof(object));
-        }
-
+        
         internal static bool TryGetCustomBuilder(this Type objectType, out MethodInfo? info)
         {
             info = null;
@@ -306,8 +273,10 @@ namespace EdgeDB.Serializer
             if (_type == typeof(object))
                 return (data) => data;
 
-            // if type is anon type
-            if (_type.GetCustomAttribute<CompilerGeneratedAttribute>() != null)
+            // if type is anon type or record, or has a constructor with all properties
+            if (_type.IsRecord() ||
+                _type.GetCustomAttribute<CompilerGeneratedAttribute>() != null ||
+                _type.GetConstructor(_type.GetProperties().Select(x => x.PropertyType).ToArray()) != null)
             {
                 var props = _type.GetProperties();
                 return (data) =>
@@ -321,26 +290,15 @@ namespace EdgeDB.Serializer
                         {
                             ctorParams[i] = ReflectionUtils.GetDefault(prop.PropertyType);
                         }
-                        var valueType = value?.GetType();
-                        if (valueType == null)
+
+                        try
                         {
-                            ctorParams[i] = ReflectionUtils.GetDefault(prop.PropertyType);
-                            continue;
+                            ctorParams[i] = ObjectBuilder.ConvertTo(prop.PropertyType, value);
                         }
-                        if (valueType.IsAssignableTo(prop.PropertyType))
+                        catch(Exception x)
                         {
-                            ctorParams[i] = value;
+                            throw new NoTypeConverterException($"Cannot assign property {prop.Name} with type {value?.GetType().Name ?? "unknown"}", x);
                         }
-                        else if (prop.PropertyType.IsEnum && value is string str) // enums
-                        {
-                            ctorParams[i] = Enum.Parse(prop.PropertyType, str);
-                        }
-                        else if (value is object?[] objArray && prop.PropertyType.IsAssignableTo(typeof(IEnumerable)))
-                        {
-                            ctorParams[i] = ObjectBuilder.ConvertCollection(prop.PropertyType, valueType, value);
-                        }
-                        else
-                            throw new InvalidOperationException($"Cannot assign property {prop.Name} with type {valueType}");
                     }
                     return Activator.CreateInstance(_type, ctorParams)!;
                 };
@@ -392,7 +350,6 @@ namespace EdgeDB.Serializer
                 };
             }
 
-
             // fallback to reflection factory
             var propertyMap = _type.GetPropertyMap();
 
@@ -409,24 +366,15 @@ namespace EdgeDB.Serializer
 
                     if (!foundProperty || value is null)
                         continue;
-
-                    var valueType = value?.GetType();
-
-                    if (valueType == null)
-                        continue;
-
-                    if (valueType.IsAssignableTo(prop.PropertyType))
+                    
+                    try
                     {
-                        prop.SetValue(instance, value);
-                        continue;
+                        prop.SetValue(instance, ObjectBuilder.ConvertTo(prop.PropertyType, value));
                     }
-                    else if (prop.PropertyType.IsEnum && value is string str) // enums
+                    catch(Exception x)
                     {
-                        prop.SetValue(instance, Enum.Parse(prop.PropertyType, str));
-                        continue;
+                        throw new NoTypeConverterException($"Cannot assign property {prop.Name} with type {value?.GetType().Name ?? "unknown"}", x);
                     }
-
-                    prop.SetValue(instance, prop.PropertyType.ConvertValue(value));
                 }
 
                 return instance;
