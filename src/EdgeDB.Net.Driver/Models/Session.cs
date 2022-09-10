@@ -100,7 +100,7 @@ namespace EdgeDB.State
                 Module = module
             };
         }
-
+        
         public static Session Default
             => new();
     }
