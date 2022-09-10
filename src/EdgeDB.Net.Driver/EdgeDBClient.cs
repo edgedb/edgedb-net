@@ -47,15 +47,27 @@ namespace EdgeDB
                 return x.IsConnected;
             });
 
+        /// <summary>
+        ///     The <see cref="State.Config"/> containing session-level configuration.
+        /// </summary>
         public Config Config
             => _session.Config;
 
+        /// <summary>
+        ///     The default module for this client.
+        /// </summary>
         public string Module
             => _session.Module;
 
+        /// <summary>
+        ///     The module aliases for this client.
+        /// </summary>
         public IReadOnlyDictionary<string, string> Aliases
             => _session.Aliases;
 
+        /// <summary>
+        ///     The globals for this client.
+        /// </summary>
         public IReadOnlyDictionary<string, object?> Globals
             => _session.Globals;
 
@@ -417,6 +429,17 @@ namespace EdgeDB
         #endregion
 
         #region State
+        /// <summary>
+        ///     Creates a new client with the specified <see cref="Config"/>.
+        /// </summary>
+        /// <remarks>
+        ///     The created client is a 'sub' client of this one, the child client
+        ///     shares the same client pool as this one.
+        /// </remarks>
+        /// <param name="configDelegate">A delegate used to modify the config.</param>
+        /// <returns>
+        ///     A new client with the specified config.
+        /// </returns>
         public EdgeDBClient WithConfig(Action<ConfigProperties> configDelegate)
         {
             var props = new ConfigProperties();
@@ -424,16 +447,64 @@ namespace EdgeDB
             return WithConfig(props.ToConfig(Config));
         }
 
+        /// <summary>
+        ///     Creates a new client with the specified <see cref="Config"/>.
+        /// </summary>
+        /// <remarks>
+        ///     The created client is a 'sub' client of this one, the child client
+        ///     shares the same client pool as this one.
+        /// </remarks>
+        /// <param name="config">The config for the new client.</param>
+        /// <returns>
+        ///     A new client with the specified config.
+        /// </returns>
         public EdgeDBClient WithConfig(Config config)
             => new(this, _session.WithConfig(config));
 
+        /// <summary>
+        ///     Creates a new client with the specified <see href="https://www.edgedb.com/docs/datamodel/globals#globals">Globals</see>.
+        /// </summary>
+        /// <remarks>
+        ///     The created client is a 'sub' client of this one, the child client
+        ///     shares the same client pool as this one.<br/>
+        ///     The newly created client doesn't copy any of the parents globals, this method
+        ///     is settative to the <see cref="Globals"/> property.
+        /// </remarks>
+        /// <param name="globals">The globals for the newly create client.</param>
+        /// <returns>
+        ///     A new client with the specified globals.
+        /// </returns>
         public EdgeDBClient WithGlobals(Dictionary<string, object?> globals)
             => new(this, _session.WithGlobals(globals));
 
+        /// <summary>
+        ///     Creates a new client with the specified <see cref="Module"/>.
+        /// </summary>
+        /// <remarks>
+        ///     The created client is a 'sub' client of this one, the child client
+        ///     shares the same client pool as this one.
+        /// </remarks>
+        /// <param name="module">The module for the new client.</param>
+        /// <returns>
+        ///     A new client with the specified module.
+        /// </returns>
         public EdgeDBClient WithModule(string module)
             => new(this, _session.WithModule(module));
 
-        public EdgeDBClient WithModuleAliases(Dictionary<string, string> aliases)
+        /// <summary>
+        ///     Creates a new client with the specified <see cref="Aliases"/>.
+        /// </summary>
+        /// <remarks>
+        ///     The created client is a 'sub' client of this one, the child client
+        ///     shares the same client pool as this one.<br/>
+        ///     The newly created client doesn't copy any of the parents aliases, this method
+        ///     is settative to the <see cref="Aliases"/> property.
+        /// </remarks>
+        /// <param name="aliases">The module aliases for the new client.</param>
+        /// <returns>
+        ///     A new client with the specified module aliases.
+        /// </returns>
+        public EdgeDBClient WithAliases(Dictionary<string, string> aliases)
             => new(this, _session.WithModuleAliases(aliases));
         #endregion
 

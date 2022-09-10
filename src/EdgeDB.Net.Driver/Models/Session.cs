@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.State
 {
-    public sealed class Session
+    internal sealed class Session
     {
         public string Module { get; init; }
         public IReadOnlyDictionary<string, string> Aliases 
@@ -100,15 +100,6 @@ namespace EdgeDB.State
                 Module = module
             };
         }
-
-        internal Session Clone()
-            => new()
-            {
-                Aliases = Aliases,
-                Config = Config.Clone(),
-                Globals = Globals,
-                Module = Module
-            };
 
         public static Session Default
             => new();
