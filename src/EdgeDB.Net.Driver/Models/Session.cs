@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -59,20 +59,46 @@ namespace EdgeDB.State
 
         public Session WithGlobals(IDictionary<string, object?> globals)
         {
-            _globals = globals.ToDictionary(x => x.Key, x => x.Value);
-            return this;
+            return new Session()
+            {
+                _globals = globals.ToDictionary(x => x.Key, x => x.Value),
+                _aliases = _aliases,
+                _config = _config,
+                Module = Module
+            };
         }
 
         public Session WithModuleAliases(IDictionary<string, string> aliases)
         {
-            _aliases = aliases.ToDictionary(x => x.Key, x => x.Value);
-            return this;
+            return new Session()
+            {
+                _aliases = aliases.ToDictionary(x => x.Key, x => x.Value),
+                _config = _config,
+                _globals = _globals,
+                Module = Module
+            };
         }
 
         public Session WithConfig(Config config)
         {
-            _config = config;
-            return this;
+            return new Session()
+            {
+                _config = config,
+                _aliases = _aliases,
+                _globals = _globals,
+                Module = Module
+            };
+        }
+
+        public Session WithModule(string module)
+        {
+            return new Session()
+            {
+                _config = _config,
+                _aliases = _aliases,
+                _globals = _globals,
+                Module = module
+            };
         }
 
         internal Session Clone()

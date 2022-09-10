@@ -1,4 +1,4 @@
-﻿using EdgeDB.Binary;
+using EdgeDB.Binary;
 using EdgeDB.Binary.Packets;
 using EdgeDB.Codecs;
 using EdgeDB.Models;
@@ -622,7 +622,7 @@ namespace EdgeDB
                         var descriptorId = reader.ReadGuid();
                         reader.ReadBytes(length, out var typeDesc);
 
-                        ICodec? codec = CodecBuilder.GetCodec(descriptorId);
+                        var codec = CodecBuilder.GetCodec(descriptorId);
 
                         if (codec is null)
                         {
@@ -634,7 +634,7 @@ namespace EdgeDB
                         }
 
                         // disard length
-                        reader.ReadUInt32();
+                        reader.Skip(4);
 
                         var obj = codec.Deserialize(ref reader)!;
 
@@ -664,7 +664,7 @@ namespace EdgeDB
         /// <inheritdoc/>
         public override async ValueTask ConnectAsync(CancellationToken token = default)
         {
-            await _connectSemaphone.WaitAsync();
+            await _connectSemaphone.WaitAsync(token);
 
             try
             {

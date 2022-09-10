@@ -26,6 +26,9 @@ namespace EdgeDB
 
             try
             {
+                if (_size == newSize)
+                    return;
+
                 _size = newSize;
 
                 _poolClientWaiter = new(_size, _size);
@@ -39,7 +42,8 @@ namespace EdgeDB
         public async Task<IDisposable> GetPoolHandleAsync(CancellationToken token)
         {
             // wait for an open handle
-            await _poolClientWaiter.WaitAsync(token).ConfigureAwait(false);
+            var localWaiter = _poolClientWaiter;
+            await localWaiter.WaitAsync(token).ConfigureAwait(false);
             await _resizeWaiter.WaitAsync(token).ConfigureAwait(false);
 
             try
@@ -47,7 +51,7 @@ namespace EdgeDB
                 var handle = new PoolHandle();
                 handle.SetReleaseAction(() =>
                 {
-                    _poolClientWaiter.Release();
+                    localWaiter.Release();
                     lock (_handleCollectionLock)
                     {
                         _handles.Remove(handle);

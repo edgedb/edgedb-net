@@ -1,5 +1,6 @@
-﻿using EdgeDB.ContractResolvers;
+using EdgeDB.ContractResolvers;
 using EdgeDB.Serializer;
+using EdgeDB.State;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Numerics;
@@ -14,7 +15,16 @@ namespace EdgeDB
         /// <summary>
         ///     Gets or sets the default client pool size.
         /// </summary>
-        public uint DefaultPoolSize { get; set; } = 50;
+        public int DefaultPoolSize
+        {
+            get => _poolSize;
+            set
+            {
+                if (value <= 0)
+                    throw new ArgumentOutOfRangeException($"{nameof(DefaultPoolSize)} must be greater than 0");
+                _poolSize = value;
+            }
+        }
 
         /// <summary>
         ///     Gets or sets the client type the pool will use.
@@ -28,6 +38,8 @@ namespace EdgeDB
         ///     The <see cref="ClientType"/> must be <see cref="EdgeDBClientType.Custom"/> to use this property.
         /// </remarks>
         internal Func<ulong, EdgeDBConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? ClientFactory { get; set; }
+
+        private int _poolSize = 50;
     }
 
     /// <summary>

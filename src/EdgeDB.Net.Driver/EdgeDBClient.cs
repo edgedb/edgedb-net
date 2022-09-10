@@ -1,4 +1,4 @@
-﻿using EdgeDB.DataTypes;
+using EdgeDB.DataTypes;
 using EdgeDB.Models;
 using EdgeDB.State;
 using System.Collections.Concurrent;
@@ -47,13 +47,17 @@ namespace EdgeDB
                 return x.IsConnected;
             });
 
-        /// <summary>
-        ///     Gets the default state that all clients will be initialized with.
-        /// </summary>
-        /// <remarks>
-        ///     You can modify this state by calling any of the <c>With...</c> methods on it.
-        /// </remarks>
-        public Session DefaultSession { get; }
+        public Config Config
+            => _session.Config;
+
+        public string Module
+            => _session.Module;
+
+        public IReadOnlyDictionary<string, string> Aliases
+            => _session.Aliases;
+
+        public IReadOnlyDictionary<string, object?> Globals
+            => _session.Globals;
 
         /// <summary>
         ///     Gets the EdgeDB server config.
@@ -66,15 +70,15 @@ namespace EdgeDB
             => _edgedbConfig.ToImmutableDictionary();
 
         internal EdgeDBClientType ClientType
-            => _config.ClientType;
+            => _poolConfig.ClientType;
 
         private readonly AsyncEvent<Func<IExecuteResult, ValueTask>> _queryExecuted = new();
         private readonly EdgeDBConnection _connection;
-        private readonly EdgeDBClientPoolConfig _config;
+        private readonly EdgeDBClientPoolConfig _poolConfig;
         private ConcurrentStack<BaseEdgeDBClient> _availableClients;
         private readonly ConcurrentDictionary<ulong, BaseEdgeDBClient> _clients; 
-        private Dictionary<string, object?> _edgedbConfig;
-        private uint _poolSize; // TODO: get the recomended pool size from client.
+        private readonly Dictionary<string, object?> _edgedbConfig;
+        private int _poolSize;
 
         private readonly object _clientsLock = new();
         private readonly SemaphoreSlim _clientWaitSemaphore;
@@ -83,6 +87,9 @@ namespace EdgeDB
         private ulong _clientIndex;
         private int _totalClients;
 
+        private readonly Session _session;
+
+        #region ctors
         /// <summary>
         ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
         /// </summary>
@@ -118,17 +125,26 @@ namespace EdgeDB
             if (config.ClientType == EdgeDBClientType.Custom && config.ClientFactory == null)
                 throw new CustomClientException("You must specify a client factory in order to use custom clients");
 
-            DefaultSession = Session.Default;
-
-            _config = config;
+            _poolConfig = config;
             _clients = new();
             _poolSize = config.DefaultPoolSize;
             _connection = connection;
             _edgedbConfig = new Dictionary<string, object?>();
             _availableClients = new();
             _clientWaitSemaphore = new(1, 1);
-            _poolHolder = new((int)_poolSize);
+            _poolHolder = new(_poolSize);
+            _session = Session.Default;
         }
+
+        internal EdgeDBClient(EdgeDBClient other, Session session)
+            : this(other._connection, other._poolConfig)
+        {
+            _session = session;
+            _poolHolder = other._poolHolder;
+            _poolSize = other._poolSize;
+        }
+
+        #endregion
 
         /// <summary>
         ///     Disconnects all clients within the client pool.
@@ -154,6 +170,7 @@ namespace EdgeDB
             }
         }
 
+        #region Execute methods
         /// <inheritdoc/>
         public async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null,
             Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
@@ -186,6 +203,7 @@ namespace EdgeDB
             return await client.QueryRequiredSingleAsync<TResult>(query, args, capabilities, token).ConfigureAwait(false);
         }
 
+        /// <inheritdoc/>
         public async Task<Json> QueryJsonAsync(string query, IDictionary<string, object?>? args = null,
             Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
@@ -193,13 +211,16 @@ namespace EdgeDB
             return await client.QueryJsonAsync(query, args, capabilities, token).ConfigureAwait(false);
         }
 
+        /// <inheritdoc/>
         public async Task<IReadOnlyCollection<Json>> QueryJsonElementsAsync(string query, IDictionary<string, object?>? args = null,
             Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
             await using var client = await GetOrCreateClientAsync(token).ConfigureAwait(false);
             return await client.QueryJsonElementsAsync(query, args, capabilities, token).ConfigureAwait(false);
         }
+        #endregion
 
+        #region Client creation
         /// <summary>
         ///     Gets or creates a client in the client pool used to interact with edgedb.
         /// </summary>
@@ -264,9 +285,9 @@ namespace EdgeDB
                     {
                         token.ThrowIfCancellationRequested();
                         return _availableClients.TryPop(out result);
-                    }, (int)_config.ConnectionTimeout)
+                    }, (int)_poolConfig.ConnectionTimeout)
                         ? result!
-                        : throw new TimeoutException($"Couldn't find a client after {_config.ConnectionTimeout}ms");
+                        : throw new TimeoutException($"Couldn't find a client after {_poolConfig.ConnectionTimeout}ms");
 
                     client.AcceptHolder(await _poolHolder.GetPoolHandleAsync(token).ConfigureAwait(false));
                     return client;
@@ -297,15 +318,24 @@ namespace EdgeDB
 
         private async Task<BaseEdgeDBClient> CreateClientAsync(ulong id, CancellationToken token = default)
         {
-            switch (_config.ClientType)
+            switch (_poolConfig.ClientType)
             {
                 case EdgeDBClientType.Tcp:
                     {
                         var holder = await _poolHolder.GetPoolHandleAsync(token).ConfigureAwait(false);
-                        var client = new EdgeDBTcpClient(_connection, _config, holder, id);
+                        var client = new EdgeDBTcpClient(_connection, _poolConfig, holder, id);
 
                         // clone the default state to prevent modification to our reference to default state
-                        client.WithSession(DefaultSession.Clone());
+                        client.WithSession(_session);
+
+                        async ValueTask OnConnect(BaseEdgeDBClient _)
+                        {
+                            _poolSize = client.SuggestedPoolConcurrency;
+                            await _poolHolder.ResizeAsync(_poolSize).ConfigureAwait(false);
+                            client.OnConnect -= OnConnect;
+                        }
+
+                        client.OnConnect += OnConnect;
 
                         client.OnDisconnect += () =>
                         {
@@ -321,7 +351,7 @@ namespace EdgeDB
                             if(c.IsConnected)
                             {
                                 // reset state
-                                c.WithSession(DefaultSession.Clone());
+                                c.WithSession(Session.Default);
                                 _availableClients.Push(c);
                                 return ValueTask.FromResult(false);
                             }
@@ -381,9 +411,31 @@ namespace EdgeDB
                 //    }
 
                 default:
-                    throw new EdgeDBException($"No client found for type {_config.ClientType}");
+                    throw new EdgeDBException($"No client found for type {_poolConfig.ClientType}");
             }
         }
+        #endregion
+
+        #region State
+        public EdgeDBClient WithConfig(Action<ConfigProperties> configDelegate)
+        {
+            var props = new ConfigProperties();
+            configDelegate(props);
+            return WithConfig(props.ToConfig(Config));
+        }
+
+        public EdgeDBClient WithConfig(Config config)
+            => new(this, _session.WithConfig(config));
+
+        public EdgeDBClient WithGlobals(Dictionary<string, object?> globals)
+            => new(this, _session.WithGlobals(globals));
+
+        public EdgeDBClient WithModule(string module)
+            => new(this, _session.WithModule(module));
+
+        public EdgeDBClient WithModuleAliases(Dictionary<string, string> aliases)
+            => new(this, _session.WithModuleAliases(aliases));
+        #endregion
 
         private void RemoveClient(ulong id)
         {

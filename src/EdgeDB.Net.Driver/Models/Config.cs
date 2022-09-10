@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,7 +12,7 @@ namespace EdgeDB.State
         NeverAllow,
     }
 
-    public sealed class Config
+    public class Config
     {
         public TimeSpan IdleTransationTimeout { get; init; }
         public TimeSpan QueryExecutionTimeout { get; init; }
@@ -65,5 +65,17 @@ namespace EdgeDB.State
         public Optional<bool> AllowDMLInFunctions { get; set; }
         public Optional<DDLPolicy> AllowBareDDL { get; set; }
         public Optional<bool> ApplyAccessPolicies { get; set; }
+
+        internal Config ToConfig(Config old)
+        {
+            return new Config
+            {
+                AllowBareDDL = AllowBareDDL.GetValueOrDefault(old.AllowBareDDL),
+                AllowDMLInFunctions = AllowDMLInFunctions.GetValueOrDefault(old.AllowDMLInFunctions),
+                ApplyAccessPolicies = ApplyAccessPolicies.GetValueOrDefault(old.ApplyAccessPolicies),
+                IdleTransationTimeout = IdleTransationTimeout.GetValueOrDefault(old.IdleTransationTimeout),
+                QueryExecutionTimeout = QueryExecutionTimeout.GetValueOrDefault(old.QueryExecutionTimeout)
+            };
+        }
     }
 }
