@@ -1,4 +1,4 @@
-﻿using EdgeDB.Codecs;
+using EdgeDB.Codecs;
 using EdgeDB.Models;
 using EdgeDB.Utils;
 using Microsoft.Extensions.Logging;
@@ -32,6 +32,7 @@ namespace EdgeDB
         /// </summary>
         /// <param name="connection">The connection details used to connect to the database.</param>
         /// <param name="config">The configuration for this client.</param>
+        /// <param name="clientPoolHolder">The client pool holder for this client.</param>
         /// <param name="clientId">The optional client id of this client. This is used for logging and client pooling.</param>
         public EdgeDBTcpClient(EdgeDBConnection connection, EdgeDBConfig config, IDisposable clientPoolHolder, ulong? clientId = null) 
             : base(connection, config, clientPoolHolder, clientId)

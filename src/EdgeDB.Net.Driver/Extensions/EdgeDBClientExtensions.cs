@@ -1,4 +1,4 @@
-﻿using EdgeDB.Binary;
+using EdgeDB.Binary;
 using EdgeDB.Binary.Packets;
 using EdgeDB.Dumps;
 using EdgeDB.Models;
@@ -112,7 +112,7 @@ namespace EdgeDB
         /// <summary>
         ///     Dumps the current database to a stream.
         /// </summary>
-        /// <param name="client">The client to preform the dump with.</param>
+        /// <param name="pool">The client to preform the dump with.</param>
         /// <param name="token">A token to cancel the operation with.</param>
         /// <returns>A stream containing the entire dumped database.</returns>
         /// <exception cref="EdgeDBErrorException">The server sent an error message during the dumping process.</exception>
@@ -185,7 +185,7 @@ namespace EdgeDB
         /// <summary>
         ///     Restores the database based on a database dump stream.
         /// </summary>
-        /// <param name="client">The TCP client to preform the restore with.</param>
+        /// <param name="pool">The TCP client to preform the restore with.</param>
         /// <param name="stream">The stream containing the database dump.</param>
         /// <param name="token">A token to cancel the operation with.</param>
         /// <returns>The command complete packet received after restoring the database.</returns>

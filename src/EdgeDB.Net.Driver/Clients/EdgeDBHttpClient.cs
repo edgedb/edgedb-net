@@ -1,4 +1,4 @@
-﻿using EdgeDB.DataTypes;
+using EdgeDB.DataTypes;
 using EdgeDB.Models;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -119,6 +119,7 @@ namespace EdgeDB
         /// </summary>
         /// <param name="connection">The connection details used to connect to the database.</param>
         /// <param name="config">The configuration for this client.</param>
+        /// <param name="poolHolder">The client pool holder for this client.</param>
         /// <param name="clientId">The optional client id of this client. This is used for logging and client pooling.</param>
         public EdgeDBHttpClient(EdgeDBConnection connection, EdgeDBConfig config, IDisposable poolHolder, ulong clientId)
             : base(clientId, poolHolder)

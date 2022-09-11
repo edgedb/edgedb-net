@@ -23,7 +23,7 @@ namespace EdgeDB
         /// <summary>
         ///     Gets all clients within the client pool.
         /// </summary>
-        public IReadOnlyCollection<BaseEdgeDBClient> Clients
+        internal IReadOnlyCollection<BaseEdgeDBClient> Clients
             => _clients.Values.ToImmutableArray();
 
         /// <summary>

@@ -1,4 +1,4 @@
-﻿using EdgeDB.DataTypes;
+using EdgeDB.DataTypes;
 using EdgeDB.State;
 
 namespace EdgeDB
@@ -6,7 +6,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents a base edgedb client that can interaction with the EdgeDB database.
     /// </summary>
-    public abstract class BaseEdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
+    internal abstract class BaseEdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     {
         /// <summary>
         ///     Gets whether or not this client has connected to the database and 
@@ -22,7 +22,7 @@ namespace EdgeDB
         /// <summary>
         ///     Gets the clients session.
         /// </summary>
-        protected Session Session { get; set; }
+        internal Session Session { get; set; }
 
         internal event Func<BaseEdgeDBClient, ValueTask<bool>> OnDisposed
         {
@@ -54,6 +54,7 @@ namespace EdgeDB
         ///     Initialized the base client.
         /// </summary>
         /// <param name="clientId">The id of this client.</param>
+        /// <param name="clientPoolHolder">The client pool holder for this client.</param>
         public BaseEdgeDBClient(ulong clientId, IDisposable clientPoolHolder)
         {
             Session = Session.Default;
@@ -69,7 +70,7 @@ namespace EdgeDB
         }
 
         #region State
-        public BaseEdgeDBClient WithSession(Session session)
+        internal BaseEdgeDBClient WithSession(Session session)
         {
             Session = session;
             return this;
