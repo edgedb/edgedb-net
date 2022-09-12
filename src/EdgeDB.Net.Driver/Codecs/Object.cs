@@ -43,10 +43,10 @@ namespace EdgeDB.Codecs
                 value = null;
                 return false;
             }
-
+            
             Reader.Skip(4);
 
-            ref var length = ref Reader.ReadInt32();
+            var length = Reader.ReadInt32();
 
             if (length == -1)
             {

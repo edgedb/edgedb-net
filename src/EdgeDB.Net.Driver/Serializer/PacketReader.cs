@@ -30,13 +30,19 @@ namespace EdgeDB
         }
 
         #region Unmanaged basic reads & endianness correction
-        private ref T UnsafeReadAs<T>()
+        private T UnsafeReadAs<T>()
             where T : unmanaged
         {
-            ref var ret = ref Unsafe.As<byte, T>(ref Data[Position]);
+            var ret = Unsafe.Read<T>(Unsafe.AsPointer(ref Data[Position]));
+
+            if(ret is long l)
+            {
+                var t = BinaryPrimitives.ReverseEndianness(l);
+            }
+
             CorrectEndianness(ref ret);
             Position += sizeof(T);
-            return ref ret;
+            return ret;
         }
 
         private static void CorrectEndianness<T>(ref T value)
@@ -76,21 +82,19 @@ namespace EdgeDB
                         ref var longValue = ref Unsafe.As<T, ulong>(ref value);
 
                         // split to 32 bit for faster thruput
-                        var upper = (uint)(longValue >> 32);
+                        var upper = (uint)longValue;
                         var upperS1 = upper & 0x00FF00FFu;
                         var upperS2 = upper & 0xFF00FF00u;
-                        
-                        var lower = (uint)(longValue << 32);
+                        var lower = (uint)(longValue >> 32);
                         var lowerS1 = lower & 0x00FF00FFu;
                         var lowerS2 = lower & 0xFF00FF00u;
-
-                        longValue =
-                            (
+                        
+                        longValue = (((ulong)(
                                 // rotate right (xx zz)
                                 ((upperS1 >> 8) | (upperS1 << (64 - 8))) +
                                 // rotate left (ww yy)
                                 ((upperS2 << 8) | (upperS2 >> (32 - 8)))
-                            ) + (
+                            )) << 32) + (
                                 // rotate right (xx zz)
                                 ((lowerS1 >> 8) | (lowerS1 << (64 - 8))) +
                                 // rotate left (ww yy)
@@ -107,35 +111,35 @@ namespace EdgeDB
         public bool ReadBoolean()
             => ReadByte() > 0;
 
-        public ref byte ReadByte()
-            => ref UnsafeReadAs<byte>();
+        public byte ReadByte()
+            => UnsafeReadAs<byte>();
 
-        public ref char ReadChar()
-            => ref UnsafeReadAs<char>();
+        public char ReadChar()
+            => UnsafeReadAs<char>();
 
-        public ref double ReadDouble()
-            => ref UnsafeReadAs<double>();
+        public double ReadDouble()
+            => UnsafeReadAs<double>();
 
-        public ref float ReadSingle()
-            => ref UnsafeReadAs<float>();
+        public float ReadSingle()
+            => UnsafeReadAs<float>();
 
-        public ref ulong ReadUInt64()
-            => ref UnsafeReadAs<ulong>();
+        public ulong ReadUInt64()
+            => UnsafeReadAs<ulong>();
 
-        public ref long ReadInt64()
-            => ref UnsafeReadAs<long>();
+        public long ReadInt64()
+            => UnsafeReadAs<long>();
 
-        public ref uint ReadUInt32()
-            => ref UnsafeReadAs<uint>();
+        public uint ReadUInt32()
+            => UnsafeReadAs<uint>();
 
-        public ref int ReadInt32()
-            => ref UnsafeReadAs<int>();
+        public int ReadInt32()
+            => UnsafeReadAs<int>();
 
-        public ref ushort ReadUInt16()
-            => ref UnsafeReadAs<ushort>();
+        public ushort ReadUInt16()
+            => UnsafeReadAs<ushort>();
 
-        public ref short ReadInt16()
-            => ref UnsafeReadAs<short>();
+        public short ReadInt16()
+            => UnsafeReadAs<short>();
         #endregion
 
         public void Skip(int count)
@@ -145,19 +149,19 @@ namespace EdgeDB
 
         public byte[] ConsumeByteArray()
         {
-            return Data.ToArray();
+            return Data[Position..].ToArray();
         }
 
         public string ConsumeString()
         {
-            return Encoding.UTF8.GetString(Data);
+            return Encoding.UTF8.GetString(Data[Position..]);
         }
 
         public Guid ReadGuid()
         {
-            ref var a = ref ReadInt32();
-            ref var b = ref ReadInt16();
-            ref var c = ref ReadInt16();
+            var a = ReadInt32();
+            var b = ReadInt16();
+            var c = ReadInt16();
             
             var buffer = Data[Position..(Position + 8)];
             var guid = new Guid(a, b, c, buffer.ToArray());
@@ -167,7 +171,7 @@ namespace EdgeDB
         
         public KeyValue[] ReadKeyValues()
         {
-            ref var count = ref ReadUInt16();
+            var count = ReadUInt16();
             var arr = new KeyValue[count];
 
             for (ushort i = 0; i != count; i++)
@@ -180,7 +184,7 @@ namespace EdgeDB
 
         public KeyValue ReadKeyValue()
         {
-            ref var code = ref ReadUInt16();
+            var code = ReadUInt16();
             var value = ReadByteArray();
 
             return new KeyValue(code, value);
@@ -196,7 +200,7 @@ namespace EdgeDB
 
         public Annotation[] ReadAnnotations()
         {
-            ref var count = ref ReadUInt16();
+            var count = ReadUInt16();
 
             Annotation[] arr = new Annotation[count];
 
