@@ -267,8 +267,7 @@ namespace EdgeDB.Serializer
         public TypeDeserializerFactory Factory => _factory;
 
         public Dictionary<Type, TypeDeserializeInfo> Children { get; } = new();
-
-        private readonly bool _hasLink;
+        
         private readonly Type _type;
         private TypeDeserializerFactory _factory;
         internal readonly Dictionary<string, PropertyInfo> PropertyMap;
