@@ -35,11 +35,6 @@ namespace EdgeDB
         {
             var ret = Unsafe.Read<T>(Unsafe.AsPointer(ref Data[Position]));
 
-            if(ret is long l)
-            {
-                var t = BinaryPrimitives.ReverseEndianness(l);
-            }
-
             CorrectEndianness(ref ret);
             Position += sizeof(T);
             return ret;
