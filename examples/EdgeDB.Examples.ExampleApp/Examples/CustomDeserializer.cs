@@ -1,4 +1,5 @@
-﻿using EdgeDB.Serializer;
+using EdgeDB.Codecs;
+using EdgeDB.Serializer;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -78,8 +79,10 @@ namespace EdgeDB.ExampleApp.Examples
             });
 
             // Define a custom creator for the 'PersonImmutable' type
-            TypeBuilder.AddOrUpdateTypeFactory<IPerson>(data =>
+            TypeBuilder.AddOrUpdateTypeFactory<IPerson>((ref ObjectEnumerator enumerator) =>
             {
+                var data = (IDictionary<string, object?>)enumerator.ToDynamic()!;
+
                 Logger?.LogInformation("Custom factory was called");
                 return new PersonImpl
                 {

@@ -1,53 +1,113 @@
-﻿using System.Dynamic;
+using EdgeDB.Serializer;
+using System.Collections;
+using System.Diagnostics.CodeAnalysis;
+using System.Dynamic;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace EdgeDB.Codecs
 {
+    public ref struct ObjectEnumerator
+    {
+        private readonly string[] _names;
+        private readonly ICodec[] _codecs;
+        private readonly int _numElements;
+        internal PacketReader Reader;
+        private int _pos;
+
+        internal ObjectEnumerator(ref Span<byte> data, int position, string[] names, ICodec[] codecs)
+        {
+            Reader = new PacketReader(ref data, position);
+            _names = names;
+            _codecs = codecs;
+            _pos = 0;
+
+            _numElements = Reader.ReadInt32();
+        }
+
+        public object? ToDynamic()
+        {
+            var data = new ExpandoObject();
+
+            while (Next(out var name, out var value))
+                data.TryAdd(name, value);
+
+            return data;
+        }
+
+        public bool Next([NotNullWhen(true)]out string? name, out object? value)
+        {
+            if (_pos >= _numElements || Reader.Empty)
+            {
+                name = null;
+                value = null;
+                return false;
+            }
+
+            Reader.Skip(4);
+
+            ref var length = ref Reader.ReadInt32();
+
+            if (length == -1)
+            {
+                name = _names[_pos];
+                value = null;
+                _pos++;
+                return true;
+            }
+
+            Reader.ReadBytes(length, out var buff);
+
+            var innerReader = new PacketReader(ref buff);
+            name = _names[_pos];
+            value = _codecs[_pos].Deserialize(ref innerReader);
+            _pos++;
+            return true;
+        }
+    }
+
     internal class Object : ICodec<object>, IArgumentCodec<object>
     {
         private readonly ICodec[] _innerCodecs;
         private readonly string[] _propertyNames;
-
-        internal Object(ICodec[] innerCodecs, string[] propertyNames)
+        private readonly Type _targetType;
+        private readonly TypeDeserializerFactory _factory;
+        internal Object(Type targetType, ICodec[] innerCodecs, string[] propertyNames)
         {
             _innerCodecs = innerCodecs;
             _propertyNames = propertyNames;
+            _targetType = targetType;
+            try
+            {
+                _factory = TypeBuilder.GetDeserializationFactory(targetType);
+            }
+            catch(Exception) when (_targetType == typeof(object))
+            {
+                _factory = (ref ObjectEnumerator enumerator) => enumerator.ToDynamic();
+            }
         }
 
-        public object? Deserialize(ref PacketReader reader)
+        public unsafe object? Deserialize(ref PacketReader reader)
         {
-            var numElements = reader.ReadInt32();
-
-            if (_innerCodecs.Length != numElements)
+            // reader is being copied if we just pass it as 'ref reader' to our object enumerator,
+            // so we need to pass the underlying data as a reference and wrap a new reader ontop.
+            // This method ensures we're not copying the packet in memory again but the downside is
+            // our 'reader' variable isn't kept up to data with the reader in the object enumerator.
+            var enumerator = new ObjectEnumerator(ref reader.Data, reader.Position, _propertyNames, _innerCodecs);
+            
+            try
             {
-                throw new ArgumentException($"codecs mismatch for tuple: expected {numElements} codecs, got {_innerCodecs.Length} codecs");
+                return _factory(ref enumerator);
             }
-
-            dynamic data = new ExpandoObject();
-            var dataDictionary = (IDictionary<string, object?>)data;
-
-            for (int i = 0; i != numElements; i++)
+            catch(Exception x)
             {
-                // reserved
-                reader.Skip(4);
-                var name = _propertyNames[i];
-                var length = reader.ReadInt32();
-
-                if(length is -1)
-                {
-                    dataDictionary.Add(name, null);
-                    continue;
-                }
-
-                reader.ReadBytes(length, out var innerData);
-
-                object? value;
-
-                value = _innerCodecs[i].Deserialize(innerData);
-
-                dataDictionary.Add(name, value);
+                throw new EdgeDBException($"Failed to deserialize object to {_targetType}", x);
             }
-
-            return data;
+            finally
+            {
+                // set the readers position to the enumerators' readers position.
+                reader.Position = enumerator.Reader.Position;
+            }
         }
 
         public void Serialize(PacketWriter writer, object? value)

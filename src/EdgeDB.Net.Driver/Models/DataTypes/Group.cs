@@ -1,4 +1,5 @@
-﻿using EdgeDB.DataTypes;
+using EdgeDB.Codecs;
+using EdgeDB.DataTypes;
 using EdgeDB.Serializer;
 using System;
 using System.Collections;
@@ -54,7 +55,8 @@ namespace EdgeDB
 
             Grouping = ((string[])groupingValue!).ToImmutableArray();
             Key = BuildKey((IDictionary<string, object?>)keyValue!);
-            Elements = ((IDictionary<string, object?>[])elementsValue!).Select(x => (TElement)TypeBuilder.BuildObject(typeof(TElement), x)!).ToImmutableArray();
+            throw new NotImplementedException("TODO");
+            //Elements = ((IDictionary<string, object?>[])elementsValue!).Select(x => (TElement)TypeBuilder.BuildObject(typeof(TElement), x)!).ToImmutableArray();
         }
 
         private static TKey BuildKey(IDictionary<string, object?> value)

@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -51,8 +51,7 @@ namespace EdgeDB.ExampleApp.Examples
             var selectMovieQuery = "select Movie {title, year, director: {name, email}, actors: {name, email}} filter .title = 'Inception'";
 
             await client.ExecuteAsync(createMovieQuery).ConfigureAwait(false);
-
-
+            
             // select it
             var movie = await client.QueryRequiredSingleAsync<Movie>(selectMovieQuery).ConfigureAwait(false);
 

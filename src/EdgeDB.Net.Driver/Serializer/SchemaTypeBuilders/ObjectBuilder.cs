@@ -1,3 +1,5 @@
+using EdgeDB.Binary.Packets;
+using EdgeDB.Codecs;
 using EdgeDB.DataTypes;
 using EdgeDB.Serializer;
 using System.Collections;
@@ -9,10 +11,12 @@ namespace EdgeDB
 {
     internal class ObjectBuilder
     {
-        public static TType? BuildResult<TType>(object? value)
+        public static TType? BuildResult<TType>(ICodec codec, ref Data data)
         {
-            if (value is IDictionary<string, object?> raw)
-                return (TType?)TypeBuilder.BuildObject(typeof(TType), raw);
+            if (codec is Codecs.Object objectCodec)
+                return (TType?)TypeBuilder.BuildObject(typeof(TType), objectCodec, ref data);
+
+            var value = codec.Deserialize(data.PayloadBuffer);
 
             return (TType?)ConvertTo(typeof(TType), value);
         }
@@ -42,8 +46,8 @@ namespace EdgeDB
             }
             
             // check for edgeql types
-            if (TypeBuilder.IsValidObjectType(type) && value is IDictionary<string, object?> dict)
-                return TypeBuilder.BuildObject(type, dict);
+            //if (TypeBuilder.IsValidObjectType(type) && value is IDictionary<string, object?> dict)
+            //    return TypeBuilder.BuildObject(type, dict);
 
             // check for tuple
             if(value is TransientTuple tuple && type.GetInterface("ITuple") != null)
@@ -86,12 +90,14 @@ namespace EdgeDB
 
             foreach (var val in (IEnumerable)value)
             {
-                if (val is IDictionary<string, object?> raw)
-                {
-                    converted.Add(strongInnerType is not null ? TypeBuilder.BuildObject(strongInnerType, raw) : val);
-                }
-                else
-                    converted.Add(strongInnerType is not null ? ConvertTo(strongInnerType, val) : val);
+                converted.Add(strongInnerType is not null ? ConvertTo(strongInnerType, val) : val);
+                
+                //if (val is IDictionary<string, object?> raw)
+                //{
+                //    converted.Add(strongInnerType is not null ? TypeBuilder.BuildObject(strongInnerType, raw) : val);
+                //}
+                //else
+                    
 
             }
 

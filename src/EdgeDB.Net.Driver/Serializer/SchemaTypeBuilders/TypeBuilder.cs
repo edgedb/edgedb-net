@@ -1,3 +1,5 @@
+using EdgeDB.Binary.Packets;
+using EdgeDB.Codecs;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
@@ -41,14 +43,16 @@ namespace EdgeDB.Serializer
         public static void AddOrUpdateTypeBuilder<TType>(
             Action<TType, IDictionary<string, object?>> builder)
         {
-            object Factory(IDictionary<string, object?> raw)
+            object Factory(ref ObjectEnumerator enumerator)
             {
                 var instance = Activator.CreateInstance<TType>();
 
                 if (instance is null)
                     throw new TargetInvocationException($"Cannot create an instance of {typeof(TType).Name}", null);
 
-                builder(instance, raw);
+                var dynamicData = enumerator.ToDynamic();
+
+                builder(instance, (IDictionary<string, object?>)dynamicData!);
 
                 return instance;
             }
@@ -70,16 +74,11 @@ namespace EdgeDB.Serializer
         public static void AddOrUpdateTypeFactory<TType>(
             TypeDeserializerFactory factory)
         {
-            object Factory(IDictionary<string, object?> data) => factory(data) ??
-                                                                 throw new TargetInvocationException(
-                                                                     $"Cannot create an instance of {typeof(TType).Name}",
-                                                                     null);
-
             if(_typeInfo.TryGetValue(typeof(TType), out var info))
-                info.UpdateFactory(Factory);
+                info.UpdateFactory(factory);
             else
             {
-                _typeInfo.TryAdd(typeof(TType), new(typeof(TType), Factory));
+                _typeInfo.TryAdd(typeof(TType), new(typeof(TType), factory));
                 ScanAssemblyForTypes(typeof(TType).Assembly);
             }
         }
@@ -101,7 +100,7 @@ namespace EdgeDB.Serializer
         }
 
         #region Type helpers
-        internal static object? BuildObject(Type type, IDictionary<string, object?> raw)
+        internal static object? BuildObject(Type type, Codecs.Object codec, ref Data data)
         {
             if (!IsValidObjectType(type))
                 throw new InvalidOperationException($"Cannot deserialize data to {type.Name}");
@@ -112,7 +111,36 @@ namespace EdgeDB.Serializer
                 ScanAssemblyForTypes(type.Assembly);
             }
 
-            return info.Deserialize(raw);
+            var reader = new PacketReader(data.PayloadBuffer);
+            return codec.Deserialize(ref reader);
+        }
+
+        internal static TypeDeserializerFactory GetDeserializationFactory(Type type)
+        {
+            if (!IsValidObjectType(type))
+                throw new InvalidOperationException($"Cannot deserialize data to {type.Name}");
+
+            if (!_typeInfo.TryGetValue(type, out var info))
+            {
+                info = _typeInfo.AddOrUpdate(type, new TypeDeserializeInfo(type), (_, v) => v);
+                ScanAssemblyForTypes(type.Assembly);
+            }
+
+            return info.Factory;
+        }
+
+        internal static object? BuildObject(Type type, ref ObjectEnumerator enumerator)
+        {
+            if (!IsValidObjectType(type))
+                throw new InvalidOperationException($"Cannot deserialize data to {type.Name}");
+
+            if (!_typeInfo.TryGetValue(type, out TypeDeserializeInfo? info))
+            {
+                info = _typeInfo.AddOrUpdate(type, new TypeDeserializeInfo(type), (_, v) => v);
+                ScanAssemblyForTypes(type.Assembly);
+            }
+            
+            return info.Deserialize(ref enumerator);
         }
 
         internal static bool IsValidObjectType(Type type)
@@ -172,12 +200,12 @@ namespace EdgeDB.Serializer
             return method is not null;
         }
 
-        internal static IEnumerable<PropertyInfo> GetPropertyMap(this Type objectType)
+        internal static Dictionary<string, PropertyInfo> GetPropertyMap(this Type objectType)
         {
             return objectType.GetProperties().Where(x =>
                 x.CanWrite &&
                 x.GetCustomAttribute<EdgeDBIgnoreAttribute>() == null &&
-                x.SetMethod != null);
+                x.SetMethod != null).ToDictionary(x => NamingStrategy.GetName(x), x => x);
         }
         #endregion
 
@@ -225,7 +253,7 @@ namespace EdgeDB.Serializer
         #endregion
     }
 
-    public delegate object TypeDeserializerFactory(IDictionary<string, object?> args);
+    public delegate object? TypeDeserializerFactory(ref ObjectEnumerator enumerator);
 
     internal class TypeDeserializeInfo
     {
@@ -234,15 +262,19 @@ namespace EdgeDB.Serializer
         public bool IsAbtractType
             => _type.IsAbstract || _type.IsInterface;
 
+        public TypeDeserializerFactory Factory => _factory;
+
         public Dictionary<Type, TypeDeserializeInfo> Children { get; } = new();
 
         private readonly Type _type;
         private TypeDeserializerFactory _factory;
+        private readonly Dictionary<string, PropertyInfo> _propertyMap;
         
 
         public TypeDeserializeInfo(Type type)
         {
             _type = type;
+            _propertyMap = type.GetPropertyMap();
             _factory = CreateDefaultFactory();
             EdgeDBTypeName = _type.GetCustomAttribute<EdgeDBTypeAttribute>()?.Name ?? _type.Name;
         }
@@ -251,6 +283,7 @@ namespace EdgeDB.Serializer
         {
             _type = type;
             _factory = factory;
+            _propertyMap = type.GetPropertyMap();
             EdgeDBTypeName = _type.GetCustomAttribute<EdgeDBTypeAttribute>()?.Name ?? _type.Name;
         }
 
@@ -271,7 +304,7 @@ namespace EdgeDB.Serializer
         private TypeDeserializerFactory CreateDefaultFactory()
         {
             if (_type == typeof(object))
-                return (data) => data;
+                return (ref ObjectEnumerator enumerator) => enumerator.ToDynamic();
 
             // if type is anon type or record, or has a constructor with all properties
             if (_type.IsRecord() ||
@@ -279,8 +312,10 @@ namespace EdgeDB.Serializer
                 _type.GetConstructor(_type.GetProperties().Select(x => x.PropertyType).ToArray()) != null)
             {
                 var props = _type.GetProperties();
-                return (data) =>
+                return (ref ObjectEnumerator enumerator) =>
                 {
+                    var data = (IDictionary<string, object?>)enumerator.ToDynamic()!;
+
                     object?[] ctorParams = new object[props.Length];
                     for (int i = 0; i != ctorParams.Length; i++)
                     {
@@ -307,14 +342,14 @@ namespace EdgeDB.Serializer
             // if type has custom method builder
             if (_type.TryGetCustomBuilder(out var methodInfo))
             {
-                return (data) =>
+                return (ref ObjectEnumerator enumerator) =>
                 {
                     var instance = Activator.CreateInstance(_type);
 
                     if (instance is null)
                         throw new TargetInvocationException($"Cannot create an instance of {_type.Name}", null);
 
-                    methodInfo!.Invoke(instance, new object[] { data });
+                    methodInfo!.Invoke(instance, new object?[] { enumerator.ToDynamic() });
 
                     return instance;
                 };
@@ -324,16 +359,19 @@ namespace EdgeDB.Serializer
             var constructor = _type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,null, new Type[] { typeof(IDictionary<string, object?>) }, null);
                 
             if (constructor?.GetCustomAttribute<EdgeDBDeserializerAttribute>() is not null)
-                return (data) => constructor.Invoke(new object?[] { data }) ??
+                return (ref ObjectEnumerator enumerator) => constructor.Invoke(new object?[] { enumerator.ToDynamic() }) ??
                                  throw new TargetInvocationException($"Cannot create an instance of {_type.Name}", null);
 
             // is it abstract
             if (IsAbtractType)
             {
-                return data =>
+                return (ref ObjectEnumerator enumerator) =>
                 {
                     // introspect the type name
-                    var typeName = (string)data["__tname__"]!;
+                    if (!enumerator.Next(out var name, out var value) || name != "__tname__")
+                        throw new ConfigurationException("Type introspection is required for abstract types, this is a bug.");
+
+                    var typeName = (string)value!;
                     
                     // remove the modulename
                     typeName = typeName.Split("::").Last();
@@ -346,43 +384,34 @@ namespace EdgeDB.Serializer
                     }
 
                     // deserialize as child
-                    return info.Deserialize(data);
+                    return info.Deserialize(ref enumerator);
                 };
             }
 
             // fallback to reflection factory
             var propertyMap = _type.GetPropertyMap();
 
-            return data =>
+            return (ref ObjectEnumerator enumerator) =>
             {
                 var instance = Activator.CreateInstance(_type, true);
 
                 if (instance is null)
                     throw new TargetInvocationException($"Cannot create an instance of {_type.Name}", null);
 
-                foreach (var prop in propertyMap)
+                while(enumerator.Next(out var name, out var value))
                 {
-                    var foundProperty = data.TryGetValue(TypeBuilder.NamingStrategy.GetName(prop), out object? value) || data.TryGetValue(TypeBuilder.AttributeNamingStrategy.GetName(prop), out value);
-
-                    if (!foundProperty || value is null)
+                    if (!_propertyMap.TryGetValue(name, out var prop))
                         continue;
-                    
-                    try
-                    {
-                        prop.SetValue(instance, ObjectBuilder.ConvertTo(prop.PropertyType, value));
-                    }
-                    catch(Exception x)
-                    {
-                        throw new NoTypeConverterException($"Cannot assign property {prop.Name} with type {value?.GetType().Name ?? "unknown"}", x);
-                    }
+
+                    prop.SetValue(instance, ObjectBuilder.ConvertTo(prop.PropertyType, value));
                 }
 
                 return instance;
             };
         }
 
-        public object Deserialize(IDictionary<string, object?> args)
-            => _factory(args);
+        public object? Deserialize(ref ObjectEnumerator enumerator)
+            => _factory(ref enumerator);
 
         public static implicit operator TypeDeserializerFactory(TypeDeserializeInfo info) => info._factory;
     }

@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 
 namespace EdgeDB.Binary.Packets
 {
@@ -18,6 +18,15 @@ namespace EdgeDB.Binary.Packets
             => PayloadData.ToImmutableArray();
 
         internal readonly byte[] PayloadBuffer;
+
+        internal Data(byte[] buff)
+        {
+            PayloadBuffer = buff;
+        }
+        public Data()
+        {
+            PayloadBuffer = new byte[] { };
+        }
 
         internal Data(ref PacketReader reader)
         {

@@ -1,4 +1,4 @@
-﻿using EdgeDB.Binary;
+using EdgeDB.Binary;
 using EdgeDB.Codecs;
 using System;
 using System.Collections.Concurrent;
@@ -58,13 +58,13 @@ namespace EdgeDB
         public static ICodec? GetCodec(Guid id)
             => _codecCache.TryGetValue(id, out var codec) ? codec : GetScalarCodec(id);
 
-        public static ICodec BuildCodec(Guid id, byte[] buff)
+        public static ICodec BuildCodec<TResult>(Guid id, byte[] buff)
         {
             var reader = new PacketReader(buff.AsSpan());
-            return BuildCodec(id, ref reader);
+            return BuildCodec<TResult>(id, ref reader);
         }
 
-        public static ICodec BuildCodec(Guid id, ref PacketReader reader)
+        public static ICodec BuildCodec<TResult>(Guid id, ref PacketReader reader)
         {
             if (id == NullCodec)
                 return new NullCodec();
@@ -93,7 +93,7 @@ namespace EdgeDB
                         case ObjectShapeDescriptor shapeDescriptor:
                             {
                                 var codecArguments = shapeDescriptor.Shapes.Select(x => (x.Name, codecs[x.TypePos]));
-                                codec = new Codecs.Object(codecArguments.Select(x => x.Item2).ToArray(), codecArguments.Select(x => x.Name).ToArray());
+                                codec = new Codecs.Object(typeof(TResult), codecArguments.Select(x => x.Item2).ToArray(), codecArguments.Select(x => x.Name).ToArray());
                                 codecs.Add(codec);
                             }
                             break;
@@ -107,7 +107,7 @@ namespace EdgeDB
                             {
                                 // TODO: better datatype than an object?
                                 var codecArguments = namedTuple.Elements.Select(x => (x.Name, codecs[x.TypePos]));
-                                codec = new Codecs.Object(codecArguments.Select(x => x.Item2).ToArray(), codecArguments.Select(x => x.Name).ToArray());
+                                codec = new Codecs.Object(typeof(TResult), codecArguments.Select(x => x.Item2).ToArray(), codecArguments.Select(x => x.Name).ToArray());
                                 codecs.Add(codec);
                             }
                             break;

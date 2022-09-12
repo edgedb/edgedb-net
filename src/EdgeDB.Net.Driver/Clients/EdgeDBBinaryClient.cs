@@ -146,11 +146,11 @@ namespace EdgeDB
         internal readonly struct RawExecuteResult
         {
             public readonly ICodec Deserializer;
-            public readonly List<Data> Data;
+            public readonly Data[] Data;
 
             public RawExecuteResult(ICodec codec, List<Data> data)
             {
-                Data = data;
+                Data = data.ToArray();
                 Deserializer = codec;
             }
         }
@@ -159,7 +159,7 @@ namespace EdgeDB
         /// <exception cref="EdgeDBErrorException">The client received an <see cref="ErrorResponse"/>.</exception>
         /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
-        internal async Task<RawExecuteResult> ExecuteInternalAsync(string query, IDictionary<string, object?>? args = null, Cardinality? cardinality = null,
+        internal async Task<RawExecuteResult> ExecuteInternalAsync<TResult>(string query, IDictionary<string, object?>? args = null, Cardinality? cardinality = null,
             Capabilities? capabilities = Capabilities.Modifications, IOFormat format = IOFormat.Binary, bool isRetry = false, 
             CancellationToken token = default)
         {
@@ -199,17 +199,17 @@ namespace EdgeDB
                             case CommandDataDescription descriptor:
                                 {
                                     outCodecInfo = new(descriptor.OutputTypeDescriptorId,
-                                        CodecBuilder.BuildCodec(descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer));
+                                        CodecBuilder.BuildCodec<TResult>(descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer));
 
                                     inCodecInfo = new(descriptor.InputTypeDescriptorId,
-                                        CodecBuilder.BuildCodec(descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer));
+                                        CodecBuilder.BuildCodec<TResult>(descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer));
 
                                     CodecBuilder.UpdateKeyMap(cacheKey, descriptor.InputTypeDescriptorId, descriptor.OutputTypeDescriptorId);
                                 }
                                 break;
                             case StateDataDescription stateDescriptor:
                                 {
-                                    _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                                    _stateCodec = CodecBuilder.BuildCodec<TResult>(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
                                     _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                                 }
                                 break;
@@ -303,14 +303,14 @@ namespace EdgeDB
                 _semaphore.Release();
                 released = true;
 
-                return await ExecuteInternalAsync(query, args, cardinality, capabilities, format, true, token).ConfigureAwait(false);
+                return await ExecuteInternalAsync<TResult>(query, args, cardinality, capabilities, format, true, token).ConfigureAwait(false);
             }
             catch (EdgeDBException x) when (x.ShouldRetry && !isRetry)
             {
                 _semaphore.Release();
                 released = true;
 
-                return await ExecuteInternalAsync(query, args, cardinality, capabilities, format, true, token).ConfigureAwait(false);
+                return await ExecuteInternalAsync<TResult>(query, args, cardinality, capabilities, format, true, token).ConfigureAwait(false);
             }
             catch (Exception x)
             {
@@ -338,7 +338,7 @@ namespace EdgeDB
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         public override async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null,
             Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
-            => await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, token: token).ConfigureAwait(false);
+            => await ExecuteInternalAsync<object>(query, args, Cardinality.Many, capabilities, token: token).ConfigureAwait(false);
 
         /// <inheritdoc/>
         /// <exception cref="EdgeDBException">A general error occored.</exception>
@@ -351,16 +351,16 @@ namespace EdgeDB
             Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
             where TResult : default
         {
-            var result = await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, token: token);
+            var result = await ExecuteInternalAsync<TResult>(query, args, Cardinality.Many, capabilities, token: token);
 
             List<TResult?> returnResults = new();
 
-            foreach (var item in result.Data)
+            for(int i = 0; i != result.Data.Length; i++)
             {
-                var obj = ObjectBuilder.BuildResult<TResult>(result.Deserializer.Deserialize(item.PayloadBuffer));
+                var obj = ObjectBuilder.BuildResult<TResult>(result.Deserializer, ref result.Data[i]);
                 returnResults.Add(obj);
             }
-
+            
             return returnResults.ToImmutableArray();
         }
 
@@ -376,16 +376,16 @@ namespace EdgeDB
             Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
             where TResult : default
         {
-            var result = await ExecuteInternalAsync(query, args, Cardinality.AtMostOne, capabilities, token: token);
+            var result = await ExecuteInternalAsync<TResult>(query, args, Cardinality.AtMostOne, capabilities, token: token);
 
-            if (result.Data.Count > 1)
+            if (result.Data.Length > 1)
                 throw new ResultCardinalityMismatchException(Cardinality.AtMostOne, Cardinality.Many);
 
             var queryResult = result.Data.FirstOrDefault();
 
             return queryResult.PayloadBuffer is null
                 ? default
-                : ObjectBuilder.BuildResult<TResult>(result.Deserializer.Deserialize(queryResult.PayloadBuffer));
+                : ObjectBuilder.BuildResult<TResult>(result.Deserializer, ref result.Data[0]);
         }
 
         /// <inheritdoc/>
@@ -400,16 +400,16 @@ namespace EdgeDB
         public override async Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null,
             Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
-            var result = await ExecuteInternalAsync(query, args, Cardinality.AtMostOne, capabilities, token: token);
+            var result = await ExecuteInternalAsync<TResult>(query, args, Cardinality.AtMostOne, capabilities, token: token);
 
-            if (result.Data.Count is > 1 or 0)
-                throw new ResultCardinalityMismatchException(Cardinality.One, result.Data.Count > 1 ? Cardinality.Many : Cardinality.AtMostOne);
+            if (result.Data.Length is > 1 or 0)
+                throw new ResultCardinalityMismatchException(Cardinality.One, result.Data.Length > 1 ? Cardinality.Many : Cardinality.AtMostOne);
 
             var queryResult = result.Data.FirstOrDefault();
-
+            
             return queryResult.PayloadBuffer is null
                 ? throw new MissingRequiredException()
-                : ObjectBuilder.BuildResult<TResult>(result.Deserializer.Deserialize(queryResult.PayloadBuffer))!;
+                : ObjectBuilder.BuildResult<TResult>(result.Deserializer, ref result.Data[0])!;
         }
 
         /// <inheritdoc/>
@@ -420,9 +420,9 @@ namespace EdgeDB
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         public override async Task<DataTypes.Json> QueryJsonAsync(string query, IDictionary<string, object?>? args = null, Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
-            var result = await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, IOFormat.Json, token: token);
+            var result = await ExecuteInternalAsync<object>(query, args, Cardinality.Many, capabilities, IOFormat.Json, token: token);
             
-            return result.Data.Count == 1
+            return result.Data.Length == 1
                 ? (string)result.Deserializer.Deserialize(result.Data[0].PayloadBuffer)!
                 : "[]";
         }
@@ -434,7 +434,7 @@ namespace EdgeDB
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         public override async Task<IReadOnlyCollection<DataTypes.Json>> QueryJsonElementsAsync(string query, IDictionary<string, object?>? args = null, Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
-            var result = await ExecuteInternalAsync(query, args, Cardinality.AtMostOne, capabilities, IOFormat.Json, token: token);
+            var result = await ExecuteInternalAsync<object>(query, args, Cardinality.AtMostOne, capabilities, IOFormat.Json, token: token);
 
             return result.Data.Any()
                 ? result.Data.Select(x => new DataTypes.Json((string?)result.Deserializer.Deserialize(x.PayloadBuffer))).ToImmutableArray()
@@ -471,7 +471,7 @@ namespace EdgeDB
                     ServerKey = keyData.KeyBuffer;
                     break;
                 case StateDataDescription stateDescriptor:
-                    _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                    _stateCodec = CodecBuilder.BuildCodec<object>(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
                     _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                     break;
                 case ParameterStatus parameterStatus:
@@ -628,7 +628,7 @@ namespace EdgeDB
                         if (codec is null)
                         {
                             var innerReader = new PacketReader(ref typeDesc);
-                            codec = CodecBuilder.BuildCodec(descriptorId, ref innerReader);
+                            codec = CodecBuilder.BuildCodec<object>(descriptorId, ref innerReader);
 
                             if (codec is null)
                                 throw new MissingCodecException("Failed to build codec for system_config");
@@ -863,16 +863,16 @@ namespace EdgeDB
 
             var deferMode = $"{(!deferrable ? "not " : "")}deferrable";
 
-            await ExecuteInternalAsync($"start transaction isolation {isolationMode}, {readMode}, {deferMode}", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
+            await ExecuteInternalAsync<object>($"start transaction isolation {isolationMode}, {readMode}, {deferMode}", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         async Task ITransactibleClient.CommitAsync(CancellationToken token)
-            => await ExecuteInternalAsync($"commit", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
+            => await ExecuteInternalAsync<object>($"commit", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
 
         /// <inheritdoc/>
         async Task ITransactibleClient.RollbackAsync(CancellationToken token)
-            => await ExecuteInternalAsync($"rollback", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
+            => await ExecuteInternalAsync<object>($"rollback", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
 
         /// <inheritdoc/>
         TransactionState ITransactibleClient.TransactionState => TransactionState;

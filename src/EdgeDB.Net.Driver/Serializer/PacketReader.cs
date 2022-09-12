@@ -1,160 +1,206 @@
-﻿using EdgeDB.Binary;
+using EdgeDB.Binary;
 using EdgeDB.Models;
 using EdgeDB.Utils;
 using System.Buffers.Binary;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace EdgeDB
 {
-    internal ref struct PacketReader
+    internal unsafe ref struct PacketReader
     {
         public bool Empty
-            => _span.IsEmpty;
-
-        private Span<byte> _span;
-
-        public PacketReader(Span<byte> bytes)
+            => Position >= Data.Length || Data.IsEmpty;
+        
+        internal Span<byte> Data;
+        internal int Position;
+        
+        public PacketReader(Span<byte> bytes, int position = 0)
         {
-            _span = bytes;
+            Data = bytes;
+            Position = position;
         }
 
-        public PacketReader(ref Span<byte> bytes)
+        public PacketReader(ref Span<byte> bytes, int position = 0)
         {
-            _span = bytes;
+            Data = bytes;
+            Position = position;
         }
 
-        public void Skip(int count)
+        #region Unmanaged basic reads & endianness correction
+        private ref T UnsafeReadAs<T>()
+            where T : unmanaged
         {
-            _span = _span[count..];
+            ref var ret = ref Unsafe.As<byte, T>(ref Data[Position]);
+            CorrectEndianness(ref ret);
+            Position += sizeof(T);
+            return ref ret;
         }
 
-        public byte[] ConsumeByteArray()
+        private static void CorrectEndianness<T>(ref T value)
+            where T : unmanaged
         {
-            return _span.ToArray();
-        }
+            // return if numeric types are already in big endianness
+            if (!BitConverter.IsLittleEndian)
+                return;  
 
-        public string ConsumeString()
-        {
-            return Encoding.UTF8.GetString(_span);
-        }
+            var size = sizeof(T);
 
-        public Guid ReadGuid()
-        {
-            var a = ReadInt32();
-            var b = ReadInt16();
-            var c = ReadInt16();
+            switch (size)
+            {
+                case 2:
+                    {
+                        ref var shortValue = ref Unsafe.As<T, ushort>(ref value);
 
-            Span<byte> buffer = _span[0..8];
-            _span = _span[8..];
-            return new Guid(a, b, c, buffer.ToArray());
+                        shortValue = (ushort)((shortValue >> 8) + (shortValue << 8));
+                    }
+                    break;
+
+                case 4:
+                    {
+                        ref var intValue = ref Unsafe.As<T, uint>(ref value);
+                        
+                        var s1 = intValue & 0x00FF00FFu;
+                        var s2 = intValue & 0xFF00FF00u;
+                        intValue =
+                            // rotate right (xx zz)
+                            ((s1 >> 8) | (s1 << (64 - 8))) +
+                            // rotate left (ww yy)
+                            ((s2 << 8) | (s2 >> (32 - 8)));
+                    }
+                    break;
+                case 8:
+                    {
+                        ref var longValue = ref Unsafe.As<T, ulong>(ref value);
+
+                        // split to 32 bit for faster thruput
+                        var upper = (uint)(longValue >> 32);
+                        var upperS1 = upper & 0x00FF00FFu;
+                        var upperS2 = upper & 0xFF00FF00u;
+                        
+                        var lower = (uint)(longValue << 32);
+                        var lowerS1 = lower & 0x00FF00FFu;
+                        var lowerS2 = lower & 0xFF00FF00u;
+
+                        longValue =
+                            (
+                                // rotate right (xx zz)
+                                ((upperS1 >> 8) | (upperS1 << (64 - 8))) +
+                                // rotate left (ww yy)
+                                ((upperS2 << 8) | (upperS2 >> (32 - 8)))
+                            ) + (
+                                // rotate right (xx zz)
+                                ((lowerS1 >> 8) | (lowerS1 << (64 - 8))) +
+                                // rotate left (ww yy)
+                                ((lowerS2 << 8) | (lowerS2 >> (32 - 8)))
+                            );
+                    }
+                    break;
+
+                default:
+                    return;
+            }
         }
 
         public bool ReadBoolean()
             => ReadByte() > 0;
 
-        public byte ReadByte()
+        public ref byte ReadByte()
+            => ref UnsafeReadAs<byte>();
+
+        public ref char ReadChar()
+            => ref UnsafeReadAs<char>();
+
+        public ref double ReadDouble()
+            => ref UnsafeReadAs<double>();
+
+        public ref float ReadSingle()
+            => ref UnsafeReadAs<float>();
+
+        public ref ulong ReadUInt64()
+            => ref UnsafeReadAs<ulong>();
+
+        public ref long ReadInt64()
+            => ref UnsafeReadAs<long>();
+
+        public ref uint ReadUInt32()
+            => ref UnsafeReadAs<uint>();
+
+        public ref int ReadInt32()
+            => ref UnsafeReadAs<int>();
+
+        public ref ushort ReadUInt16()
+            => ref UnsafeReadAs<ushort>();
+
+        public ref short ReadInt16()
+            => ref UnsafeReadAs<short>();
+        #endregion
+
+        public void Skip(int count)
         {
-            var val = _span[0];
-            _span = _span[1..];
-            return val;
+            Position += count;
         }
 
-        public char ReadChar()
-            => (char)ReadByte();
-
-        public double ReadDouble()
+        public byte[] ConsumeByteArray()
         {
-            var value = BinaryPrimitives.ReadDoubleBigEndian(_span);
-            _span = _span[sizeof(double)..];
-            return value;
+            return Data.ToArray();
         }
 
+        public string ConsumeString()
+        {
+            return Encoding.UTF8.GetString(Data);
+        }
+
+        public Guid ReadGuid()
+        {
+            ref var a = ref ReadInt32();
+            ref var b = ref ReadInt16();
+            ref var c = ref ReadInt16();
+            
+            var buffer = Data[Position..(Position + 8)];
+            var guid = new Guid(a, b, c, buffer.ToArray());
+            Position += 8;
+            return guid;
+        }
+        
         public KeyValue[] ReadKeyValues()
         {
-            var length = ReadUInt16();
+            ref var count = ref ReadUInt16();
+            var arr = new KeyValue[count];
 
-            KeyValue[] arr = new KeyValue[length];
-
-            for (ushort i = 0; i != length; i++)
+            for (ushort i = 0; i != count; i++)
             {
                 arr[i] = ReadKeyValue();
             }
-
+            
             return arr;
         }
 
         public KeyValue ReadKeyValue()
         {
-            var code = ReadUInt16();
+            ref var code = ref ReadUInt16();
             var value = ReadByteArray();
 
             return new KeyValue(code, value);
         }
 
-        public float ReadSingle()
-        {
-            var value = BinaryPrimitives.ReadSingleBigEndian(_span);
-            _span = _span[sizeof(float)..];
-            return value;
-        }
-
-        public ulong ReadUInt64()
-        {
-            var value = BinaryPrimitives.ReadUInt64BigEndian(_span);
-            _span = _span[sizeof(ulong)..];
-            return value;
-        }
-
-        public long ReadInt64()
-        {
-            var value = BinaryPrimitives.ReadInt64BigEndian(_span);
-            _span = _span[sizeof(long)..];
-            return value;
-        }
-
-        public uint ReadUInt32()
-        {
-            var value = BinaryPrimitives.ReadUInt32BigEndian(_span);
-            _span = _span[sizeof(uint)..];
-            return value;
-        }
-
-        public int ReadInt32()
-        {
-            var value = BinaryPrimitives.ReadInt32BigEndian(_span);
-            _span = _span[sizeof(int)..];
-            return value;
-        }
-
-        public ushort ReadUInt16()
-        {
-            var value = BinaryPrimitives.ReadUInt16BigEndian(_span);
-            _span = _span[sizeof(ushort)..];
-            return value;
-        }
-
-        public short ReadInt16()
-        {
-            var value = BinaryPrimitives.ReadInt16BigEndian(_span);
-            _span = _span[sizeof(short)..];
-            return value;
-        }
-
         public string ReadString()
         {
-            var length = (int)ReadUInt32();
-            var str = Encoding.UTF8.GetString(_span[0..length]);
-            _span = _span[length..];
+            var strLength = (int)ReadUInt32();
+            var str = Encoding.UTF8.GetString(Data[Position..(strLength + Position)]);
+            Position += strLength;
             return str;
         }
 
         public Annotation[] ReadAnnotations()
         {
-            var length = ReadUInt16();
+            ref var count = ref ReadUInt16();
 
-            Annotation[] arr = new Annotation[length];
+            Annotation[] arr = new Annotation[count];
 
-            for (ushort i = 0; i != length; i++)
+            for (ushort i = 0; i != count; i++)
             {
                 arr[i] = ReadAnnotation();
             }
@@ -173,20 +219,20 @@ namespace EdgeDB
         public byte[] ReadByteArray()
         {
             var length = (int)ReadUInt32();
-            var buffer = _span[0..length];
-            _span = _span[length..];
+            var buffer = Data[Position..(Position + length)];
+            Position += length;
             return buffer.ToArray();
         }
 
         public void ReadBytes(int length, out Span<byte> buff)
         {
-            buff = _span[0..length];
-            _span = _span[length..];
+            buff = Data[Position..(Position + length)];
+            Position += length;
         }
 
         public void Dispose()
         {
-            _span.Clear();
+            Data.Clear();
         }
     }
 }
