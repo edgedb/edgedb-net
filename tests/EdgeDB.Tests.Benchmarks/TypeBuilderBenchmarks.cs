@@ -27,7 +27,7 @@ namespace EdgeDB.Tests.Benchmarks
         static TypeBuilderBenchmarks()
         {
 
-            Codec = new Codecs.Object(typeof(Person), new ICodec[]
+            Codec = new Codecs.Object(new ICodec[]
             {
                 new Codecs.Text(),
                 new Codecs.UUID(),
@@ -42,6 +42,7 @@ namespace EdgeDB.Tests.Benchmarks
                 "name",
                 "email"
             });
+            Codec.Initialize(typeof(Person));
         }
         [Benchmark]
         public Person? DeserializePersonNew()

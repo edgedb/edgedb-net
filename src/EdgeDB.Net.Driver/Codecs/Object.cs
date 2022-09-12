@@ -70,18 +70,40 @@ namespace EdgeDB.Codecs
     {
         private readonly ICodec[] _innerCodecs;
         private readonly string[] _propertyNames;
-        private readonly Type _targetType;
-        private readonly TypeDeserializerFactory _factory;
-        internal Object(Type targetType, ICodec[] innerCodecs, string[] propertyNames)
+        private TypeDeserializerFactory? _factory;
+        private Type? _targetType;
+        private bool _initialized;
+        
+        internal Object(ICodec[] innerCodecs, string[] propertyNames)
         {
             _innerCodecs = innerCodecs;
             _propertyNames = propertyNames;
-            _targetType = targetType;
+        }
+
+        public void Initialize(Type target)
+        {
+            _targetType = target;
+
             try
             {
-                _factory = TypeBuilder.GetDeserializationFactory(targetType);
+                _factory = TypeBuilder.GetDeserializationFactory(target);
+                var deserializerInfo = TypeBuilder.TypeInfo[target];
+                
+                // initialize any other object codecs that are properties
+                for (int i = 0; i != _innerCodecs.Length; i++)
+                {
+                    if (_innerCodecs[i] is Object objCodec)
+                    {
+                        if (!deserializerInfo.PropertyMap.TryGetValue(_propertyNames[i], out var propInfo))
+                            throw new EdgeDBException($"Property {_propertyNames[i]} not found on type {target.Name}");
+
+                        objCodec.Initialize(propInfo.PropertyType);
+                    }
+                }
+
+                _initialized = true;
             }
-            catch(Exception) when (_targetType == typeof(object))
+            catch (Exception) when (_targetType == typeof(object))
             {
                 _factory = (ref ObjectEnumerator enumerator) => enumerator.ToDynamic();
             }
@@ -89,6 +111,9 @@ namespace EdgeDB.Codecs
 
         public unsafe object? Deserialize(ref PacketReader reader)
         {
+            if (!_initialized || _factory is null || _targetType is null)
+                Initialize(typeof(object));
+
             // reader is being copied if we just pass it as 'ref reader' to our object enumerator,
             // so we need to pass the underlying data as a reference and wrap a new reader ontop.
             // This method ensures we're not copying the packet in memory again but the downside is
@@ -97,7 +122,7 @@ namespace EdgeDB.Codecs
             
             try
             {
-                return _factory(ref enumerator);
+                return _factory!(ref enumerator);
             }
             catch(Exception x)
             {

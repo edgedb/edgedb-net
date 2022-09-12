@@ -1,3 +1,4 @@
+using EdgeDB.Serializer;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -54,7 +55,7 @@ namespace EdgeDB.ExampleApp.Examples
             
             // select it
             var movie = await client.QueryRequiredSingleAsync<Movie>(selectMovieQuery).ConfigureAwait(false);
-
+            
             Logger?.LogInformation("Movie: {@Movie}", movie);
         }
     }
