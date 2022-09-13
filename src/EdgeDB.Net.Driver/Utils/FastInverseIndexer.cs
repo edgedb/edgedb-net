@@ -29,7 +29,7 @@ namespace EdgeDB
             _tracked--;
 
             if (_tracked < 0)
-                throw new ArgumentOutOfRangeException("Too many items tracked!");
+                throw new ArgumentOutOfRangeException(nameof(index), "Too many items tracked!");
 
             // get the bit relative to a byte in our span, the and is equivalent to modulus 8
             var b = 1 << (index & 0b111);
