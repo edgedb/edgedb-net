@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -10,9 +10,10 @@ namespace EdgeDB.Serializer
 {
     public sealed class SnakeCaseNamingStrategy : INamingStrategy
     {
-        public string GetName(PropertyInfo property)
-        {
-            return Regex.Replace(property.Name, "(?<!^)[A-Z]", x => $"_{x.Value}").ToLower();
-        }
+        public string Convert(PropertyInfo property)
+            => Convert(property.Name);
+
+        public string Convert(string name)
+            => Regex.Replace(name, "(?<!^)[A-Z]", x => $"_{x.Value}").ToLower();
     }
 }

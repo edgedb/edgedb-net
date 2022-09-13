@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -9,9 +9,11 @@ namespace EdgeDB.Serializer
 {
     public sealed class AttributeNamingStrategy : INamingStrategy
     {
-        public string GetName(PropertyInfo property)
+        public string Convert(PropertyInfo property)
         {
             return property.GetCustomAttribute<EdgeDBPropertyAttribute>()?.Name ?? property.Name;
         }
+
+        public string Convert(string name) => name;
     }
 }

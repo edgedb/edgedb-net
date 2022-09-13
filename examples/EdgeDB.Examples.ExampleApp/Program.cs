@@ -1,4 +1,4 @@
-﻿using EdgeDB;
+using EdgeDB;
 using EdgeDB.ExampleApp;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -9,10 +9,10 @@ namespace EdgeDB.Serializer
 {
     public sealed class CamelCaseNamingStrategy : INamingStrategy
     {
-        public string GetName(PropertyInfo property)
-        {
-            var name = property.Name;
-            return $"{char.ToLowerInvariant(name[0])}{name[1..].Replace("_", string.Empty)}";
-        }
+        public string Convert(PropertyInfo property)
+            => Convert(property.Name);
+
+        public string Convert(string name)
+            => $"{char.ToLowerInvariant(name[0])}{name[1..].Replace("_", string.Empty)}";
     }
 }

@@ -14,15 +14,18 @@ namespace EdgeDB.Serializer
     public static class TypeBuilder
     {
         /// <summary>
-        ///     Gets or sets the naming strategy used when mapping type names returned 
-        ///     from EdgeDB to C# classes.
+        ///     Gets or sets the naming strategy used for deserialization of edgeql property names to dotnet property names.
         /// </summary>
+        /// <remarks>
+        ///     All dotnet types passed to the type builder will have their properties converted to the edgeql version
+        ///     using this naming strategy, the naming convention of the dotnet type will be preserved.
+        /// </remarks>
         /// <remarks>
         ///     If the naming strategy doesn't find a match, the 
         ///     <see cref="Serializer.AttributeNamingStrategy"/> will be used.
         /// </remarks>
         public static INamingStrategy NamingStrategy { get; set; }
-
+        
         internal readonly static ConcurrentDictionary<Type, TypeDeserializeInfo> TypeInfo = new();
         internal static readonly INamingStrategy AttributeNamingStrategy;
         private readonly static List<string> _scannedAssemblies;
@@ -201,14 +204,6 @@ namespace EdgeDB.Serializer
             info = method;
             return method is not null;
         }
-
-        internal static Dictionary<string, PropertyInfo> GetPropertyMap(this Type objectType)
-        {
-            return objectType.GetProperties().Where(x =>
-                x.CanWrite &&
-                x.GetCustomAttribute<EdgeDBIgnoreAttribute>() == null &&
-                x.SetMethod != null).ToDictionary(x => NamingStrategy.GetName(x), x => x);
-        }
         #endregion
 
         #region Assembly
@@ -269,14 +264,15 @@ namespace EdgeDB.Serializer
         public Dictionary<Type, TypeDeserializeInfo> Children { get; } = new();
         
         private readonly Type _type;
+        private PropertyInfo[]? _properties;
+        private Dictionary<PropertyInfo, int>? _propertyIndexTable;
         private TypeDeserializerFactory _factory;
         internal readonly Dictionary<string, PropertyInfo> PropertyMap;
         
-
         public TypeDeserializeInfo(Type type)
         {
             _type = type;
-            PropertyMap = type.GetPropertyMap();
+            PropertyMap = GetPropertyMap(type);
             _factory = CreateDefaultFactory();
             EdgeDBTypeName = _type.GetCustomAttribute<EdgeDBTypeAttribute>()?.Name ?? _type.Name;
         }
@@ -285,7 +281,7 @@ namespace EdgeDB.Serializer
         {
             _type = type;
             _factory = factory;
-            PropertyMap = type.GetPropertyMap();
+            PropertyMap = GetPropertyMap(type);
             EdgeDBTypeName = _type.GetCustomAttribute<EdgeDBTypeAttribute>()?.Name ?? _type.Name;
         }
 
@@ -308,35 +304,46 @@ namespace EdgeDB.Serializer
             if (_type == typeof(object))
                 return (ref ObjectEnumerator enumerator) => enumerator.ToDynamic();
 
+            if(_properties is null || _propertyIndexTable is null)
+                throw new NullReferenceException("Properties cannot be null");
+
             // if type is anon type or record, or has a constructor with all properties
             if (_type.IsRecord() ||
                 _type.GetCustomAttribute<CompilerGeneratedAttribute>() != null ||
-                _type.GetConstructor(_type.GetProperties().Select(x => x.PropertyType).ToArray()) != null)
+                _type.GetConstructor(_properties.Select(x => x.PropertyType).ToArray()) != null)
             {
-                var props = _type.GetProperties();
                 return (ref ObjectEnumerator enumerator) =>
                 {
-                    var data = (IDictionary<string, object?>)enumerator.ToDynamic()!;
+                    //var data = (IDictionary<string, object?>)enumerator.ToDynamic()!;
+                    var ctorParams = new object?[_properties.Length];
+                    var reverseIndexer = new FastInverseIndexer(_properties.Length);
 
-                    object?[] ctorParams = new object[props.Length];
-                    for (int i = 0; i != ctorParams.Length; i++)
+                    while(enumerator.Next(out var name, out var value))
                     {
-                        var prop = props[i];
+                        if (PropertyMap.TryGetValue(name, out var prop))
+                        {
+                            var index = _propertyIndexTable[prop];
+                            reverseIndexer.Track(index);
 
-                        if (!data.TryGetValue(TypeBuilder.NamingStrategy.GetName(prop), out var value))
-                        {
-                            ctorParams[i] = ReflectionUtils.GetDefault(prop.PropertyType);
-                        }
-
-                        try
-                        {
-                            ctorParams[i] = ObjectBuilder.ConvertTo(prop.PropertyType, value);
-                        }
-                        catch(Exception x)
-                        {
-                            throw new NoTypeConverterException($"Cannot assign property {prop.Name} with type {value?.GetType().Name ?? "unknown"}", x);
+                            try
+                            {
+                                ctorParams[index] = ObjectBuilder.ConvertTo(prop.PropertyType, value);
+                            }
+                            catch(Exception x)
+                            {
+                                throw new NoTypeConverterException($"Cannot assign property {prop.Name} with type {value?.GetType().Name ?? "unknown"}", x);
+                            }
                         }
                     }
+
+                    // fill the missed properties with defaults
+                    var missed = reverseIndexer.GetIndexies();
+                    for(int i = 0; i != missed.Length; i++)
+                    {
+                        var prop = _properties[missed[i]];
+                        ctorParams[missed[i]] = ReflectionUtils.GetDefault(prop.PropertyType);
+                    }
+                    
                     return Activator.CreateInstance(_type, ctorParams)!;
                 };
             }
@@ -407,6 +414,28 @@ namespace EdgeDB.Serializer
 
                 return instance;
             };
+        }
+
+        private Dictionary<string, PropertyInfo> GetPropertyMap(Type objectType)
+        {
+            _properties = objectType.GetProperties();
+            _propertyIndexTable = new(_properties.Length);
+            for (int i = 0; i != _properties.Length; i++)
+                _propertyIndexTable.Add(_properties[i], i);
+            
+            var dict = new Dictionary<string, PropertyInfo>();
+
+            for (var i = 0; i != _properties.Length; i++)
+            {
+                var prop = _properties[i];
+
+                if (prop.GetCustomAttribute<EdgeDBIgnoreAttribute>() is null && prop.CanWrite && prop.SetMethod is not null)
+                {
+                    dict.Add(prop.GetCustomAttribute<EdgeDBPropertyAttribute>()?.Name ?? TypeBuilder.NamingStrategy.Convert(prop), prop);
+                }
+            }
+
+            return dict;
         }
 
         public object? Deserialize(ref ObjectEnumerator enumerator)

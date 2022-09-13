@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -41,10 +41,17 @@ namespace EdgeDB.Serializer
             => new SnakeCaseNamingStrategy();
 
         /// <summary>
-        ///     Gets the name defined in the objects schema given the types property info.
+        ///     Converts the <paramref name="property"/>'s name to the desired naming scheme.
         /// </summary>
         /// <param name="property">The property info of which to convert its name.</param>
         /// <returns>The name defined in the schema.</returns>
-        public string GetName(PropertyInfo property);
+        public string Convert(PropertyInfo property);
+
+        /// <summary>
+        ///     Converts the name to the desired naming scheme.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public string Convert(string name);
     }
 }
