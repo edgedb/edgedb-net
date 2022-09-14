@@ -35,7 +35,7 @@ namespace EdgeDB
         ///     Gets the 'snake-case' naming strategy.
         /// </summary>
         /// <remarks>
-        ///     This is the default naming strategy for the <see cref="TypeBuilder"/>.
+        ///     This is the default naming strategy for the <see cref="Binary.TypeBuilder"/>.
         /// </remarks>
         public static INamingStrategy SnakeCaseNamingStrategy
             => new SnakeCaseNamingStrategy();
@@ -50,8 +50,8 @@ namespace EdgeDB
         /// <summary>
         ///     Converts the name to the desired naming scheme.
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
+        /// <param name="name">The property name of which to convert its name.</param>
+        /// <returns>The name defined in the schema.</returns>
         public string Convert(string name);
     }
 }
