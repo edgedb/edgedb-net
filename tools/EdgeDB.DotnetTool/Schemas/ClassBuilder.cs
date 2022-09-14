@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+using EdgeDB.Binary;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace EdgeDB.DotnetTool
@@ -141,7 +142,7 @@ namespace EdgeDB.DotnetTool
                 {
                     // do a reverse lookup on the root function to see if we can decipher the type
                     computed = Regex.Replace(computed, @"^.+?::", _ => "");
-                    var returnType = QueryBuilder.ReverseLookupFunction(computed);
+                    var returnType = typeof(object); //QueryBuilder.ReverseLookupFunction(computed);
 
                     if (returnType != null)
                         type = returnType.FullName;
