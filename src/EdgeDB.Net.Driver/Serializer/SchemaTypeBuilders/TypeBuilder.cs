@@ -3,6 +3,7 @@ using EdgeDB.Codecs;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -268,10 +269,12 @@ namespace EdgeDB.Serializer
         private Dictionary<PropertyInfo, int>? _propertyIndexTable;
         private TypeDeserializerFactory _factory;
         internal readonly Dictionary<string, PropertyInfo> PropertyMap;
+        private ObjectActivator? _typeActivator;
         
         public TypeDeserializeInfo(Type type)
         {
             _type = type;
+            _typeActivator = CreateActivator();
             PropertyMap = GetPropertyMap(type);
             _factory = CreateDefaultFactory();
             EdgeDBTypeName = _type.GetCustomAttribute<EdgeDBTypeAttribute>()?.Name ?? _type.Name;
@@ -280,9 +283,21 @@ namespace EdgeDB.Serializer
         public TypeDeserializeInfo(Type type, TypeDeserializerFactory factory)
         {
             _type = type;
+            _typeActivator = CreateActivator();
             _factory = factory;
             PropertyMap = GetPropertyMap(type);
             EdgeDBTypeName = _type.GetCustomAttribute<EdgeDBTypeAttribute>()?.Name ?? _type.Name;
+        }
+
+        private ObjectActivator? CreateActivator()
+        {
+            // get an empty constructor
+            var ctor = _type.GetConstructor(Type.EmptyTypes) ?? _type.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, Type.EmptyTypes);
+
+            if (ctor == null)
+                return null;
+
+            return Expression.Lambda<ObjectActivator>(Expression.New(ctor)).Compile();
         }
 
         public void AddOrUpdateChildren(TypeDeserializeInfo child)
@@ -353,7 +368,7 @@ namespace EdgeDB.Serializer
             {
                 return (ref ObjectEnumerator enumerator) =>
                 {
-                    var instance = Activator.CreateInstance(_type);
+                    var instance = CreateInstance();
 
                     if (instance is null)
                         throw new TargetInvocationException($"Cannot create an instance of {_type.Name}", null);
@@ -399,7 +414,7 @@ namespace EdgeDB.Serializer
             
             return (ref ObjectEnumerator enumerator) =>
             {
-                var instance = Activator.CreateInstance(_type, true);
+                var instance = CreateInstance();
 
                 if (instance is null)
                     throw new TargetInvocationException($"Cannot create an instance of {_type.Name}", null);
@@ -416,18 +431,26 @@ namespace EdgeDB.Serializer
             };
         }
 
+        private object CreateInstance()
+        {
+            if (_typeActivator is null)
+                throw new InvalidOperationException($"No empty constructor found on type {_type}");
+
+            return _typeActivator();
+        }
+
         private Dictionary<string, PropertyInfo> GetPropertyMap(Type objectType)
         {
             _properties = objectType.GetProperties();
             _propertyIndexTable = new(_properties.Length);
-            for (int i = 0; i != _properties.Length; i++)
-                _propertyIndexTable.Add(_properties[i], i);
             
             var dict = new Dictionary<string, PropertyInfo>();
 
             for (var i = 0; i != _properties.Length; i++)
             {
                 var prop = _properties[i];
+
+                _propertyIndexTable.Add(prop, i);
 
                 if (prop.GetCustomAttribute<EdgeDBIgnoreAttribute>() is null)
                 {
@@ -440,6 +463,8 @@ namespace EdgeDB.Serializer
 
         public object? Deserialize(ref ObjectEnumerator enumerator)
             => _factory(ref enumerator);
+
+        private delegate object ObjectActivator();
 
         public static implicit operator TypeDeserializerFactory(TypeDeserializeInfo info) => info._factory;
     }

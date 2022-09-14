@@ -82,6 +82,9 @@ namespace EdgeDB.Codecs
 
         public void Initialize(Type target)
         {
+            if (_initialized)
+                return;
+
             _targetType = target;
 
             try
@@ -113,7 +116,7 @@ namespace EdgeDB.Codecs
         {
             if (!_initialized || _factory is null || _targetType is null)
                 Initialize(typeof(object));
-
+            
             // reader is being copied if we just pass it as 'ref reader' to our object enumerator,
             // so we need to pass the underlying data as a reference and wrap a new reader ontop.
             // This method ensures we're not copying the packet in memory again but the downside is
