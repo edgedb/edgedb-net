@@ -5,7 +5,7 @@ VisualStudioVersion = 17.1.31903.286
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Net.Driver", "src\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj", "{0C1C6233-388F-4FAE-955B-F0A6D33D44C9}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Examples.ExampleApp", "examples\EdgeDB.Examples.ExampleApp\EdgeDB.Examples.ExampleApp.csproj", "{B85156A1-66B3-46F1-B238-19B96C4C7729}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Examples.CSharp", "examples\EdgeDB.Examples.CSharp\EdgeDB.Examples.CSharp.csproj", "{B85156A1-66B3-46F1-B238-19B96C4C7729}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Tests.Unit", "tests\EdgeDB.Tests.Unit\EdgeDB.Tests.Unit.csproj", "{CD4A4B5D-4B67-4E64-A13B-3F7BF770B056}"
 EndProject
