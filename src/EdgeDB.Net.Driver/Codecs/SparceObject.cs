@@ -1,4 +1,4 @@
-﻿using EdgeDB.Binary;
+using EdgeDB.Binary;
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
@@ -11,12 +11,19 @@ namespace EdgeDB.Codecs
     internal class SparceObject : ICodec<object>
     {
         private readonly ICodec[] _innerCodecs;
-        private readonly List<string> _fieldNames;
+        private readonly string[] _fieldNames;
 
-        internal SparceObject(ICodec[] innerCodecs, ShapeElement[] shape)
+        internal SparceObject(InputShapeDescriptor descriptor, List<ICodec> codecs)
         {
-            _innerCodecs = innerCodecs;
-            _fieldNames = shape.Select(x => x.Name).ToList();
+            _innerCodecs = new ICodec[descriptor.Shapes.Length];
+            _fieldNames = new string[descriptor.Shapes.Length];
+
+            for (int i = 0; i != descriptor.Shapes.Length; i++)
+            {
+                var shape = descriptor.Shapes[i];
+                _innerCodecs[i] = codecs[shape.TypePos];
+                _fieldNames[i] = shape.Name;
+            }
         }
 
         public object? Deserialize(ref PacketReader reader)
@@ -71,7 +78,7 @@ namespace EdgeDB.Codecs
 
             foreach(var element in dict)
             {
-                var index = _fieldNames.IndexOf(element.Key);
+                var index = Array.IndexOf(_fieldNames, element.Key);
 
                 if (index == -1)
                     throw new MissingCodecException($"No serializer found for field {element.Key}");
@@ -88,7 +95,6 @@ namespace EdgeDB.Codecs
                     writer.Write((int)subWriter.Length);
                     writer.Write(subWriter);
                 }
-                
             }
         }
     }

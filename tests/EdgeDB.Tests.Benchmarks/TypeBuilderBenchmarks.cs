@@ -51,38 +51,5 @@ namespace EdgeDB.Tests.Benchmarks
         {
             return (Person?)TypeBuilder.BuildObject(typeof(Person), Codec, ref Data);
         }
-
-        //[Benchmark]
-        //public List<int> GetMissedIndexes()
-        //{
-        //    var collection = new List<int>(Enumerable.Range(0, 10));
-
-        //    collection.Remove(1);
-        //    collection.Remove(3);
-        //    collection.Remove(4);
-        //    collection.Remove(7);
-        //    collection.Remove(8);
-
-        //    return collection;
-        //}
-
-        //[Benchmark]
-        //public int[] GetMissedIndexesFast()
-        //{
-        //    var inverseTracker = new FastInverseIndexer(10);
-
-        //    inverseTracker.Track(1);
-        //    inverseTracker.Track(3);
-        //    inverseTracker.Track(4);
-        //    inverseTracker.Track(7);
-        //    inverseTracker.Track(8);
-
-        //    return inverseTracker.GetIndexies();
-        //}
-
-        //public Person? DeserializePersonNew()
-        //{
-            
-        //}
     }
 }

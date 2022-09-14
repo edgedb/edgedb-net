@@ -24,7 +24,7 @@ namespace EdgeDB.Binary
                 DescriptorType.ObjectShapeDescriptor => new ObjectShapeDescriptor(id, ref reader),
                 DescriptorType.ScalarTypeDescriptor => new ScalarTypeDescriptor(id, ref reader),
                 DescriptorType.ScalarTypeNameAnnotation => new ScalarTypeNameAnnotation(id, ref reader),
-                DescriptorType.SetDescriptor => new SetDescriptor(id, ref reader),
+                DescriptorType.SetDescriptor => new SetTypeDescriptor(id, ref reader),
                 DescriptorType.TupleTypeDescriptor => new TupleTypeDescriptor(id, ref reader),
                 DescriptorType.InputShapeDescriptor => new InputShapeDescriptor(id, ref reader),
                 DescriptorType.RangeTypeDescriptor => new RangeTypeDescriptor(id, ref reader),

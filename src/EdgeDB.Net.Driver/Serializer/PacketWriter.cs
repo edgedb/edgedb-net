@@ -1,4 +1,4 @@
-﻿using EdgeDB.Binary;
+using EdgeDB.Binary;
 using EdgeDB.Models;
 using EdgeDB.Utils;
 using System;
@@ -98,69 +98,38 @@ namespace EdgeDB
             }
         }
 
-        public override void Write(double value)
+        private void UnsafeWrite<T>(T value)
+            where T : unmanaged
         {
-            var span = new Span<byte>((byte*)&value, sizeof(double));
+            var span = new Span<byte>(&value, sizeof(T));
             if (BitConverter.IsLittleEndian)
                 span.Reverse();
             Write(span);
         }
+
+        public override void Write(double value)
+            => UnsafeWrite(value);
 
         public override void Write(float value)
-        {
-            var span = new Span<byte>((byte*)&value, sizeof(float));
-            if (BitConverter.IsLittleEndian)
-                span.Reverse();
-            Write(span);
-        }
+            => UnsafeWrite(value);
 
         public override void Write(uint value)
-        {
-            var span = new Span<byte>((byte*)&value, sizeof(uint));
-            if (BitConverter.IsLittleEndian)
-                span.Reverse();
-            Write(span);
-        }
+            => UnsafeWrite(value);
 
         public override void Write(int value)
-        {
-            var span = new Span<byte>((byte*)&value, sizeof(int));
-            if (BitConverter.IsLittleEndian)
-                span.Reverse();
-            Write(span);
-        }
+            => UnsafeWrite(value);
 
         public override void Write(ulong value)
-        {
-            var span = new Span<byte>((byte*)&value, sizeof(ulong));
-            if (BitConverter.IsLittleEndian)
-                span.Reverse();
-            Write(span);
-        }
+            => UnsafeWrite(value);
 
         public override void Write(long value)
-        {
-            var span = new Span<byte>((byte*)&value, sizeof(long));
-            if (BitConverter.IsLittleEndian)
-                span.Reverse();
-            Write(span);
-        }
+            => UnsafeWrite(value);
 
         public override void Write(short value)
-        {
-            var span = new Span<byte>((byte*)&value, sizeof(short));
-            if (BitConverter.IsLittleEndian)
-                span.Reverse();
-            Write(span);
-        }
+            => UnsafeWrite(value);
 
         public override void Write(ushort value)
-        {
-            var span = new Span<byte>((byte*)&value, sizeof(ushort));
-            if (BitConverter.IsLittleEndian)
-                span.Reverse();
-            Write(span);
-        }
+            => UnsafeWrite(value);
 
         public void WriteArray(byte[] buffer)
         {

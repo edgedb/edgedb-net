@@ -1,3 +1,4 @@
+using EdgeDB.Binary;
 using EdgeDB.Serializer;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
@@ -74,6 +75,32 @@ namespace EdgeDB.Codecs
         private Type? _targetType;
         private bool _initialized;
         
+        internal Object(ObjectShapeDescriptor descriptor, List<ICodec> codecs)
+        {
+            _innerCodecs = new ICodec[descriptor.Shapes.Length];
+            _propertyNames = new string[descriptor.Shapes.Length];
+
+            for(int i = 0; i != descriptor.Shapes.Length; i++)
+            {
+                var shape = descriptor.Shapes[i];
+                _innerCodecs[i] = codecs[shape.TypePos];
+                _propertyNames[i] = shape.Name;
+            }
+        }
+
+        internal Object(NamedTupleTypeDescriptor descriptor, List<ICodec> codecs)
+        {
+            _innerCodecs = new ICodec[descriptor.Elements.Length];
+            _propertyNames = new string[descriptor.Elements.Length];
+
+            for (int i = 0; i != descriptor.Elements.Length; i++)
+            {
+                var shape = descriptor.Elements[i];
+                _innerCodecs[i] = codecs[shape.TypePos];
+                _propertyNames[i] = shape.Name;
+            }
+        }
+
         internal Object(ICodec[] innerCodecs, string[] propertyNames)
         {
             _innerCodecs = innerCodecs;

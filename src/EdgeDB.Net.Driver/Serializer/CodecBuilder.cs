@@ -75,82 +75,28 @@ namespace EdgeDB
             {
                 var typeDescriptor = ITypeDescriptor.GetDescriptor(ref reader);
 
-                var codec = GetScalarCodec(typeDescriptor.Id);
+                if (!_codecCache.TryGetValue(typeDescriptor.Id, out var codec))
+                    codec = GetScalarCodec(typeDescriptor.Id);
 
                 if (codec is not null)
                     codecs.Add(codec);
                 else
                 {
-                    // create codec based on type descriptor
-                    switch (typeDescriptor)
+                    codec = typeDescriptor switch
                     {
-                        case EnumerationTypeDescriptor enumeration:
-                            {
-                                // decode as string like
-                                codecs.Add(new Text());
-                            }
-                            break;
-                        case ObjectShapeDescriptor shapeDescriptor:
-                            {
-                                var codecArguments = shapeDescriptor.Shapes.Select(x => (x.Name, codecs[x.TypePos]));
-                                codec = new Codecs.Object(codecArguments.Select(x => x.Item2).ToArray(), codecArguments.Select(x => x.Name).ToArray());
-                                codecs.Add(codec);
-                            }
-                            break;
-                        case TupleTypeDescriptor tuple:
-                            {
-                                codec = new Codecs.Tuple(tuple.ElementTypeDescriptorsIndex.Select(x => codecs[x]).ToArray());
-                                codecs.Add(codec);
-                            }
-                            break;
-                        case NamedTupleTypeDescriptor namedTuple:
-                            {
-                                // TODO: better datatype than an object?
-                                var codecArguments = namedTuple.Elements.Select(x => (x.Name, codecs[x.TypePos]));
-                                codec = new Codecs.Object(codecArguments.Select(x => x.Item2).ToArray(), codecArguments.Select(x => x.Name).ToArray());
-                                codecs.Add(codec);
-                            }
-                            break;
-                        case ArrayTypeDescriptor array:
-                            {
-                                var innerCodec = codecs[array.TypePos];
+                        EnumerationTypeDescriptor enumeration => new Text(),
+                        NamedTupleTypeDescriptor namedTuple   => new Codecs.Object(namedTuple, codecs),
+                        BaseScalarTypeDescriptor scalar       => throw new MissingCodecException($"Could not find the scalar type {scalar.Id}. Please file a bug report with your query that caused this error."),
+                        ObjectShapeDescriptor @object         => new Codecs.Object(@object, codecs),
+                        InputShapeDescriptor input            => new SparceObject(input, codecs),
+                        TupleTypeDescriptor tuple             => new Codecs.Tuple(tuple.ElementTypeDescriptorsIndex.Select(x => codecs[x]).ToArray()),
+                        RangeTypeDescriptor range             => (ICodec)Activator.CreateInstance(typeof(RangeCodec<>).MakeGenericType(codecs[range.TypePos].ConverterType), codecs[range.TypePos])!,
+                        ArrayTypeDescriptor array             => (ICodec)Activator.CreateInstance(typeof(Array<>).MakeGenericType(codecs[array.TypePos].ConverterType), codecs[array.TypePos])!,
+                        SetTypeDescriptor set                 => (ICodec)Activator.CreateInstance(typeof(Set<>).MakeGenericType(codecs[set.TypePos].ConverterType), codecs[set.TypePos])!,
+                        _ => throw new MissingCodecException($"Could not find a type descriptor with type {typeDescriptor.Id:X2}. Please file a bug report with your query that caused this error.")
+                    };
 
-                                // create the array codec with reflection
-                                var codecType = typeof(Array<>).MakeGenericType(innerCodec.ConverterType);
-                                codec = (ICodec)Activator.CreateInstance(codecType, innerCodec)!;
-                                codecs.Add(codec);
-                            }
-                            break;
-                        case SetDescriptor set:
-                            {
-                                var innerCodec = codecs[set.TypePos];
-
-                                var codecType = typeof(Set<>).MakeGenericType(innerCodec.ConverterType);
-                                codec = (ICodec)Activator.CreateInstance(codecType, innerCodec)!;
-                                codecs.Add(codec);
-                            }
-                            break;
-                        case InputShapeDescriptor inputShape:
-                            {
-                                var codecArguments = inputShape.Shapes.Select(x => codecs[x.TypePos]);
-                                codec = new Codecs.SparceObject(codecArguments.ToArray(), inputShape.Shapes);
-                                codecs.Add(codec);
-                            }
-                            break;
-                        case RangeTypeDescriptor rangeType:
-                            {
-                                var innerCodec = codecs[rangeType.TypePos];
-                                codec = (ICodec)Activator.CreateInstance(typeof(RangeCodec<>).MakeGenericType(innerCodec.ConverterType), innerCodec)!;
-                                codecs.Add(codec);
-                            }
-                            break;
-                        case BaseScalarTypeDescriptor scalar:
-                            {
-                                throw new MissingCodecException($"Could not find the scalar type {scalar.Id}. Please file a bug report with your query that caused this error.");
-                            }
-                        default:
-                            break;
-                    }
+                    _codecCache[typeDescriptor.Id] = codec;
                 }
             }
 
