@@ -66,6 +66,19 @@ namespace EdgeDB
                 return Activator.CreateInstance(type, new object?[] { innerValue });
             }
 
+            if (type.IsFSharpValueOption())
+            {
+                // is the value null?
+                if (value is null)
+                {
+                    return type.GetProperty("ValueNone", BindingFlags.Static | BindingFlags.Public)!.GetValue(null);
+                }
+
+                var newValueSome = type.GetMethod("NewValueSome", BindingFlags.Static | BindingFlags.Public)!;
+                var innerValue = ConvertTo(type.GenericTypeArguments[0], value);
+                return newValueSome.Invoke(null, new object?[] { innerValue });
+            }
+
             try
             {
                 return Convert.ChangeType(value, type);

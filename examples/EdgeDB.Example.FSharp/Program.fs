@@ -2,7 +2,7 @@ open EdgeDB
 
 type Person = {
     Name: string;
-    Email: option<string>;
+    Email: ValueOption<string>;
 }
 
 let client = new EdgeDBClient()

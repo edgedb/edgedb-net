@@ -43,6 +43,9 @@ namespace EdgeDB
 
         public int[] GetIndexies()
         {
+            if (_tracked == 0)
+                return Array.Empty<int>();
+
             int[] missed = new int[_tracked];
             int p = 0;
 

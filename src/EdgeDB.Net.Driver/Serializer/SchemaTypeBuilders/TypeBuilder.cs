@@ -429,7 +429,7 @@ namespace EdgeDB.Serializer
             {
                 var prop = _properties[i];
 
-                if (prop.GetCustomAttribute<EdgeDBIgnoreAttribute>() is null && prop.CanWrite && prop.SetMethod is not null)
+                if (prop.GetCustomAttribute<EdgeDBIgnoreAttribute>() is null)
                 {
                     dict.Add(prop.GetCustomAttribute<EdgeDBPropertyAttribute>()?.Name ?? TypeBuilder.NamingStrategy.Convert(prop), prop);
                 }
