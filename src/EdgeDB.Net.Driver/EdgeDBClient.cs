@@ -1,5 +1,4 @@
 using EdgeDB.DataTypes;
-using EdgeDB.Models;
 using EdgeDB.State;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;

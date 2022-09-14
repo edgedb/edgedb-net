@@ -1,5 +1,4 @@
-﻿using EdgeDB.DataTypes;
-using EdgeDB.Models;
+using EdgeDB.DataTypes;
 
 namespace EdgeDB
 {

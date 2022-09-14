@@ -1,6 +1,6 @@
-﻿using EdgeDB.Binary.Packets;
+using EdgeDB.Binary.Packets;
 
-namespace EdgeDB.Models
+namespace EdgeDB
 {
     /// <summary>
     ///     Represents a generic execution result of a command.

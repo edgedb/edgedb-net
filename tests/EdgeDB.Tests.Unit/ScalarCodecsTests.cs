@@ -1,4 +1,4 @@
-using EdgeDB.Codecs;
+using EdgeDB.Binary.Codecs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;

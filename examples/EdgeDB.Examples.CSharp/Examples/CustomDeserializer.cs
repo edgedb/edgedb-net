@@ -1,5 +1,5 @@
-using EdgeDB.Codecs;
-using EdgeDB.Serializer;
+using EdgeDB.Binary;
+using EdgeDB.Binary.Builders;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;

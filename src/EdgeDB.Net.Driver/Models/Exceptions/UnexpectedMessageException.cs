@@ -1,5 +1,4 @@
-﻿using EdgeDB.Binary;
-using EdgeDB.Models;
+using EdgeDB.Binary;
 
 namespace EdgeDB
 {

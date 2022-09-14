@@ -1,5 +1,5 @@
+using EdgeDB.Binary;
 using EdgeDB.ContractResolvers;
-using EdgeDB.Serializer;
 using EdgeDB.State;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;

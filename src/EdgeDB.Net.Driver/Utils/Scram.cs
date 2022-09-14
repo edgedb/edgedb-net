@@ -1,7 +1,6 @@
-﻿using EdgeDB.Binary;
+using EdgeDB.Binary;
 using EdgeDB.Binary.Packets;
-using EdgeDB.Codecs;
-using EdgeDB.Models;
+using EdgeDB.Binary.Codecs;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
