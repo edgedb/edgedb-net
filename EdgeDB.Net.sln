@@ -33,7 +33,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Serializer.Experimen
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Examples.ExampleTODOApi", "examples\EdgeDB.Examples.ExampleTODOApi\EdgeDB.Examples.ExampleTODOApi.csproj", "{E38429C6-53A5-4311-8189-1F78238666DC}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "EdgeDB.Example.FSharp", "examples\EdgeDB.Example.FSharp\EdgeDB.Example.FSharp.fsproj", "{F25AA805-163F-46B4-942E-B1A5EBE8383C}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "EdgeDB.Examples.FSharp", "examples\EdgeDB.Examples.FSharp\EdgeDB.Examples.FSharp.fsproj", "{F25AA805-163F-46B4-942E-B1A5EBE8383C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
