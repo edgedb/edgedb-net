@@ -68,7 +68,7 @@ namespace EdgeDB.Binary.Codecs
                         if (!deserializerInfo.PropertyMap.TryGetValue(_propertyNames[i], out var propInfo))
                             throw new EdgeDBException($"Property {_propertyNames[i]} not found on type {target.Name}");
 
-                        objCodec.Initialize(propInfo.PropertyType);
+                        objCodec.Initialize(propInfo.Type);
                     }
                 }
 

@@ -7,6 +7,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using EdgeDB.Binary.Builders;
+using EdgeDB.TypeConverters;
 
 namespace EdgeDB.Binary
 {
@@ -266,10 +267,10 @@ namespace EdgeDB.Binary
         public Dictionary<Type, TypeDeserializeInfo> Children { get; } = new();
         
         private readonly Type _type;
-        private PropertyInfo[]? _properties;
-        private Dictionary<PropertyInfo, int>? _propertyIndexTable;
+        private EdgeDBPropertyInfo[]? _properties;
+        private Dictionary<EdgeDBPropertyInfo, int>? _propertyIndexTable;
         private TypeDeserializerFactory _factory;
-        internal readonly Dictionary<string, PropertyInfo> PropertyMap;
+        internal readonly Dictionary<string, EdgeDBPropertyInfo> PropertyMap;
         private ObjectActivator? _typeActivator;
         
         public TypeDeserializeInfo(Type type)
@@ -326,7 +327,7 @@ namespace EdgeDB.Binary
             // if type is anon type or record, or has a constructor with all properties
             if (_type.IsRecord() ||
                 _type.GetCustomAttribute<CompilerGeneratedAttribute>() != null ||
-                _type.GetConstructor(_properties.Select(x => x.PropertyType).ToArray()) != null)
+                _type.GetConstructor(_properties.Select(x => x.Type).ToArray()) != null)
             {
                 return (ref ObjectEnumerator enumerator) =>
                 {
@@ -343,11 +344,11 @@ namespace EdgeDB.Binary
 
                             try
                             {
-                                ctorParams[index] = ObjectBuilder.ConvertTo(prop.PropertyType, value);
+                                ctorParams[index] = prop.ConvertToPropertyType(value);
                             }
                             catch(Exception x)
                             {
-                                throw new NoTypeConverterException($"Cannot assign property {prop.Name} with type {value?.GetType().Name ?? "unknown"}", x);
+                                throw new NoTypeConverterException($"Cannot assign property {prop.PropertyName} with type {value?.GetType().Name ?? "unknown"}", x);
                             }
                         }
                     }
@@ -357,7 +358,7 @@ namespace EdgeDB.Binary
                     for(int i = 0; i != missed.Length; i++)
                     {
                         var prop = _properties[missed[i]];
-                        ctorParams[missed[i]] = ReflectionUtils.GetDefault(prop.PropertyType);
+                        ctorParams[missed[i]] = ReflectionUtils.GetDefault(prop.Type);
                     }
                     
                     return Activator.CreateInstance(_type, ctorParams)!;
@@ -425,7 +426,7 @@ namespace EdgeDB.Binary
                     if (!PropertyMap.TryGetValue(name, out var prop))
                         continue;
 
-                    prop.SetValue(instance, ObjectBuilder.ConvertTo(prop.PropertyType, value));
+                    prop.ConvertAndSetValue(instance, value);
                 }
 
                 return instance;
@@ -440,22 +441,25 @@ namespace EdgeDB.Binary
             return _typeActivator();
         }
 
-        private Dictionary<string, PropertyInfo> GetPropertyMap(Type objectType)
+        private Dictionary<string, EdgeDBPropertyInfo> GetPropertyMap(Type objectType)
         {
-            _properties = objectType.GetProperties();
+            var props = objectType.GetProperties();
+            _properties = new EdgeDBPropertyInfo[props.Length];
             _propertyIndexTable = new(_properties.Length);
             
-            var dict = new Dictionary<string, PropertyInfo>();
+            var dict = new Dictionary<string, EdgeDBPropertyInfo>();
 
             for (var i = 0; i != _properties.Length; i++)
             {
-                var prop = _properties[i];
+                var prop = props[i];
+                var edbProp = new EdgeDBPropertyInfo(prop);
+                _properties[i] = edbProp;
 
-                _propertyIndexTable.Add(prop, i);
+                _propertyIndexTable.Add(_properties[i], i);
 
                 if (prop.GetCustomAttribute<EdgeDBIgnoreAttribute>() is null)
                 {
-                    dict.Add(prop.GetCustomAttribute<EdgeDBPropertyAttribute>()?.Name ?? TypeBuilder.NamingStrategy.Convert(prop), prop);
+                    dict.Add(edbProp.EdgeDBName, edbProp);
                 }
             }
 
@@ -468,5 +472,58 @@ namespace EdgeDB.Binary
         private delegate object ObjectActivator();
 
         public static implicit operator TypeDeserializerFactory(TypeDeserializeInfo info) => info._factory;
+    }
+
+    internal class EdgeDBPropertyInfo
+    {
+        public string PropertyName
+            => _property.Name;
+
+        public string EdgeDBName
+            => AttributeName ?? TypeBuilder.NamingStrategy.Convert(_property);
+
+        public string? AttributeName
+            => _propertyAttribute?.Name;
+
+        public IEdgeDBTypeConverter? CustomConverter
+            => _typeConverter?.Converter;
+
+        public Type Type
+            => _property.PropertyType;
+
+        public bool IsIgnored
+            => _ignore is not null;
+
+        private readonly EdgeDBPropertyAttribute? _propertyAttribute;
+        private readonly EdgeDBTypeConverterAttribute? _typeConverter;
+        private readonly EdgeDBIgnoreAttribute? _ignore;
+        private readonly PropertyInfo _property;
+        public EdgeDBPropertyInfo(PropertyInfo propInfo)
+        {
+            _property = propInfo;
+            _propertyAttribute = propInfo.GetCustomAttribute<EdgeDBPropertyAttribute>();
+            _typeConverter = propInfo.GetCustomAttribute<EdgeDBTypeConverterAttribute>();
+            _ignore = propInfo.GetCustomAttribute<EdgeDBIgnoreAttribute>();
+        }
+
+        public object? ConvertToPropertyType(object? value)
+        {
+            if (value is null)
+                return ReflectionUtils.GetDefault(Type);
+
+            // check if we can use the custom converter
+            if (CustomConverter is not null && CustomConverter.CanConvert(Type, value.GetType()))
+            {
+                return CustomConverter.ConvertFrom(value);
+            }
+
+            return ObjectBuilder.ConvertTo(Type, value);
+        }
+
+        public void ConvertAndSetValue(object instance, object? value)
+        {
+            var converted = ConvertToPropertyType(value);
+            _property.SetValue(instance, converted);
+        }
     }
 }
