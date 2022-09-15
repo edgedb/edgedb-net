@@ -18,7 +18,7 @@ namespace EdgeDB.Binary
         public long Index
             => _trackedPointer - _basePointer;
         
-        private readonly int _size;
+        internal int Size;
         private Span<byte> _span;
         private byte* _trackedPointer;
         private byte* _basePointer;
@@ -28,7 +28,7 @@ namespace EdgeDB.Binary
             _span = new byte[size];
             _trackedPointer = (byte*)Unsafe.AsPointer(ref _span.GetPinnableReference());
             _basePointer = (byte*)Unsafe.AsPointer(ref _span.GetPinnableReference());
-            _size = size;
+            Size = size;
         }
 
         public PacketWriter()
@@ -37,17 +37,7 @@ namespace EdgeDB.Binary
             
         }
 
-        private void Resize()
-        {
-            var newSize = _size > 2048 ? _size + 2048 : _size << 1;
-            var index = Index;
-            Span<byte> newSpan = new byte[newSize];
-            _span.CopyTo(newSpan);
-            _span = newSpan;
-            _basePointer = (byte*)Unsafe.AsPointer(ref _span.GetPinnableReference());
-            _trackedPointer = _basePointer + index;
-        }
-
+        #region Position & conversion
         public void SeekToIndex(long index)
             => _trackedPointer = _basePointer + index;
 
@@ -56,6 +46,7 @@ namespace EdgeDB.Binary
 
         public Span<byte> GetBytes()
             => _span[..(int)Index];
+        #endregion
 
         public delegate void WriteAction(ref PacketWriter writer);
         public void WriteToWithInt32Length(WriteAction action)
@@ -68,41 +59,27 @@ namespace EdgeDB.Binary
             Write((int)(lastIndex - currentIndex - sizeof(int)));
             SeekToIndex(lastIndex);
         }
-        
-        public void Write(IEnumerable<KeyValue>? headers)
+
+        #region Very raw memory writing methods for unmanaged
+        private void Resize(uint target)
         {
-            // write length
-            Write((ushort)(headers?.Count() ?? 0));
-
-            if(headers is not null)
-            {
-                foreach (var header in headers)
-                {
-                    Write(header.Code);
-                    WriteArray(header.Value);
-                }
-            }
-        }
-
-        public void Write(IEnumerable<Annotation>? headers)
-        {
-            // write length
-            Write((ushort)(headers?.Count() ?? 0));
-
-            if (headers is not null)
-            {
-                foreach (var header in headers)
-                {
-                    Write(header.Name);
-                    Write(header.Value);
-                }
-            }
+            var newSize =
+                target > 2048
+                    ? Size + (int)target + 512
+                    : Size > 2048 ? Size + 2048 : Size << 1;
+            var index = Index;
+            Span<byte> newSpan = new byte[newSize];
+            _span.CopyTo(newSpan);
+            _span = newSpan;
+            _basePointer = (byte*)Unsafe.AsPointer(ref _span.GetPinnableReference());
+            _trackedPointer = _basePointer + index;
+            Size = newSize;
         }
 
         private void WriteRaw(void* ptr, uint count)
         {
-            if (Index + count > _size)
-                Resize();
+            if (Index + count > Size)
+                Resize(count);
 
             Unsafe.CopyBlock(_trackedPointer, ptr, count);
             _trackedPointer += count;
@@ -113,46 +90,16 @@ namespace EdgeDB.Binary
             WriteRaw(value._basePointer, (uint)value.Index);
         }
 
-        public void Write(KeyValue header)
-        {
-            Write(header.Code);
-            Write(header.Value);
-        }
-
-        public void Write(Guid value)
-        {
-            var bytes = HexConverter.FromHex(value.ToString().Replace("-", ""));
-            Write(bytes);
-        }
-
-        public void Write(byte[] array)
-        {
-            fixed (byte* ptr = array)
-            {
-                WriteRaw(ptr, (uint)array.Length);
-            }
-        }
-
-        public void Write(string value)
-        {
-            if (value is null)
-                Write((uint)0);
-            else
-            {
-                var buffer = Encoding.UTF8.GetBytes(value);
-                Write((uint)buffer.Length);
-                Write(buffer);
-            }
-        }
-
         private void UnsafeWrite<T>(ref T value)
             where T : unmanaged
         {
+            var size = sizeof(T);
+            if (Index + size > Size)
+                Resize((uint)size);
+
             BinaryUtils.CorrectEndianness(ref value);
-            fixed (T* ptr = &value)
-            {
-                WriteRaw(ptr, (uint)sizeof(T));
-            }
+            Unsafe.WriteUnaligned(_trackedPointer, value);
+            _trackedPointer += sizeof(T);
         }
 
         public void Write(double value)
@@ -190,7 +137,8 @@ namespace EdgeDB.Binary
 
         public void Write(bool value)
             => UnsafeWrite(ref value);
-
+        #endregion
+        
         public void WriteArray(byte[] buffer)
         {
             Write((uint)buffer.Length);
@@ -199,5 +147,52 @@ namespace EdgeDB.Binary
 
         public void WriteArrayWithoutLength(byte[] buffer)
             => Write(buffer);
+
+        public void Write(IEnumerable<Annotation>? headers)
+        {
+            // write length
+            Write((ushort)(headers?.Count() ?? 0));
+
+            if (headers is not null)
+            {
+                foreach (var header in headers)
+                {
+                    Write(header.Name);
+                    Write(header.Value);
+                }
+            }
+        }
+        
+        public void Write(KeyValue header)
+        {
+            Write(header.Code);
+            Write(header.Value);
+        }
+
+        public void Write(Guid value)
+        {
+            var bytes = HexConverter.FromHex(value.ToString().Replace("-", ""));
+            Write(bytes);
+        }
+
+        public void Write(byte[] array)
+        {
+            fixed (byte* ptr = array)
+            {
+                WriteRaw(ptr, (uint)array.Length);
+            }
+        }
+
+        public void Write(string value)
+        {
+            if (value is null)
+                Write((uint)0);
+            else
+            {
+                var buffer = Encoding.UTF8.GetBytes(value);
+                Write((uint)buffer.Length);
+                Write(buffer);
+            }
+        }
     }
 }

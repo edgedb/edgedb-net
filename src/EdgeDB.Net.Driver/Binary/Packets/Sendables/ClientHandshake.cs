@@ -1,6 +1,6 @@
 namespace EdgeDB.Binary.Packets
 {
-    internal class ClientHandshake : Sendable
+    internal sealed class ClientHandshake : Sendable
     {
         public override ClientMessageTypes Type => ClientMessageTypes.ClientHandshake;
         public override int Size

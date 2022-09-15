@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary.Packets
 {
-    internal class Restore : Sendable
+    internal sealed class Restore : Sendable
     {
         public override int Size
             => BinaryUtils.SizeOfAnnotations(Headers) + sizeof(ushort) + BinaryUtils.SizeOfByteArray(HeaderData);

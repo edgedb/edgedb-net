@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary.Packets
 {
-    internal class Terminate : Sendable
+    internal sealed class Terminate : Sendable
     {
         public override int Size => 0;
         public override ClientMessageTypes Type 

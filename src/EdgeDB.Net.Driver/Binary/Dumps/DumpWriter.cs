@@ -29,9 +29,9 @@ namespace EdgeDB.Dumps
         public Span<byte> Data => _writer.GetBytes();
 
         private readonly PacketWriter _writer;
-        public DumpWriter(int size)
+        public DumpWriter()
         {
-            _writer = new PacketWriter(size);
+            _writer = new PacketWriter();
 
             _writer.Write(FileFormat);
             _writer.Write(Version);

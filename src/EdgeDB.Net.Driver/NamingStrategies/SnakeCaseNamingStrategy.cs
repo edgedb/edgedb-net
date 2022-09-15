@@ -23,7 +23,7 @@ namespace EdgeDB
             var upperCaseLength = name.Where((c, i) => c is >= 'A' and <= 'Z' && i != 0).Count();
 
             if (upperCaseLength == 0)
-                return name;
+                return name.ToLower();
 
             var bufferSize = name.Length + upperCaseLength;
             Span<char> buffer = stackalloc char[bufferSize];

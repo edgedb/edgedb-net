@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary.Packets
 {
-    internal class Dump : Sendable
+    internal sealed class Dump : Sendable
     {
-        public override int Size => sizeof(ushort) + BinaryUtils.SizeOfAnnotations(Attributes);
+        public override int Size => BinaryUtils.SizeOfAnnotations(Attributes);
         public override ClientMessageTypes Type 
             => ClientMessageTypes.Dump;
 

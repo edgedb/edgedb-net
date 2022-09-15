@@ -185,7 +185,7 @@ namespace EdgeDB
 
         private static void WriteDumpDataToStream(Stream stream, ref DumpHeader header, List<DumpBlock> blocks)
         {
-            var writer = new DumpWriter(Marshal.SizeOf(header) + blocks.Sum(x => Marshal.SizeOf(x)));
+            var writer = new DumpWriter();
             writer.WriteDumpHeader(header);
             writer.WriteDumpBlocks(blocks);
 

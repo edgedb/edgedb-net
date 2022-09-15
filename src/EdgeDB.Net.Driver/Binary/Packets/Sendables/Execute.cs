@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary.Packets
 {
-    internal class Execute : Sendable
+    internal sealed class Execute : Sendable
     {
         public override int Size
         {
@@ -15,12 +15,12 @@ namespace EdgeDB.Binary.Packets
             {
                 return
                     // Capabilities and implicit limit + annotations (none)
-                    (sizeof(ulong) << 2) + sizeof(ushort) +
-                    // 3 bools, IOFormat, Cardinality + 3 guids
-                    53 +
+                    (sizeof(ulong) << 1) + sizeof(ulong) + sizeof(ushort) +
+                    // IOFormat, Cardinality + 3 guids
+                    50 +
                     BinaryUtils.SizeOfString(Query) +
                     BinaryUtils.SizeOfByteArray(StateData) +
-                    BinaryUtils.SizeOfByteArray(Arguments);
+                    Arguments?.Length ?? 4;
 
             }
         }

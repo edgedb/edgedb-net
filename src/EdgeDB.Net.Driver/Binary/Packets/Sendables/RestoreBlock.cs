@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary.Packets
 {
-    internal class RestoreBlock : Sendable
+    internal sealed class RestoreBlock : Sendable
     {
         public override int Size
             => BinaryUtils.SizeOfByteArray(BlockData);

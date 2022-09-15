@@ -232,8 +232,15 @@ namespace EdgeDB.Binary
             var writer = new PacketWriter(size);
 
             for (int i = 0; i != packets.Length; i++)
+            {
                 packets[i].Write(ref writer, _client);
-            
+            }
+
+            if(writer.Size != writer.Index)
+            {
+                
+            }
+
             var mem = writer.GetBytes().ToArray();
             return mem;
         }

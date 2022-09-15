@@ -183,14 +183,11 @@ namespace EdgeDB
                 var cacheKey = CodecBuilder.GetCacheHashKey(query, cardinality ?? Cardinality.Many, format);
 
                 var serializedState = Session.Serialize();
-
-                List<IReceiveable?> p = new();
-
+                
                 if (!CodecBuilder.TryGetCodecs(cacheKey, out var inCodecInfo, out var outCodecInfo))
                 {
                     bool parseHandlerPredicate(IReceiveable? packet)
                     {
-                        p.Add(packet);
                         switch (packet)
                         {
                             case ErrorResponse err when err.ErrorCode is not ServerErrorCodes.StateMismatchError:

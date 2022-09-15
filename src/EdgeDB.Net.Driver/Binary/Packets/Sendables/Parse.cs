@@ -11,14 +11,14 @@ namespace EdgeDB.Binary.Packets
     /// <summary>
     ///     https://www.edgedb.com/docs/reference/protocol/messages#prepare
     /// </summary>
-    internal class Parse : Sendable
+    internal sealed class Parse : Sendable
     {
         public override int Size
         {
             get
             {
-                return (sizeof(ulong) << 2) + sizeof(short) + 
-                    21 +
+                return (sizeof(ulong) << 1) + sizeof(short) + 
+                    16 + sizeof(ulong) + 2 +
                     BinaryUtils.SizeOfString(Query) +
                     BinaryUtils.SizeOfByteArray(StateData);
             }

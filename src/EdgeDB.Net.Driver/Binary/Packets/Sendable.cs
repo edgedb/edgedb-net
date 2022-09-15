@@ -17,6 +17,7 @@ namespace EdgeDB.Binary
         public void Write(ref PacketWriter writer, EdgeDBBinaryClient client)
         {
             // advance 5 bytes
+            var start = writer.Index;
             writer.Advance(5);
 
             // write the body of the packet
@@ -26,7 +27,7 @@ namespace EdgeDB.Binary
             var eofPosition = writer.Index;
 
             // seek back to the beginning.
-            writer.SeekToIndex(0);
+            writer.SeekToIndex(start);
 
             // write the type and size
             writer.Write((sbyte)Type);

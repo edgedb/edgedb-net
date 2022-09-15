@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary.Packets
 {
-    internal class AuthenticationSASLResponse : Sendable
+    internal sealed class AuthenticationSASLResponse : Sendable
     {
         public override ClientMessageTypes Type 
             => ClientMessageTypes.AuthenticationSASLResponse;

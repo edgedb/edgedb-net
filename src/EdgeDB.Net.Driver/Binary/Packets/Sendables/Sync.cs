@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary.Packets
 {
-    internal class Sync : Sendable
+    internal sealed class Sync : Sendable
     {
         public override int Size => 0;
         public override ClientMessageTypes Type 
