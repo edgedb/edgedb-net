@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
-    public sealed class SnakeCaseNamingStrategy : INamingStrategy
+    internal sealed class SnakeCaseNamingStrategy : INamingStrategy
     {
         public string Convert(PropertyInfo property)
             => Convert(property.Name);
