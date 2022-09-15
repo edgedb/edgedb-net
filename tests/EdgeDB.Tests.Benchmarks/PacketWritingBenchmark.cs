@@ -9,29 +9,31 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Tests.Benchmarks
 {
-    [MemoryDiagnoser]
-    public class PacketWritingBenchmark
-    {
-        [Benchmark]
-        [ArgumentsSource(nameof(Packets))]
-        public Span<byte> WritePacket(Sendable packet)
-        {
-            var p = new PacketWriter();
+    // commented out because of internalization of sendables.
 
-            packet!.Write(ref p, null!);
+    //[MemoryDiagnoser]
+    //public class PacketWritingBenchmark
+    //{
+    //    [Benchmark]
+    //    [ArgumentsSource(nameof(Packets))]
+    //    public Span<byte> WritePacket(Sendable packet)
+    //    {
+    //        var p = new PacketWriter();
 
-            return p.GetBytes();
-        }
+    //        packet!.Write(ref p, null!);
 
-        public IEnumerable<Sendable> Packets => new Sendable[]
-        {
-            new ClientHandshake()
-            {
-                MajorVersion = 1,
-                MinorVersion = 0,
-                Extensions = Array.Empty<ProtocolExtension>(),
-                ConnectionParameters = Array.Empty<ConnectionParam>(),
-            }
-        };
-    }
+    //        return p.GetBytes();
+    //    }
+
+    //    public IEnumerable<Sendable> Packets => new Sendable[]
+    //    {
+    //        new ClientHandshake()
+    //        {
+    //            MajorVersion = 1,
+    //            MinorVersion = 0,
+    //            Extensions = Array.Empty<ProtocolExtension>(),
+    //            ConnectionParameters = Array.Empty<ConnectionParam>(),
+    //        }
+    //    };
+    //}
 }

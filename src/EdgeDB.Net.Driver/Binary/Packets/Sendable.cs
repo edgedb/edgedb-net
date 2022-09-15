@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary
 {
-    public abstract class Sendable
+    internal abstract class Sendable
     {
         public abstract int Size { get; }
         

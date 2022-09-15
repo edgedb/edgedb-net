@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary
 {
-    public unsafe ref struct PacketWriter
+    internal unsafe ref struct PacketWriter
     {
         public long Index
             => _trackedPointer - _basePointer;
