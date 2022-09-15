@@ -1,6 +1,6 @@
 namespace EdgeDB.Binary.Codecs
 {
-    internal class Datetime : IScalarCodec<DateTimeOffset> // std::datetime
+    internal sealed class Datetime : IScalarCodec<DateTimeOffset> // std::datetime
     {
         public static readonly DateTimeOffset EdgedbEpoc = new(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
@@ -19,7 +19,7 @@ namespace EdgeDB.Binary.Codecs
         }
     }
 
-    internal class LocalDateTime : IScalarCodec<DateTime> // std::local_datetime
+    internal sealed class LocalDateTime : IScalarCodec<DateTime> // std::local_datetime
     {
         public static readonly DateTime EdgedbEpoc = new(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
 
@@ -38,7 +38,7 @@ namespace EdgeDB.Binary.Codecs
         }
     }
 
-    internal class LocalDate : IScalarCodec<DateOnly>
+    internal sealed class LocalDate : IScalarCodec<DateOnly>
     {
         public static readonly DateOnly EdgedbEpoc = new(2000, 1, 1);
 
@@ -77,7 +77,7 @@ namespace EdgeDB.Binary.Codecs
         }
     }
 
-    internal class RelativeDuration : IScalarCodec<TimeSpan>
+    internal sealed class RelativeDuration : IScalarCodec<TimeSpan>
     {
         public TimeSpan Deserialize(ref PacketReader reader)
         {
@@ -94,5 +94,5 @@ namespace EdgeDB.Binary.Codecs
         }
     }
 
-    internal class LocalTime : Duration { }
+    internal sealed class LocalTime : Duration { }
 }

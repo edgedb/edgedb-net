@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace EdgeDB.Utils
 {
-    internal class Scram : IDisposable
+    internal sealed class Scram : IDisposable
     {
         public const int NonceLength = 18;
 

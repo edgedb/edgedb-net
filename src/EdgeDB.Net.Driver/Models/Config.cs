@@ -25,7 +25,7 @@ namespace EdgeDB.State
     /// <summary>
     ///     Represents a session-level config.
     /// </summary>
-    public class Config
+    public sealed class Config
     {
         /// <summary>
         ///     Gets the idle transation timeout duration.

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
-    public sealed class PascalNamingStrategy : INamingStrategy
+    internal sealed class PascalNamingStrategy : INamingStrategy
     {
         public string Convert(PropertyInfo property)
             => Convert(property.Name);

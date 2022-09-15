@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace EdgeDB.ContractResolvers
 {
-    internal class RangeConverter : JsonConverter
+    internal sealed class RangeConverter : JsonConverter
     {
         public static RangeConverter Instance => new();
 

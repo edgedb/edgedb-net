@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace EdgeDB.Binary.Codecs
 {
-    internal class Tuple : ICodec<TransientTuple>
+    internal sealed class Tuple : ICodec<TransientTuple>
     {
         private readonly ICodec[] _innerCodecs;
         

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
-    public sealed class CamelCaseNamingStrategy : INamingStrategy
+    internal sealed class CamelCaseNamingStrategy : INamingStrategy
     {
         public string Convert(PropertyInfo property)
             => Convert(property.Name);

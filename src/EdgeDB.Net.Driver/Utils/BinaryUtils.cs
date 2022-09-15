@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Utils
 {
-    internal unsafe class BinaryUtils
+    internal sealed unsafe class BinaryUtils
     {
         internal static int SizeOfString(string? str)
             => str is null ? 4 : Encoding.UTF8.GetByteCount(str) + 4;

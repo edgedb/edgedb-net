@@ -1,6 +1,6 @@
 namespace EdgeDB.Binary.Codecs
 {
-    internal class Set<TInner> : ICodec<IEnumerable<TInner?>>
+    internal sealed class Set<TInner> : ICodec<IEnumerable<TInner?>>
     {
         private readonly ICodec<TInner> _innerCodec;
 

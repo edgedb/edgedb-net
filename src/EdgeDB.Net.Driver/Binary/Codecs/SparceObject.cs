@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary.Codecs
 {
-    internal class SparceObject : ICodec<object>
+    internal sealed class SparceObject : ICodec<object>
     {
         private readonly ICodec[] _innerCodecs;
         private readonly string[] _fieldNames;

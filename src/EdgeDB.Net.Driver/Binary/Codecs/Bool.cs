@@ -1,6 +1,6 @@
 namespace EdgeDB.Binary.Codecs
 {
-    internal class Bool : IScalarCodec<bool>
+    internal sealed class Bool : IScalarCodec<bool>
     {
         public bool Deserialize(ref PacketReader reader)
         {

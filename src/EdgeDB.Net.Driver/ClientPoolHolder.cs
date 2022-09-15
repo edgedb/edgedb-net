@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 
 namespace EdgeDB
 {
-    internal class ClientPoolHolder
+    internal sealed class ClientPoolHolder
     {
         private readonly SemaphoreSlim _resizeWaiter;
         private readonly List<PoolHandle> _handles;

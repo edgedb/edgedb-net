@@ -6,7 +6,7 @@ using System.Reflection;
 
 namespace EdgeDB.Binary
 {
-    internal class PacketSerializer
+    internal sealed class PacketSerializer
     {
         public static string? GetEdgeQLType(Type t)
         {
@@ -101,7 +101,6 @@ namespace EdgeDB.Binary
             { typeof(DateTime), "local_datetime" },
             { typeof(DateTimeOffset), "datetime" },
             { typeof(TimeSpan), "duration" },
-            { typeof(Sequence), "sequence" },
         };
     }
 }

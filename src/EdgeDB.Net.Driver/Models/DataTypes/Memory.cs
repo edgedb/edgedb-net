@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,7 +9,7 @@ namespace EdgeDB.DataTypes
     /// <summary>
     ///     Represents the memory type in EdgeDB.
     /// </summary>
-    public struct Memory
+    public readonly struct Memory
     {
         /// <summary>
         ///     Gets the total amount of bytes for this memory object.

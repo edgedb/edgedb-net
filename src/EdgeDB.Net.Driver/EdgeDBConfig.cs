@@ -10,7 +10,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents a config for a <see cref="EdgeDBClient"/>, extending <see cref="EdgeDBConfig"/>.
     /// </summary>
-    public class EdgeDBClientPoolConfig : EdgeDBConfig
+    public sealed class EdgeDBClientPoolConfig : EdgeDBConfig
     {
         /// <summary>
         ///     Gets or sets the default client pool size.

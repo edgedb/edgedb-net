@@ -1,4 +1,4 @@
-﻿using EdgeDB.Binary.Packets;
+using EdgeDB.Binary.Packets;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -13,9 +13,24 @@ namespace EdgeDB
     /// </summary>
     public sealed class EdgeDBErrorException : EdgeDBException
     {
+        /// <summary>
+        ///     Gets the details related to the error.
+        /// </summary>
         public string? Details { get; }
+
+        /// <summary>
+        ///     Gets the server traceback log for the error.
+        /// </summary>
         public string? ServerTraceBack { get; }
+
+        /// <summary>
+        ///     Gets the hint for the error.
+        /// </summary>
         public string? Hint { get; }
+
+        /// <summary>
+        ///     Gets the raw <see cref="Binary.Packets.ErrorResponse"/> packet.
+        /// </summary>
         public ErrorResponse ErrorResponse { get; }
 
         public EdgeDBErrorException(ErrorResponse error)

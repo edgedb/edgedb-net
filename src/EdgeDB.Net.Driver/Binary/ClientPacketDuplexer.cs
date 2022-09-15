@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 
 namespace EdgeDB.Binary
 {
-    internal class ClientPacketDuplexer
+    internal sealed class ClientPacketDuplexer
     {
         public const int PACKET_HEADER_SIZE = 5;
         public bool IsConnected

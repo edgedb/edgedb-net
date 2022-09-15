@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace EdgeDB.Binary.Codecs
 {
-    internal class BigInt : IScalarCodec<BigInteger>
+    internal sealed class BigInt : IScalarCodec<BigInteger>
     {
         public static readonly BigInteger Base = 10000;
 

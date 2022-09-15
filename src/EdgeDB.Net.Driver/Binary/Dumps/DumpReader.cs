@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 
 namespace EdgeDB.Dumps
 {
-    internal class DumpReader
+    internal sealed class DumpReader
     {
         public static (Restore Restore, IEnumerable<RestoreBlock> Blocks) ReadDatabaseDump(Stream stream)
         {

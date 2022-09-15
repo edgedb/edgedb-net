@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 
 namespace EdgeDB.Binary.Codecs
 {
-    internal class Object : ICodec<object>, IArgumentCodec<object>
+    internal sealed class Object : ICodec<object>, IArgumentCodec<object>
     {
         private readonly ICodec[] _innerCodecs;
         private readonly string[] _propertyNames;

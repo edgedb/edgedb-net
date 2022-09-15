@@ -1,6 +1,6 @@
 namespace EdgeDB.Binary.Codecs
 {
-    internal class Decimal : IScalarCodec<decimal>
+    internal sealed class Decimal : IScalarCodec<decimal>
     {
         public const decimal NBASE = 10000;
 

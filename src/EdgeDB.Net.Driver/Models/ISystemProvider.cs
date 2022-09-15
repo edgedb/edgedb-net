@@ -19,7 +19,7 @@ namespace EdgeDB.Abstractions
         string? GetEnvVariable(string name);
     }
 
-    internal class DefaultSystemProvider : ISystemProvider
+    internal sealed class DefaultSystemProvider : ISystemProvider
     {
         public char DirectorySeparatorChar
             => Path.DirectorySeparatorChar;

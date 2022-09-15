@@ -257,7 +257,7 @@ namespace EdgeDB.Binary
 
     public delegate object? TypeDeserializerFactory(ref ObjectEnumerator enumerator);
 
-    internal class TypeDeserializeInfo
+    internal sealed class TypeDeserializeInfo
     {
         public string EdgeDBTypeName { get; }
 
@@ -476,7 +476,7 @@ namespace EdgeDB.Binary
         public static implicit operator TypeDeserializerFactory(TypeDeserializeInfo info) => info._factory;
     }
 
-    internal class EdgeDBPropertyInfo
+    internal sealed class EdgeDBPropertyInfo
     {
         public string PropertyName
             => _property.Name;

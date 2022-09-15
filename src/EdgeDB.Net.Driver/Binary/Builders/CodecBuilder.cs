@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary
 {
-    internal class CodecInfo
+    internal sealed class CodecInfo
     {
         public Guid Id { get; }
         public ICodec Codec { get; }
@@ -21,7 +21,7 @@ namespace EdgeDB.Binary
         }
     }
 
-    internal class CodecBuilder
+    internal sealed class CodecBuilder
     {
         public static readonly Guid NullCodec = Guid.Empty;
         public static readonly Guid InvalidCodec = Guid.Parse("ffffffffffffffffffffffffffffffff");

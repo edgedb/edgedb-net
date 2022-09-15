@@ -1,6 +1,6 @@
 namespace EdgeDB.Binary.Codecs
 {
-    internal class Integer64 : IScalarCodec<long>
+    internal sealed class Integer64 : IScalarCodec<long>
     {
         public long Deserialize(ref PacketReader reader)
         {

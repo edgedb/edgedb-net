@@ -16,7 +16,7 @@ namespace EdgeDB
     /// </summary>
     /// <typeparam name="TKey">The type of the key used to group the elements.</typeparam>
     /// <typeparam name="TElement">The type of the elements.</typeparam>
-    public class Group<TKey, TElement> : IGrouping<TKey, TElement>
+    public sealed class Group<TKey, TElement> : IGrouping<TKey, TElement>
     {
         /// <summary>
         ///     Gets the key used to group the set of <see cref="Elements"/>.

@@ -17,7 +17,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents the returned data from a http-based query.
     /// </summary>
-    internal class HttpQueryResult : IExecuteResult
+    internal sealed class HttpQueryResult : IExecuteResult
     {
         /// <summary>
         ///     Gets or sets the data returned from the query.

@@ -1,6 +1,6 @@
 namespace EdgeDB.Binary.Codecs
 {
-    internal class Memory : IScalarCodec<DataTypes.Memory>
+    internal sealed class Memory : IScalarCodec<DataTypes.Memory>
     {
         public DataTypes.Memory Deserialize(ref PacketReader reader)
         {

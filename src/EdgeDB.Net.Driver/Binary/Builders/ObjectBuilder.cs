@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 
 namespace EdgeDB.Binary
 {
-    internal class ObjectBuilder
+    internal sealed class ObjectBuilder
     {
         public static TType? BuildResult<TType>(ICodec codec, ref Data data)
         {

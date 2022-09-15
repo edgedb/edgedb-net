@@ -2,7 +2,7 @@ using System.Text;
 
 namespace EdgeDB.Binary.Codecs
 {
-    internal class Json : IScalarCodec<DataTypes.Json>
+    internal sealed class Json : IScalarCodec<DataTypes.Json>
     {
         public DataTypes.Json Deserialize(ref PacketReader reader)
         {

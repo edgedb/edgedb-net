@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary.Codecs
 {
-    internal class RangeCodec<T> : ICodec<Range<T>>
+    internal sealed class RangeCodec<T> : ICodec<Range<T>>
         where T : struct
     {
         private ICodec<T> _innerCodec;

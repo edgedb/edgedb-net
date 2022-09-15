@@ -3,7 +3,7 @@ using System.Text;
 
 namespace EdgeDB.Binary.Codecs
 {
-    internal class Text : IScalarCodec<string>
+    internal sealed class Text : IScalarCodec<string>
     {
         public string Deserialize(ref PacketReader reader)
         {

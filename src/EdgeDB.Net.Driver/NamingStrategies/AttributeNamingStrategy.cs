@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
-    public sealed class AttributeNamingStrategy : INamingStrategy
+    internal sealed class AttributeNamingStrategy : INamingStrategy
     {
         public string Convert(PropertyInfo property)
         {
