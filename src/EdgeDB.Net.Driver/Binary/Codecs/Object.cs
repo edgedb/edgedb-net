@@ -50,7 +50,7 @@ namespace EdgeDB.Binary.Codecs
 
         public void Initialize(Type target)
         {
-            if (_initialized)
+            if (_initialized && target == _targetType)
                 return;
 
             _targetType = target;

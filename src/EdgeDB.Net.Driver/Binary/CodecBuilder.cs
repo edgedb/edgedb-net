@@ -96,6 +96,8 @@ namespace EdgeDB
                         _ => throw new MissingCodecException($"Could not find a type descriptor with type {typeDescriptor.Id:X2}. Please file a bug report with your query that caused this error.")
                     };
 
+                    codecs.Add(codec);
+
                     _codecCache[typeDescriptor.Id] = codec;
                 }
             }
