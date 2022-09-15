@@ -52,7 +52,7 @@ namespace EdgeDB.Binary.Codecs
             return array;
         }
 
-        public void Serialize(PacketWriter writer, IEnumerable<TInner?>? value)
+        public void Serialize(ref PacketWriter writer, IEnumerable<TInner?>? value)
         {
             if(value is null)
             {
@@ -62,25 +62,6 @@ namespace EdgeDB.Binary.Codecs
 
             var elements = value.ToArray(); // convert to array to prevent the reference from changing while we serialize
 
-            var elementWriter = new PacketWriter();
-
-            for(int i = 0; i != elements.Length; i++)
-            {
-                var element = elements[i];
-
-                if(element is null)
-                {
-                    elementWriter.Write(-1);
-                }
-                else
-                {
-                    var subWriter = new PacketWriter();
-                    _innerCodec.Serialize(subWriter, element);
-                    elementWriter.Write((int)subWriter.Length);
-                    elementWriter.Write(subWriter);
-                }
-            }
-
             writer.Write(1); // num dimensions
             writer.Write(0); // reserved
             writer.Write(0); // reserved
@@ -88,9 +69,20 @@ namespace EdgeDB.Binary.Codecs
             // dimension (our length for upper and 1 for lower)
             writer.Write(elements.Length); 
             writer.Write(1);
+            
+            for(int i = 0; i != elements.Length; i++)
+            {
+                var element = elements[i];
 
-            // write our serialized elements
-            writer.Write(elementWriter);
+                if(element is null)
+                {
+                    writer.Write(-1);
+                }
+                else
+                {
+                    writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => _innerCodec.Serialize(ref innerWriter, element));
+                }
+            }
         }
     }
 }

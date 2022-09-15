@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary
 {
-	internal enum ClientMessageTypes : sbyte
+    public enum ClientMessageTypes : sbyte
     {
 		AuthenticationSASLInitialResponse = 0x70,
 		AuthenticationSASLResponse = 0x72,

@@ -48,7 +48,7 @@ namespace EdgeDB.Binary.Codecs
             return new TransientTuple(_innerCodecs.Select(x => x.ConverterType).ToArray(), values);
         }
 
-        public void Serialize(PacketWriter writer, TransientTuple value)
+        public void Serialize(ref PacketWriter writer, TransientTuple value)
         {
             throw new NotSupportedException("Tuples cannot be passed in query arguments");
         }

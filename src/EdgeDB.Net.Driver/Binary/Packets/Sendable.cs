@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,24 +6,34 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary
 {
-    internal abstract class Sendable
+    public abstract class Sendable
     {
+        public abstract int Size { get; }
+        
         public abstract ClientMessageTypes Type { get;}
 
-        protected abstract void BuildPacket(PacketWriter writer, EdgeDBBinaryClient client);
+        protected abstract void BuildPacket(ref PacketWriter writer, EdgeDBBinaryClient client);
 
-        public void Write(PacketWriter writer, EdgeDBBinaryClient client)
+        public void Write(ref PacketWriter writer, EdgeDBBinaryClient client)
         {
-            using var stream = new MemoryStream();
+            // advance 5 bytes
+            writer.Advance(5);
 
-            BuildPacket(new PacketWriter(stream), client);
+            // write the body of the packet
+            BuildPacket(ref writer, client);
 
-            var data = stream.ToArray();
+            // store the index after writing the body
+            var eofPosition = writer.Index;
 
+            // seek back to the beginning.
+            writer.SeekToIndex(0);
+
+            // write the type and size
             writer.Write((sbyte)Type);
-            var l = stream.Length;
-            writer.Write((uint)l + 4);
-            writer.Write(data);
+            writer.Write((uint)Size + 4);
+
+            // go back to eof
+            writer.SeekToIndex(eofPosition);
         }
     }
 }

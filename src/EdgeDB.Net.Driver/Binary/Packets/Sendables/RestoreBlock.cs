@@ -1,4 +1,5 @@
-﻿using System;
+using EdgeDB.Utils;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,12 +9,15 @@ namespace EdgeDB.Binary.Packets
 {
     internal class RestoreBlock : Sendable
     {
+        public override int Size
+            => BinaryUtils.SizeOfByteArray(BlockData);
+
         public override ClientMessageTypes Type 
             => ClientMessageTypes.RestoreBlock;
 
         public byte[]? BlockData { get; set; }
 
-        protected override void BuildPacket(PacketWriter writer, EdgeDBBinaryClient client)
+        protected override void BuildPacket(ref PacketWriter writer, EdgeDBBinaryClient client)
         {
             writer.WriteArray(BlockData!);
         }

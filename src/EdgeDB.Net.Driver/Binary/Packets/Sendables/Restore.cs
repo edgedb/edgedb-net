@@ -1,4 +1,5 @@
-﻿using System;
+using EdgeDB.Utils;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,6 +9,9 @@ namespace EdgeDB.Binary.Packets
 {
     internal class Restore : Sendable
     {
+        public override int Size
+            => BinaryUtils.SizeOfAnnotations(Headers) + sizeof(ushort) + BinaryUtils.SizeOfByteArray(HeaderData);
+
         public override ClientMessageTypes Type 
             => ClientMessageTypes.Restore;
 
@@ -17,7 +21,7 @@ namespace EdgeDB.Binary.Packets
 
         public byte[]? HeaderData { get; set; }
 
-        protected override void BuildPacket(PacketWriter writer, EdgeDBBinaryClient client)
+        protected override void BuildPacket(ref PacketWriter writer, EdgeDBBinaryClient client)
         {
             writer.Write(Headers);
             writer.Write(Jobs);

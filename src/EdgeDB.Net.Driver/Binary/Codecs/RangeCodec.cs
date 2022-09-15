@@ -41,7 +41,7 @@ namespace EdgeDB.Binary.Codecs
             return new Range<T>(lowerBound, upperBound, (flags & RangeFlags.IncudeLowerBound) != 0, (flags & RangeFlags.IncludeUpperBound) != 0);
         }
 
-        public void Serialize(PacketWriter writer, Range<T> value)
+        public void Serialize(ref PacketWriter writer, Range<T> value)
         {
             var flags = value.IsEmpty
                 ? RangeFlags.Empty
@@ -54,18 +54,12 @@ namespace EdgeDB.Binary.Codecs
             
             if(value.Lower.HasValue)
             {
-                var lowerWriter = new PacketWriter();
-                _innerCodec.Serialize(value.Lower.Value);
-                writer.Write((int)lowerWriter.Length);
-                writer.Write(lowerWriter);
+                writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => _innerCodec.Serialize(ref innerWriter, value.Lower.Value));
             }
 
             if (value.Upper.HasValue)
             {
-                var upperWriter = new PacketWriter();
-                _innerCodec.Serialize(value.Upper.Value);
-                writer.Write((int)upperWriter.Length);
-                writer.Write(upperWriter);
+                writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => _innerCodec.Serialize(ref innerWriter, value.Upper.Value));
             }
         }
 

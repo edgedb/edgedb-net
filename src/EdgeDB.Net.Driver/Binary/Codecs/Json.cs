@@ -14,7 +14,7 @@ namespace EdgeDB.Binary.Codecs
             return new DataTypes.Json(data);
         }
 
-        public void Serialize(PacketWriter writer, DataTypes.Json value)
+        public void Serialize(ref PacketWriter writer, DataTypes.Json value)
         {
             byte[] jsonData = Encoding.UTF8.GetBytes(value.Value ?? "");
 

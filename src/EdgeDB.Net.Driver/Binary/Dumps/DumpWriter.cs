@@ -3,7 +3,7 @@ using EdgeDB.Binary.Packets;
 
 namespace EdgeDB.Dumps
 {
-    internal class DumpWriter : IDisposable
+    internal ref struct DumpWriter
     {
         public const long DumpVersion = 1;
         public const int FileFormatLength = 17;
@@ -26,12 +26,12 @@ namespace EdgeDB.Dumps
         private static byte[] Version
             => BitConverter.GetBytes((long)1).Reverse().ToArray();
 
-        private readonly Stream _stream;
+        public Span<byte> Data => _writer.GetBytes();
+
         private readonly PacketWriter _writer;
-        public DumpWriter(Stream output)
+        public DumpWriter(int size)
         {
-            _stream = output;
-            _writer = new PacketWriter(_stream);
+            _writer = new PacketWriter(size);
 
             _writer.Write(FileFormat);
             _writer.Write(Version);
@@ -43,20 +43,19 @@ namespace EdgeDB.Dumps
             _writer.Write(header.Hash.ToArray());
             _writer.Write(header.Length);
             _writer.Write(header.Raw);
-
-            _writer.Flush();
         }
 
-        public void WriteDumpBlock(DumpBlock block)
+        public void WriteDumpBlocks(List<DumpBlock> blocks)
         {
-            _writer.Write('D');
-            _writer.Write(block.HashBuffer);
-            _writer.Write(block.Length);
-            _writer.Write(block.Raw);
-
-            _writer.Flush();
+            for(int i = 0; i != blocks.Count; i++)
+            {
+                var block = blocks[i];
+                
+                _writer.Write('D');
+                _writer.Write(block.HashBuffer);
+                _writer.Write(block.Length);
+                _writer.Write(block.Raw);
+            }
         }
-
-        public void Dispose() => _writer.Dispose();
     }
 }

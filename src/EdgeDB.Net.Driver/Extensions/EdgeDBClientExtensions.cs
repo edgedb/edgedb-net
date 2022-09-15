@@ -1,6 +1,7 @@
 using EdgeDB.Binary;
 using EdgeDB.Binary.Packets;
 using EdgeDB.Dumps;
+using System.Runtime.InteropServices;
 
 namespace EdgeDB
 {
@@ -127,7 +128,8 @@ namespace EdgeDB
                 token.Register(() => tcs.SetCanceled(token));
 
                 var stream = new MemoryStream();
-                var writer = new DumpWriter(stream);
+                List<DumpBlock> blocks = new();
+
 
                 var handler = (IReceiveable msg) =>
                 {
@@ -138,7 +140,7 @@ namespace EdgeDB
                             break;
                         case DumpBlock block:
                             {
-                                writer.WriteDumpBlock(block);
+                                blocks.Add(block);
                             }
                             break;
                         case ErrorResponse error:
@@ -166,9 +168,9 @@ namespace EdgeDB
                     throw new UnexpectedMessageException(ServerMessageType.DumpHeader, dump.Type);
                 }
 
-                writer.WriteDumpHeader(dumpHeader);
-
                 await tcs.Task.ConfigureAwait(false);
+
+                WriteDumpDataToStream(stream, ref dumpHeader, blocks);
 
                 client.Duplexer.OnMessage -= handler;
 
@@ -179,6 +181,15 @@ namespace EdgeDB
             {
                 throw new TimeoutException("Database dump timed out", x);
             }
+        }
+
+        private static void WriteDumpDataToStream(Stream stream, ref DumpHeader header, List<DumpBlock> blocks)
+        {
+            var writer = new DumpWriter(Marshal.SizeOf(header) + blocks.Sum(x => Marshal.SizeOf(x)));
+            writer.WriteDumpHeader(header);
+            writer.WriteDumpBlocks(blocks);
+
+            stream.Write(writer.Data);
         }
 
         /// <summary>

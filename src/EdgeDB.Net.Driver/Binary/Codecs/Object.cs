@@ -106,12 +106,12 @@ namespace EdgeDB.Binary.Codecs
             }
         }
 
-        public void Serialize(PacketWriter writer, object? value)
+        public void Serialize(ref PacketWriter writer, object? value)
         {
             throw new NotImplementedException();
         }
 
-        public void SerializeArguments(PacketWriter writer, object? value)
+        public void SerializeArguments(ref PacketWriter writer, object? value)
         {
             object?[]? values = null;
 
@@ -125,19 +125,20 @@ namespace EdgeDB.Binary.Codecs
                 throw new ArgumentException($"Expected dynamic object or array but got {value?.GetType()?.Name ?? "null"}");
             }
 
-            using var innerWriter = new PacketWriter();
+            writer.Write(values.Length);
+
             for (int i = 0; i != values.Length; i++)
             {
                 var element = values[i];
                 var innerCodec = _innerCodecs[i];
 
                 // reserved
-                innerWriter.Write(0);
+                writer.Write(0);
 
                 // encode
                 if (element is null)
                 {
-                    innerWriter.Write(-1);
+                    writer.Write(-1);
                 }
                 else
                 {
@@ -145,16 +146,9 @@ namespace EdgeDB.Binary.Codecs
                     if (element.GetType().IsEnum && innerCodec is Text)
                         element = element.ToString();
 
-                    var elementBuff = innerCodec.Serialize(element);
-
-                    innerWriter.Write(elementBuff.Length);
-                    innerWriter.Write(elementBuff);
+                    writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => innerCodec.Serialize(ref innerWriter, element));
                 }
             }
-
-            writer.Write((int)innerWriter.BaseStream.Length + 4);
-            writer.Write(values.Length);
-            writer.Write(innerWriter);
         }
     }
 }

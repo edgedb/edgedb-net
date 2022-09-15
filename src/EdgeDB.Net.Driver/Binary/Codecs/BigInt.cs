@@ -39,7 +39,7 @@ namespace EdgeDB.Binary.Codecs
             return BigInteger.Parse(result);
         }
 
-        public void Serialize(PacketWriter writer, BigInteger value)
+        public void Serialize(ref PacketWriter writer, BigInteger value)
         {
             if(value == 0)
             {

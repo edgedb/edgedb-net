@@ -18,7 +18,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents an abstract binary client.
     /// </summary>
-    internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient, ITransactibleClient
+    public abstract class EdgeDBBinaryClient : BaseEdgeDBClient, ITransactibleClient
     {
         /// <summary>
         ///     The major version of the protocol that this client supports.

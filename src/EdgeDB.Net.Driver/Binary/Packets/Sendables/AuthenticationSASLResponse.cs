@@ -1,4 +1,5 @@
-﻿using System;
+using EdgeDB.Utils;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,6 +12,9 @@ namespace EdgeDB.Binary.Packets
         public override ClientMessageTypes Type 
             => ClientMessageTypes.AuthenticationSASLResponse;
 
+        public override int Size
+            => BinaryUtils.SizeOfByteArray(_payload);
+
         private readonly byte[] _payload;
 
         public AuthenticationSASLResponse(byte[] payload)
@@ -18,7 +22,7 @@ namespace EdgeDB.Binary.Packets
             _payload = payload;
         }
 
-        protected override void BuildPacket(PacketWriter writer, EdgeDBBinaryClient client)
+        protected override void BuildPacket(ref PacketWriter writer, EdgeDBBinaryClient client)
         {
             writer.WriteArray(_payload);
         }

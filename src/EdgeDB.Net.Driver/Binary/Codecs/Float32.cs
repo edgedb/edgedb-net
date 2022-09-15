@@ -7,7 +7,7 @@ namespace EdgeDB.Binary.Codecs
             return reader.ReadSingle();
         }
 
-        public void Serialize(PacketWriter writer, float value)
+        public void Serialize(ref PacketWriter writer, float value)
         {
             writer.Write(value);
         }

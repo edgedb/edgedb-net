@@ -1,4 +1,5 @@
-﻿using System;
+using EdgeDB.Utils;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,12 +9,13 @@ namespace EdgeDB.Binary.Packets
 {
     internal class Dump : Sendable
     {
+        public override int Size => sizeof(ushort) + BinaryUtils.SizeOfAnnotations(Attributes);
         public override ClientMessageTypes Type 
             => ClientMessageTypes.Dump;
 
         public Annotation[]? Attributes { get; set; }
 
-        protected override void BuildPacket(PacketWriter writer, EdgeDBBinaryClient client)
+        protected override void BuildPacket(ref PacketWriter writer, EdgeDBBinaryClient client)
         {
             writer.Write(Attributes);
         }

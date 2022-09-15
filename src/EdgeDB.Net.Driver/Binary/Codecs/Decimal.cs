@@ -51,7 +51,7 @@ namespace EdgeDB.Binary.Codecs
             return decimal.Parse(value);
         }
 
-        public void Serialize(PacketWriter writer, decimal value)
+        public void Serialize(ref PacketWriter writer, decimal value)
         {
             // TODO https://www.edgedb.com/docs/reference/protocol/dataformats#std-decimal
             throw new NotSupportedException();

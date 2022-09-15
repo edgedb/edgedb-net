@@ -12,16 +12,16 @@ namespace EdgeDB.Binary.Codecs
         public IEnumerable<TInner?>? Deserialize(ref PacketReader reader)
         {
             if (_innerCodec is Array<TInner>)
-                return DecodeSetOfArrays(reader);
-            else return DecodeSet(reader);
+                return DecodeSetOfArrays(ref reader);
+            else return DecodeSet(ref reader);
         }
 
-        public void Serialize(PacketWriter writer, IEnumerable<TInner?>? value)
+        public void Serialize(ref PacketWriter writer, IEnumerable<TInner?>? value)
         {
             throw new NotImplementedException();
         }
 
-        private IEnumerable<TInner?>? DecodeSetOfArrays(PacketReader reader)
+        private IEnumerable<TInner?>? DecodeSetOfArrays(ref PacketReader reader)
         {
             var dimensions = reader.ReadInt32();
 
@@ -64,7 +64,7 @@ namespace EdgeDB.Binary.Codecs
             return result;
         }
 
-        private IEnumerable<TInner?>? DecodeSet(PacketReader reader)
+        private IEnumerable<TInner?>? DecodeSet(ref PacketReader reader)
         {
             var dimensions = reader.ReadInt32();
 

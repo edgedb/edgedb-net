@@ -1,4 +1,3 @@
-using EdgeDB.Binary;
 using EdgeDB.Binary.Codecs;
 using System;
 using System.Collections.Concurrent;
@@ -8,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB
+namespace EdgeDB.Binary
 {
     internal class CodecInfo
     {
@@ -95,6 +94,8 @@ namespace EdgeDB
                         SetTypeDescriptor set                 => (ICodec)Activator.CreateInstance(typeof(Set<>).MakeGenericType(codecs[set.TypePos].ConverterType), codecs[set.TypePos])!,
                         _ => throw new MissingCodecException($"Could not find a type descriptor with type {typeDescriptor.Id:X2}. Please file a bug report with your query that caused this error.")
                     };
+
+                    codecs.Add(codec);
 
                     _codecCache[typeDescriptor.Id] = codec;
                 }

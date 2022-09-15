@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -12,6 +12,9 @@ namespace EdgeDB.Binary
     /// </summary>
     public readonly struct ProtocolExtension
     {
+        public int Size
+            => Encoding.UTF8.GetByteCount(Name) + _annotations.Sum(x => x.Size);
+
         /// <summary>
         ///     Gets the name of the protocol extension.
         /// </summary>
@@ -30,9 +33,10 @@ namespace EdgeDB.Binary
             _annotations = reader.ReadAnnotations();
         }
 
-        internal void Write(PacketWriter writer)
+        internal void Write(ref PacketWriter writer)
         {
             writer.Write(Name);
+            writer.Write(_annotations);
         }
     }
 }

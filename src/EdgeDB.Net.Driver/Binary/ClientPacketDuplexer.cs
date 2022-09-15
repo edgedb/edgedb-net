@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace EdgeDB.Binary
 {
@@ -221,15 +222,20 @@ namespace EdgeDB.Binary
 
             if (_stream == null || !IsConnected)
                 throw new EdgeDBException("Cannot send message to a closed connection");
+            
+            await _stream.WriteAsync(BuildPackets(packets), linkedToken.Token).ConfigureAwait(false);
+        }
 
-            using var ms = new MemoryStream();
-            foreach (var packet in packets)
-            {
-                using var writer = new PacketWriter(ms);
-                packet.Write(writer, _client);
-            }
+        private byte[] BuildPackets(Sendable[] packets)
+        {
+            var size = packets.Sum(x => x.Size + 5);
+            var writer = new PacketWriter(size);
 
-            await _stream.WriteAsync(ms.ToArray(), linkedToken.Token).ConfigureAwait(false);
+            for (int i = 0; i != packets.Length; i++)
+                packets[i].Write(ref writer, _client);
+            
+            var mem = writer.GetBytes().ToArray();
+            return mem;
         }
 
         public async Task<IReceiveable> NextAsync(Predicate<IReceiveable>? predicate = null, bool alwaysReturnError = true, CancellationToken token = default)

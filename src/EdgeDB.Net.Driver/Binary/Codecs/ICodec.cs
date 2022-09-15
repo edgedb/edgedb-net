@@ -4,24 +4,24 @@ namespace EdgeDB.Binary.Codecs
 {
     internal interface IArgumentCodec<TType> : IArgumentCodec, ICodec<TType>
     {
-        void SerializeArguments(PacketWriter writer, TType? value);
+        void SerializeArguments(ref PacketWriter writer, TType? value);
     }
 
     internal interface IArgumentCodec
     {
-        void SerializeArguments(PacketWriter writer, object? value);
+        void SerializeArguments(ref PacketWriter writer, object? value);
 
         byte[] SerializeArguments(object? value)
         {
-            using var writer = new PacketWriter();
-            SerializeArguments(writer, value);
-            return writer.GetBytes();
+            var writer = new PacketWriter();
+            SerializeArguments(ref writer, value);
+            return writer.GetBytes().ToArray();
         }
     }
 
     internal interface ICodec<TConverter> : ICodec
     {
-        void Serialize(PacketWriter writer, TConverter? value);
+        void Serialize(ref PacketWriter writer, TConverter? value);
 
         new TConverter? Deserialize(ref PacketReader reader);
 
@@ -40,16 +40,16 @@ namespace EdgeDB.Binary.Codecs
         byte[] Serialize(TConverter? value)
         {
             var writer = new PacketWriter();
-            Serialize(writer, value);
-            return writer.GetBytes();
+            Serialize(ref writer, value);
+            return writer.GetBytes().ToArray();
         }
 
         // ICodec
         object? ICodec.Deserialize(ref PacketReader reader) 
             => Deserialize(ref reader);
 
-        void ICodec.Serialize(PacketWriter writer, object? value) 
-            => Serialize(writer, (TConverter?)value);
+        void ICodec.Serialize(ref PacketWriter writer, object? value) 
+            => Serialize(ref writer, (TConverter?)value);
 
         Type ICodec.ConverterType 
             => typeof(TConverter);
@@ -64,7 +64,7 @@ namespace EdgeDB.Binary.Codecs
 
         Type ConverterType { get; }
 
-        void Serialize(PacketWriter writer, object? value);
+        void Serialize(ref PacketWriter writer, object? value);
 
         object? Deserialize(ref PacketReader reader);
 
@@ -83,8 +83,8 @@ namespace EdgeDB.Binary.Codecs
         byte[] Serialize(object? value)
         {
             var writer = new PacketWriter();
-            Serialize(writer, value);
-            return writer.GetBytes();
+            Serialize(ref writer, value);
+            return writer.GetBytes().ToArray();
         }
 
         private static readonly List<ICodec> _codecs;

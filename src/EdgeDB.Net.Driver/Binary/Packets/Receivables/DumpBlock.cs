@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+using EdgeDB.Utils;
+using System.Collections.Immutable;
 using System.Security.Cryptography;
 
 namespace EdgeDB.Binary.Packets
@@ -8,6 +9,9 @@ namespace EdgeDB.Binary.Packets
     /// </summary>
     public readonly struct DumpBlock : IReceiveable
     {
+        internal int Size
+            => sizeof(int) + BinaryUtils.SizeOfByteArray(Raw) + BinaryUtils.SizeOfByteArray(HashBuffer);
+
         /// <inheritdoc/>
         public ServerMessageType Type 
             => ServerMessageType.DumpBlock;

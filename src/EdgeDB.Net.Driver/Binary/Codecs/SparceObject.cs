@@ -63,7 +63,7 @@ namespace EdgeDB.Binary.Codecs
             return data;
         }
 
-        public void Serialize(PacketWriter writer, object? value)
+        public void Serialize(ref PacketWriter writer, object? value)
         {
             if (value is not IDictionary<string, object?> dict)
                 throw new InvalidOperationException($"Cannot serialize {value?.GetType() ?? Type.Missing} as a sparce object.");
@@ -89,11 +89,8 @@ namespace EdgeDB.Binary.Codecs
                     writer.Write(-1);
                 else
                 {
-                    using var subWriter = new PacketWriter();
                     var codec = _innerCodecs[index];
-                    codec.Serialize(subWriter, element.Value);
-                    writer.Write((int)subWriter.Length);
-                    writer.Write(subWriter);
+                    writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => codec.Serialize(ref innerWriter, element.Value));
                 }
             }
         }

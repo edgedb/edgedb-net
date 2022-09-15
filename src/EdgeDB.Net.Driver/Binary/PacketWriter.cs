@@ -1,42 +1,74 @@
 using EdgeDB.Binary;
 using EdgeDB.Utils;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace EdgeDB.Binary
 {
-    internal unsafe class PacketWriter : BinaryWriter
+    public unsafe ref struct PacketWriter
     {
-        public long Length
-            => base.OutStream.Length;
+        public long Index
+            => _trackedPointer - _basePointer;
+        
+        private readonly int _size;
+        private Span<byte> _span;
+        private byte* _trackedPointer;
+        private byte* _basePointer;
+
+        public PacketWriter(int size)
+        {
+            _span = new byte[size];
+            _trackedPointer = (byte*)Unsafe.AsPointer(ref _span.GetPinnableReference());
+            _basePointer = (byte*)Unsafe.AsPointer(ref _span.GetPinnableReference());
+            _size = size;
+        }
 
         public PacketWriter()
-            : base(new MemoryStream())
+            : this(512)
         {
-
+            
         }
 
-        public PacketWriter(Stream stream)
-            : base(stream, Encoding.UTF8, true)
+        private void Resize()
         {
-
+            var newSize = _size > 2048 ? _size + 2048 : _size << 1;
+            var index = Index;
+            Span<byte> newSpan = new byte[newSize];
+            _span.CopyTo(newSpan);
+            _span = newSpan;
+            _basePointer = (byte*)Unsafe.AsPointer(ref _span.GetPinnableReference());
+            _trackedPointer = _basePointer + index;
         }
 
-        public byte[] GetBytes()
+        public void SeekToIndex(long index)
+            => _trackedPointer = _basePointer + index;
+
+        public void Advance(long count)
+            => _trackedPointer += count;
+
+        public Span<byte> GetBytes()
+            => _span[..(int)Index];
+
+        public delegate void WriteAction(ref PacketWriter writer);
+        public void WriteToWithInt32Length(WriteAction action)
         {
-            if (BaseStream is not MemoryStream ms)
-                throw new InvalidOperationException();
-
-            ms.Position = 0;
-
-            return ms.ToArray();
+            var currentIndex = Index;
+            Advance(sizeof(int));
+            action(ref this);
+            var lastIndex = Index;
+            SeekToIndex(currentIndex);
+            Write((int)(lastIndex - currentIndex - sizeof(int)));
+            SeekToIndex(lastIndex);
         }
-
+        
         public void Write(IEnumerable<KeyValue>? headers)
         {
             // write length
@@ -67,10 +99,18 @@ namespace EdgeDB.Binary
             }
         }
 
-        public void Write(PacketWriter value, int offset = 0)
+        private void WriteRaw(void* ptr, uint count)
         {
-            value.BaseStream.Position = offset;
-            value.BaseStream.CopyTo(base.BaseStream);
+            if (Index + count > _size)
+                Resize();
+
+            Unsafe.CopyBlock(_trackedPointer, ptr, count);
+            _trackedPointer += count;
+        }
+
+        public void Write(ref PacketWriter value)
+        {
+            WriteRaw(value._basePointer, (uint)value.Index);
         }
 
         public void Write(KeyValue header)
@@ -85,7 +125,15 @@ namespace EdgeDB.Binary
             Write(bytes);
         }
 
-        public override void Write(string value)
+        public void Write(byte[] array)
+        {
+            fixed (byte* ptr = array)
+            {
+                WriteRaw(ptr, (uint)array.Length);
+            }
+        }
+
+        public void Write(string value)
         {
             if (value is null)
                 Write((uint)0);
@@ -97,46 +145,59 @@ namespace EdgeDB.Binary
             }
         }
 
-        private void UnsafeWrite<T>(T value)
+        private void UnsafeWrite<T>(ref T value)
             where T : unmanaged
         {
-            var span = new Span<byte>(&value, sizeof(T));
-            if (BitConverter.IsLittleEndian)
-                span.Reverse();
-            Write(span);
+            BinaryUtils.CorrectEndianness(ref value);
+            fixed (T* ptr = &value)
+            {
+                WriteRaw(ptr, (uint)sizeof(T));
+            }
         }
 
-        public override void Write(double value)
-            => UnsafeWrite(value);
+        public void Write(double value)
+            => UnsafeWrite(ref value);
 
-        public override void Write(float value)
-            => UnsafeWrite(value);
+        public void Write(float value)
+            => UnsafeWrite(ref value);
 
-        public override void Write(uint value)
-            => UnsafeWrite(value);
+        public void Write(ulong value)
+            => UnsafeWrite(ref value);
 
-        public override void Write(int value)
-            => UnsafeWrite(value);
+        public void Write(long value)
+            => UnsafeWrite(ref value);
 
-        public override void Write(ulong value)
-            => UnsafeWrite(value);
+        public void Write(uint value)
+            => UnsafeWrite(ref value);
 
-        public override void Write(long value)
-            => UnsafeWrite(value);
+        public void Write(int value)
+            => UnsafeWrite(ref value);
 
-        public override void Write(short value)
-            => UnsafeWrite(value);
+        public void Write(short value)
+            => UnsafeWrite(ref value);
 
-        public override void Write(ushort value)
-            => UnsafeWrite(value);
+        public void Write(ushort value)
+            => UnsafeWrite(ref value);
+
+        public void Write(byte value)
+            => UnsafeWrite(ref value);
+
+        public void Write(sbyte value)
+            => UnsafeWrite(ref value);
+
+        public void Write(char value)
+            => UnsafeWrite(ref value);
+
+        public void Write(bool value)
+            => UnsafeWrite(ref value);
 
         public void WriteArray(byte[] buffer)
         {
             Write((uint)buffer.Length);
-            base.Write(buffer);
+            Write(buffer);
         }
 
         public void WriteArrayWithoutLength(byte[] buffer)
-            => base.Write(buffer);
+            => Write(buffer);
     }
 }

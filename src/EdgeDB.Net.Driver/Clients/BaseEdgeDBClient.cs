@@ -6,7 +6,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents a base edgedb client that can interaction with the EdgeDB database.
     /// </summary>
-    internal abstract class BaseEdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
+    public abstract class BaseEdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     {
         /// <summary>
         ///     Gets whether or not this client has connected to the database and 

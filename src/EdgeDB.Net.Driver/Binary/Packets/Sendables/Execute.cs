@@ -1,4 +1,5 @@
-﻿using System;
+using EdgeDB.Utils;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,6 +9,22 @@ namespace EdgeDB.Binary.Packets
 {
     internal class Execute : Sendable
     {
+        public override int Size
+        {
+            get
+            {
+                return
+                    // Capabilities and implicit limit + annotations (none)
+                    (sizeof(ulong) << 2) + sizeof(ushort) +
+                    // 3 bools, IOFormat, Cardinality + 3 guids
+                    53 +
+                    BinaryUtils.SizeOfString(Query) +
+                    BinaryUtils.SizeOfByteArray(StateData) +
+                    BinaryUtils.SizeOfByteArray(Arguments);
+
+            }
+        }
+
         public override ClientMessageTypes Type 
             => ClientMessageTypes.Execute;
 
@@ -37,7 +54,7 @@ namespace EdgeDB.Binary.Packets
 
         public byte[]? Arguments { get; set; }
 
-        protected override void BuildPacket(PacketWriter writer, EdgeDBBinaryClient client)
+        protected override void BuildPacket(ref PacketWriter writer, EdgeDBBinaryClient client)
         {
             if (Query is null)
                 throw new ArgumentException("Command cannot be null");

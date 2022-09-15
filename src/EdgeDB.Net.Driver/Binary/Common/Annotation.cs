@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,6 +11,8 @@ namespace EdgeDB.Binary
     /// </summary>
     public readonly struct Annotation
     {
+        public int Size => Encoding.UTF8.GetByteCount(Name) + Encoding.UTF8.GetByteCount(Value);
+
         /// <summary>
         ///     Gets the name of this annotation.
         /// </summary>

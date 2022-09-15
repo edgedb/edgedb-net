@@ -11,7 +11,7 @@ namespace EdgeDB.Binary.Codecs
             return EdgedbEpoc.AddTicks(val * 10);
         }
 
-        public void Serialize(PacketWriter writer, DateTimeOffset value)
+        public void Serialize(ref PacketWriter writer, DateTimeOffset value)
         {
             var v = (value - EdgedbEpoc).Ticks;
 
@@ -30,7 +30,7 @@ namespace EdgeDB.Binary.Codecs
             return EdgedbEpoc.AddTicks(val * 10);
         }
 
-        public void Serialize(PacketWriter writer, DateTime value)
+        public void Serialize(ref PacketWriter writer, DateTime value)
         {
             var v = (value - EdgedbEpoc).Ticks;
 
@@ -42,7 +42,7 @@ namespace EdgeDB.Binary.Codecs
     {
         public static readonly DateOnly EdgedbEpoc = new(2000, 1, 1);
 
-        public void Serialize(PacketWriter writer, DateOnly value)
+        public void Serialize(ref PacketWriter writer, DateOnly value)
         {
             var days = (int)Math.Floor((value.ToDateTime(default) - EdgedbEpoc.ToDateTime(default)).TotalDays);
             writer.Write(days);
@@ -71,7 +71,7 @@ namespace EdgeDB.Binary.Codecs
             return TimeSpan.FromTicks(microseconds * 10);
         }
 
-        public void Serialize(PacketWriter writer, TimeSpan value)
+        public void Serialize(ref PacketWriter writer, TimeSpan value)
         {
             writer.Write(value.Ticks / 10);
         }
@@ -88,7 +88,7 @@ namespace EdgeDB.Binary.Codecs
             return new TimeSpan(microseconds * 10).Add(TimeSpan.FromDays(days + months * 31));
         }
 
-        public void Serialize(PacketWriter writer, TimeSpan value)
+        public void Serialize(ref PacketWriter writer, TimeSpan value)
         {
 
         }
