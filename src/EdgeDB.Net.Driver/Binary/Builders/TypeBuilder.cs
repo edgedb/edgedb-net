@@ -119,6 +119,8 @@ namespace EdgeDB.Binary
                 ScanAssemblyForTypes(type.Assembly);
             }
 
+            codec.Initialize(type);
+
             var reader = new PacketReader(data.PayloadBuffer);
             return codec.Deserialize(ref reader);
         }

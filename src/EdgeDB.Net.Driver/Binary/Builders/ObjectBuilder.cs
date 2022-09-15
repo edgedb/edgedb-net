@@ -13,7 +13,9 @@ namespace EdgeDB.Binary
         public static TType? BuildResult<TType>(ICodec codec, ref Data data)
         {
             if (codec is Binary.Codecs.Object objectCodec)
+            {
                 return (TType?)TypeBuilder.BuildObject(typeof(TType), objectCodec, ref data);
+            }
 
             var value = codec.Deserialize(data.PayloadBuffer);
 
