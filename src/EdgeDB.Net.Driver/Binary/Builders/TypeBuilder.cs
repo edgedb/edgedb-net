@@ -447,7 +447,7 @@ namespace EdgeDB.Binary
             _properties = new EdgeDBPropertyInfo[props.Length];
             _propertyIndexTable = new(_properties.Length);
             
-            var dict = new Dictionary<string, EdgeDBPropertyInfo>();
+            var dict = new Dictionary<string, EdgeDBPropertyInfo>(_properties.Length);
 
             for (var i = 0; i != _properties.Length; i++)
             {
