@@ -27,7 +27,7 @@ namespace EdgeDB.Binary
         ///     If the naming strategy doesn't find a match, the 
         ///     <see cref="AttributeNamingStrategy"/> will be used.
         /// </remarks>
-        public static INamingStrategy NamingStrategy { get; set; }
+        public static INamingStrategy SchemaNamingStrategy { get; set; }
         
         internal readonly static ConcurrentDictionary<Type, TypeDeserializeInfo> TypeInfo = new();
         internal static readonly INamingStrategy AttributeNamingStrategy;
@@ -37,7 +37,7 @@ namespace EdgeDB.Binary
         {
             _scannedAssemblies = new();
             AttributeNamingStrategy = INamingStrategy.AttributeNamingStrategy;
-            NamingStrategy ??= INamingStrategy.SnakeCaseNamingStrategy;
+            SchemaNamingStrategy ??= INamingStrategy.DefaultNamingStrategy;
         }
 
         /// <summary>
@@ -482,7 +482,7 @@ namespace EdgeDB.Binary
             => _property.Name;
 
         public string EdgeDBName
-            => AttributeName ?? TypeBuilder.NamingStrategy.Convert(_property);
+            => AttributeName ?? TypeBuilder.SchemaNamingStrategy.Convert(_property);
 
         public string? AttributeName
             => _propertyAttribute?.Name;

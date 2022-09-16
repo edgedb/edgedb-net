@@ -124,15 +124,15 @@ namespace EdgeDB
         public ulong ImplicitLimit { get; set; }
 
         /// <summary>
-        ///     Gets or sets the default naming strategy for the type builder.
+        ///     Gets or sets the default naming strategy used within the schema.
         /// </summary>
         /// <remarks>
-        ///     See <seealso cref="TypeBuilder.NamingStrategy"/>
+        ///     By default, the naming convention will not modify property names.
         /// </remarks>
-        public INamingStrategy SerializerNamingStrategy
+        public INamingStrategy SchemaNamingStrategy
         {
-            get => TypeBuilder.NamingStrategy;
-            set => TypeBuilder.NamingStrategy = value;
+            get => TypeBuilder.SchemaNamingStrategy;
+            set => TypeBuilder.SchemaNamingStrategy = value;
         }
     }
 }

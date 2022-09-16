@@ -20,7 +20,10 @@ using var host = Host.CreateDefaultBuilder()
             loggingBuilder.AddSerilog(dispose: true);
         });
 
-        services.AddEdgeDB();
+        services.AddEdgeDB(configure: config =>
+        {
+            config.SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy;
+        });
 
         services.AddSingleton<ExampleRunner>();
     }).Build();

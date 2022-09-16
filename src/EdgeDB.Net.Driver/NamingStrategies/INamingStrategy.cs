@@ -14,6 +14,13 @@ namespace EdgeDB
     public interface INamingStrategy
     {
         /// <summary>
+        ///     Gets the default naming strategy. This strategy does not modify property
+        ///     names.
+        /// </summary>
+        public static INamingStrategy DefaultNamingStrategy
+            => new DefaultNamingStrategy();
+
+        /// <summary>
         ///     Gets the attribute-based naming strategy.
         /// </summary>
         public static INamingStrategy AttributeNamingStrategy
