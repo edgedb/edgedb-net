@@ -236,11 +236,6 @@ namespace EdgeDB.Binary
                 packets[i].Write(ref writer, _client);
             }
 
-            if(writer.Size != writer.Index)
-            {
-                
-            }
-
             var mem = writer.GetBytes().ToArray();
             return mem;
         }

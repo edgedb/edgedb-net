@@ -64,15 +64,19 @@ namespace EdgeDB.Binary
         private void Resize(uint target)
         {
             var newSize =
-                target > 2048
+                target + Index > 2048
                     ? Size + (int)target + 512
-                    : Size > 2048 ? Size + 2048 : Size << 1;
+                    : Size > 2048 ? Size + 2048 : (Size << 1) + (int)target;
+            
             var index = Index;
+            
             Span<byte> newSpan = new byte[newSize];
             _span.CopyTo(newSpan);
             _span = newSpan;
+            
             _basePointer = (byte*)Unsafe.AsPointer(ref _span.GetPinnableReference());
             _trackedPointer = _basePointer + index;
+            
             Size = newSize;
         }
 
@@ -101,6 +105,10 @@ namespace EdgeDB.Binary
             Unsafe.WriteUnaligned(_trackedPointer, value);
             _trackedPointer += sizeof(T);
         }
+
+        public void Write<T>(T value)
+            where T : unmanaged
+            => UnsafeWrite<T>(ref value);
 
         public void Write(double value)
             => UnsafeWrite(ref value);
