@@ -16,6 +16,11 @@ namespace EdgeDB.Utils
 
         private static string SanitizeString(string str) => str.Normalize(NormalizationForm.FormKC);
 
+        public Scram(byte[]? clientNonce = null)
+        {
+            _clientNonce = clientNonce;
+        }
+
         private static byte[] GenerateNonce()
         {
             var bytes = new byte[NonceLength];
@@ -53,8 +58,7 @@ namespace EdgeDB.Utils
             {
                 throw new FormatException("Received malformed scram message");
             }
-
-            var serverNonce = Convert.FromBase64String(parsedMessage["r"]);
+            
             var salt = Convert.FromBase64String(parsedMessage["s"]);
 
             if (!int.TryParse(parsedMessage["i"], out var iterations))
@@ -63,7 +67,7 @@ namespace EdgeDB.Utils
             }
 
             // build final
-            var final = $"c=biws,r={Convert.ToBase64String(serverNonce)}";
+            var final = $"c=biws,r={parsedMessage["r"]}";
             var authMsg = Encoding.UTF8.GetBytes($"{_rawFirstMessage},{msg},{final}");
 
             var saltedPassword = SaltPassword(SanitizeString(password), salt, iterations);

@@ -30,5 +30,10 @@ namespace EdgeDB.Binary.Packets
             writer.Write(Method);
             writer.WriteArray(Payload);
         }
+
+        public override string ToString()
+        {
+            return $"{Method} {Encoding.UTF8.GetString(Payload)}";
+        }
     }
 }

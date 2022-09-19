@@ -3,7 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
 
-namespace EdgeDB.Tests.Unit.Codecs
+namespace EdgeDB.Tests.Unit
 {
     [TestClass]
     public class ScalarCodecsTests
