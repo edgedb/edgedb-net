@@ -44,7 +44,7 @@ namespace EdgeDB.Utils
                 method);
         }
 
-        public (AuthenticationSASLResponse FinalMessage, byte[] ExpectedSig) BuildFinalMessage(AuthenticationStatus status, string password)
+        public (AuthenticationSASLResponse FinalMessage, byte[] ExpectedSig) BuildFinalMessage(in AuthenticationStatus status, string password)
         {
             if (status.AuthStatus != AuthStatus.AuthenticationSASLContinue)
                 throw new ArgumentException($"Expected continuation message for SASL, got {status.AuthStatus}");
