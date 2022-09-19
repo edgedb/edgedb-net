@@ -110,9 +110,7 @@ namespace EdgeDB.Binary
         {
             if (!IsValidObjectType(type))
                 throw new InvalidOperationException($"Cannot deserialize data to {type.Name}");
-
-            codec.Initialize(type);
-
+            
             if (!TypeInfo.TryGetValue(type, out TypeDeserializeInfo? info))
             {
                 info = TypeInfo.AddOrUpdate(type, new TypeDeserializeInfo(type), (_, v) => v);
@@ -137,20 +135,6 @@ namespace EdgeDB.Binary
             }
 
             return info.Factory;
-        }
-
-        internal static object? BuildObject(Type type, ref ObjectEnumerator enumerator)
-        {
-            if (!IsValidObjectType(type))
-                throw new InvalidOperationException($"Cannot deserialize data to {type.Name}");
-
-            if (!TypeInfo.TryGetValue(type, out TypeDeserializeInfo? info))
-            {
-                info = TypeInfo.AddOrUpdate(type, new TypeDeserializeInfo(type), (_, v) => v);
-                ScanAssemblyForTypes(type.Assembly);
-            }
-            
-            return info.Deserialize(ref enumerator);
         }
 
         internal static bool IsValidObjectType(Type type)

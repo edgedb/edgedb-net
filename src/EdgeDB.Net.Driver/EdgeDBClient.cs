@@ -347,26 +347,15 @@ namespace EdgeDB
                         }
 
                         client.OnConnect += OnConnect;
-
-                        client.OnDisconnect += () =>
-                        {
-                            Interlocked.Decrement(ref _totalClients);
-                            RemoveClient(id);
-                            return ValueTask.CompletedTask;
-                        };
-
+                        
                         client.QueryExecuted += (i) => _queryExecuted.InvokeAsync(i);
 
                         client.OnDisposed += (c) =>
                         {
-                            if(c.IsConnected)
-                            {
-                                // reset state
-                                c.WithSession(Session.Default);
-                                _availableClients.Push(c);
-                                return ValueTask.FromResult(false);
-                            }
-                            return ValueTask.FromResult(_clients.TryRemove(c.ClientId, out _));
+                            // reset state
+                            c.WithSession(Session.Default);
+                            _availableClients.Push(c);
+                            return ValueTask.FromResult(false);
                         };
 
                         _clients[id] = client;

@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -18,37 +18,7 @@ namespace EdgeDB.Tests.Integration
             _edgedb = clientFixture.EdgeDB;
             _output = output;
         }
-
-        [Fact]
-        public async Task TestPoolCapability()
-        {
-            // create 1000 tasks
-            var numTasks = 150;
-            Task[] tasks = new Task[numTasks];
-            ConcurrentBag<string> results = new();
-
-            for (int i = 0; i != numTasks; i++)
-            {
-                tasks[i] = Task.Run(async () =>
-                {
-                    results.Add(await _edgedb.QueryRequiredSingleAsync<string>("select \"Hello, Dotnet!\""));
-                });
-            }
-
-            _output.WriteLine("Starting 150 query test...");
-
-            Stopwatch sw = Stopwatch.StartNew();
-
-            await Task.WhenAll(tasks).ConfigureAwait(false);
-
-            sw.Stop();
-
-            Assert.Equal(150, results.Count);
-            Assert.All(results, x => Assert.Equal("Hello, Dotnet!", x));
-
-            _output.WriteLine($"Executed 150 query test in {sw.ElapsedMilliseconds}ms");
-        }
-
+        
         [Fact]
         public async Task TestPoolQueryMethods()
         {
@@ -58,17 +28,7 @@ namespace EdgeDB.Tests.Integration
             var querySingleResult = await _edgedb.QuerySingleAsync<long>("select 123").ConfigureAwait(false);
             Assert.Equal(123, querySingleResult);
         }
-
-        [Fact]
-        public async Task TestPoolDisconnects()
-        {
-            await using var client = await _edgedb.GetOrCreateClientAsync();
-            await client.DisconnectAsync(); // should be removed from the pool
-            Assert.DoesNotContain(client, _edgedb.Clients);
-            await client.DisposeAsync(); // should NOT be returned to the pool
-            Assert.DoesNotContain(client, _edgedb.Clients);
-        }
-
+        
         [Fact]
         public async Task TestPoolRelease()
         {
