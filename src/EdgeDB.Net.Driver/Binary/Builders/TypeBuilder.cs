@@ -273,7 +273,7 @@ namespace EdgeDB.Binary
         private Dictionary<EdgeDBPropertyInfo, int>? _propertyIndexTable;
         private TypeDeserializerFactory _factory;
         internal readonly Dictionary<string, EdgeDBPropertyInfo> PropertyMap;
-        private ObjectActivator? _typeActivator;
+        private readonly ObjectActivator? _typeActivator;
         
         public TypeDeserializeInfo(Type type)
         {
@@ -295,6 +295,9 @@ namespace EdgeDB.Binary
 
         private ObjectActivator? CreateActivator()
         {
+            if (IsAbtractType)
+                return null;
+
             // get an empty constructor
             var ctor = _type.GetConstructor(Type.EmptyTypes) ?? _type.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, Type.EmptyTypes);
 
