@@ -535,7 +535,7 @@ namespace EdgeDB
                     throw new UnexpectedMessageException(ServerMessageType.Authentication, initialResult.Type);
 
                 // check the continue
-                var (FinalMessage, ExpectedSig) = scram.BuildFinalMessage(intiailStatus, Connection.Password!);
+                var (FinalMessage, ExpectedSig) = scram.BuildFinalMessage(in intiailStatus, Connection.Password!);
 
                 var finalResult = await Duplexer.DuplexAsync(x => x.Type == ServerMessageType.Authentication, packets: FinalMessage).ConfigureAwait(false);
 

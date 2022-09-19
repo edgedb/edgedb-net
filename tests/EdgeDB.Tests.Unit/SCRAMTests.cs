@@ -28,7 +28,8 @@ namespace EdgeDB.Tests.Unit
             var clientFirst = scram.BuildInitialMessage(SCRAM_USERNAME, SCRAM_METHOD);
             Assert.AreEqual($"{SCRAM_METHOD} n,,n={SCRAM_USERNAME},r={SCRAM_CLIENT_NONCE}", clientFirst.ToString());
 
-            var clientFinal = scram.BuildFinalMessage(CreateServerFirstMessage(), SCRAM_PASSWORD);
+            var serverFirst = CreateServerFirstMessage();
+            var clientFinal = scram.BuildFinalMessage(in serverFirst, SCRAM_PASSWORD);
 
             Assert.AreEqual("6rriTRBi23WpRR/wtup+mMhUZUn/dB5nLTJRsjl95G4=", Convert.ToBase64String(clientFinal.ExpectedSig));
             Assert.AreEqual($"c=biws,r={SCRAM_SERVER_NONCE},p=dHzbZapWIk4jUhN+Ute9ytag9zjfMHgsqmmiz7AndVQ=", clientFinal.FinalMessage.ToString());
