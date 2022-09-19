@@ -41,7 +41,7 @@ namespace EdgeDB.Tests.Unit
         [TestMethod]
         public void TestDynamicSizing()
         {
-            var writer = new PacketWriter(4);
+            var writer = new PacketWriter(4, true);
             writer.Write((ulong)1234);
             Assert.AreEqual(16, writer.Size);
         }

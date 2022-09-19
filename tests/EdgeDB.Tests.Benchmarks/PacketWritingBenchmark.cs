@@ -16,13 +16,13 @@ namespace EdgeDB.Tests.Benchmarks
     //{
     //    [Benchmark]
     //    [ArgumentsSource(nameof(Packets))]
-    //    public Span<byte> WritePacket(Sendable packet)
+    //    public Memory<byte> WritePacket(Sendable packet)
     //    {
-    //        var p = new PacketWriter();
-
+    //        var p = new PacketWriter(packet.Size + 5);
     //        packet!.Write(ref p, null!);
-
-    //        return p.GetBytes();
+    //        var data = p.GetBytes();
+    //        p.Dispose();
+    //        return data;
     //    }
 
     //    public IEnumerable<Sendable> Packets => new Sendable[]

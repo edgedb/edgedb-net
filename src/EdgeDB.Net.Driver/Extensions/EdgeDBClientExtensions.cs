@@ -189,7 +189,7 @@ namespace EdgeDB
             writer.WriteDumpHeader(header);
             writer.WriteDumpBlocks(blocks);
 
-            stream.Write(writer.Data);
+            stream.Write(writer.Data.Span);
         }
 
         /// <summary>

@@ -26,7 +26,7 @@ namespace EdgeDB.Dumps
         private static byte[] Version
             => BitConverter.GetBytes((long)1).Reverse().ToArray();
 
-        public Span<byte> Data => _writer.GetBytes();
+        public ReadOnlyMemory<byte> Data => _writer.GetBytes();
 
         private readonly PacketWriter _writer;
         public DumpWriter()

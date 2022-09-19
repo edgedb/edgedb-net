@@ -19,20 +19,36 @@ namespace EdgeDB.Binary
             => _trackedPointer - _basePointer;
         
         internal int Size;
-        private Span<byte> _span;
+        private readonly IMemoryOwner<byte>? _memoryOwner;
+        private readonly bool _isDynamic;
+        private Memory<byte> _rawBuffer;
         private byte* _trackedPointer;
         private byte* _basePointer;
+        private MemoryHandle _handle;
 
-        public PacketWriter(int size)
+        public PacketWriter(int size, bool isDynamic = false)
         {
-            _span = new byte[size];
-            _trackedPointer = (byte*)Unsafe.AsPointer(ref _span.GetPinnableReference());
-            _basePointer = (byte*)Unsafe.AsPointer(ref _span.GetPinnableReference());
+            // use shared memory if our size is fixed
+            if (size > MemoryPool<byte>.Shared.MaxBufferSize || isDynamic)
+            {
+                _rawBuffer = new Memory<byte>(new byte[size]);
+                _memoryOwner = null;
+            }
+            else
+            {
+                _memoryOwner = MemoryPool<byte>.Shared.Rent(size);
+                _rawBuffer = _memoryOwner.Memory;
+            }
+
+            _handle = _rawBuffer.Pin();
+            _trackedPointer = (byte*)_handle.Pointer;
+            _basePointer = (byte*)_handle.Pointer;
             Size = size;
+            _isDynamic = isDynamic;
         }
 
         public PacketWriter()
-            : this(512)
+            : this(512, true)
         {
             
         }
@@ -44,8 +60,8 @@ namespace EdgeDB.Binary
         public void Advance(long count)
             => _trackedPointer += count;
 
-        public Span<byte> GetBytes()
-            => _span[..(int)Index];
+        public ReadOnlyMemory<byte> GetBytes()
+            => _rawBuffer[..(_isDynamic ? (int)Index : Size)];
         #endregion
 
         public delegate void WriteAction(ref PacketWriter writer);
@@ -63,20 +79,24 @@ namespace EdgeDB.Binary
         #region Very raw memory writing methods for unmanaged
         private void Resize(uint target)
         {
+            if(!_isDynamic)
+                throw new IndexOutOfRangeException("Cannot resize a non-dynamic packet writer");
+
             var newSize =
                 target + Index > 2048
                     ? Size + (int)target + 512
                     : Size > 2048 ? Size + 2048 : (Size << 1) + (int)target;
             
             var index = Index;
-            
-            Span<byte> newSpan = new byte[newSize];
-            _span.CopyTo(newSpan);
-            _span = newSpan;
-            
-            _basePointer = (byte*)Unsafe.AsPointer(ref _span.GetPinnableReference());
+
+            var newBuffer = new Memory<byte>(new byte[newSize]);
+            _rawBuffer.CopyTo(newBuffer);
+            _rawBuffer = newBuffer;
+            _handle.Dispose();
+            _handle = newBuffer.Pin();
+            _basePointer = (byte*)_handle.Pointer;
             _trackedPointer = _basePointer + index;
-            
+
             Size = newSize;
         }
 
@@ -201,6 +221,12 @@ namespace EdgeDB.Binary
                 Write((uint)buffer.Length);
                 Write(buffer);
             }
+        }
+
+        public void Dispose()
+        {
+            _handle.Dispose();
+            _memoryOwner?.Dispose();
         }
     }
 }

@@ -226,18 +226,17 @@ namespace EdgeDB.Binary
             await _stream.WriteAsync(BuildPackets(packets), linkedToken.Token).ConfigureAwait(false);
         }
 
-        private byte[] BuildPackets(Sendable[] packets)
+        private ReadOnlyMemory<byte> BuildPackets(Sendable[] packets)
         {
-            var size = packets.Sum(x => x.Size + 5);
+            var size = packets.Sum(x => x.GetSize());
             var writer = new PacketWriter(size);
 
             for (int i = 0; i != packets.Length; i++)
             {
                 packets[i].Write(ref writer, _client);
             }
-
-            var mem = writer.GetBytes().ToArray();
-            return mem;
+            
+            return writer.GetBytes();
         }
 
         public async Task<IReceiveable> NextAsync(Predicate<IReceiveable>? predicate = null, bool alwaysReturnError = true, CancellationToken token = default)

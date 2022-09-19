@@ -36,5 +36,8 @@ namespace EdgeDB.Binary
             // go back to eof
             writer.SeekToIndex(eofPosition);
         }
+
+        public int GetSize()
+            => Size + 5;
     }
 }
