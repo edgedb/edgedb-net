@@ -174,10 +174,7 @@ namespace EdgeDB.Serializer
 
         internal static IEnumerable<PropertyInfo> GetPropertyMap(this Type objectType)
         {
-            return objectType.GetProperties().Where(x =>
-                x.CanWrite &&
-                x.GetCustomAttribute<EdgeDBIgnoreAttribute>() == null &&
-                x.SetMethod != null);
+            return objectType.GetProperties().Where(x => x.GetCustomAttribute<EdgeDBIgnoreAttribute>() == null);
         }
         #endregion
 
