@@ -32,5 +32,8 @@ namespace EdgeDB.Binary
         /// </summary>
         public override string ToString()
             => Encoding.UTF8.GetString(Value);
+
+        internal int ToInt()
+            => int.Parse(ToString());
     }
 }

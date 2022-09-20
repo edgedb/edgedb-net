@@ -47,6 +47,12 @@ namespace EdgeDB.Binary.Packets
             _attributes = reader.ReadKeyValues();
         }
 
+        internal bool TryGetAttribute(ushort code, out KeyValue value)
+        {
+            value = _attributes.FirstOrDefault(x => x.Code == code);
+            return _attributes.Any(x => x.Code == code);
+        }
+
         string? IExecuteError.Message => Message;
 
         ServerErrorCodes IExecuteError.ErrorCode => ErrorCode;

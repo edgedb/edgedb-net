@@ -191,7 +191,7 @@ namespace EdgeDB
                         switch (packet)
                         {
                             case ErrorResponse err when err.ErrorCode is not ServerErrorCodes.StateMismatchError:
-                                throw new EdgeDBErrorException(err);
+                                throw new EdgeDBErrorException(err, query);
                             case CommandDataDescription descriptor:
                                 {
                                     outCodecInfo = new(descriptor.OutputTypeDescriptorId,
@@ -255,7 +255,7 @@ namespace EdgeDB
                             receivedData.Add(data);
                             break;
                         case ErrorResponse err when err.ErrorCode is not ServerErrorCodes.ParameterTypeMismatchError:
-                            throw new EdgeDBErrorException(err);
+                            throw new EdgeDBErrorException(err, query);
                         case ReadyForCommand ready:
                             TransactionState = ready.TransactionState;
                             return true;
@@ -281,7 +281,7 @@ namespace EdgeDB
                     OutputTypeDescriptorId = outCodecInfo.Id,
                 }, handler, alwaysReturnError: false, token: linkedToken).ConfigureAwait(false);
 
-                executeResult.ThrowIfErrrorResponse();
+                executeResult.ThrowIfErrrorResponse(query);
 
                 execResult = new ExecuteResult(true, null, null, query);
 
@@ -315,6 +315,9 @@ namespace EdgeDB
                     : new ExecuteResult(false, null, x, query);
 
                 Logger.InternalExecuteFailed(x);
+
+                if (x is EdgeDBErrorException)
+                    throw;
 
                 throw new EdgeDBException($"Failed to execute query{(isRetry ? " after retrying once" : "")}", x);
             }

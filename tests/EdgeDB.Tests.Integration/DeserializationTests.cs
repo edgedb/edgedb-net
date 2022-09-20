@@ -8,12 +8,12 @@ using Xunit.Abstractions;
 
 namespace EdgeDB.Tests.Integration
 {
-    public class ClientTestsCustomTypes : IClassFixture<ClientFixture>
+    public class DeserializationTests : IClassFixture<ClientFixture>
     {
         private readonly EdgeDBClient _edgedb;
         private readonly ITestOutputHelper _output;
 
-        public ClientTestsCustomTypes(ClientFixture clientFixture, ITestOutputHelper output)
+        public DeserializationTests(ClientFixture clientFixture, ITestOutputHelper output)
         {
             _edgedb = clientFixture.EdgeDB;
             _output = output;
