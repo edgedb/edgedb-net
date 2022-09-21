@@ -34,7 +34,7 @@ namespace EdgeDB
         public IReadOnlyCollection<TElement> Elements { get; }
 
         /// <summary>
-        ///     Constructs a new grouping
+        ///     Constructs a new grouping.
         /// </summary>
         /// <param name="key">The key that each element share.</param>
         /// <param name="groupedBy">The property used to group the elements.</param>

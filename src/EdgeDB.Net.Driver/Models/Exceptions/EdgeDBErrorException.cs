@@ -43,6 +43,14 @@ namespace EdgeDB
         /// </summary>
         public string? Query { get; }
 
+        /// <summary>
+        ///     Constructs a new <see cref="EdgeDBErrorException"/> with the specified
+        ///     <see cref="Binary.Packets.ErrorResponse"/> packet.
+        /// </summary>
+        /// <param name="error">
+        ///     The <see cref="Binary.Packets.ErrorResponse"/> packet which
+        ///     caused this exception to be thrown.
+        /// </param>
         public EdgeDBErrorException(ErrorResponse error)
             : base(error.Message, typeof(ServerErrorCodes).GetField(error.ErrorCode.ToString())?.IsDefined(typeof(ShouldRetryAttribute), false) ?? false)
         {
@@ -58,12 +66,25 @@ namespace EdgeDB
             ErrorResponse = error;
         }
 
+        /// <summary>
+        ///     Constructs a new <see cref="EdgeDBErrorException"/> with the specified
+        ///     <see cref="Binary.Packets.ErrorResponse"/> packet and query string.
+        /// </summary>
+        /// <param name="error">
+        ///     The <see cref="Binary.Packets.ErrorResponse"/> packet which
+        ///     caused this exception to be thrown.
+        /// </param>
+        /// <param name="query">The query that caused this error to be thrown.</param>
         public EdgeDBErrorException(ErrorResponse error, string? query)
             : this(error)
         {
             Query = query;
         }
 
+        /// <summary>
+        ///     Prettifies the error if it was a result of a bad query string; otherwise formats it.
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
             return Prettify() ?? $"{ErrorResponse.ErrorCode}: {ErrorResponse.Message}";

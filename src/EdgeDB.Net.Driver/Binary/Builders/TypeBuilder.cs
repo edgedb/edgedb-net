@@ -239,6 +239,13 @@ namespace EdgeDB.Binary
         #endregion
     }
 
+    /// <summary>
+    ///     A method that will create a object from a <see cref="ObjectEnumerator"/>.
+    /// </summary>
+    /// <param name="enumerator">The enumerator containing the property values.</param>
+    /// <returns>
+    ///     An instance of an object that represents the data read from the <see cref="ObjectEnumerator"/>.
+    /// </returns>
     public delegate object? TypeDeserializerFactory(ref ObjectEnumerator enumerator);
 
     internal sealed class TypeDeserializeInfo

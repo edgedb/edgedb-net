@@ -57,10 +57,19 @@ namespace EdgeDB
         string? ExecutedQuery { get; }
     }
 
+    /// <summary>
+    ///     Represents a generic execution error.
+    /// </summary>
     public interface IExecuteError
     {
+        /// <summary>
+        ///     Gets the error message.
+        /// </summary>
         string? Message { get; }
 
+        /// <summary>
+        ///     Gets the error code.
+        /// </summary>
         ServerErrorCodes ErrorCode { get; }
     }
 }

@@ -5,6 +5,9 @@ using System.Runtime.InteropServices;
 
 namespace EdgeDB
 {
+    /// <summary>
+    ///     A class containing extension methods for edgedb clients.
+    /// </summary>
     public static class EdgeDBClientExtensions
     {
         #region Transactions

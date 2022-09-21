@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -7,12 +8,27 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.DataTypes
 {
+    /// <summary>
+    ///     Represents an abstract tuple which is used for deserializing edgedb tuples to dotnet tuples.
+    /// </summary>
     public readonly struct TransientTuple : ITuple
     {
-        private delegate ITuple TupleBuilder(Type[] types, object?[] values);
+        /// <summary>
+        ///     Gets the types within this tuple, following the arity order of the tuple.
+        /// </summary>
+        public IReadOnlyCollection<Type> Types
+            => _types.ToImmutableArray();
+
+        /// <summary>
+        ///     Gets the values within this tuple, following the arity order of the tuple.
+        /// </summary>
+        public IReadOnlyCollection<object?> Values
+            => _types.ToImmutableArray();
 
         private readonly Type[] _types;
         private readonly object?[] _values;
+
+        private delegate ITuple TupleBuilder(Type[] types, object?[] values);
 
         private static readonly Type[] _valueTupleTypeMap = new[]
         {
@@ -38,12 +54,16 @@ namespace EdgeDB.DataTypes
             typeof(Tuple<,,,,,,,>)
         };
 
-        public TransientTuple(Type[] types, object?[] values)
+        internal TransientTuple(Type[] types, object?[] values)
         {
             _values = values;
             _types = types;
         }
 
+        /// <summary>
+        ///     Converts this tuple to a <see cref="ValueTuple"/> with the specific arity.
+        /// </summary>
+        /// <returns>A <see cref="ValueTuple"/> boxed as a <see cref="ITuple"/>.</returns>
         public ITuple ToValueTuple()
         {
             return GenerateTuple((types, values) =>
@@ -54,6 +74,10 @@ namespace EdgeDB.DataTypes
             });
         }
 
+        /// <summary>
+        ///     Converts this tuple to a <see cref="Tuple"/> with the specific arity.
+        /// </summary>
+        /// <returns>A <see cref="Tuple"/> boxed as a <see cref="ITuple"/>.</returns>
         public ITuple ToReferenceTuple()
         {
             return GenerateTuple((types, values) =>
@@ -84,9 +108,24 @@ namespace EdgeDB.DataTypes
 
         }
 
-        public object? this[int index] 
-            => _values[index];
+        /// <summary>
+        ///     Gets the value within the tuple at the specified index.
+        /// </summary>
+        /// <remarks>
+        ///     The value returned is by-ref and is read-only.
+        /// </remarks>
+        /// <param name="index">The index of the element to return.</param>
+        /// <returns>
+        ///     The value at the specified index.
+        /// </returns>
+        public ref readonly object? this[int index] 
+            => ref _values[index];
 
+        /// <summary>
+        ///     The length of the tuple.
+        /// </summary>
         public int Length => _values.Length;
+
+        object? ITuple.this[int index] => _values[index];
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,6 +15,12 @@ namespace EdgeDB
         ///     Gets the number of attempts the client made to reconnect.
         /// </summary>
         public int Attempts { get; }
+
+        /// <summary>
+        ///     Constructs a new <see cref="ConnectionFailedException"/> with the number
+        ///     of connection attempts made.
+        /// </summary>
+        /// <param name="attempts">The number of attempts made to connect.</param>
         public ConnectionFailedException(int attempts)
             : base($"The connection failed to be established after {attempts} attempt(s)", false, false)
         {

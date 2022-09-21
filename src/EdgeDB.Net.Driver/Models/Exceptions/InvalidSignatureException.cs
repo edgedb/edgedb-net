@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,6 +11,9 @@ namespace EdgeDB
     /// </summary>
     public class InvalidSignatureException : EdgeDBException
     {
+        /// <summary>
+        ///     Constructs a new <see cref="InvalidSignatureException"/>.
+        /// </summary>
         public InvalidSignatureException()
             : base("The received signature didn't match the expected one")
         {
