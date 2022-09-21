@@ -21,17 +21,10 @@ namespace EdgeDB.Tests.Integration
         {
             var exception = await Assert.ThrowsAsync<EdgeDBErrorException>(async () =>
             {
-                await _client.QueryAsync<object>(@"select {
-    ver := sys::get_version(),
-    unknown := .abc,
-};");
+                await _client.QueryAsync<object>("select {\n    ver := sys::get_version(),\n    unknown := .abc,\n};");
             });
 
-            Assert.Equal(@"InvalidReferenceError: object type 'std::FreeObject' has no link or property 'abc'
-   |
- 3 |     unknown := .abc,
-   |                ^^^^
-", exception.ToString());
+            Assert.Equal("InvalidReferenceError: object type 'std::FreeObject' has no link or property 'abc'\n   |\n 3 |     unknown := .abc,\n   |                ^^^^\n", exception.ToString());
         }
     }
 }
