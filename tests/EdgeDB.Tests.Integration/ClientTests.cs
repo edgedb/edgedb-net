@@ -1,8 +1,9 @@
-﻿using EdgeDB.DataTypes;
+using EdgeDB.DataTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -19,6 +20,64 @@ namespace EdgeDB.Tests.Integration
         {
             _edgedb = clientFixture.EdgeDB;
             _output = output;
+        }
+
+        [Fact]
+        public async Task TestCommandLocks()
+        {
+            await using var client = await _edgedb.GetOrCreateClientAsync<EdgeDBBinaryClient>();
+            var timeoutToken = new CancellationTokenSource();
+            timeoutToken.CancelAfter(1000);
+            using var firstLock = await client.AquireCommandLockAsync(timeoutToken.Token);
+
+            await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            {
+                var secondLock = await client.AquireCommandLockAsync(timeoutToken.Token);
+            });
+        }
+
+        [Fact]
+        public async Task TestPoolQueryMethods()
+        {
+            var jsonResult = await _edgedb.QueryJsonAsync("select {(a := 1), (a := 2)}");
+            Assert.Equal("[{\"a\" : 1}, {\"a\" : 2}]", jsonResult);
+
+            var queryJsonElementsResult = await _edgedb.QueryJsonElementsAsync("select {(a := 1), (a := 2)}");
+
+            Assert.Equal(2, queryJsonElementsResult.Count());
+
+            Assert.Equal("{\"a\" : 1}", queryJsonElementsResult.First());
+            Assert.Equal("{\"a\" : 2}", queryJsonElementsResult.Last());
+
+            var querySingleResult = await _edgedb.QuerySingleAsync<long>("select 123").ConfigureAwait(false);
+            Assert.Equal(123, querySingleResult);
+
+            var queryRequiredSingeResult = await _edgedb.QueryRequiredSingleAsync<long>("select 123");
+            Assert.Equal(123, queryRequiredSingeResult);
+        }
+
+        [Fact]
+        public async Task TestPoolRelease()
+        {
+            BaseEdgeDBClient client;
+            await using (client = await _edgedb.GetOrCreateClientAsync())
+            {
+                await Task.Delay(100);
+            }
+
+            // client should be back in the pool
+            Assert.Contains(client, _edgedb.Clients);
+        }
+
+        [Fact]
+        public async Task TestPoolTransactions()
+        {
+            var result = await _edgedb.TransactionAsync(async (tx) =>
+            {
+                return await tx.QuerySingleAsync<string>("select \"Transaction within pools\"");
+            });
+
+            Assert.Equal("Transaction within pools", result);
         }
 
         [Fact]

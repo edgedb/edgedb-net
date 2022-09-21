@@ -130,6 +130,7 @@ namespace EdgeDB
             MessageTimeout = TimeSpan.FromMilliseconds(config.MessageTimeout);
             ConnectionTimeout = TimeSpan.FromMilliseconds(config.ConnectionTimeout);
             Duplexer = new ClientPacketDuplexer(this);
+            Duplexer.OnMessage += HandlePayloadAsync;
             Duplexer.OnDisconnected += HandleDuplexerDisconnectAsync;
             _stateDescriptorId = CodecBuilder.InvalidCodec;
             _config = config;
@@ -433,7 +434,7 @@ namespace EdgeDB
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         public override async Task<IReadOnlyCollection<DataTypes.Json>> QueryJsonElementsAsync(string query, IDictionary<string, object?>? args = null, Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
-            var result = await ExecuteInternalAsync<object>(query, args, Cardinality.AtMostOne, capabilities, IOFormat.Json, token: token);
+            var result = await ExecuteInternalAsync<object>(query, args, Cardinality.Many, capabilities, IOFormat.JsonElements, token: token);
 
             return result.Data.Any()
                 ? result.Data.Select(x => new DataTypes.Json((string?)result.Deserializer.Deserialize(x.PayloadBuffer))).ToImmutableArray()
@@ -721,9 +722,7 @@ namespace EdgeDB
                 } 
 
                 Duplexer.Start(stream);
-
-                Duplexer.OnMessage += HandlePayloadAsync;
-
+                
                 // send handshake
                 await Duplexer.SendAsync(new ClientHandshake
                 {
@@ -763,7 +762,6 @@ namespace EdgeDB
         /// <returns>A task representing the asynchronous disconnect and reconnection operations.</returns>
         public async Task ReconnectAsync(CancellationToken token = default)
         {
-            Duplexer.OnMessage -= HandlePayloadAsync;
             await DisconnectAsync(token).ConfigureAwait(false);
             await ConnectAsync(token).ConfigureAwait(false);
         }

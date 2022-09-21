@@ -174,6 +174,14 @@ namespace EdgeDB.Tests.Unit
                 "Cannot use UNIX socket for 'Hostname'");
         }
 
+        [TestMethod]
+        public void TestConnectionFormat()
+        {
+            var connection = EdgeDBConnection.FromDSN("edgedb://user3:123123@localhost:5555/abcdef");
+
+            Assert.AreEqual("edgedb://user3:123123@localhost:5555/abcdef", connection.ToString());
+        }
+
         private static void Expect(Result result, EdgeDBConnection expected)
         {
             Assert.IsNotNull(result.Connection);
