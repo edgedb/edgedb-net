@@ -117,8 +117,8 @@ namespace EdgeDB
         ///     This constructor will attempt to find your EdgeDB project toml file in the current working directory. If 
         ///     no file is found this method will throw a <see cref="FileNotFoundException"/>.
         /// </remarks>
-        /// <param name="config">The config for this client pool.</param>
-        public EdgeDBClient(EdgeDBClientPoolConfig config) : this(EdgeDBConnection.ResolveEdgeDBTOML(), config) { }
+        /// <param name="clientPoolConfig">The config for this client pool.</param>
+        public EdgeDBClient(EdgeDBClientPoolConfig clientPoolConfig) : this(EdgeDBConnection.ResolveEdgeDBTOML(), clientPoolConfig) { }
 
         /// <summary>
         ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
@@ -130,15 +130,15 @@ namespace EdgeDB
         ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
         /// </summary>
         /// <param name="connection">The connection parameters used to create new clients.</param>
-        /// <param name="config">The config for this client pool.</param>
-        public EdgeDBClient(EdgeDBConnection connection, EdgeDBClientPoolConfig config)
+        /// <param name="clientPoolConfig">The config for this client pool.</param>
+        public EdgeDBClient(EdgeDBConnection connection, EdgeDBClientPoolConfig clientPoolConfig)
         {
-            if (config.ClientType == EdgeDBClientType.Custom && config.ClientFactory == null)
+            if (clientPoolConfig.ClientType == EdgeDBClientType.Custom && clientPoolConfig.ClientFactory == null)
                 throw new CustomClientException("You must specify a client factory in order to use custom clients");
 
-            _poolConfig = config;
+            _poolConfig = clientPoolConfig;
             _clients = new();
-            _poolSize = config.DefaultPoolSize;
+            _poolSize = clientPoolConfig.DefaultPoolSize;
             _connection = connection;
             _edgedbConfig = new Dictionary<string, object?>();
             _availableClients = new();
