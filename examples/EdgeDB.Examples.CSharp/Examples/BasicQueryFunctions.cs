@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,7 +37,7 @@ namespace EdgeDB.ExampleApp.Examples
             // If we want to execute a query but do not want/need its result we can use the Execute method.
             // This is useful for insert/update queries.
             await client.ExecuteAsync("select \"Hello, DotNet!\"");
-
+            
             // Each function maps to a cardinality mode:
             // QueryAsync -> Cardinality.Many
             // QuerySingleAsync -> Cardinality.AtMostOne
