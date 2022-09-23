@@ -10,10 +10,11 @@
   <a href="https://discord.gg/tM4EpAaeSq">
     <img src="https://discord.com/api/guilds/841451783728529451/widget.png" alt="Discord">
   </a>
+  
+  <p align="center">
+    EdgeDB.Net is the official .NET driver for the <a href="https://edgedb.com">EdgeDB</a> database.
+  </p>
 </p>
-
-
-EdgeDB.Net is a community maintained .NET driver for the [EdgeDB](https://edgedb.com) database.
 
 ## Installation
 
