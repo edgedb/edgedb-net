@@ -24,6 +24,41 @@ it is to use the dotnet command line tool or NuGet package manager in Visual Stu
 $ dotnet add package EdgeDB.Net.Driver
 ```
 
+## Basic usage
+
+> Full documentation is yet to be written.
+
+### Create a client
+A client is what allows your code to talk with EdgeDB. The `EdgeDBClient` class maintains a pool of connections and provides abstractions for executing queries with ease.
+```cs
+using EdgeDB;
+
+var client = new EdgeDBClient();
+```
+
+### Configuring the client
+The `EdgeDBClient` automatically determines how to connect to your edgedb database, using [EdgeDB Projects](https://www.edgedb.com/docs/intro/projects). If you want to specify custom connection arguments, you can use the static `EdgeDBConnection.Parse()` method.
+
+```cs
+using EdgeDB;
+
+var connection = EdgeDBConnection.Parse("edgedb://user:password@localhost:5656/mydb");
+var client = new EdgeDBClient(connection);
+```
+
+### Quering the database
+```cs
+
+var result = await client.QueryAsync<long>("select 2 + 2"); // 4
+```
+
+**Note**
+The `QueryAsync` method always returns a `IReadOnlyCollection<T>`, regardless of actual query cardinality. If you want to explicitly define cardinality when querying, you can use the `QuerySingleAsync` or `QueryRequiredSingle` methods.
+
+
+**Note**
+EdgeDB.Net is a fully asynchronous driver, and as such, all IO operations are performed asynchronously.
+
 ## Examples
 You can view our curated examples [here](https://github.com/quinchs/EdgeDB.Net/tree/dev/examples/EdgeDB.Examples.ExampleApp/Examples). We also have a demo asp.net project you can view [here](https://github.com/quinchs/EdgeDB.Net/tree/dev/examples/EdgeDB.Examples.ExampleTODOApi). You're more than welcome to contribute to the examples!
 
