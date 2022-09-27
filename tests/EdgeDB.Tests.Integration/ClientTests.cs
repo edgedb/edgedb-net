@@ -133,6 +133,21 @@ namespace EdgeDB.Tests.Integration
             Assert.Equal(2, result.Last());
         }
 
+        [Fact]
+        public async Task DisconnectAndReconnect()
+        {
+            // using raw client for this one,
+            var client = await _edgedb.GetOrCreateClientAsync();
+
+            // disconnect should close the underlying connection, and remove alloc'd resources for said connection.
+            await client.DisconnectAsync();
+
+            // should run just fine, restarting the underlying connection.
+            var str = await client.QueryRequiredSingleAsync<string>("select \"Hello, EdgeDB.Net!\"");
+
+            Assert.Equal("Hello, EdgeDB.Net!", str);
+        }
+
         private async Task TestScalarQuery<TResult>(string select, TResult expected)
         {
             var result = await _edgedb.QuerySingleAsync<TResult>($"select {select}");
