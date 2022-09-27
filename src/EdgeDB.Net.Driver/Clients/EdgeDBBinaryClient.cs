@@ -118,22 +118,22 @@ namespace EdgeDB
         ///     Creates a new binary client with the provided conection and config.
         /// </summary>
         /// <param name="connection">The connection details used to connect to the database.</param>
-        /// <param name="config">The configuration for this client.</param>
+        /// <param name="clientConfig">The configuration for this client.</param>
         /// <param name="clientPoolHolder">The client pool holder for this client.</param>
         /// <param name="clientId">The optional client id of this client. This is used for logging and client pooling.</param>
-        public EdgeDBBinaryClient(EdgeDBConnection connection, EdgeDBConfig config, IDisposable clientPoolHolder, ulong? clientId = null)
+        public EdgeDBBinaryClient(EdgeDBConnection connection, EdgeDBConfig clientConfig, IDisposable clientPoolHolder, ulong? clientId = null)
             : base(clientId ?? 0, clientPoolHolder)
         {
-            Logger = config.Logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
+            Logger = clientConfig.Logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
             Connection = connection;
             ServerKey = new byte[32];
-            MessageTimeout = TimeSpan.FromMilliseconds(config.MessageTimeout);
-            ConnectionTimeout = TimeSpan.FromMilliseconds(config.ConnectionTimeout);
+            MessageTimeout = TimeSpan.FromMilliseconds(clientConfig.MessageTimeout);
+            ConnectionTimeout = TimeSpan.FromMilliseconds(clientConfig.ConnectionTimeout);
             Duplexer = new ClientPacketDuplexer(this);
             Duplexer.OnMessage += HandlePayloadAsync;
             Duplexer.OnDisconnected += HandleDuplexerDisconnectAsync;
             _stateDescriptorId = CodecBuilder.InvalidCodec;
-            _config = config;
+            _config = clientConfig;
             _semaphore = new(1, 1);
             _commandSemaphore = new(1, 1);
             _connectSemaphone = new(1, 1);

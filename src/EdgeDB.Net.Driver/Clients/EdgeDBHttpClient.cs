@@ -117,13 +117,13 @@ namespace EdgeDB
         ///     Creates a new instance of the http client.
         /// </summary>
         /// <param name="connection">The connection details used to connect to the database.</param>
-        /// <param name="config">The configuration for this client.</param>
+        /// <param name="clientConfig">The configuration for this client.</param>
         /// <param name="poolHolder">The client pool holder for this client.</param>
         /// <param name="clientId">The optional client id of this client. This is used for logging and client pooling.</param>
-        public EdgeDBHttpClient(EdgeDBConnection connection, EdgeDBConfig config, IDisposable poolHolder, ulong clientId)
+        public EdgeDBHttpClient(EdgeDBConnection connection, EdgeDBConfig clientConfig, IDisposable poolHolder, ulong clientId)
             : base(clientId, poolHolder)
         {
-            _logger = config.Logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
+            _logger = clientConfig.Logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
             _connection = connection;
             Uri = new($"http{(connection.TLSSecurity != TLSSecurityMode.Insecure ? "s" : "")}://{connection.Hostname}:{connection.Port}/db/{connection.Database}/edgeql");
 

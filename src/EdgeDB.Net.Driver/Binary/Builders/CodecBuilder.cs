@@ -30,8 +30,7 @@ namespace EdgeDB.Binary
 
         public static ulong GetCacheHashKey(string query, Cardinality cardinality, IOFormat format)
             => unchecked(CalculateKnuthHash(query) * (ulong)cardinality * (ulong)format);
-
-
+        
         public static bool TryGetCodecs(ulong hash,
             [MaybeNullWhen(false)] out CodecInfo inCodecInfo,
             [MaybeNullWhen(false)] out CodecInfo outCodecInfo)
