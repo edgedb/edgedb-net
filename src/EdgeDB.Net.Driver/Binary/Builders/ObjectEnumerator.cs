@@ -14,8 +14,9 @@ namespace EdgeDB.Binary.Builders
     /// </summary>
     public ref struct ObjectEnumerator
     {
+        public int Length => _names.Length;
         private readonly string[] _names;
-        private readonly ICodec[] _codecs;
+        internal readonly ICodec[] Codecs;
         private readonly int _numElements;
         internal PacketReader Reader;
         private int _pos;
@@ -24,7 +25,7 @@ namespace EdgeDB.Binary.Builders
         {
             Reader = new PacketReader(ref data, position);
             _names = names;
-            _codecs = codecs;
+            Codecs = codecs;
             _pos = 0;
 
             _numElements = Reader.ReadInt32();
@@ -77,7 +78,7 @@ namespace EdgeDB.Binary.Builders
 
             var innerReader = new PacketReader(ref buff);
             name = _names[_pos];
-            value = _codecs[_pos].Deserialize(ref innerReader);
+            value = Codecs[_pos].Deserialize(ref innerReader);
             _pos++;
             return true;
         }

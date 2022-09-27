@@ -8,6 +8,8 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using EdgeDB.Binary.Builders;
 using EdgeDB.TypeConverters;
+using EdgeDB.DataTypes;
+using System;
 
 namespace EdgeDB.Binary
 {
@@ -150,7 +152,7 @@ namespace EdgeDB.Binary
                                        ?.GetCustomAttribute<EdgeDBDeserializerAttribute>() != null;
 
             // allow abstract & record passthru
-            return type.IsAbstract || type.IsRecord() || (type.IsClass || type.IsValueType) && validConstructor;
+            return type.IsAssignableTo(typeof(ITuple)) || type.IsAbstract || type.IsRecord() || (type.IsClass || type.IsValueType) && validConstructor;
         }
 
         internal static bool TryGetCollectionParser(Type type, out Func<Array, Type, object>? builder)
@@ -407,6 +409,20 @@ namespace EdgeDB.Binary
 
                     // deserialize as child
                     return info.Deserialize(ref enumerator);
+                };
+            }
+
+            // is it a tuple
+            if (_type.IsAssignableTo(typeof(ITuple)))
+            {
+                return (ref ObjectEnumerator enumerator) =>
+                {
+                    var transient = TransientTuple.FromObjectEnumerator(ref enumerator);
+
+                    if (_type.Name.StartsWith("ValueTuple"))
+                        return transient.ToValueTuple();
+                    else
+                        return transient.ToReferenceTuple();
                 };
             }
             

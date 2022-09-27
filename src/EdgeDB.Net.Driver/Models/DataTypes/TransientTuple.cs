@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Builders;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -127,5 +128,19 @@ namespace EdgeDB.DataTypes
         public int Length => _values.Length;
 
         object? ITuple.this[int index] => _values[index];
+
+        public static TransientTuple FromObjectEnumerator(ref ObjectEnumerator enumerator)
+        {
+            var types = new Type[enumerator.Length];
+            var values = new object?[enumerator.Length];
+
+            for(int i = 0; enumerator.Next(out _, out var value); i++)
+            {
+                types[i] = value?.GetType() ?? enumerator.Codecs[i].ConverterType;
+                values[i] = value;
+            }
+
+            return new TransientTuple(types, values);
+        }
     }
 }

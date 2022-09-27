@@ -123,6 +123,10 @@ namespace EdgeDB.Tests.Integration
             Assert.Equal(8, eight);
             Assert.Equal(9, nine);
             Assert.Equal(10, ten);
+
+            var result2 = await _edgedb.QuerySingleAsync<(long one, long two)>("select (one := 1, two := 2)");
+            Assert.Equal(1, result2.one);
+            Assert.Equal(2, result2.two);
         }
 
         [Fact]
