@@ -52,7 +52,7 @@ namespace EdgeDB.Binary
 
         public async Task ResetAsync()
         {
-            if(_readTask != null)
+            if(_readTask != null && !_readTask.IsCanceled)
                 await _readTask!;
             _disconnectTokenSource = new();
         }

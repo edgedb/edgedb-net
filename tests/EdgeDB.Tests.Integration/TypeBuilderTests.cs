@@ -9,6 +9,7 @@ using Xunit;
 
 namespace EdgeDB.Tests.Integration
 {
+    [CollectionDefinition("TypeBuilder", DisableParallelization = true)]
     public class TypeBuilderTests : IClassFixture<ClientFixture>
     {
         private readonly EdgeDBClient _client;
@@ -21,6 +22,18 @@ namespace EdgeDB.Tests.Integration
         private async Task EnsurePersonIsAddedAsync()
         {
             await _client.ExecuteAsync("insert Person { name := \"A random name\", email := \"test@example.com\"} unless conflict on .email");
+        }
+
+        [Fact]
+        public async Task BasicTypeDeserialize()
+        {
+            // insert person if they dont exist
+            await EnsurePersonIsAddedAsync();
+
+            var person = await _client.QueryRequiredSingleAsync<PersonClass>("select Person { name, email } filter .email = \"test@example.com\"");
+
+            Assert.Equal("A random name", person.Name);
+            Assert.Equal("test@example.com", person.Email);
         }
 
         [Fact]

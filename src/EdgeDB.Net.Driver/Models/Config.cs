@@ -63,7 +63,7 @@ namespace EdgeDB.State
             IdleTransationTimeout = TimeSpan.FromSeconds(10);
             QueryExecutionTimeout = TimeSpan.Zero;
             AllowDMLInFunctions = false;
-            DDLPolicy = DDLPolicy.AlwaysAllow;
+            DDLPolicy = DDLPolicy.NeverAllow;
             ApplyAccessPolicies = true;
         }
 
@@ -80,8 +80,7 @@ namespace EdgeDB.State
             if(AllowDMLInFunctions)
                 dict["allow_dml_in_functions"] = true;
 
-            if (DDLPolicy != DDLPolicy.AlwaysAllow)
-                dict["allow_bare_ddl"] = DDLPolicy;
+            dict["allow_bare_ddl"] = DDLPolicy.ToString();
 
             if (!ApplyAccessPolicies)
                 dict["apply_access_policies"] = false;

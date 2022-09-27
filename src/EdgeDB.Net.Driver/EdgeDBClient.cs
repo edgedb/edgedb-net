@@ -283,7 +283,9 @@ namespace EdgeDB
                 // give a new client pool holder
                 var holder = await _poolHolder.GetPoolHandleAsync(token);
                 result.AcceptHolder(holder);
-                return result;
+
+                // return the client with the current session.
+                return result.WithSession(_session);
             }
 
             if (_totalClients >= _poolSize)
@@ -301,7 +303,7 @@ namespace EdgeDB
                         : throw new TimeoutException($"Couldn't find a client after {_poolConfig.ConnectionTimeout}ms");
 
                     client.AcceptHolder(await _poolHolder.GetPoolHandleAsync(token).ConfigureAwait(false));
-                    return client;
+                    return client.WithSession(_session);
 
                 }
                 finally
