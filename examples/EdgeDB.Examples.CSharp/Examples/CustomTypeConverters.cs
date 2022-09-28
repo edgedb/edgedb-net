@@ -14,7 +14,9 @@ namespace EdgeDB.ExampleApp.Examples
 
         public class UserWithSnowflakeId
         {
+            [EdgeDBTypeConverter(typeof(UlongTypeConverter))]
             public ulong UserId { get; set; }
+
             public string? Username { get; set; }
         }
 
