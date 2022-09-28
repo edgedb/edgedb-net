@@ -1,5 +1,6 @@
-﻿using EdgeDB.ContractResolvers;
-using EdgeDB.Serializer;
+using EdgeDB.Binary;
+using EdgeDB.ContractResolvers;
+using EdgeDB.State;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Numerics;
@@ -9,17 +10,26 @@ namespace EdgeDB
     /// <summary>
     ///     Represents a config for a <see cref="EdgeDBClient"/>, extending <see cref="EdgeDBConfig"/>.
     /// </summary>
-    public class EdgeDBClientPoolConfig : EdgeDBConfig
+    public sealed class EdgeDBClientPoolConfig : EdgeDBConfig
     {
         /// <summary>
         ///     Gets or sets the default client pool size.
         /// </summary>
-        public uint DefaultPoolSize { get; set; } = 50;
+        public int DefaultPoolSize
+        {
+            get => _poolSize;
+            set
+            {
+                if (value <= 0)
+                    throw new ArgumentOutOfRangeException($"{nameof(DefaultPoolSize)} must be greater than 0");
+                _poolSize = value;
+            }
+        }
 
         /// <summary>
         ///     Gets or sets the client type the pool will use.
         /// </summary>
-        public EdgeDBClientType ClientType { get; set; }
+        internal EdgeDBClientType ClientType { get; set; }
 
         /// <summary>
         ///     Gets or sets the client factory to use when adding new clients to the client pool.
@@ -27,7 +37,9 @@ namespace EdgeDB
         /// <remarks>
         ///     The <see cref="ClientType"/> must be <see cref="EdgeDBClientType.Custom"/> to use this property.
         /// </remarks>
-        public Func<ulong, EdgeDBConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? ClientFactory { get; set; }
+        internal Func<ulong, EdgeDBConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? ClientFactory { get; set; }
+
+        private int _poolSize = 50;
     }
 
     /// <summary>
@@ -112,15 +124,15 @@ namespace EdgeDB
         public ulong ImplicitLimit { get; set; }
 
         /// <summary>
-        ///     Gets or sets the default naming strategy for the type builder.
+        ///     Gets or sets the default naming strategy used within the schema.
         /// </summary>
         /// <remarks>
-        ///     See <seealso cref="TypeBuilder.NamingStrategy"/>
+        ///     By default, the naming convention will not modify property names.
         /// </remarks>
-        public INamingStrategy SerializerNamingStrategy
+        public INamingStrategy SchemaNamingStrategy
         {
-            get => TypeBuilder.NamingStrategy;
-            set => TypeBuilder.NamingStrategy = value;
+            get => TypeBuilder.SchemaNamingStrategy;
+            set => TypeBuilder.SchemaNamingStrategy = value;
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.State
 {
-    public sealed class Session
+    internal sealed class Session
     {
         public string Module { get; init; }
         public IReadOnlyDictionary<string, string> Aliases 
@@ -59,31 +59,48 @@ namespace EdgeDB.State
 
         public Session WithGlobals(IDictionary<string, object?> globals)
         {
-            _globals = globals.ToDictionary(x => x.Key, x => x.Value);
-            return this;
+            return new Session()
+            {
+                _globals = globals.ToDictionary(x => x.Key, x => x.Value),
+                _aliases = _aliases,
+                _config = _config,
+                Module = Module
+            };
         }
 
         public Session WithModuleAliases(IDictionary<string, string> aliases)
         {
-            _aliases = aliases.ToDictionary(x => x.Key, x => x.Value);
-            return this;
+            return new Session()
+            {
+                _aliases = aliases.ToDictionary(x => x.Key, x => x.Value),
+                _config = _config,
+                _globals = _globals,
+                Module = Module
+            };
         }
 
         public Session WithConfig(Config config)
         {
-            _config = config;
-            return this;
-        }
-
-        internal Session Clone()
-            => new()
+            return new Session()
             {
-                Aliases = Aliases,
-                Config = Config.Clone(),
-                Globals = Globals,
+                _config = config,
+                _aliases = _aliases,
+                _globals = _globals,
                 Module = Module
             };
+        }
 
+        public Session WithModule(string module)
+        {
+            return new Session()
+            {
+                _config = _config,
+                _aliases = _aliases,
+                _globals = _globals,
+                Module = module
+            };
+        }
+        
         public static Session Default
             => new();
     }

@@ -1,4 +1,4 @@
-﻿using EdgeDB.Utils;
+using EdgeDB.Utils;
 using Newtonsoft.Json;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -8,7 +8,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents a class containing information on how to connect to a edgedb instance.
     /// </summary>
-    public class EdgeDBConnection
+    public sealed class EdgeDBConnection
     {
         private const string EDGEDB_INSTANCE_ENV_NAME = "EDGEDB_INSTANCE";
         private const string EDGEDB_DSN_ENV_NAME = "EDGEDB_DSN";

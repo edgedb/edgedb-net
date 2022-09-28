@@ -1,12 +1,11 @@
-﻿using EdgeDB.DataTypes;
-using EdgeDB.Models;
+using EdgeDB.DataTypes;
 
 namespace EdgeDB
 {
     /// <summary>
     ///     Represents a transaction within edgedb.
     /// </summary>
-    public class Transaction : IEdgeDBQueryable
+    public sealed class Transaction : IEdgeDBQueryable
     {
         /// <summary>
         ///     Gets the transaction state of this transaction.

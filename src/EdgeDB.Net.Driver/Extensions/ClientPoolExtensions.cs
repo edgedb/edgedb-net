@@ -1,5 +1,4 @@
-﻿using EdgeDB.Binary.Packets;
-using EdgeDB.Models;
+using EdgeDB.Binary.Packets;
 
 namespace EdgeDB
 {
@@ -78,53 +77,6 @@ namespace EdgeDB
                 throw new EdgeDBException($"Cannot use transactions with {pool.ClientType} clients");
 
             return tranactibleClient;
-        }
-
-        #endregion
-
-        #region Dump/Restore
-        /// <summary>
-        ///     Dumps the current database to a stream.
-        /// </summary>
-        /// <param name="pool">The client pool on which to fetch a client from.</param>
-        /// <param name="token">A token to cancel the operation with.</param>
-        /// <returns>A stream containing the entire dumped database.</returns>
-        /// <exception cref="CustomClientException">
-        ///     The client returned from the client pool cannot be used to dump the 
-        ///     database.
-        /// </exception>
-        /// <exception cref="EdgeDBErrorException">
-        ///     The server sent an error message during the dumping process.
-        /// </exception>
-        /// <exception cref="EdgeDBException">The server sent a mismatched packet.</exception>
-        public static async Task<Stream?> DumpDatabaseAsync(this EdgeDBClient pool, CancellationToken token = default)
-        {
-            await using var client = await pool.GetOrCreateClientAsync<EdgeDBBinaryClient>();
-            return await client.DumpDatabaseAsync(token).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        ///     Restores the database based on a database dump stream.
-        /// </summary>
-        /// <param name="pool">The client pool on which to fetch a client from.</param>
-        /// <param name="stream">The stream containing the database dump.</param>
-        /// <param name="token">A token to cancel the operation with.</param>
-        /// <returns>The command complete packet received after restoring the database.</returns>
-        /// <exception cref="CustomClientException">
-        ///     The client returned from the client pool cannot be used to dump the 
-        ///     database.
-        /// </exception>
-        /// <exception cref="EdgeDBException">
-        ///     The server sent an invalid packet or the restore operation couldn't proceed 
-        ///     due to the database not being empty.
-        /// </exception>
-        /// <exception cref="EdgeDBErrorException">
-        ///     The server sent an error during the restore operation.
-        /// </exception>
-        public static async Task<CommandComplete> RestoreDatabaseAsync(this EdgeDBClient pool, Stream stream, CancellationToken token = default)
-        {
-            await using var client = await pool.GetOrCreateClientAsync<EdgeDBBinaryClient>();
-            return await client.RestoreDatabaseAsync(stream, token).ConfigureAwait(false);
         }
         #endregion
     }

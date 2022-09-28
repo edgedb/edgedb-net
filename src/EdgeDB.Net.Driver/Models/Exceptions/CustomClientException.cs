@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,6 +11,10 @@ namespace EdgeDB
     /// </summary>
     public sealed class CustomClientException : EdgeDBException
     {
+        /// <summary>
+        ///     Constructs a new <see cref="CustomClientException"/> with the specified error message.
+        /// </summary>
+        /// <param name="message">The error message describing why this exception was thrown.</param>
         public CustomClientException(string message)
             : base(message, false, false)
         {

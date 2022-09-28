@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,6 +11,9 @@ namespace EdgeDB
     /// </summary>
     public class MissingRequiredException : EdgeDBException
     {
+        /// <summary>
+        ///     Constructs a new <see cref="MissingRequiredException"/>.
+        /// </summary>
         public MissingRequiredException()
             : base("Missing required result from query")
         {

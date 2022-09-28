@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using System.IO;
 
 namespace EdgeDB.Tests.Integration
@@ -9,17 +9,10 @@ namespace EdgeDB.Tests.Integration
 
         public ClientFixture()
         {
-            EdgeDBConnection conn;
-            try
+            EdgeDB = new(new EdgeDBClientPoolConfig
             {
-                conn = EdgeDBConnection.FromInstanceName("edgedb_dotnet");
-            }
-            catch
-            {
-                conn = JsonConvert.DeserializeObject<EdgeDBConnection>(File.ReadAllText("/home/runner/.config/edgedb/credentials/EdgeDB_Dotnet_Test.json"))!;
-            }
-
-            EdgeDB = new(conn);
+                SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy
+            });
         }
     }
 }

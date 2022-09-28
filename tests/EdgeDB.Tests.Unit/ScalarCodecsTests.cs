@@ -1,9 +1,9 @@
-using EdgeDB.Codecs;
+using EdgeDB.Binary.Codecs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
 
-namespace EdgeDB.Tests.Unit.Codecs
+namespace EdgeDB.Tests.Unit
 {
     [TestClass]
     public class ScalarCodecsTests

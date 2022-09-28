@@ -1,4 +1,4 @@
-﻿using EdgeDB.DataTypes;
+using EdgeDB.DataTypes;
 using EdgeDB.State;
 
 namespace EdgeDB
@@ -6,7 +6,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents a base edgedb client that can interaction with the EdgeDB database.
     /// </summary>
-    public abstract class BaseEdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
+    internal abstract class BaseEdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     {
         /// <summary>
         ///     Gets whether or not this client has connected to the database and 
@@ -22,7 +22,7 @@ namespace EdgeDB
         /// <summary>
         ///     Gets the clients session.
         /// </summary>
-        public Session Session { get; protected set; }
+        internal Session Session { get; set; }
 
         internal event Func<BaseEdgeDBClient, ValueTask<bool>> OnDisposed
         {
@@ -48,18 +48,29 @@ namespace EdgeDB
 
         internal readonly AsyncEvent<Func<BaseEdgeDBClient, ValueTask>> OnConnectInternal = new();
 
+        protected IDisposable ClientPoolHolder;
+
         /// <summary>
         ///     Initialized the base client.
         /// </summary>
         /// <param name="clientId">The id of this client.</param>
-        public BaseEdgeDBClient(ulong clientId)
+        /// <param name="clientPoolHolder">The client pool holder for this client.</param>
+        public BaseEdgeDBClient(ulong clientId, IDisposable clientPoolHolder)
         {
             Session = Session.Default;
             ClientId = clientId;
+            ClientPoolHolder = clientPoolHolder;
+        }
+
+        public void AcceptHolder(IDisposable holder)
+        {
+            // dispose the old holder
+            ClientPoolHolder.Dispose();
+            ClientPoolHolder = holder;
         }
 
         #region State
-        public BaseEdgeDBClient WithSession(Session session)
+        internal BaseEdgeDBClient WithSession(Session session)
         {
             Session = session;
             return this;
@@ -155,7 +166,7 @@ namespace EdgeDB
         public virtual async ValueTask<bool> DisposeAsync()
         {
             bool shouldDispose = true;
-
+            ClientPoolHolder.Dispose();
             if (_onDisposed.HasSubscribers)
             {
                 var results = await _onDisposed.InvokeAsync(this).ConfigureAwait(false);

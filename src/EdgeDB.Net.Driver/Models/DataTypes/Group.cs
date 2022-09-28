@@ -1,5 +1,5 @@
-﻿using EdgeDB.DataTypes;
-using EdgeDB.Serializer;
+using EdgeDB.Binary.Codecs;
+using EdgeDB.DataTypes;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -16,7 +16,7 @@ namespace EdgeDB
     /// </summary>
     /// <typeparam name="TKey">The type of the key used to group the elements.</typeparam>
     /// <typeparam name="TElement">The type of the elements.</typeparam>
-    public class Group<TKey, TElement> : IGrouping<TKey, TElement>
+    public sealed class Group<TKey, TElement> : IGrouping<TKey, TElement>
     {
         /// <summary>
         ///     Gets the key used to group the set of <see cref="Elements"/>.
@@ -34,7 +34,7 @@ namespace EdgeDB
         public IReadOnlyCollection<TElement> Elements { get; }
 
         /// <summary>
-        ///     Constructs a new grouping
+        ///     Constructs a new grouping.
         /// </summary>
         /// <param name="key">The key that each element share.</param>
         /// <param name="groupedBy">The property used to group the elements.</param>
@@ -54,7 +54,8 @@ namespace EdgeDB
 
             Grouping = ((string[])groupingValue!).ToImmutableArray();
             Key = BuildKey((IDictionary<string, object?>)keyValue!);
-            Elements = ((IDictionary<string, object?>[])elementsValue!).Select(x => (TElement)TypeBuilder.BuildObject(typeof(TElement), x)!).ToImmutableArray();
+            throw new NotImplementedException("TODO");
+            //Elements = ((IDictionary<string, object?>[])elementsValue!).Select(x => (TElement)TypeBuilder.BuildObject(typeof(TElement), x)!).ToImmutableArray();
         }
 
         private static TKey BuildKey(IDictionary<string, object?> value)

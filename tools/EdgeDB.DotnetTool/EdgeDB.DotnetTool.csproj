@@ -24,7 +24,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj" />
-    <ProjectReference Include="..\..\src\EdgeDB.Net.QueryBuilder\EdgeDB.Net.QueryBuilder.csproj" />
   </ItemGroup>
 
 </Project>

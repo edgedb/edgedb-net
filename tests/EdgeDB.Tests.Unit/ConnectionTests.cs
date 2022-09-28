@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB.Tests.Unit.Connection
+namespace EdgeDB.Tests.Unit
 {
     [TestClass]
     public class ConnectionTests
@@ -172,6 +172,14 @@ namespace EdgeDB.Tests.Unit.Connection
         {
             ExpectError<ConfigurationException>(ParseConnection(dsn: "edgedb://user@?port=56226&host=%2Ftmp"),
                 "Cannot use UNIX socket for 'Hostname'");
+        }
+
+        [TestMethod]
+        public void TestConnectionFormat()
+        {
+            var connection = EdgeDBConnection.FromDSN("edgedb://user3:123123@localhost:5555/abcdef");
+
+            Assert.AreEqual("edgedb://user3:123123@localhost:5555/abcdef", connection.ToString());
         }
 
         private static void Expect(Result result, EdgeDBConnection expected)

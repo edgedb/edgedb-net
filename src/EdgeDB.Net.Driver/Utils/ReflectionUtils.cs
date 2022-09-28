@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
-    internal class ReflectionUtils
+    internal static class ReflectionUtils
     {
         public static bool IsSubclassOfRawGeneric(Type generic, Type? toCheck)
         {

@@ -1,6 +1,6 @@
-﻿using EdgeDB.Binary.Packets;
+using EdgeDB.Binary.Packets;
 
-namespace EdgeDB.Models
+namespace EdgeDB
 {
     /// <summary>
     ///     Represents a generic execution result of a command.
@@ -57,10 +57,19 @@ namespace EdgeDB.Models
         string? ExecutedQuery { get; }
     }
 
+    /// <summary>
+    ///     Represents a generic execution error.
+    /// </summary>
     public interface IExecuteError
     {
+        /// <summary>
+        ///     Gets the error message.
+        /// </summary>
         string? Message { get; }
 
+        /// <summary>
+        ///     Gets the error code.
+        /// </summary>
         ServerErrorCodes ErrorCode { get; }
     }
 }

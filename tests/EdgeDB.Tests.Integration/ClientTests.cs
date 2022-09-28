@@ -1,8 +1,10 @@
-﻿using EdgeDB.DataTypes;
+using EdgeDB.DataTypes;
+using EdgeDB.State;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -19,6 +21,64 @@ namespace EdgeDB.Tests.Integration
         {
             _edgedb = clientFixture.EdgeDB;
             _output = output;
+        }
+
+        [Fact]
+        public async Task TestCommandLocks()
+        {
+            await using var client = await _edgedb.GetOrCreateClientAsync<EdgeDBBinaryClient>();
+            var timeoutToken = new CancellationTokenSource();
+            timeoutToken.CancelAfter(1000);
+            using var firstLock = await client.AquireCommandLockAsync(timeoutToken.Token);
+
+            await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            {
+                var secondLock = await client.AquireCommandLockAsync(timeoutToken.Token);
+            });
+        }
+
+        [Fact]
+        public async Task TestPoolQueryMethods()
+        {
+            var jsonResult = await _edgedb.QueryJsonAsync("select {(a := 1), (a := 2)}");
+            Assert.Equal("[{\"a\" : 1}, {\"a\" : 2}]", jsonResult);
+
+            var queryJsonElementsResult = await _edgedb.QueryJsonElementsAsync("select {(a := 1), (a := 2)}");
+
+            Assert.Equal(2, queryJsonElementsResult.Count());
+
+            Assert.Equal("{\"a\" : 1}", queryJsonElementsResult.First());
+            Assert.Equal("{\"a\" : 2}", queryJsonElementsResult.Last());
+
+            var querySingleResult = await _edgedb.QuerySingleAsync<long>("select 123").ConfigureAwait(false);
+            Assert.Equal(123, querySingleResult);
+
+            var queryRequiredSingeResult = await _edgedb.QueryRequiredSingleAsync<long>("select 123");
+            Assert.Equal(123, queryRequiredSingeResult);
+        }
+
+        [Fact]
+        public async Task TestPoolRelease()
+        {
+            BaseEdgeDBClient client;
+            await using (client = await _edgedb.GetOrCreateClientAsync())
+            {
+                await Task.Delay(100);
+            }
+
+            // client should be back in the pool
+            Assert.Contains(client, _edgedb.Clients);
+        }
+
+        [Fact]
+        public async Task TestPoolTransactions()
+        {
+            var result = await _edgedb.TransactionAsync(async (tx) =>
+            {
+                return await tx.QuerySingleAsync<string>("select \"Transaction within pools\"");
+            });
+
+            Assert.Equal("Transaction within pools", result);
         }
 
         [Fact]
@@ -64,6 +124,10 @@ namespace EdgeDB.Tests.Integration
             Assert.Equal(8, eight);
             Assert.Equal(9, nine);
             Assert.Equal(10, ten);
+
+            var result2 = await _edgedb.QuerySingleAsync<(long one, long two)>("select (one := 1, two := 2)");
+            Assert.Equal(1, result2.one);
+            Assert.Equal(2, result2.two);
         }
 
         [Fact]
@@ -72,6 +136,38 @@ namespace EdgeDB.Tests.Integration
             var result = await _edgedb.QueryAsync<long>("select {1,2}");
             Assert.Equal(1, result.First());
             Assert.Equal(2, result.Last());
+        }
+
+        [Fact]
+        public async Task DisconnectAndReconnect()
+        {
+            // using raw client for this one,
+            var client = await _edgedb.GetOrCreateClientAsync();
+
+            // disconnect should close the underlying connection, and remove alloc'd resources for said connection.
+            await client.DisconnectAsync();
+
+            // should run just fine, restarting the underlying connection.
+            var str = await client.QueryRequiredSingleAsync<string>("select \"Hello, EdgeDB.Net!\"");
+
+            Assert.Equal("Hello, EdgeDB.Net!", str);
+        }
+
+        [Fact]
+        public void StateChange()
+        {
+            var client2 = _edgedb.WithConfig(x => x.DDLPolicy = DDLPolicy.AlwaysAllow);
+
+            Assert.Null(_edgedb.Config.DDLPolicy);
+            Assert.Equal(DDLPolicy.AlwaysAllow, client2.Config.DDLPolicy);
+
+            var client3 = client2.WithModule("test_module");
+
+            Assert.Null(_edgedb.Config.DDLPolicy);
+            Assert.Equal(DDLPolicy.AlwaysAllow, client2.Config.DDLPolicy);
+            Assert.Equal("test_module", client3.Module);
+            Assert.NotEqual("test_module", client2.Module);
+            Assert.NotEqual("test_module", _edgedb.Module);
         }
 
         private async Task TestScalarQuery<TResult>(string select, TResult expected)

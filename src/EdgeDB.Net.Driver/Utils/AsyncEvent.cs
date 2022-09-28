@@ -1,8 +1,8 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 
 namespace EdgeDB
 {
-    internal class AsyncEvent<T>
+    internal sealed class AsyncEvent<T>
         where T : class
     {
         internal ConcurrentDictionary<int, T> _subscriptions;

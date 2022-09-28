@@ -17,12 +17,12 @@ jobs:
       with:
         dotnet-version: 6.0.x
 
-    # - uses: edgedb/setup-edgedb@v1.2.2
-    #   with:
-    #     server-version: stable
-    #     instance-name: EdgeDB_Dotnet_Test
+    - uses: edgedb/setup-edgedb@v1
+      with:
+        server-version: stable
+        instance-name: edgedb_dotnet_tests
 
-    # - run: edgedb instance list
+    - run: edgedb instance list
 
     - name: Restore dependencies
       run: dotnet restore
@@ -33,5 +33,5 @@ jobs:
     - name: Unit test
       run: dotnet test ./tests/EdgeDB.Tests.Unit --no-build --verbosity normal
 
-    # - name: Integration Tests
-    #   run: dotnet test ./tests/EdgeDB.Tests.Integration --no-build --verbosity normal 
+    - name: Integration Tests
+      run: dotnet test ./tests/EdgeDB.Tests.Integration --no-build --verbosity diag 

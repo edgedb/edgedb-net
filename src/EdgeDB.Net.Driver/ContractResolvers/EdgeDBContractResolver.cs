@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
 namespace EdgeDB.ContractResolvers
 {
-    internal class EdgeDBContractResolver : DefaultContractResolver
+    internal sealed class EdgeDBContractResolver : DefaultContractResolver
     {
         protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
         {

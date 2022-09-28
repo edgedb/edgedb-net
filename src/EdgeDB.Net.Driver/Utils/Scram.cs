@@ -1,14 +1,13 @@
-﻿using EdgeDB.Binary;
+using EdgeDB.Binary;
 using EdgeDB.Binary.Packets;
-using EdgeDB.Codecs;
-using EdgeDB.Models;
+using EdgeDB.Binary.Codecs;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
 namespace EdgeDB.Utils
 {
-    internal class Scram : IDisposable
+    internal sealed class Scram : IDisposable
     {
         public const int NonceLength = 18;
 
@@ -16,6 +15,11 @@ namespace EdgeDB.Utils
         private string? _rawFirstMessage;
 
         private static string SanitizeString(string str) => str.Normalize(NormalizationForm.FormKC);
+
+        public Scram(byte[]? clientNonce = null)
+        {
+            _clientNonce = clientNonce;
+        }
 
         private static byte[] GenerateNonce()
         {
@@ -40,7 +44,7 @@ namespace EdgeDB.Utils
                 method);
         }
 
-        public (AuthenticationSASLResponse FinalMessage, byte[] ExpectedSig) BuildFinalMessage(AuthenticationStatus status, string password)
+        public (AuthenticationSASLResponse FinalMessage, byte[] ExpectedSig) BuildFinalMessage(in AuthenticationStatus status, string password)
         {
             if (status.AuthStatus != AuthStatus.AuthenticationSASLContinue)
                 throw new ArgumentException($"Expected continuation message for SASL, got {status.AuthStatus}");
@@ -54,8 +58,7 @@ namespace EdgeDB.Utils
             {
                 throw new FormatException("Received malformed scram message");
             }
-
-            var serverNonce = Convert.FromBase64String(parsedMessage["r"]);
+            
             var salt = Convert.FromBase64String(parsedMessage["s"]);
 
             if (!int.TryParse(parsedMessage["i"], out var iterations))
@@ -64,7 +67,7 @@ namespace EdgeDB.Utils
             }
 
             // build final
-            var final = $"c=biws,r={Convert.ToBase64String(serverNonce)}";
+            var final = $"c=biws,r={parsedMessage["r"]}";
             var authMsg = Encoding.UTF8.GetBytes($"{_rawFirstMessage},{msg},{final}");
 
             var saltedPassword = SaltPassword(SanitizeString(password), salt, iterations);

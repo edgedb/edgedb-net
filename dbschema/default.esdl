@@ -39,4 +39,12 @@ module default {
   type OtherThing extending AbstractThing {
     required property attribute -> str;
   }
+
+  # for type converter example
+  type UserWithSnowflakeId {
+    required property user_id -> str {
+      constraint exclusive;
+    }
+    required property username -> str;
+  }
 }

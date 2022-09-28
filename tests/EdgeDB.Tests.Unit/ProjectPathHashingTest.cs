@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB.Tests.Unit.Projects
+namespace EdgeDB.Tests.Unit
 {
     [TestClass]
     public class ProjectPathHashingTest
