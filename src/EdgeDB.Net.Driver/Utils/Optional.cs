@@ -101,5 +101,9 @@ namespace EdgeDB
         public static T? ToNullable<T>(this Optional<T> val)
             where T : struct
             => val.IsSpecified ? val.Value : null;
+
+        public static T? GetValueOrDefault<T>(this Optional<T> option, T? defaultValue)
+            where T : struct
+            => option.IsSpecified ? option.Value : defaultValue;
     }
 }

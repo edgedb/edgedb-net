@@ -30,60 +30,48 @@ namespace EdgeDB.State
         /// <summary>
         ///     Gets the idle transation timeout duration.
         /// </summary>
-        /// <remarks>
-        ///     The default value is 10 seconds.
-        /// </remarks>
-        public TimeSpan IdleTransationTimeout { get; init; }
+        public TimeSpan? IdleTransationTimeout { get; init; }
 
         /// <summary>
         ///     Gets the query execution timeout duration.
         /// </summary>
-        /// <remarks>
-        ///     The default value is zero seconds -- meaning there is no timeout.
-        /// </remarks>
-        public TimeSpan QueryExecutionTimeout { get; init; }
+        public TimeSpan? QueryExecutionTimeout { get; init; }
 
         /// <summary>
         ///     Gets whether or not to allow data maniplulations in edgeql functions.
         /// </summary>
-        public bool AllowDMLInFunctions { get; init; }
+        public bool? AllowDMLInFunctions { get; init; }
 
         /// <summary>
         ///     Gets the data definition policy for this client.
         /// </summary>
-        public DDLPolicy DDLPolicy { get; init; }
+        public DDLPolicy? DDLPolicy { get; init; }
 
         /// <summary>
         ///     Gets whether or not to apply the access policy.
         /// </summary>
-        public bool ApplyAccessPolicies { get; init; }
+        public bool? ApplyAccessPolicies { get; init; }
 
-        internal Config()
-        {
-            IdleTransationTimeout = TimeSpan.FromSeconds(10);
-            QueryExecutionTimeout = TimeSpan.Zero;
-            AllowDMLInFunctions = false;
-            DDLPolicy = DDLPolicy.NeverAllow;
-            ApplyAccessPolicies = true;
-        }
+        internal Config() { }
 
         internal IDictionary<string, object?> Serialize()
         {
             var dict = new Dictionary<string, object?>();
 
-            if(IdleTransationTimeout.TotalSeconds != 10)
-                dict["idle_transaction_timeout"] = IdleTransationTimeout;
+            if(IdleTransationTimeout.HasValue)
+                dict["idle_transaction_timeout"] = IdleTransationTimeout.Value;
 
-            if (QueryExecutionTimeout != TimeSpan.Zero)
-                dict["query_execution_timeout"] = QueryExecutionTimeout;
+            if (QueryExecutionTimeout.HasValue)
+                dict["query_execution_timeout"] = QueryExecutionTimeout.Value;
 
-            if(AllowDMLInFunctions)
-                dict["allow_dml_in_functions"] = true;
+            if(AllowDMLInFunctions.HasValue)
+                dict["allow_dml_in_functions"] = AllowDMLInFunctions.Value;
 
-            dict["allow_bare_ddl"] = DDLPolicy.ToString();
+            if(DDLPolicy.HasValue)
+                dict["allow_bare_ddl"] = DDLPolicy.Value.ToString();
 
-            if (!ApplyAccessPolicies)
-                dict["apply_access_policies"] = false;
+            if (ApplyAccessPolicies.HasValue)
+                dict["apply_access_policies"] = ApplyAccessPolicies.Value;
             
             return dict;
         }

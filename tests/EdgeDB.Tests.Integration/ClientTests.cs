@@ -1,4 +1,5 @@
 using EdgeDB.DataTypes;
+using EdgeDB.State;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -150,6 +151,23 @@ namespace EdgeDB.Tests.Integration
             var str = await client.QueryRequiredSingleAsync<string>("select \"Hello, EdgeDB.Net!\"");
 
             Assert.Equal("Hello, EdgeDB.Net!", str);
+        }
+
+        [Fact]
+        public void StateChange()
+        {
+            var client2 = _edgedb.WithConfig(x => x.DDLPolicy = DDLPolicy.AlwaysAllow);
+
+            Assert.Null(_edgedb.Config.DDLPolicy);
+            Assert.Equal(DDLPolicy.AlwaysAllow, client2.Config.DDLPolicy);
+
+            var client3 = client2.WithModule("test_module");
+
+            Assert.Null(_edgedb.Config.DDLPolicy);
+            Assert.Equal(DDLPolicy.AlwaysAllow, client2.Config.DDLPolicy);
+            Assert.Equal("test_module", client3.Module);
+            Assert.NotEqual("test_module", client2.Module);
+            Assert.NotEqual("test_module", _edgedb.Module);
         }
 
         private async Task TestScalarQuery<TResult>(string select, TResult expected)
