@@ -48,7 +48,12 @@ namespace EdgeDB.Tests.Integration
             }
             finally
             {
-                await _ddlClient.ExecuteAsync("DROP TYPE TestType", capabilities: Capabilities.All);
+                // try to drop the type, don't throw if this fails
+                try
+                {
+                    await _ddlClient.ExecuteAsync("DROP TYPE TestType", capabilities: Capabilities.All);
+                }
+                catch(EdgeDBErrorException) { }
             }
         }
 

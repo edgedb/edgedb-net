@@ -170,7 +170,9 @@ namespace EdgeDB.Binary
         public void WriteArray(byte[] buffer)
         {
             Write((uint)buffer.Length);
-            Write(buffer);
+
+            if(buffer.Length > 0)
+                Write(buffer);
         }
 
         public void WriteArrayWithoutLength(byte[] buffer)

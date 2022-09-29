@@ -276,7 +276,7 @@ namespace EdgeDB
                     StateData = _stateCodec?.Serialize(serializedState),
                     ImplicitTypeNames = true, // used for type builder
                     ImplicitTypeIds = true,  // used for type builder
-                    Arguments = argumentCodec?.SerializeArguments(args) ,
+                    Arguments = argumentCodec.SerializeArguments(args),
                     ImplicitLimit = _config.ImplicitLimit,
                     InputTypeDescriptorId = inCodecInfo.Id,
                     OutputTypeDescriptorId = outCodecInfo.Id,

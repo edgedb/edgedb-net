@@ -20,7 +20,7 @@ namespace EdgeDB.Binary.Packets
                     50 +
                     BinaryUtils.SizeOfString(Query) +
                     BinaryUtils.SizeOfByteArray(StateData) +
-                    Arguments?.Length ?? 4;
+                    BinaryUtils.SizeOfByteArray(Arguments);
 
             }
         }
@@ -85,7 +85,7 @@ namespace EdgeDB.Binary.Packets
             writer.Write(InputTypeDescriptorId);
             writer.Write(OutputTypeDescriptorId);
 
-            writer.Write(Arguments ?? new byte[] { 0, 0, 0, 0 });
+            writer.WriteArray(Arguments ?? Array.Empty<byte>());
         }
     }
 }
