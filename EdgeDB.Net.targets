@@ -4,11 +4,11 @@
         <LangVersion>latest</LangVersion>
         <Authors>EdgeDB.Net Contributors</Authors>
         <PackageTags>edgedb;db;database</PackageTags>
-        <PackageProjectUrl>https://github.com/quinchs/EdgeDB.Net</PackageProjectUrl>
+        <PackageProjectUrl>https://github.com/edgedb/edgedb-net</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageIcon>PackageLogo.png</PackageIcon>
         <RepositoryType>git</RepositoryType>
-        <RepositoryUrl>git://github.com/quinchs/EdgeDB.Net</RepositoryUrl>
+        <RepositoryUrl>git://github.com/edgedb/edgedb-net</RepositoryUrl>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(BuildNumber)' == '' ">
         <VersionSuffix Condition=" '$(VersionSuffix)' != ''">$(VersionSuffix)-dev</VersionSuffix>
