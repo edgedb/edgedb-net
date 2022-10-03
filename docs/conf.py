@@ -32,14 +32,29 @@ release = '0.1.0-rc'
 # ones.
 extensions = [
   'sphinx.ext.autodoc',
-    'sphinx.ext.doctest',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.githubpages',
-    'sphinx.ext.intersphinx',
+  'sphinx.ext.doctest',
+  'sphinx.ext.viewcode',
+  'sphinx.ext.githubpages',
+  'sphinx_code_tabs',
 ]
 
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
 
+primary_domain = None
+
+add_module_names = False
+
+templates_path = ['_templates']
+source_suffix = '.rst'
+master_doc = 'index'
+project = 'edgedb'
+copyright = '2019-present MagicStack Inc. and the EdgeDB authors.'
+author = 'MagicStack Inc. and the EdgeDB authors'
+language = None
+exclude_patterns = ['_build']
+pygments_style = 'sphinx'
+todo_include_todos = False
+suppress_warnings = ['image.nonlocal_uri']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
