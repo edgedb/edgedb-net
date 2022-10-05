@@ -322,47 +322,6 @@ namespace EdgeDB.Binary
             if(_properties is null || _propertyIndexTable is null)
                 throw new NullReferenceException("Properties cannot be null");
 
-            // if type is anon type or record, or has a constructor with all properties
-            if (_type.IsRecord() ||
-                _type.GetCustomAttribute<CompilerGeneratedAttribute>() != null ||
-                _type.GetConstructor(_properties.Select(x => x.Type).ToArray()) != null)
-            {
-                return (ref ObjectEnumerator enumerator) =>
-                {
-                    //var data = (IDictionary<string, object?>)enumerator.ToDynamic()!;
-                    var ctorParams = new object?[_properties.Length];
-                    var reverseIndexer = new FastInverseIndexer(_properties.Length);
-
-                    while(enumerator.Next(out var name, out var value))
-                    {
-                        if (PropertyMap.TryGetValue(name, out var prop))
-                        {
-                            var index = _propertyIndexTable[prop];
-                            reverseIndexer.Track(index);
-
-                            try
-                            {
-                                ctorParams[index] = prop.ConvertToPropertyType(value);
-                            }
-                            catch(Exception x)
-                            {
-                                throw new NoTypeConverterException($"Cannot assign property {prop.PropertyName} with type {value?.GetType().Name ?? "unknown"}", x);
-                            }
-                        }
-                    }
-
-                    // fill the missed properties with defaults
-                    var missed = reverseIndexer.GetIndexies();
-                    for(int i = 0; i != missed.Length; i++)
-                    {
-                        var prop = _properties[missed[i]];
-                        ctorParams[missed[i]] = ReflectionUtils.GetDefault(prop.Type);
-                    }
-                    
-                    return Activator.CreateInstance(_type, ctorParams)!;
-                };
-            }
-
             // if type has custom method builder
             if (_type.TryGetCustomBuilder(out var methodInfo))
             {
@@ -380,11 +339,52 @@ namespace EdgeDB.Binary
             }
 
             // if type has custom constructor factory
-            var constructor = _type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,null, new Type[] { typeof(IDictionary<string, object?>) }, null);
-                
+            var constructor = _type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[] { typeof(IDictionary<string, object?>) }, null);
+
             if (constructor?.GetCustomAttribute<EdgeDBDeserializerAttribute>() is not null)
                 return (ref ObjectEnumerator enumerator) => constructor.Invoke(new object?[] { enumerator.ToDynamic() }) ??
                                  throw new TargetInvocationException($"Cannot create an instance of {_type.Name}", null);
+
+            // if type is anon type or record, or has a constructor with all properties
+            if (_type.IsRecord() ||
+                _type.GetCustomAttribute<CompilerGeneratedAttribute>() != null ||
+                _type.GetConstructor(_properties.Select(x => x.Type).ToArray()) != null)
+            {
+                return (ref ObjectEnumerator enumerator) =>
+                {
+                    //var data = (IDictionary<string, object?>)enumerator.ToDynamic()!;
+                    var ctorParams = new object?[_properties.Length];
+                    var reverseIndexer = new FastInverseIndexer(_properties.Length);
+
+                    while (enumerator.Next(out var name, out var value))
+                    {
+                        if (PropertyMap.TryGetValue(name, out var prop))
+                        {
+                            var index = _propertyIndexTable[prop];
+                            reverseIndexer.Track(index);
+
+                            try
+                            {
+                                ctorParams[index] = prop.ConvertToPropertyType(value);
+                            }
+                            catch (Exception x)
+                            {
+                                throw new NoTypeConverterException($"Cannot assign property {prop.PropertyName} with type {value?.GetType().Name ?? "unknown"}", x);
+                            }
+                        }
+                    }
+
+                    // fill the missed properties with defaults
+                    var missed = reverseIndexer.GetIndexies();
+                    for (int i = 0; i != missed.Length; i++)
+                    {
+                        var prop = _properties[missed[i]];
+                        ctorParams[missed[i]] = ReflectionUtils.GetDefault(prop.Type);
+                    }
+
+                    return Activator.CreateInstance(_type, ctorParams)!;
+                };
+            }
 
             // is it abstract
             if (IsAbtractType)
