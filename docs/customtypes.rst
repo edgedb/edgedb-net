@@ -4,19 +4,18 @@
 Custom Datatypes
 ================
 
-The .NET driver supports custom type deserialization of query results with 
-classes, records and structs. By default, all properties of these are mapped
-with a one-to-one relation with the result of a query. This can be customized
-via. the ``[EdgeDBProperty]`` attribute and ``EdgeDBClientConfig.SchemaNamingStrategy``.
+Custom types are deserializable from a query's results by either using classes,
+records or structs. By default, all properties are mapped with a one-to-one
+relationship to the result of any given query.
 
 .. _edgedb-dotnet-property-attribute:
 
-Using Attributes
+Using attributes
 ----------------
 
 Much like the ``[JsonProperty]`` attribute in Newtonsoft.Json, the 
 ``[EdgeDBProperty]`` attribute can be used to customize the mapping of a
-property to a results' property:
+property to a results' property name:
 
 .. tabs::
   
@@ -31,7 +30,7 @@ property to a results' property:
         public int Age { get; set; }
     }
   
-  .. code-tab:: fs#FSharp
+  .. code-tab:: fsharp#FSharp
     
     type Person = {
       [<EdgeDBProperty("name")>]
@@ -41,18 +40,18 @@ property to a results' property:
       Age: int
     }
 
-``EdgeDBProperty`` takes in a positional argument for setting a name. This will
-result in the above type mapping the object with lowercase ``name`` and
-``age`` properties.
-
 .. _edgedb-dotnet-naming-strategy:
 
 Using a naming strategy
 -----------------------
 
-The ``EdgeDBClientConfig.SchemaNamingStrategy`` property is used to define the
-naming strategy within schema. Changing this will implicitly convert all
-property names to the new naming strategy:
+Naming strategies can be forced in EdgeDB.Net by using the
+``EdgeDBClientConfig.SchemaNamingStrategy`` property. Changing its value will
+result in all property names being implicitly converted to what is chosen:
+
+Each property in a custom type will automatically have their property
+names converted to the set to the naming strategy you pick, with ``snake_case``
+in this example.
 
 .. tabs::
   
@@ -65,30 +64,34 @@ property names to the new naming strategy:
 
     var client = new EdgeDBClient(config);
   
-  .. code-tab:: fs#FSharp
+  .. code-tab:: fsharp#FSharp
     
     let mutable config = new EdgeDBClientConfig()
     config.SchemaNamingStrategy <- INamingStrategy.SnakeCase
 
     let client = new EdgeDBClient(config)
 
-Every property within your custom types will automatically have their property
-names converted to the set to the naming strategy you pick, with ``snake_case``
-in this example.
-
 .. _edgedb-dotnet-polymorphism:
 
-Polymorphic Types
+Polymorphic types
 -----------------
 
-EdgeDB.Net supports polymorphic custom types, reflcting inheritance in EdgeDB.
-When the result of a query is an interface or abstract class, the driver will
-try to scan the assembly of the result for all types inheriting or implementing
-such and deserialize it based on its name into the proper child.
+.. This is oddly worded. Last sentence could use better wording.
 
-It is very important the names of the implementing types to match those in the schema, 
-if this isn't possible you could use the ``EdgeDBType`` attribute on the class to 
-specify the name of the type in the schema.
+EdgeDB.Net supports polymorphic custom types, reflecting inheritance found in
+EdgeDB. When the return type of a query is an interface or abstract class,
+EdgeDB.Net will try and scan the assembly of a result for all types
+inheriting or implementing the return type, and deserialize them into
+children based off of their parent.
+
+It's very important to note that the names of types implemented must match
+those found in a schema. If this isn't possible, try using the ``EdgeDBType``
+attribute on a class instead for specification.
+
+.. note:: 
+
+  To implement custom behaviour for deserializing abstract/interface types, see
+  :ref:`custom deserialization <edgedb-dotnet-custom-deserialization>`.
 
 .. tabs::
 
@@ -114,10 +117,10 @@ specify the name of the type in the schema.
     var shows = content.Where(x => x is TVShow).Cast<TVShow>();
     var movies = content.Where(x => x is Movie).Cast<Movie>();
 
-  .. code-tab:: fs#FSharp
+  .. code-tab:: fsharp#FSharp
 
     type Content = {
-      Title: string option
+      Title: string
     }
 
     type Movie = {
@@ -135,15 +138,137 @@ specify the name of the type in the schema.
     let shows = content.Where(fun x -> x :? TVShow).Cast<TVShow>()
     let movies = content.Where(fun x -> x :? Movie).Cast<Movie>()
 
-.. note:: 
-
-  To implement custom behaviour for deserializing abstract/interface types, see
-  :ref:`custom deserialization <edgedb-dotnet-custom-deserialization>`.
-
-
 .. _edgedb-dotnet-custom-deserialization:
 
-Custom Type Deserialization
----------------------------
+Custom deserializers
+--------------------
 
-You can add custom methods for deserializing types 
+Custom methods and callbacks may be defined when trying to deserialize custom
+types using the ``TypeBuilder`` class. These methods will be called once
+EdgeDB.Net begins deserializing a user-defined type.
+
+There are two ways to add custom deserialization methods: attributes and
+callbacks. Both methods result in the same behaviour.
+
+Attributes
+^^^^^^^^^^
+
+Methods and constructors can be marked with the ``[EdgeDBDeserializer]``
+attribute, but only one may be applied per method.
+
+The method or constructor must also take in a ``IDictionary<string, object?>``
+type as its only parameter, as the dictionary contains all properties and their
+values.
+
+.. note:: 
+  
+  The keys of ``IDictionary`` are what's received from EdgeDB. The names
+  of each key may not reflect properties found in the type - only 
+  the names of fields returned from EdgeDB.
+
+.. tabs::
+  
+  .. code-tab:: cs#CSharp
+    
+    public class Person
+    {
+        public string? Name { get; set; }
+
+        public int Age { get; set; }
+
+        // constructor
+        [EdgeDBDeserializer]
+        public Person(IDictionary<string, object?> data)
+        {
+            Name = (string?)data["name"];
+            Age = (int)data["age"]!;
+        }
+
+        // method
+        [EdgeDBDeserializer]
+        public void Deserialize(IDictionary<string, object?> data)
+        {
+            Name = (string?)data["name"];
+            Age = (int)data["age"]!;
+        }
+    }
+
+  .. code-tab:: fsharp#FSharp
+
+    type Person(name : string, email : string) =
+      class
+      member this.Name with get() = name
+      member this.Email with get() = email
+
+      // constructor
+      [<EdgeDBDeserializer()>]
+      new(data: IDictionary<string, obj>) =
+        let name = (string)data["name"]
+        let email = (string)data["email"]
+        Person(name,email)
+      end
+
+      // method
+      [<EdgeDBDeserializer()>]
+      member this.Deserialize(data : IDictionary<string, obj>) =
+        this.Name <- string data["name"]
+        this.Email <- string data["email"]
+
+.. note:: 
+
+  Having both a method and a constructor with the ``EdgeDBDeserializer`` 
+  attribute will not work. Your type will need to have at least one of either
+  in order to work.
+
+Callbacks
+^^^^^^^^^
+
+There are two different types of callbacks for building: factories and
+builders. Factories are responsible for returning an implementation or instance
+of the specified types, while builders are responsible for populating a given
+instance.
+
+.. tabs::
+  
+  .. code-tab:: cs#CSharp
+    
+    public class Person
+    {
+        public string? Name { get; set; }
+
+        public int Age { get; set; }
+    }
+
+    TypeBuilder.AddOrUpdateTypeBuilder<Person>((person, data) =>
+    {
+        person.Name = (string)data["name"]!;
+        person.Email = (string)data["email"]!;
+    });
+
+    TypeBuilder.AddOrUpdateTypeFactory<Person>((ref ObjectEnumerator enumerator) =>
+    {
+        var data = (IDictionary<string, object?>)enumerator.ToDynamic()!;
+
+        return new Person
+        {
+            Email = (string)data["email"]!,
+            Name = (string)data["name"]!
+        };
+    });
+
+  .. code-tab:: fsharp#FSharp
+
+    type Person(name: string, age: int32) =
+      member this.Name with get() = name
+      member this.Age with get() = age
+
+    TypeBuilder.AddOrUpdateTypeBuilder<Person>(fun person data -> 
+      person.Name <- string data["name"]
+      person.Age <- data["age"] :?> int32
+    )
+
+    TypeBuilder.AddOrUpdateTypeFactory<Person>(fun (ref ObjectEnumerator enumerator) ->
+      let data = enumerator.ToDynamic()
+
+      Person(string data["name"], data["age"] :?> int32)
+    )
