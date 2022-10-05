@@ -9,25 +9,21 @@ namespace EdgeDB
     {
         /// <inheritdoc/>
         public bool IsSuccess { get; internal init; }
-
-        /// <inheritdoc/>
-        public ErrorResponse? ErrorResponse { get; internal init; }
-
+        
         /// <inheritdoc/>
         public Exception? Exception { get; internal init; }
 
         /// <inheritdoc/>
         public string? ExecutedQuery { get; internal init; }
 
-        internal ExecuteResult(bool success, ErrorResponse? error, Exception? exc, string? executedQuery)
+        internal ExecuteResult(bool success, Exception? exc, string? executedQuery)
         {
             IsSuccess = success;
-            ErrorResponse = error;
             Exception = exc;
             ExecutedQuery = executedQuery;
         }
 
-        IExecuteError? IExecuteResult.ExecutionError => ErrorResponse ?? null;
+        IExecuteError? IExecuteResult.ExecutionError => Exception is EdgeDBErrorException x ? x.ErrorResponse : null;
 
     }
 

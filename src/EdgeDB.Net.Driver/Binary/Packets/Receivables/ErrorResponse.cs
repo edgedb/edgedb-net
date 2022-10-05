@@ -10,7 +10,7 @@ namespace EdgeDB.Binary.Packets
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#errorresponse">Error Response</see> packet.
     /// </summary>
-    public readonly struct ErrorResponse : IReceiveable, IExecuteError
+    internal readonly struct ErrorResponse : IReceiveable, IExecuteError
     {
         /// <inheritdoc/>
         public ServerMessageType Type 

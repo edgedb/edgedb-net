@@ -4,8 +4,8 @@
   <a href="https://www.nuget.org/packages/EdgeDB.Net.Driver/">
     <img src="https://img.shields.io/nuget/vpre/EdgeDB.Net.Driver.svg?maxAge=2592000?style=plastic" alt="NuGet">
   </a>
-  <a href="https://github.com/quinchs/EdgeDB.Net/actions/workflows/tests.yml">
-    <img src="https://github.com/quinchs/EdgeDB.Net/actions/workflows/tests.yml/badge.svg?branch=master" alt="Tests">
+  <a href="https://github.com/edgedb/edgedb-net/actions/workflows/tests.yml">
+    <img src="https://github.com/edgedb/edgedb-net/actions/workflows/tests.yml/badge.svg?branch=dev" alt="Tests">
   </a>
   <a href="https://discord.gg/tM4EpAaeSq">
     <img src="https://discord.com/api/guilds/841451783728529451/widget.png" alt="Discord">

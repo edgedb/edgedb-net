@@ -9,7 +9,7 @@ namespace EdgeDB.Binary
     /// <summary>
     ///     Represents a dynamic key-value pair received in a <see cref="IReceiveable"/>.
     /// </summary>
-    public readonly struct KeyValue
+    internal readonly struct KeyValue
     {
         /// <summary>
         ///     Gets the key code.

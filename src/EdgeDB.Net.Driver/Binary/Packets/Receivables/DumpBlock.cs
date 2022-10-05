@@ -7,7 +7,7 @@ namespace EdgeDB.Binary.Packets
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#dump-block">Dump Block</see> packet.
     /// </summary>
-    public readonly struct DumpBlock : IReceiveable
+    internal readonly struct DumpBlock : IReceiveable
     {
         internal int Size
             => sizeof(int) + BinaryUtils.SizeOfByteArray(Raw) + BinaryUtils.SizeOfByteArray(HashBuffer);

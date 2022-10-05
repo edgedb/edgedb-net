@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -10,7 +10,7 @@ namespace EdgeDB.Binary.Packets
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#serverhandshake">Server Handshake</see> packet.
     /// </summary>
-    public readonly struct ServerHandshake : IReceiveable
+    internal readonly struct ServerHandshake : IReceiveable
     {
         /// <inheritdoc/>
         public ServerMessageType Type 

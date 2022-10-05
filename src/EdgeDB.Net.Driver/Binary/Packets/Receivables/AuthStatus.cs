@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,7 +9,7 @@ namespace EdgeDB.Binary
     /// <summary>
     ///     Represents the authentication state.
     /// </summary>
-    public enum AuthStatus : uint
+    internal enum AuthStatus : uint
     {
         /// <summary>
         ///     The authentication was successful and is validated.

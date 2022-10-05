@@ -6,7 +6,7 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace EdgeDB.Binary
+namespace EdgeDB
 {
     internal sealed class ObjectBuilder
     {

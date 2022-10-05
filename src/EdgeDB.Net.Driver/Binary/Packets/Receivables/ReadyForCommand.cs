@@ -1,11 +1,11 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 
 namespace EdgeDB.Binary.Packets
 {
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#readyforcommand">Ready for Command</see> packet.
     /// </summary>
-    public readonly struct ReadyForCommand : IReceiveable
+    internal readonly struct ReadyForCommand : IReceiveable
     {
         /// <inheritdoc/>
         public ServerMessageType Type 

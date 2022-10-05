@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,7 +9,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents the log message severity within a <see cref="Binary.Packets.LogMessage"/>
     /// </summary>
-    public enum MessageSeverity : byte
+    internal enum MessageSeverity : byte
     {
         Debug = 0x14,
         Info = 0x28,

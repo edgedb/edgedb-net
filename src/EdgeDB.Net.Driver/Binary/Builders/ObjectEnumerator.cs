@@ -1,3 +1,4 @@
+using EdgeDB.Binary;
 using EdgeDB.Binary.Codecs;
 using System;
 using System.Collections.Generic;
@@ -7,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB.Binary.Builders
+namespace EdgeDB
 {
     /// <summary>
     ///     Represents an enumerator for creating objects.

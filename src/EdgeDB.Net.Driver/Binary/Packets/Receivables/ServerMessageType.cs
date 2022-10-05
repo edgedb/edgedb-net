@@ -1,10 +1,10 @@
-﻿
+
 namespace EdgeDB.Binary
 {
     /// <summary>
     ///		Represents all supported message types sent by the server.
     /// </summary>
-    public enum ServerMessageType : sbyte
+    internal enum ServerMessageType : sbyte
     {
         /// <summary>
         ///		A <see cref="Packets.RestoreReady"/> message.

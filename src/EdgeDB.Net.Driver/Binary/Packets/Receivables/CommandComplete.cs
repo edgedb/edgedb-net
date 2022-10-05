@@ -10,7 +10,7 @@ namespace EdgeDB.Binary.Packets
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#commandcomplete">Command Complete</see> packet
     /// </summary>
-    public readonly struct CommandComplete : IReceiveable
+    internal readonly struct CommandComplete : IReceiveable
     {
         public const int CAPBILITIES_HEADER = 0x1001;
 

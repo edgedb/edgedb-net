@@ -12,7 +12,7 @@ namespace EdgeDB.Binary.Packets
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#dump-header">Dump Header</see> packet.
     /// </summary>
-    public readonly struct DumpHeader : IReceiveable
+    internal readonly struct DumpHeader : IReceiveable
     {
         /// <inheritdoc/>
         public ServerMessageType Type 
@@ -101,7 +101,7 @@ namespace EdgeDB.Binary.Packets
     /// <summary>
     ///     Represents the type info sent within a <see cref="DumpHeader"/> packet.
     /// </summary>
-    public readonly struct DumpTypeInfo
+    internal readonly struct DumpTypeInfo
     {
         /// <summary>
         ///     Gets the name of this type info.
@@ -129,7 +129,7 @@ namespace EdgeDB.Binary.Packets
     /// <summary>
     ///     Represents a object descriptor sent within the <see cref="DumpHeader"/> packet.
     /// </summary>
-    public readonly struct DumpObjectDescriptor
+    internal readonly struct DumpObjectDescriptor
     {
         /// <summary>
         ///     Gets the object Id that the descriptor describes.

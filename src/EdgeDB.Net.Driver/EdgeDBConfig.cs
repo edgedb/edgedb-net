@@ -21,7 +21,7 @@ namespace EdgeDB
             set
             {
                 if (value <= 0)
-                    throw new ArgumentOutOfRangeException($"{nameof(DefaultPoolSize)} must be greater than 0");
+                    throw new ArgumentOutOfRangeException(nameof(value), $"{nameof(DefaultPoolSize)} must be greater than 0");
                 _poolSize = value;
             }
         }
@@ -45,7 +45,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents different client types used in a <see cref="EdgeDBClient"/>.
     /// </summary>
-    public enum EdgeDBClientType
+    internal enum EdgeDBClientType
     {
         /// <summary>
         ///     The client pool will use <see cref="EdgeDBTcpClient"/>s

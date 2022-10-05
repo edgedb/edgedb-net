@@ -32,16 +32,13 @@ namespace EdgeDB
         ///     Gets the hint for the error.
         /// </summary>
         public string? Hint { get; }
-
-        /// <summary>
-        ///     Gets the raw <see cref="Binary.Packets.ErrorResponse"/> packet.
-        /// </summary>
-        public ErrorResponse ErrorResponse { get; }
-
+        
         /// <summary>
         ///     Gets the query that caused this error.
         /// </summary>
         public string? Query { get; }
+
+        internal ErrorResponse ErrorResponse;
 
         /// <summary>
         ///     Constructs a new <see cref="EdgeDBErrorException"/> with the specified
@@ -51,7 +48,7 @@ namespace EdgeDB
         ///     The <see cref="Binary.Packets.ErrorResponse"/> packet which
         ///     caused this exception to be thrown.
         /// </param>
-        public EdgeDBErrorException(ErrorResponse error)
+        internal EdgeDBErrorException(ErrorResponse error)
             : base(error.Message, typeof(ServerErrorCodes).GetField(error.ErrorCode.ToString())?.IsDefined(typeof(ShouldRetryAttribute), false) ?? false)
         {
             if(error.Attributes.Any(x => x.Code == 0x0002))
@@ -75,7 +72,7 @@ namespace EdgeDB
         ///     caused this exception to be thrown.
         /// </param>
         /// <param name="query">The query that caused this error to be thrown.</param>
-        public EdgeDBErrorException(ErrorResponse error, string? query)
+        internal EdgeDBErrorException(ErrorResponse error, string? query)
             : this(error)
         {
             Query = query;
