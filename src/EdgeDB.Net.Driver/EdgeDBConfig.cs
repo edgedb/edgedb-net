@@ -45,7 +45,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents different client types used in a <see cref="EdgeDBClient"/>.
     /// </summary>
-    public enum EdgeDBClientType
+    internal enum EdgeDBClientType
     {
         /// <summary>
         ///     The client pool will use <see cref="EdgeDBTcpClient"/>s
