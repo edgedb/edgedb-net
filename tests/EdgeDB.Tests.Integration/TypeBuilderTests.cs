@@ -1,5 +1,4 @@
 using EdgeDB.Binary;
-using EdgeDB.Binary.Builders;
 using System;
 using System.Collections.Generic;
 using System.Linq;

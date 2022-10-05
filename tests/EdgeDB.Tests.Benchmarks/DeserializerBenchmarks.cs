@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Tests.Benchmarks
 {
-    public class DeserializerBenchmarks
+    internal class DeserializerBenchmarks
     {
         public static readonly byte[] ServerHandshake;
         public static readonly byte[] Authentication1;
