@@ -21,7 +21,7 @@ namespace EdgeDB
             set
             {
                 if (value <= 0)
-                    throw new ArgumentOutOfRangeException($"{nameof(DefaultPoolSize)} must be greater than 0");
+                    throw new ArgumentOutOfRangeException(nameof(value), $"{nameof(DefaultPoolSize)} must be greater than 0");
                 _poolSize = value;
             }
         }
