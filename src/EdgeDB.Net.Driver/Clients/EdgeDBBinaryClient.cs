@@ -284,7 +284,7 @@ namespace EdgeDB
 
                 executeResult.ThrowIfErrrorResponse(query);
 
-                execResult = new ExecuteResult(true, null, null, query);
+                execResult = new ExecuteResult(true, null, query);
 
                 return new RawExecuteResult(outCodecInfo.Codec!, receivedData);
             }
@@ -312,8 +312,8 @@ namespace EdgeDB
             catch (Exception x)
             {
                 execResult = x is EdgeDBErrorException err
-                    ? new ExecuteResult(false, err.ErrorResponse, err, query)
-                    : new ExecuteResult(false, null, x, query);
+                    ? new ExecuteResult(false, err, query)
+                    : new ExecuteResult(false, x, query);
 
                 Logger.InternalExecuteFailed(x);
 

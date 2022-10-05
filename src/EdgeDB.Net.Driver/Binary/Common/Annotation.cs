@@ -9,7 +9,7 @@ namespace EdgeDB.Binary
     /// <summary>
     ///     Represents an annotation within a packet.
     /// </summary>
-    public readonly struct Annotation
+    internal readonly struct Annotation
     {
         internal int Size => Encoding.UTF8.GetByteCount(Name) + Encoding.UTF8.GetByteCount(Value);
 

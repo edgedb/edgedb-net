@@ -201,13 +201,13 @@ namespace EdgeDB
         /// <param name="pool">The TCP client to preform the restore with.</param>
         /// <param name="stream">The stream containing the database dump.</param>
         /// <param name="token">A token to cancel the operation with.</param>
-        /// <returns>The command complete packet received after restoring the database.</returns>
+        /// <returns>The status result of the restore.</returns>
         /// <exception cref="EdgeDBException">
         ///     The server sent an invalid packet or the restore operation couldn't proceed 
         ///     due to the database not being empty.
         /// </exception>
         /// <exception cref="EdgeDBErrorException">The server sent an error during the restore operation.</exception>
-        public static async Task<CommandComplete> RestoreDatabaseAsync(this EdgeDBClient pool, Stream stream, CancellationToken token = default)
+        public static async Task<string> RestoreDatabaseAsync(this EdgeDBClient pool, Stream stream, CancellationToken token = default)
         {
             await using var client = await pool.GetOrCreateClientAsync<EdgeDBBinaryClient>(token).ConfigureAwait(false);
             using var cmdLock = await client.AquireCommandLockAsync(token).ConfigureAwait(false);
@@ -240,7 +240,7 @@ namespace EdgeDB
                 ? throw new EdgeDBErrorException(error)
                 : result is not CommandComplete complete
                 ? throw new UnexpectedMessageException(ServerMessageType.CommandComplete, result.Type)
-                : complete;
+                : complete.Status;
         }
         #endregion
     }

@@ -6,12 +6,12 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using EdgeDB.Binary.Builders;
 using EdgeDB.TypeConverters;
 using EdgeDB.DataTypes;
 using System;
+using EdgeDB.Binary;
 
-namespace EdgeDB.Binary
+namespace EdgeDB
 {
     /// <summary>
     ///     Represents the class used to build types from edgedb query results.

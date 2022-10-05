@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -10,7 +10,7 @@ namespace EdgeDB.Binary.Packets
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#statedatadescription">State Data Description</see> packet.
     /// </summary>
-    public readonly struct StateDataDescription : IReceiveable
+    internal readonly struct StateDataDescription : IReceiveable
     {
         public ServerMessageType Type => ServerMessageType.StateDataDescription;
 

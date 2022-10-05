@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -13,7 +13,7 @@ namespace EdgeDB.Binary.Packets
     ///     <see href="https://www.edgedb.com/docs/reference/protocol/messages#authenticationsaslcontinue">AuthenticationSASLContinue</see>,
     ///     and <see href="https://www.edgedb.com/docs/reference/protocol/messages#authenticationsaslfinal">AuthenticationSASLFinal</see> packets.
     /// </summary>
-    public readonly struct AuthenticationStatus : IReceiveable
+    internal readonly struct AuthenticationStatus : IReceiveable
     {
         /// <inheritdoc/>
         public ServerMessageType Type 

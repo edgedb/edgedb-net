@@ -10,7 +10,7 @@ namespace EdgeDB.Binary
     /// <summary>
     ///     Represents a protocol extension.
     /// </summary>
-    public readonly struct ProtocolExtension
+    internal readonly struct ProtocolExtension
     {
         internal int Size
             => Encoding.UTF8.GetByteCount(Name) + _annotations.Sum(x => x.Size);

@@ -11,7 +11,7 @@ namespace EdgeDB
         ///     Constructs a new <see cref="UnexpectedMessageException"/> with the message type the client <i>wasn't</i> expecting.
         /// </summary>
         /// <param name="unexpected">The unexcepted message type.</param>
-        public UnexpectedMessageException(ServerMessageType unexpected)
+        internal UnexpectedMessageException(ServerMessageType unexpected)
             : base($"Got unexpected message type {unexpected}")
         {
 
@@ -22,7 +22,7 @@ namespace EdgeDB
         /// </summary>
         /// <param name="expected">The expected message type.</param>
         /// <param name="actual">The actual message type.</param>
-        public UnexpectedMessageException(ServerMessageType expected, ServerMessageType actual)
+        internal UnexpectedMessageException(ServerMessageType expected, ServerMessageType actual)
             : base($"Expected message type {expected} but got {actual}")
         {
 

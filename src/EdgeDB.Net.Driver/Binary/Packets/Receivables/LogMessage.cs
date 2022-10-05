@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -10,7 +10,7 @@ namespace EdgeDB.Binary.Packets
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#logmessage">Log Message</see> packet.
     /// </summary>
-    public readonly struct LogMessage : IReceiveable
+    internal readonly struct LogMessage : IReceiveable
     {
         /// <inheritdoc/>
         public ServerMessageType Type => ServerMessageType.LogMessage;

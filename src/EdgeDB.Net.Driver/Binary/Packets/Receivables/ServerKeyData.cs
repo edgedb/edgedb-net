@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -10,7 +10,7 @@ namespace EdgeDB.Binary.Packets
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#serverkeydata">Server Key Data</see> packet.
     /// </summary>
-    public readonly struct ServerKeyData : IReceiveable
+    internal readonly struct ServerKeyData : IReceiveable
     {
         public const int SERVER_KEY_LENGTH = 32;
 

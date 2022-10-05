@@ -1,5 +1,4 @@
 using EdgeDB.Binary;
-using EdgeDB.Binary.Builders;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;

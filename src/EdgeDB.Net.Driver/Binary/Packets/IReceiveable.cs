@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,7 +9,7 @@ namespace EdgeDB.Binary
     /// <summary>
     ///     Represents a generic packet received from the server.
     /// </summary>
-    public interface IReceiveable
+    internal interface IReceiveable
     {
         /// <summary>
         ///     Gets the type of the message.

@@ -5,7 +5,7 @@ namespace EdgeDB.Binary.Packets
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#data">Data</see> packet
     /// </summary>
-    public readonly struct Data : IReceiveable
+    internal readonly struct Data : IReceiveable
     {
         /// <inheritdoc/>
         public ServerMessageType Type 
