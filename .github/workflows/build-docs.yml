@@ -31,7 +31,10 @@ jobs:
 
     - name: Set git status Env
       id: gh-status-check
-      run: echo "GITHUB_COMMIT_STATUS=$(git status)" >> $GITHUB_ENV
+      run: |
+        echo "GITHUB_COMMIT_STATUS<<EOF" >> $GITHUB_ENV
+        git status >> $GITHUB_ENV
+        echo 'EOF' >> $GITHUB_ENV
 
   push-api-docs:
     needs: build-api-docs
