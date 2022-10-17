@@ -1,14 +1,14 @@
-name: Docs Build (push)
+name: Docs Build (PR)
 
 on:
-  push:
-    branches: [ dev ]
+  - push
+  - pull_request
 
 env: 
   BuildNumber: "${{ github.run_number }}"
 
 jobs:
-  publish-prerelease:
+  build-api-docs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -26,7 +26,7 @@ jobs:
 
     - name: Doc generation
       run: dotnet run --project  ./tools/EdgeDB.DocGenerator/ -- $GITHUB_WORKSPACE
-
+    
     - name: Commit files
       run: |
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
