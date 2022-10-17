@@ -2099,22 +2099,6 @@ API Documentation
             :param T:
                 The inner type of the optional.
 
-        .. dn:method::  Create<T, T2>(T value, T2 other): Optional<T>
-
-            Creates a fuckign optionalll 
-
-            :param T value:
-                aaa
-
-            :param T2 other:
-                aaa
-
-            :param T:
-                The inner type of the optional.
-
-            :param T2:
-                The 2nd
-
         .. dn:method::  ToNullable<T>(this Optional<T> val): T?
 
             Converts the :dn:class:`EdgeDB.Optional<T>` to a ``System.Nullable`1``. 

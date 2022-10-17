@@ -4,8 +4,6 @@
 Exceptions
 ==========
 
-.. _edgedb-dotnet-api-edgedb.configurationexception:
-
 .. dn:class:: EdgeDB.ConfigurationException
 
     Represents a generic configuration error. 
@@ -28,8 +26,6 @@ Exceptions
         :param Exception inner:
             An inner exception.
 
-.. _edgedb-dotnet-api-edgedb.connectionfailedexception:
-
 .. dn:class:: EdgeDB.ConnectionFailedException
 
     Represents a connection failure that cannot be retried. 
@@ -45,8 +41,6 @@ Exceptions
 
         :param int attempts:
             The number of attempts made to connect.
-
-.. _edgedb-dotnet-api-edgedb.connectionfailedtemporarilyexception:
 
 .. dn:class:: EdgeDB.ConnectionFailedTemporarilyException
 
@@ -64,8 +58,6 @@ Exceptions
         :param SocketError error:
             The underlying socket error that caused this exception to be thrown.
 
-.. _edgedb-dotnet-api-edgedb.customclientexception:
-
 .. dn:class:: EdgeDB.CustomClientException
 
     Represents a generic error with custom clients. 
@@ -77,8 +69,6 @@ Exceptions
 
         :param string message:
             The error message describing why this exception was thrown.
-
-.. _edgedb-dotnet-api-edgedb.edgedberrorexception:
 
 .. dn:class:: EdgeDB.EdgeDBErrorException
 
@@ -104,8 +94,6 @@ Exceptions
     .. dn:method::  ToString(): string
 
         Prettifies the error if it was a result of a bad query string; otherwise formats it. 
-
-.. _edgedb-dotnet-api-edgedb.edgedbexception:
 
 .. dn:class:: EdgeDB.EdgeDBException
 
@@ -151,8 +139,6 @@ Exceptions
         :param Boolean shouldReconnect:
             Whether or not the client who caught this exception should reconnect.
 
-.. _edgedb-dotnet-api-edgedb.invalidconnectionexception:
-
 .. dn:class:: EdgeDB.InvalidConnectionException
 
     Represents an error with the provided connection details. 
@@ -165,8 +151,6 @@ Exceptions
         :param string message:
             The error message describing why this exception was thrown.
 
-.. _edgedb-dotnet-api-edgedb.invalidsignatureexception:
-
 .. dn:class:: EdgeDB.InvalidSignatureException
 
     Represents an exception that occurs when the server signature is incorrect. 
@@ -175,8 +159,6 @@ Exceptions
     .. dn:method:: InvalidSignatureException(): InvalidSignatureException
 
         Constructs a new :dn:class:`EdgeDB.InvalidSignatureException`. 
-
-.. _edgedb-dotnet-api-edgedb.missingcodecexception:
 
 .. dn:class:: EdgeDB.MissingCodecException
 
@@ -190,8 +172,6 @@ Exceptions
         :param string message:
             The error message describing why this exception was thrown.
 
-.. _edgedb-dotnet-api-edgedb.missingrequiredexception:
-
 .. dn:class:: EdgeDB.MissingRequiredException
 
     Represents an exception that occurs when required data isn't returned. 
@@ -200,8 +180,6 @@ Exceptions
     .. dn:method:: MissingRequiredException(): MissingRequiredException
 
         Constructs a new :dn:class:`EdgeDB.MissingRequiredException`. 
-
-.. _edgedb-dotnet-api-edgedb.notypeconverterexception:
 
 .. dn:class:: EdgeDB.NoTypeConverterException
 
@@ -241,8 +219,6 @@ Exceptions
         :param Exception inner:
             An optional inner exception.
 
-.. _edgedb-dotnet-api-edgedb.resultcardinalitymismatchexception:
-
 .. dn:class:: EdgeDB.ResultCardinalityMismatchException
 
     Represents an exception that occurs when a queries cardinality isn't what the client was expecting. 
@@ -258,8 +234,6 @@ Exceptions
         :param Cardinality actual:
             The actual cardinality
 
-.. _edgedb-dotnet-api-edgedb.transactionexception:
-
 .. dn:class:: EdgeDB.TransactionException
 
     Represents an exception that occurs within transactions. 
@@ -274,8 +248,6 @@ Exceptions
 
         :param Exception innerException:
             An optional inner exception.
-
-.. _edgedb-dotnet-api-edgedb.unexpectedmessageexception:
 
 .. dn:class:: EdgeDB.UnexpectedMessageException
 

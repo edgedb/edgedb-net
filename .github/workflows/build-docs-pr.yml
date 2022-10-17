@@ -1,0 +1,27 @@
+name: Docs Build (PR)
+
+on:
+  - pull_request
+
+env: 
+  BuildNumber: "${{ github.run_number }}"
+
+jobs:
+  publish-prerelease:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 6.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --no-restore
+
+    - name: Doc generation
+      run: dotnet run --project  ./tools/EdgeDB.DocGenerator/ -- $GITHUB_WORKSPACE
