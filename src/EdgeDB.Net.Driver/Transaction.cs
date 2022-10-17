@@ -3,7 +3,7 @@ using EdgeDB.DataTypes;
 namespace EdgeDB
 {
     /// <summary>
-    ///     Represents a transaction within edgedb.
+    ///     Represents a transaction within EdgeDB.
     /// </summary>
     public sealed class Transaction : IEdgeDBQueryable
     {
