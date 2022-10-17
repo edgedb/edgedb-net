@@ -17,9 +17,10 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'EdgeDB.Net'
-copyright = '2022, Quin Lynch'
-author = 'Quin Lynch'
+project = 'edgedb'
+copyright = '2019-present MagicStack Inc. and the EdgeDB authors.'
+author = 'MagicStack Inc. and the EdgeDB authors'
+
 
 # The full version, including alpha/beta/rc tags
 release = '0.1.0-rc'
@@ -32,14 +33,28 @@ release = '0.1.0-rc'
 # ones.
 extensions = [
   'sphinx.ext.autodoc',
-    'sphinx.ext.doctest',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.githubpages',
-    'sphinx.ext.intersphinx',
+  'sphinx.ext.doctest',
+  'sphinx.ext.viewcode',
+  'sphinx.ext.githubpages',
+  'sphinx.ext.intersphinx',
+  'sphinx_code_tabs',
+  'sphinxcontrib.dotnetdomain'
 ]
 
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
 
+primary_domain = None
+
+add_module_names = False
+
+templates_path = ['_templates']
+source_suffix = '.rst'
+master_doc = 'index'
+language = None
+exclude_patterns = ['_build']
+pygments_style = 'sphinx'
+todo_include_todos = False
+suppress_warnings = ['image.nonlocal_uri']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -61,3 +76,5 @@ html_theme = 'alabaster'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}

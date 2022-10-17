@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace EdgeDB
 {
     /// <summary>
-    ///     Represents an exception that wraps <see cref="Binary.Packets.ErrorResponse"/>.
+    ///     Represents an exception that was caused by an error from EdgeDB.
     /// </summary>
     public sealed class EdgeDBErrorException : EdgeDBException
     {
