@@ -26,13 +26,19 @@ jobs:
 
     - name: Doc generation
       run: dotnet run --project  ./tools/EdgeDB.DocGenerator/ -- $GITHUB_WORKSPACE
-    
+
+    - name: Set git status Env
+      run: echo "GITHUB_COMMIT_STATUS=$(git status)" >> $GITHUB_ENV
+
     - name: Commit files
+      if: ${{ !contains($GITHUB_COMMIT_STATUS, "nothing to commit") }}
       run: |
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
         git commit -m "Generate docs" -a
+        
     - name: Push changes
+      if: ${{ !contains($GITHUB_COMMIT_STATUS, "nothing to commit") }}
       uses: ad-m/github-push-action@master
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
