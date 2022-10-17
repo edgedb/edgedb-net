@@ -10,6 +10,8 @@ env:
 jobs:
   build-api-docs:
     runs-on: ubuntu-latest
+    outputs:
+      has-changes: ${{ steps.gh-status-check.outputs.GITHUB_COMMIT_STATUS }}
     steps:
     - uses: actions/checkout@v2
 
@@ -28,17 +30,23 @@ jobs:
       run: dotnet run --project  ./tools/EdgeDB.DocGenerator/ -- $GITHUB_WORKSPACE
 
     - name: Set git status Env
+      id: gh-status-check
       run: echo "GITHUB_COMMIT_STATUS=$(git status)" >> $GITHUB_ENV
 
+  push-api-docs:
+    needs: build-api-docs
+    runs-on: ubuntu-latest
+    
+    steps:
     - name: Commit files
-      if: ${{ !contains($GITHUB_COMMIT_STATUS, "nothing to commit") }}
+      if: ${{ !contains(needs.build-api-docs.outputs.GITHUB_COMMIT_STATUS, "nothing to commit") }}
       run: |
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
         git commit -m "Generate docs" -a
         
     - name: Push changes
-      if: ${{ !contains($GITHUB_COMMIT_STATUS, "nothing to commit") }}
+      if: ${{ !contains(needs.build-api-docs.outputs.GITHUB_COMMIT_STATUS, "nothing to commit") }}
       uses: ad-m/github-push-action@master
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
