@@ -12,6 +12,8 @@
   config
   customtypes
   datatypes
+  exceptions
+  api
 
 EdgeDB.Net is the official EdgeDB .NET client, compatable with C#, F# and
 VB.NET.
@@ -19,6 +21,10 @@ VB.NET.
 .. note::
 
   EdgeDB version 2.0 and above are required to use EdgeDB.Net.
+
+.. note:: 
+
+  The documentation surrounding EdgeDB.Net has not yet been finalised.
 
 .. _edgedb-dotnet-installing:
 

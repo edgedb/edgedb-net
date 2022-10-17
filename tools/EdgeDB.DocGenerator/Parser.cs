@@ -50,7 +50,10 @@ namespace EdgeDB.DocGenerator
             => Members!.Where(x => x is DocProperty).Cast<DocProperty>().ToArray();
 
         public DocMethod[] Methods
-            => Members!.Where(x => x is DocMethod).Cast<DocMethod>().ToArray();
+            => Members!.Where(x => x is DocMethod m && m.Method is MethodInfo).Cast<DocMethod>().ToArray();
+
+        public DocMethod[] Constructors
+            => Members!.Where(x => x is DocMethod m && m.Method is ConstructorInfo).Cast<DocMethod>().ToArray();
 
         public DocType(docMember member)
             : base(member)
@@ -101,6 +104,8 @@ namespace EdgeDB.DocGenerator
     {
         public MethodBase? Method { get; set; }
         public string? Name { get; set; }
+        public bool Ignored { get; set; }
+
 
         public DocMethod(docMember member) : base(member)
         {
@@ -123,25 +128,68 @@ namespace EdgeDB.DocGenerator
                         return false;
 
                     for (int i = 0; i != p.Length; i++)
-                        if (p[i].ParameterType.FullName != args[i])
-                            return false;
+                    {
+                        var fmt = FormatRawArgument(x, args[i]);
 
+                        if ((p[i].ParameterType.FullName ?? p[i].ParameterType.Name) != fmt
+                            && p[i].ToString().Split(' ')[0] != fmt)
+                            return false;
+                    }
+                    
                     return true;
                 });
             }
             else
             {
-                // params
-                if (Name.Contains("("))
+                if(Name.Contains('#'))
                 {
-                    var args = Name[(Name.IndexOf('(') + 1)..^1].Split(',');
+                    // explicit interface declaration -- ignore
+                    Ignored = true;
+                    return;
+                }
+
+                // GENERIC HELL ALERT:
+                // generics are formatted in the name as 'Name``n', where
+                // n is the number of generic arguments in the function definition.
+                // When these generic arguments are used as method arguments, the *index*
+                // is used to define *which* generic is used.
+
+                var methodGenericMatch = Regex.Match(Name, @"(.*?)``(\d+?)(?>$|\()");
+
+                var methodGenericCount = 0;
+
+                if (methodGenericMatch.Success)
+                {
+                    methodGenericCount = int.Parse(methodGenericMatch.Groups[2].Value);
+                }
+
+                // params
+                if (Name.Contains('('))
+                {
+                    // OK, i hate doc strings: basic split of ',' wont work
+                    // because of generic type arguments. We need to traverse the args string
+                    // and control an escape flag to determine if the arg is generically escaped
+                    // or not.
+
+                    var paramString = Regex.Match(Name, @".*?\((.*?)\)").Groups[1].Value;
+                    
+                    var args = PullArgs(paramString);
+                    
+                    var targetMethodName = Regex.Replace(Name.Split('(')[0], @"(`{1,2}\d+)", (m) => "");
 
                     Method = Parent!.DotnetType!.GetTypeInfo().DeclaredMethods.FirstOrDefault(x =>
                     {
                         var p = x.GetParameters();
 
-                        if (p.Length! != args.Length)
+                        if (p.Length! != args.Count)
                             return false;
+
+                        var generics = x.GetGenericArguments() ?? System.Type.EmptyTypes;
+
+                        if (generics.Length != methodGenericCount)
+                            return false;
+                        
+                        // check generics
 
                         for (int i = 0; i != p.Length; i++)
                         {
@@ -154,16 +202,103 @@ namespace EdgeDB.DocGenerator
                                     return false;
                             }
 
-                            if (n != pr.ParameterType.FullName)
+                            // reformat our docstring parameter name to match a dotnet parameter name
+                            var fmt = FormatRawArgument(x, n);
+
+                            if (fmt != (pr.ParameterType.FullName ?? pr.ParameterType.Name) && fmt != pr.ToString().Split(' ')[0])
                                 return false;
                         }
 
-                        return true;
+                        return targetMethodName == x.Name;
                     });
                 }
                 else
-                    Method = Parent!.DotnetType!.GetTypeInfo().DeclaredMethods.FirstOrDefault(x => x.Name == Name) as MethodBase;
+                {
+                    Method = Parent!.DotnetType!.GetTypeInfo().DeclaredMethods.FirstOrDefault(x => x.Name == (methodGenericMatch.Success ? methodGenericMatch.Groups[1].Value : Name) && x.GetGenericArguments().Length == methodGenericCount) as MethodBase;
+                }
             }
+
+            if (Method is null)
+                throw new Exception("Method is null");
+        }
+
+        private static List<string> PullArgs(string s)
+        {
+            var args = new List<string>();
+            var currentArg = "";
+            var escaped = false;
+            var lvl = 0;
+            foreach (var c in s)
+            {
+                switch (c)
+                {
+                    case '{':
+                        escaped = true;
+                        lvl++;
+                        currentArg += c;
+                        break;
+                    case '}':
+                        lvl--;
+                        escaped = lvl > 0;
+                        currentArg += c;
+                        break;
+                    case ',' when !escaped:
+                        args.Add(currentArg);
+                        currentArg = "";
+                        break;
+                    default:
+                        currentArg += c;
+                        break;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(currentArg))
+                args.Add(currentArg);
+
+            return args;
+        }
+
+        private static string FormatRawArgument(MethodBase method, string section)
+        {
+            var subSection = Regex.Match(section, @"(.*?){(.*?)}$");
+            var mgArgTL = Regex.Match(section, @"``(\d+)");
+            var dgArgTL = Regex.Match(section, @"`(\d+)");
+
+            if (mgArgTL.Success && !subSection.Success)
+                return method.GetGenericArguments()[int.Parse(mgArgTL.Groups[1].Value)].Name;
+            else if (dgArgTL.Success && !subSection.Success)
+                return method.DeclaringType!.GetGenericArguments()[int.Parse(dgArgTL.Groups[1].Value)].Name;
+            else if (!subSection.Success)
+                return section;
+
+            List<string> result = new();
+
+            var args = PullArgs(subSection.Groups[2].Value);
+
+            var wrappingType = $"{subSection.Groups[1].Value}`{args.Count}";
+
+            foreach (var arg in args)
+            {
+                var argCopy = arg;
+                var mgArg = Regex.Match(arg, @"``(\d+)");
+                var dgArg = Regex.Match(arg, @"`(\d+)");
+
+                // incase of wrapping types, preform a replace
+                if (mgArg.Success)
+                {
+                    var substitute = method.GetGenericArguments()[int.Parse(mgArg.Groups[1].Value)].Name;
+                    argCopy = arg.Replace($"``{mgArg.Groups[1].Value}", substitute);
+                }
+                else if (dgArg.Success)
+                {
+                    var substitute = method.DeclaringType!.GetGenericArguments()[int.Parse(dgArg.Groups[1].Value)].Name;
+                    argCopy = arg.Replace($"`{dgArg.Groups[1].Value}", substitute);
+                }
+
+                result.Add(FormatRawArgument(method, argCopy));
+            }
+
+            return $"{wrappingType}[{string.Join(',', result)}]";
         }
     }
 
@@ -255,24 +390,22 @@ namespace EdgeDB.DocGenerator
 
         public static DocMember FromMember(docMember member)
         {
-            var type = (MemberType)member.name![0];
+            var type = GetTypeOfDefName(member.name!);
 
-            switch (type)
+            return type switch
             {
+                MemberType.Type => new DocType(member),
+                MemberType.Method => new DocMethod(member),
+                MemberType.Property => new DocProperty(member),
+                MemberType.Field => new DocField(member),
+                MemberType.Event => new DocEvent(member),
+                _ => throw new NotImplementedException(),
+            };
+        }
 
-                case MemberType.Type:
-                    return new DocType(member);
-                case MemberType.Method:
-                    return new DocMethod(member);
-                case MemberType.Property:
-                    return new DocProperty(member);
-                case MemberType.Field:
-                    return new DocField(member);
-                case MemberType.Event:
-                    return new DocEvent(member);
-                default:
-                    throw new NotImplementedException();
-            }
+        public static MemberType GetTypeOfDefName(string name)
+        {
+            return (MemberType)name[0];
         }
 
         protected string GetNodeTermName()
@@ -384,7 +517,7 @@ namespace EdgeDB.DocGenerator
 
         /// <remarks/>
         [System.Xml.Serialization.XmlElementAttribute("exception", typeof(docMemberException))]
-        [System.Xml.Serialization.XmlElementAttribute("inheritdoc", typeof(object))]
+        [System.Xml.Serialization.XmlElementAttribute("inheritdoc", typeof(docMemberInheritDoc))]
         [System.Xml.Serialization.XmlElementAttribute("param", typeof(docMemberParam))]
         [System.Xml.Serialization.XmlElementAttribute("remarks", typeof(docMemberRemarks))]
         [System.Xml.Serialization.XmlElementAttribute("returns", typeof(docMemberReturns))]
@@ -417,77 +550,25 @@ namespace EdgeDB.DocGenerator
         }
     }
 
+    [System.SerializableAttribute()]
+    [System.ComponentModel.DesignerCategoryAttribute("code")]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true)]
+    public partial class docMemberInheritDoc
+    {
+
+    }
+
     /// <remarks/>
     [System.SerializableAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
     [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true)]
-    public partial class docMemberException
+    public partial class docMemberException : docMemberSummary
     {
-
-        private docMemberExceptionTypeparamref? typeparamrefField;
-
-        private docMemberExceptionParamref? paramrefField;
-
-        private docMemberExceptionSee? seeField;
-
-        private string[]? textField;
-
+        
         private string? crefField;
 
         private string? accessorField;
-
-        /// <remarks/>
-        public docMemberExceptionTypeparamref? typeparamref
-        {
-            get
-            {
-                return this.typeparamrefField;
-            }
-            set
-            {
-                this.typeparamrefField = value;
-            }
-        }
-
-        /// <remarks/>
-        public docMemberExceptionParamref? paramref
-        {
-            get
-            {
-                return this.paramrefField;
-            }
-            set
-            {
-                this.paramrefField = value;
-            }
-        }
-
-        /// <remarks/>
-        public docMemberExceptionSee? see
-        {
-            get
-            {
-                return this.seeField;
-            }
-            set
-            {
-                this.seeField = value;
-            }
-        }
-
-        /// <remarks/>
-        [System.Xml.Serialization.XmlTextAttribute()]
-        public string[]? Text
-        {
-            get
-            {
-                return this.textField;
-            }
-            set
-            {
-                this.textField = value;
-            }
-        }
+        
 
         /// <remarks/>
         [System.Xml.Serialization.XmlAttributeAttribute()]
@@ -594,45 +675,10 @@ namespace EdgeDB.DocGenerator
     [System.SerializableAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
     [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true)]
-    public partial class docMemberParam
+    public partial class docMemberParam : docMemberSummary
     {
-
-        private object[]? itemsField;
-
-        private string[]? textField;
-
         private string? nameField;
-
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute("paramref", typeof(docMemberParamParamref))]
-        [System.Xml.Serialization.XmlElementAttribute("see", typeof(docMemberParamSee))]
-        [System.Xml.Serialization.XmlElementAttribute("typeparamref", typeof(docMemberParamTypeparamref))]
-        public object[]? Items
-        {
-            get
-            {
-                return this.itemsField;
-            }
-            set
-            {
-                this.itemsField = value;
-            }
-        }
-
-        /// <remarks/>
-        [System.Xml.Serialization.XmlTextAttribute()]
-        public string[]? Text
-        {
-            get
-            {
-                return this.textField;
-            }
-            set
-            {
-                this.textField = value;
-            }
-        }
-
+        
         /// <remarks/>
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public string? name
@@ -724,44 +770,9 @@ namespace EdgeDB.DocGenerator
     [System.SerializableAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
     [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true)]
-    public partial class docMemberRemarks
+    public partial class docMemberRemarks : docMemberSummary
     {
 
-        private object[]? itemsField;
-
-        private string[]? textField;
-
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute("b", typeof(string))]
-        [System.Xml.Serialization.XmlElementAttribute("br", typeof(object))]
-        [System.Xml.Serialization.XmlElementAttribute("paramref", typeof(docMemberRemarksParamref))]
-        [System.Xml.Serialization.XmlElementAttribute("see", typeof(docMemberRemarksSee))]
-        [System.Xml.Serialization.XmlElementAttribute("typeparamref", typeof(docMemberRemarksTypeparamref))]
-        public object[]? Items
-        {
-            get
-            {
-                return this.itemsField;
-            }
-            set
-            {
-                this.itemsField = value;
-            }
-        }
-
-        /// <remarks/>
-        [System.Xml.Serialization.XmlTextAttribute()]
-        public string[]? Text
-        {
-            get
-            {
-                return this.textField;
-            }
-            set
-            {
-                this.textField = value;
-            }
-        }
     }
 
     /// <remarks/>
@@ -856,42 +867,8 @@ namespace EdgeDB.DocGenerator
     [System.SerializableAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
     [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true)]
-    public partial class docMemberReturns
+    public partial class docMemberReturns : docMemberSummary
     {
-
-        private object[]? itemsField;
-
-        private string[]? textField;
-
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute("paramref", typeof(docMemberReturnsParamref))]
-        [System.Xml.Serialization.XmlElementAttribute("see", typeof(docMemberReturnsSee))]
-        [System.Xml.Serialization.XmlElementAttribute("typeparamref", typeof(docMemberReturnsTypeparamref))]
-        public object[]? Items
-        {
-            get
-            {
-                return this.itemsField;
-            }
-            set
-            {
-                this.itemsField = value;
-            }
-        }
-
-        /// <remarks/>
-        [System.Xml.Serialization.XmlTextAttribute()]
-        public string[]? Text
-        {
-            get
-            {
-                return this.textField;
-            }
-            set
-            {
-                this.textField = value;
-            }
-        }
     }
 
     /// <remarks/>
@@ -1002,6 +979,7 @@ namespace EdgeDB.DocGenerator
         [System.Xml.Serialization.XmlElementAttribute("see", typeof(docMemberSummarySee))]
         [System.Xml.Serialization.XmlElementAttribute("seealso", typeof(docMemberSummarySeealso))]
         [System.Xml.Serialization.XmlElementAttribute("typeparamref", typeof(docMemberSummaryTypeparamref))]
+        [System.Xml.Serialization.XmlElementAttribute("br", typeof(docMemberSummaryBr))]
         [System.Xml.Serialization.XmlChoiceIdentifierAttribute("ItemsElementName")]
         public object[]? Items
         {
@@ -1205,6 +1183,14 @@ namespace EdgeDB.DocGenerator
         }
     }
 
+    [System.SerializableAttribute()]
+    [System.ComponentModel.DesignerCategoryAttribute("code")]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true)]
+    public partial class docMemberSummaryBr
+    {
+        
+    }
+
     /// <remarks/>
     [System.SerializableAttribute()]
     [System.Xml.Serialization.XmlTypeAttribute(IncludeInSchema = false)]
@@ -1228,18 +1214,17 @@ namespace EdgeDB.DocGenerator
 
         /// <remarks/>
         typeparamref,
+        br,
     }
 
     /// <remarks/>
     [System.SerializableAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
     [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true)]
-    public partial class docMemberTypeparam
+    public partial class docMemberTypeparam : docMemberSummary
     {
 
         private string? nameField;
-
-        private string? valueField;
 
         /// <remarks/>
         [System.Xml.Serialization.XmlAttributeAttribute()]
@@ -1252,20 +1237,6 @@ namespace EdgeDB.DocGenerator
             set
             {
                 this.nameField = value;
-            }
-        }
-
-        /// <remarks/>
-        [System.Xml.Serialization.XmlTextAttribute()]
-        public string? Value
-        {
-            get
-            {
-                return this.valueField;
-            }
-            set
-            {
-                this.valueField = value;
             }
         }
     }

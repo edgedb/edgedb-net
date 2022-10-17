@@ -135,12 +135,12 @@ namespace EdgeDB
         private string? _tlsca;
         private TLSSecurityMode? _tlsSecurity;
         #endregion
-        
+
         /// <summary>
         ///     Creates an <see cref="EdgeDBConnection"/> from a <see href="https://www.edgedb.com/docs/reference/dsn#dsn-specification">valid DSN</see>.
         /// </summary>
         /// <param name="dsn">The DSN to create the connection from.</param>
-        /// <returns></returns>
+        /// <returns>A <see cref="EdgeDBConnection"/> representing the DSN.</returns>
         /// <exception cref="ArgumentException">A query parameter has already been defined in the DSN.</exception>
         /// <exception cref="FormatException">Port was not in the correct format of int.</exception>
         /// <exception cref="FileNotFoundException">A file parameter wasn't found.</exception>
@@ -348,8 +348,8 @@ connectionDefinition:
         /// <summary>
         ///     Creates a new EdgeDBConnection from a .toml project file.
         /// </summary>
-        /// <param name="path">The path to the .toml project file</param>
-        /// <returns>A <see cref="EdgeDBConnection"/> allowing you to connect to the projects database.</returns>
+        /// <param name="path">The path to the .toml project file.</param>
+        /// <returns>A <see cref="EdgeDBConnection"/> representing the project defined in the .toml file.</returns>
         /// <exception cref="FileNotFoundException">The supplied file path, credentials path, or instance-name file doesn't exist.</exception>
         /// <exception cref="DirectoryNotFoundException">The project directory doesn't exist for the supplied toml file.</exception>
         public static EdgeDBConnection FromProjectFile(string path)
@@ -377,7 +377,7 @@ connectionDefinition:
         ///     Creates a new <see cref="EdgeDBConnection"/> from an instance name.
         /// </summary>
         /// <param name="name">The name of the instance.</param>
-        /// <returns></returns>
+        /// <returns>A <see cref="EdgeDBConnection"/> containing connection details for the specific instance.</returns>
         /// <exception cref="FileNotFoundException">The instances config file couldn't be found.</exception>
         public static EdgeDBConnection FromInstanceName(string name)
         {
