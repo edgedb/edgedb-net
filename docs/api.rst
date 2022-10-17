@@ -1922,7 +1922,7 @@ API Documentation
 
     .. dn:class:: Transaction
 
-        Represents a transaction within edgedb. 
+        Represents a transaction within EdgeDB. 
 
 
         :property TransactionState State:
