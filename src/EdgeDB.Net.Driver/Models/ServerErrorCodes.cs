@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,7 +8,7 @@ namespace EdgeDB
 {
     /// <summary>
     ///     Represents the different error codes sent by the server defined 
-    ///     <seealso href="https://www.edgedb.com/docs/reference/protocol/errors#error-codes">on the docs.</seealso>
+    ///     <seealso href="https://www.edgedb.com/docs/reference/protocol/errors#error-codes">in the docs.</seealso>
     /// </summary>
     public enum ServerErrorCodes : uint
     {
