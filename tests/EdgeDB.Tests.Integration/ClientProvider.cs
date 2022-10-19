@@ -1,22 +1,21 @@
-using Newtonsoft.Json;
-using System.IO;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace EdgeDB.Tests.Integration
 {
-    public class ClientFixture
+    internal class ClientProvider
     {
-        public EdgeDBClient EdgeDB { get; private set; }
-
-        public ClientFixture()
-        {
-            EdgeDB = new(new EdgeDBClientPoolConfig
+        public static EdgeDBClient EdgeDB
+            => new(new EdgeDBClientPoolConfig
             {
                 SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy
             });
-        }
 
-        public CancellationToken GetTimeoutToken()
+        public static CancellationToken GetTimeoutToken()
         {
             var source = new CancellationTokenSource();
             source.CancelAfter(10000);
