@@ -16,18 +16,25 @@ namespace EdgeDB
     public ref struct ObjectEnumerator
     {
         public int Length => _names.Length;
-        private readonly string[] _names;
-        internal readonly ICodec[] Codecs;
-        private readonly int _numElements;
         internal PacketReader Reader;
+        internal readonly ICodec[] Codecs;
+        private readonly TypeDeserializeInfo? _deserializerInfo;
+        private readonly string[] _names;
+        private readonly int _numElements;
         private int _pos;
 
-        internal ObjectEnumerator(ref Span<byte> data, int position, string[] names, ICodec[] codecs)
+        internal ObjectEnumerator(
+            ref Span<byte> data,
+            int position,
+            string[] names,
+            ICodec[] codecs,
+            TypeDeserializeInfo? deserializerInfo)
         {
             Reader = new PacketReader(ref data, position);
-            _names = names;
             Codecs = codecs;
+            _names = names;
             _pos = 0;
+            _deserializerInfo = deserializerInfo;
 
             _numElements = Reader.ReadInt32();
         }
@@ -79,9 +86,62 @@ namespace EdgeDB
 
             var innerReader = new PacketReader(ref buff);
             name = _names[_pos];
+            var codec = Codecs[_pos];
+
+
+            // check initialization
+            InitializeCodec(name, codec);
+
             value = Codecs[_pos].Deserialize(ref innerReader);
             _pos++;
             return true;
+        }
+
+        private void InitializeCodec(string? name, ICodec codec, EdgeDBPropertyInfo? prop = null)
+        {
+            if (_deserializerInfo is null)
+                return;
+
+            if (codec is not Binary.Codecs.Object
+                or Binary.Codecs.Tuple
+                or Binary.Codecs.Array<object>
+                or Binary.Codecs.Set<object>)
+                return;
+
+            if (prop is null && name is not null)
+                if (!_deserializerInfo.PropertyMap.TryGetValue(name, out prop))
+                    return;
+
+            if (prop is null)
+                return;
+
+            switch (codec)
+            {
+                case Binary.Codecs.Object obj:
+                    obj.Initialize(prop.Type);
+                    break;
+                case Binary.Codecs.Set<object> set
+                        when set.InnerCodec is Binary.Codecs.Object obj:
+                    obj.Initialize(prop.Type);
+                    break;
+                case Binary.Codecs.Array<object> arr
+                        when arr.InnerCodec is Binary.Codecs.Object obj:
+                    obj.Initialize(prop.Type);
+                    break;
+                case Binary.Codecs.Tuple tpl:
+                    {
+                        var gn = prop.Type.GetGenericArguments();
+
+                        if (gn.Length != tpl.InnerCodecs.Length)
+                            throw new NoTypeConverterException($"Cannot determine inner types of the tuple {prop.Type} for property {name ?? prop.PropertyName}");
+
+                        for (int i = 0; i != tpl.InnerCodecs.Length; i++)
+                        {
+                            InitializeCodec($"{name}[{i}]", tpl.InnerCodecs[i], prop);
+                        }
+                    }
+                    break;
+            }
         }
     }
 }
