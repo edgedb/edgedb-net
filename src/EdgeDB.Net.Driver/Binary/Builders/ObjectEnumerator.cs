@@ -169,9 +169,15 @@ namespace EdgeDB
                 case IWrappingCodec singleWrap
                         when singleWrap.InnerCodec is Binary.Codecs.Object obj &&
                         !obj.Initialized:
-                    obj.Initialize(prop.Type);
+                    var iface = prop.Type.GetInterfaces().FirstOrDefault(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+
+                    if (iface is not null)
+                    {
+                        obj.Initialize(iface.GetGenericArguments()[0]);
+                    }
+                    else
+                        throw new NoTypeConverterException($"Cannot determine inner type from {prop.Type}: Is it assignable to IEnumerable<T>?");
                     break;
-                
             }
         }
     }
