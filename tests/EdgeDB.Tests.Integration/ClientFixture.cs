@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using System.IO;
+using System.Threading;
 
 namespace EdgeDB.Tests.Integration
 {
@@ -13,6 +14,13 @@ namespace EdgeDB.Tests.Integration
             {
                 SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy
             });
+        }
+
+        public CancellationToken GetTimeoutToken()
+        {
+            var source = new CancellationTokenSource();
+            source.CancelAfter(10000);
+            return source.Token;
         }
     }
 }
