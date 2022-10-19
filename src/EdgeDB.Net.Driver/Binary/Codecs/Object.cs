@@ -7,14 +7,14 @@ using System.Runtime.InteropServices;
 
 namespace EdgeDB.Binary.Codecs
 {
-    internal sealed class Object : ICodec<object>, IArgumentCodec<object>
+    internal sealed class Object : ICodec<object>, IArgumentCodec<object>, IMultiWrappingCodec
     {
         private readonly ICodec[] _innerCodecs;
         private readonly string[] _propertyNames;
         private TypeDeserializerFactory? _factory;
         private TypeDeserializeInfo? _deserializerInfo;
-        private Type? _targetType;
-        private bool _initialized;
+        internal Type? TargetType;
+        internal bool Initialized;
         
         internal Object(ObjectShapeDescriptor descriptor, List<ICodec> codecs)
         {
@@ -50,18 +50,18 @@ namespace EdgeDB.Binary.Codecs
 
         public void Initialize(Type target)
         {
-            if (_initialized && target == _targetType)
+            if (Initialized && target == TargetType)
                 return;
 
-            _targetType = target;
+            TargetType = target;
 
             try
             {
                 _factory = TypeBuilder.GetDeserializationFactory(target);
                 _deserializerInfo = TypeBuilder.TypeInfo[target];
-                _initialized = true;
+                Initialized = true;
             }
-            catch (Exception) when (_targetType == typeof(object))
+            catch (Exception) when (TargetType == typeof(object))
             {
                 _factory = (ref ObjectEnumerator enumerator) => enumerator.ToDynamic();
             }
@@ -69,7 +69,7 @@ namespace EdgeDB.Binary.Codecs
 
         public unsafe object? Deserialize(ref PacketReader reader)
         {
-            if (!_initialized || _factory is null || _targetType is null)
+            if (!Initialized || _factory is null || TargetType is null)
                 Initialize(typeof(object));
             
             // reader is being copied if we just pass it as 'ref reader' to our object enumerator,
@@ -84,7 +84,7 @@ namespace EdgeDB.Binary.Codecs
             }
             catch(Exception x)
             {
-                throw new EdgeDBException($"Failed to deserialize object to {_targetType}", x);
+                throw new EdgeDBException($"Failed to deserialize object to {TargetType}", x);
             }
             finally
             {
@@ -137,5 +137,7 @@ namespace EdgeDB.Binary.Codecs
                 }
             }
         }
+
+        ICodec[] IMultiWrappingCodec.InnerCodecs => _innerCodecs;
     }
 }

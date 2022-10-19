@@ -109,4 +109,14 @@ namespace EdgeDB.Binary.Codecs
     }
 
     internal interface IScalarCodec<TInner> : ICodec<TInner> { }
+
+    internal interface IWrappingCodec
+    {
+        ICodec InnerCodec { get; }
+    }
+
+    internal interface IMultiWrappingCodec
+    {
+        ICodec[] InnerCodecs { get; }
+    }
 }

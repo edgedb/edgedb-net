@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace EdgeDB.Binary.Codecs
 {
-    internal sealed class Tuple : ICodec<TransientTuple>
+    internal sealed class Tuple : ICodec<TransientTuple>, IMultiWrappingCodec
     {
         internal readonly ICodec[] InnerCodecs;
         
@@ -12,7 +12,7 @@ namespace EdgeDB.Binary.Codecs
         {
             InnerCodecs = innerCodecs;
         }
-
+        
         public TransientTuple Deserialize(ref PacketReader reader)
         {
             var numElements = reader.ReadInt32();
@@ -52,5 +52,7 @@ namespace EdgeDB.Binary.Codecs
         {
             throw new NotSupportedException("Tuples cannot be passed in query arguments");
         }
+
+        ICodec[] IMultiWrappingCodec.InnerCodecs => InnerCodecs;
     }
 }

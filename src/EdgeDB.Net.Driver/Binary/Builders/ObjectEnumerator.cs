@@ -128,7 +128,7 @@ namespace EdgeDB
             // check initialization
             InitializeCodec(name, codec);
 
-            value = Codecs[_pos].Deserialize(ref innerReader);
+            value = codec.Deserialize(ref innerReader);
             _pos++;
             return true;
         }
@@ -138,10 +138,7 @@ namespace EdgeDB
             if (_deserializerInfo is null)
                 return;
 
-            if (codec is not Binary.Codecs.Object
-                or Binary.Codecs.Tuple
-                or Binary.Codecs.Array<object>
-                or Binary.Codecs.Set<object>)
+            if (!(codec is IWrappingCodec or IMultiWrappingCodec))
                 return;
 
             if (prop is null && name is not null)
@@ -154,14 +151,6 @@ namespace EdgeDB
             switch (codec)
             {
                 case Binary.Codecs.Object obj:
-                    obj.Initialize(prop.Type);
-                    break;
-                case Binary.Codecs.Set<object> set
-                        when set.InnerCodec is Binary.Codecs.Object obj:
-                    obj.Initialize(prop.Type);
-                    break;
-                case Binary.Codecs.Array<object> arr
-                        when arr.InnerCodec is Binary.Codecs.Object obj:
                     obj.Initialize(prop.Type);
                     break;
                 case Binary.Codecs.Tuple tpl:
@@ -177,6 +166,12 @@ namespace EdgeDB
                         }
                     }
                     break;
+                case IWrappingCodec singleWrap
+                        when singleWrap.InnerCodec is Binary.Codecs.Object obj &&
+                        !obj.Initialized:
+                    obj.Initialize(prop.Type);
+                    break;
+                
             }
         }
     }
