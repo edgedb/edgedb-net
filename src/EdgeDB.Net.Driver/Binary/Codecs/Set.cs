@@ -2,16 +2,16 @@ namespace EdgeDB.Binary.Codecs
 {
     internal sealed class Set<TInner> : ICodec<IEnumerable<TInner?>>
     {
-        private readonly ICodec<TInner> _innerCodec;
+        internal readonly ICodec<TInner> InnerCodec;
 
         public Set(ICodec<TInner> innerCodec)
         {
-            _innerCodec = innerCodec;
+            InnerCodec = innerCodec;
         }
 
         public IEnumerable<TInner?>? Deserialize(ref PacketReader reader)
         {
-            if (_innerCodec is Array<TInner>)
+            if (InnerCodec is Array<TInner>)
                 return DecodeSetOfArrays(ref reader);
             else return DecodeSet(ref reader);
         }
@@ -58,7 +58,7 @@ namespace EdgeDB.Binary.Codecs
 
                 reader.Skip(4); // skip reserved
 
-                result[i] = _innerCodec.Deserialize(ref reader);
+                result[i] = InnerCodec.Deserialize(ref reader);
             }
 
             return result;
@@ -95,7 +95,7 @@ namespace EdgeDB.Binary.Codecs
                 if (elementLength is -1)
                     result[i] = default;
                 else
-                    result[i] = _innerCodec.Deserialize(ref reader);
+                    result[i] = InnerCodec.Deserialize(ref reader);
             }
 
             return result;

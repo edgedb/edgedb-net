@@ -11,11 +11,11 @@ namespace EdgeDB.Binary.Codecs
             0,0,0,1
         };
         
-        private readonly ICodec<TInner> _innerCodec;
+        internal readonly ICodec<TInner> InnerCodec;
 
         public Array(ICodec<TInner> innerCodec)
         {
-            _innerCodec = innerCodec;
+            InnerCodec = innerCodec;
         }
 
         public IEnumerable<TInner?> Deserialize(ref PacketReader reader)
@@ -46,7 +46,7 @@ namespace EdgeDB.Binary.Codecs
             {
                 var elementLength = reader.ReadInt32();
                 reader.ReadBytes(elementLength, out var innerData);
-                array[i] = _innerCodec.Deserialize(innerData);
+                array[i] = InnerCodec.Deserialize(innerData);
             }
 
             return array;
@@ -80,7 +80,7 @@ namespace EdgeDB.Binary.Codecs
                 }
                 else
                 {
-                    writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => _innerCodec.Serialize(ref innerWriter, element));
+                    writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => InnerCodec.Serialize(ref innerWriter, element));
                 }
             }
         }

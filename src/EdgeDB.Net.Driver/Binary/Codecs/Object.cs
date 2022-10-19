@@ -12,6 +12,7 @@ namespace EdgeDB.Binary.Codecs
         private readonly ICodec[] _innerCodecs;
         private readonly string[] _propertyNames;
         private TypeDeserializerFactory? _factory;
+        private TypeDeserializeInfo? _deserializerInfo;
         private Type? _targetType;
         private bool _initialized;
         
@@ -57,20 +58,7 @@ namespace EdgeDB.Binary.Codecs
             try
             {
                 _factory = TypeBuilder.GetDeserializationFactory(target);
-                var deserializerInfo = TypeBuilder.TypeInfo[target];
-                
-                // initialize any other object codecs that are properties
-                for (int i = 0; i != _innerCodecs.Length; i++)
-                {
-                    if (_innerCodecs[i] is Object objCodec)
-                    {
-                        if (!deserializerInfo.PropertyMap.TryGetValue(_propertyNames[i], out var propInfo))
-                            throw new EdgeDBException($"Property {_propertyNames[i]} not found on type {target.Name}");
-
-                        objCodec.Initialize(propInfo.Type);
-                    }
-                }
-
+                _deserializerInfo = TypeBuilder.TypeInfo[target];
                 _initialized = true;
             }
             catch (Exception) when (_targetType == typeof(object))
@@ -88,7 +76,7 @@ namespace EdgeDB.Binary.Codecs
             // so we need to pass the underlying data as a reference and wrap a new reader ontop.
             // This method ensures we're not copying the packet in memory again but the downside is
             // our 'reader' variable isn't kept up to data with the reader in the object enumerator.
-            var enumerator = new ObjectEnumerator(ref reader.Data, reader.Position, _propertyNames, _innerCodecs);
+            var enumerator = new ObjectEnumerator(ref reader.Data, reader.Position, _propertyNames, _innerCodecs, _deserializerInfo);
             
             try
             {
