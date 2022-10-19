@@ -1,6 +1,6 @@
 namespace EdgeDB.Binary.Codecs
 {
-    internal sealed class Array<TInner> : ICodec<IEnumerable<TInner?>>
+    internal sealed class Array<TInner> : ICodec<IEnumerable<TInner?>>, IWrappingCodec
     {
         public static readonly byte[] EMPTY_ARRAY = new byte[]
         {
@@ -84,5 +84,7 @@ namespace EdgeDB.Binary.Codecs
                 }
             }
         }
+
+        ICodec IWrappingCodec.InnerCodec => InnerCodec;
     }
 }
