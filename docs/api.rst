@@ -81,7 +81,7 @@ API Documentation
 
                 A ``dynamic`` object.
 
-        .. dn:method::  Next(ref String& name, ref Object& value): Boolean
+        .. dn:method::  Next(ref String& name, ref Object& value): bool
 
             Reads the next property within this enumerator. 
 
@@ -116,7 +116,7 @@ API Documentation
 
             Adds or updates a custom type builder. 
 
-            :param Action`2 builder:
+            :param Action<TType, IDictionary<string, object>> builder:
                 The builder for ``TType``.
 
             :param TType:
@@ -140,7 +140,7 @@ API Documentation
 
                 The type info for ``TType``.
 
-        .. dn:method::  TryRemoveTypeFactory<TType>(ref TypeDeserializerFactory& factory): Boolean
+        .. dn:method::  TryRemoveTypeFactory<TType>(ref TypeDeserializerFactory& factory): bool
 
             Attempts to remove a type factory. 
 
@@ -172,19 +172,19 @@ API Documentation
         Represents a base edgedb client that can interaction with the EdgeDB database. 
 
 
-        :property Boolean IsConnected:
+        :property bool IsConnected:
             Gets whether or not this client has connected to the database and is ready to send queries. 
 
 
-        :property UInt64 ClientId:
+        :property ulong ClientId:
             Gets the client id of this client. 
 
 
-        .. dn:method:: BaseEdgeDBClient(UInt64 clientId, IDisposable clientPoolHolder): BaseEdgeDBClient
+        .. dn:method:: BaseEdgeDBClient(ulong clientId, IDisposable clientPoolHolder): BaseEdgeDBClient
 
             Initialized the base client. 
 
-            :param UInt64 clientId:
+            :param ulong clientId:
                 The id of this client.
 
             :param IDisposable clientPoolHolder:
@@ -227,10 +227,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -251,10 +251,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -275,10 +275,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -299,10 +299,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -319,10 +319,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Optional collection of arguments within the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -342,10 +342,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Optional collection of arguments within the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -355,7 +355,7 @@ API Documentation
 
                 A task representing the asynchronous query operation. The tasks result is the json result of the query. 
 
-        .. dn:method::  DisposeAsync(): ValueTask<Boolean>
+        .. dn:method::  DisposeAsync(): ValueTask<bool>
 
             Disposes or releases this client to the client pool 
 
@@ -372,11 +372,11 @@ API Documentation
         Represents an abstract binary client. 
 
 
-        :property Boolean IsIdle:
+        :property bool IsIdle:
             Gets whether or not this connection is idle. 
 
 
-        :property IReadOnlyDictionary`2 ServerConfig:
+        :property IReadOnlyDictionary<string, object> ServerConfig:
             Gets the raw server config. 
 
             .. note::
@@ -401,7 +401,7 @@ API Documentation
             :param IDisposable clientPoolHolder:
                 The client pool holder for this client.
 
-            :param Nullable`1 clientId:
+            :param Nullable<ulong> clientId:
                 The optional client id of this client. This is used for logging and client pooling.
 
         .. dn:method::  ExecuteAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task
@@ -411,10 +411,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -435,10 +435,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -459,10 +459,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -483,10 +483,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -503,10 +503,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Optional collection of arguments within the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -526,10 +526,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Optional collection of arguments within the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -580,7 +580,7 @@ API Documentation
 
                 A ValueTask representing the asynchronous disconnect operation. 
 
-        .. dn:method::  DisposeAsync(): ValueTask<Boolean>
+        .. dn:method::  DisposeAsync(): ValueTask<bool>
 
     .. dn:class:: HttpQueryResult
 
@@ -617,13 +617,13 @@ API Documentation
         Represents a client that can preform queries over HTTP. 
 
 
-        :property Boolean IsConnected:
+        :property bool IsConnected:
             .. note::
 
                 This property is always ``true``. 
 
 
-        .. dn:method:: EdgeDBHttpClient(EdgeDBConnection connection, EdgeDBConfig clientConfig, IDisposable poolHolder, UInt64 clientId): EdgeDBHttpClient
+        .. dn:method:: EdgeDBHttpClient(EdgeDBConnection connection, EdgeDBConfig clientConfig, IDisposable poolHolder, ulong clientId): EdgeDBHttpClient
 
             Creates a new instance of the http client. 
 
@@ -636,7 +636,7 @@ API Documentation
             :param IDisposable poolHolder:
                 The client pool holder for this client.
 
-            :param UInt64 clientId:
+            :param ulong clientId:
                 The optional client id of this client. This is used for logging and client pooling.
 
         .. dn:method::  DisconnectAsync(CancellationToken token): ValueTask
@@ -676,10 +676,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -700,10 +700,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -724,10 +724,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -748,10 +748,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -768,10 +768,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Optional collection of arguments within the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -791,10 +791,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Optional collection of arguments within the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -809,7 +809,7 @@ API Documentation
         Represents a TCP client used to interact with EdgeDB. 
 
 
-        :property Boolean IsConnected:
+        :property bool IsConnected:
 
         .. dn:method:: EdgeDBTcpClient(EdgeDBConnection connection, EdgeDBConfig clientConfig, IDisposable clientPoolHolder, UInt64? clientId): EdgeDBTcpClient
 
@@ -824,10 +824,10 @@ API Documentation
             :param IDisposable clientPoolHolder:
                 The client pool holder for this client.
 
-            :param Nullable`1 clientId:
+            :param Nullable<ulong> clientId:
                 The optional client id of this client. This is used for logging and client pooling.
 
-        .. dn:method::  DisposeAsync(): ValueTask<Boolean>
+        .. dn:method::  DisposeAsync(): ValueTask<bool>
 
     .. dn:interface:: IEdgeDBQueryable
 
@@ -841,10 +841,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -865,10 +865,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -889,10 +889,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -916,10 +916,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -940,10 +940,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -967,10 +967,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -991,10 +991,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -1014,10 +1014,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Optional collection of arguments within the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -1037,10 +1037,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Optional collection of arguments within the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -1059,17 +1059,17 @@ API Documentation
             Gets the transaction state of the client. 
 
 
-        .. dn:method::  StartTransactionAsync(Isolation isolation, Boolean readOnly, Boolean deferrable, CancellationToken token): Task
+        .. dn:method::  StartTransactionAsync(Isolation isolation, bool readOnly, bool deferrable, CancellationToken token): Task
 
             Starts a transaction. 
 
             :param Isolation isolation:
                 The isolation mode of the transaction.
 
-            :param Boolean readOnly:
+            :param bool readOnly:
                 Whether or not the transaction is in read-only mode.
 
-            :param Boolean deferrable:
+            :param bool deferrable:
                 Whether or not the trasaction is deferrable.
 
             :param CancellationToken token:
@@ -1126,15 +1126,15 @@ API Documentation
             The default module for this client. 
 
 
-        :property IReadOnlyDictionary`2 Aliases:
+        :property IReadOnlyDictionary<string, string> Aliases:
             The module aliases for this client. 
 
 
-        :property IReadOnlyDictionary`2 Globals:
+        :property IReadOnlyDictionary<string, object> Globals:
             The globals for this client. 
 
 
-        :property IReadOnlyDictionary`2 ServerConfig:
+        :property IReadOnlyDictionary<string, object> ServerConfig:
             Gets the EdgeDB server config. 
 
             .. note::
@@ -1185,10 +1185,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -1209,10 +1209,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -1233,10 +1233,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -1257,10 +1257,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -1277,10 +1277,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Optional collection of arguments within the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -1300,10 +1300,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Optional collection of arguments within the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -1321,7 +1321,7 @@ API Documentation
 
                 The created client is a 'sub' client of this one, the child client shares the same client pool as this one. 
 
-            :param Action`1 configDelegate:
+            :param Action<ConfigProperties> configDelegate:
                 A delegate used to modify the config.
 
             :returns:
@@ -1352,7 +1352,7 @@ API Documentation
                 The created client is a 'sub' client of this one, the child client shares the same client pool as this one.
                 The newly created client doesn't copy any of the parents globals, this method is settative to the ``EdgeDB.EdgeDBClient.Globals`` property. 
 
-            :param Dictionary`2 globals:
+            :param Dictionary<string, object> globals:
                 The globals for the newly create client.
 
             :returns:
@@ -1383,7 +1383,7 @@ API Documentation
                 The created client is a 'sub' client of this one, the child client shares the same client pool as this one.
                 The newly created client doesn't copy any of the parents aliases, this method is settative to the ``EdgeDB.EdgeDBClient.Aliases`` property. 
 
-            :param Dictionary`2 aliases:
+            :param Dictionary<string, string> aliases:
                 The module aliases for the new client.
 
             :returns:
@@ -1417,19 +1417,19 @@ API Documentation
             Gets or sets the retry mode for connecting new clients. 
 
 
-        :property UInt32 MaxConnectionRetries:
+        :property uint MaxConnectionRetries:
             Gets or sets the maximum number of times to retry to connect. 
 
 
-        :property UInt32 ConnectionTimeout:
+        :property uint ConnectionTimeout:
             Gets or sets the number of miliseconds a client will wait for a connection to be established with the server. 
 
 
-        :property UInt32 MessageTimeout:
+        :property uint MessageTimeout:
             Gets or sets the max amount of miliseconds a client will wait for an expected message. 
 
 
-        :property Boolean ExplicitObjectIds:
+        :property bool ExplicitObjectIds:
             Gets or sets whether or not to always return object ids. 
 
             .. note::
@@ -1437,7 +1437,7 @@ API Documentation
                 If set to ``true`` returned objects will not have an implicit id property i.e. query shapes will have to explicitly list id properties. 
 
 
-        :property UInt64 ImplicitLimit:
+        :property ulong ImplicitLimit:
             Gets or sets the implicit object limit for all queries. By default there is not limit. 
 
 
@@ -1575,7 +1575,7 @@ API Documentation
             :throws System.IO.FileNotFoundException:
                 No 'edgedb.toml' file could be found.
 
-        .. dn:method::  Parse(string instance, string dsn, Action<EdgeDBConnection> configure, Boolean autoResolve): EdgeDBConnection
+        .. dn:method::  Parse(string instance, string dsn, Action<EdgeDBConnection> configure, bool autoResolve): EdgeDBConnection
 
             Parses the provided arguments to build an :dn:class:`EdgeDB.EdgeDBConnection` class; Parse logic follows the `Priority levels <https://www.edgedb.com/docs/reference/connection#ref-reference-connection-priority>`_ of arguments. 
 
@@ -1585,10 +1585,10 @@ API Documentation
             :param string dsn:
                 The DSN string to use to connect.
 
-            :param Action`1 configure:
+            :param Action<EdgeDBConnection> configure:
                 A configuration delegate.
 
-            :param Boolean autoResolve:
+            :param bool autoResolve:
                 Whether or not to autoresolve a connection using :dn:method:`EdgeDB.EdgeDBConnection.ResolveEdgeDBTOML`.
 
             :returns:
@@ -1615,7 +1615,7 @@ API Documentation
             :param ITransactibleClient client:
                 The TCP client to preform the transaction with.
 
-            :param Func`2 func:
+            :param Func<Transaction, Task> func:
                 The callback to pass the transaction into.
 
             :returns:
@@ -1629,7 +1629,7 @@ API Documentation
             :param ITransactibleClient client:
                 The TCP client to preform the transaction with.
 
-            :param Func`2 func:
+            :param Func<Transaction, Task<TResult>> func:
                 The callback to pass the transaction into.
 
             :param TResult:
@@ -1649,7 +1649,7 @@ API Documentation
             :param TransactionSettings settings:
                 The transactions settings.
 
-            :param Func`2 func:
+            :param Func<Transaction, Task> func:
                 The callback to pass the transaction into.
 
             :returns:
@@ -1666,7 +1666,7 @@ API Documentation
             :param TransactionSettings settings:
                 The transactions settings.
 
-            :param Func`2 func:
+            :param Func<Transaction, Task<TResult>> func:
                 The callback to pass the transaction into.
 
             :param TResult:
@@ -1734,7 +1734,7 @@ API Documentation
             :param EdgeDBConnection connection:
                 An optional connection arguments for the client.
 
-            :param Action`1 clientConfig:
+            :param Action<EdgeDBClientPoolConfig> clientConfig:
                 An optional configuration delegate for configuring the :dn:class:`EdgeDB.EdgeDBClient`. 
 
             :returns:
@@ -1771,11 +1771,11 @@ API Documentation
             Gets the key used to group the set of ``EdgeDB.Group`2.Elements``. 
 
 
-        :property IReadOnlyCollection`1 Grouping:
+        :property IReadOnlyCollection<string> Grouping:
             Gets the name of the property that was grouped by. 
 
 
-        :property IReadOnlyCollection`1 Elements:
+        :property IReadOnlyCollection<TElement> Elements:
             Gets a collection of elements that have the same key as ``EdgeDB.Group`2.Key``. 
 
 
@@ -1786,10 +1786,10 @@ API Documentation
             :param TKey key:
                 The key that each element share.
 
-            :param IEnumerable`1 groupedBy:
+            :param IEnumerable<string> groupedBy:
                 The property used to group the elements.
 
-            :param IEnumerable`1 elements:
+            :param IEnumerable<TElement> elements:
                 The collection of elements that have the specified key.
 
         .. dn:method::  GetEnumerator(): IEnumerator<TElement>
@@ -1804,7 +1804,7 @@ API Documentation
         Represents a generic execution result of a command. 
 
 
-        :property Boolean IsSuccess:
+        :property bool IsSuccess:
 
         :property Exception Exception:
 
@@ -1815,7 +1815,7 @@ API Documentation
         An interface representing a generic execution result. 
 
 
-        :property Boolean IsSuccess:
+        :property bool IsSuccess:
             Gets whether or not the command executed successfully. 
 
 
@@ -1936,10 +1936,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -1960,10 +1960,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -1984,10 +1984,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -2008,10 +2008,10 @@ API Documentation
             :param string query:
                 The query to execute.
 
-            :param IDictionary`2 args:
+            :param IDictionary<string, object> args:
                 Any arguments that are part of the query.
 
-            :param Nullable`1 capabilities:
+            :param Nullable<Capabilities> capabilities:
                 The allowed capabilities for the query.
 
             :param CancellationToken token:
@@ -2029,7 +2029,7 @@ API Documentation
             The type of the optional value.
 
 
-        :property Optional`1 Unspecified:
+        :property Optional<T> Unspecified:
             Gets the unspecified value for ``T``. 
 
 
@@ -2040,7 +2040,7 @@ API Documentation
                 This property has no value set.
 
 
-        :property Boolean IsSpecified:
+        :property bool IsSpecified:
             Returns true if this value has been specified. 
 
 
@@ -2067,7 +2067,7 @@ API Documentation
 
                 The ``EdgeDB.Optional`1.Value``; or ``EdgeDB.DocGenerator.docMemberSummaryParamref``.
 
-        .. dn:method::  Equals(object other): Boolean
+        .. dn:method::  Equals(object other): bool
 
         .. dn:method::  GetHashCode(): int
 
@@ -2103,7 +2103,7 @@ API Documentation
 
             Converts the :dn:class:`EdgeDB.Optional<T>` to a ``System.Nullable`1``. 
 
-            :param Optional`1 val:
+            :param Optional<T> val:
                 The optional to convert.
 
             :param T:
@@ -2133,7 +2133,7 @@ API Documentation
         Represents a dynamic key-value pair received in a :dn:class:`EdgeDB.Binary.IReceiveable`. 
 
 
-        :property UInt16 Code:
+        :property ushort Code:
             Gets the key code. 
 
 
@@ -2150,7 +2150,7 @@ API Documentation
         Represents a protocol extension. 
 
 
-        :property IReadOnlyCollection`1 Headers:
+        :property IReadOnlyCollection<Annotation> Headers:
             Gets a collection of headers for this protocol extension. 
 
 
@@ -2190,7 +2190,7 @@ API Documentation
             Gets a collection of supported authentication methods. 
 
 
-        :property IReadOnlyCollection`1 SASLData:
+        :property IReadOnlyCollection<byte> SASLData:
             Gets the SASL data. 
 
 
@@ -2216,7 +2216,7 @@ API Documentation
 
         :property ServerMessageType Type:
 
-        :property IReadOnlyCollection`1 Annotations:
+        :property IReadOnlyCollection<Annotation> Annotations:
             Gets a read-only collection of annotations. 
 
 
@@ -2228,7 +2228,7 @@ API Documentation
             Gets the input type descriptor id. 
 
 
-        :property IReadOnlyCollection`1 InputTypeDescriptor:
+        :property IReadOnlyCollection<byte> InputTypeDescriptor:
             Gets the complete input type descriptor. 
 
 
@@ -2236,7 +2236,7 @@ API Documentation
             Gets the output type descriptor id. 
 
 
-        :property IReadOnlyCollection`1 OutputTypeDescriptor:
+        :property IReadOnlyCollection<byte> OutputTypeDescriptor:
             Gets the complete output type descriptor. 
 
 
@@ -2247,7 +2247,7 @@ API Documentation
 
         :property ServerMessageType Type:
 
-        :property IReadOnlyCollection`1 PayloadData:
+        :property IReadOnlyCollection<byte> PayloadData:
             Gets the payload of this data packet 
 
 
@@ -2258,7 +2258,7 @@ API Documentation
 
         :property ServerMessageType Type:
 
-        :property IReadOnlyCollection`1 Hash:
+        :property IReadOnlyCollection<byte> Hash:
             Gets the sha1 hash of this packets data, used when writing a dump file. 
 
 
@@ -2266,7 +2266,7 @@ API Documentation
             Gets the length of this packets data, used when writing a dump file. 
 
 
-        :property IReadOnlyCollection`1 Attributes:
+        :property IReadOnlyCollection<KeyValue> Attributes:
             Gets a collection of attributes for this packet. 
 
 
@@ -2277,7 +2277,7 @@ API Documentation
 
         :property ServerMessageType Type:
 
-        :property IReadOnlyCollection`1 Hash:
+        :property IReadOnlyCollection<byte> Hash:
             Gets the sha1 hash of this packets data, used when writing a dump file. 
 
 
@@ -2285,15 +2285,15 @@ API Documentation
             Gets the length of this packets data, used when writing a dump file. 
 
 
-        :property IReadOnlyCollection`1 Attributes:
+        :property IReadOnlyCollection<KeyValue> Attributes:
             Gets a collection of attributes sent with this packet. 
 
 
-        :property UInt16 MajorVersion:
+        :property ushort MajorVersion:
             Gets the EdgeDB major version. 
 
 
-        :property UInt16 MinorVersion:
+        :property ushort MinorVersion:
             Gets the EdgeDB minor version. 
 
 
@@ -2301,11 +2301,11 @@ API Documentation
             Gets the schema currently within the database. 
 
 
-        :property IReadOnlyCollection`1 Types:
+        :property IReadOnlyCollection<DumpTypeInfo> Types:
             Gets a collection of types within the database. 
 
 
-        :property IReadOnlyCollection`1 Descriptors:
+        :property IReadOnlyCollection<DumpObjectDescriptor> Descriptors:
             Gets a collection of descriptors used to define the types in ``EdgeDB.Binary.Packets.DumpHeader.Types``. 
 
 
@@ -2335,11 +2335,11 @@ API Documentation
             Gets the object Id that the descriptor describes. 
 
 
-        :property IReadOnlyCollection`1 Description:
+        :property IReadOnlyCollection<byte> Description:
             Gets the description of the object. 
 
 
-        :property IReadOnlyCollection`1 Dependencies:
+        :property IReadOnlyCollection<Guid> Dependencies:
             Gets a collection of dependencies that this descriptor relies on. 
 
 
@@ -2362,7 +2362,7 @@ API Documentation
             Gets the message of the error. 
 
 
-        :property IReadOnlyCollection`1 Attributes:
+        :property IReadOnlyCollection<KeyValue> Attributes:
             Gets a collection of attributes sent with this error. 
 
 
@@ -2385,7 +2385,7 @@ API Documentation
             Gets the content of the log message. 
 
 
-        :property IReadOnlyCollection`1 Annotations:
+        :property IReadOnlyCollection<Annotation> Annotations:
             Gets a read-only collection of annotations. 
 
 
@@ -2400,7 +2400,7 @@ API Documentation
             Gets the name of the parameter. 
 
 
-        :property IReadOnlyCollection`1 Value:
+        :property IReadOnlyCollection<byte> Value:
             Gets the value of the parameter. 
 
 
@@ -2411,7 +2411,7 @@ API Documentation
 
         :property ServerMessageType Type:
 
-        :property IReadOnlyCollection`1 Annotations:
+        :property IReadOnlyCollection<Annotation> Annotations:
             Gets a collection of annotations sent with this prepare packet. 
 
 
@@ -2426,11 +2426,11 @@ API Documentation
 
         :property ServerMessageType Type:
 
-        :property IReadOnlyCollection`1 Annotations:
+        :property IReadOnlyCollection<Annotation> Annotations:
             Gets a collection of annotations that was sent with this packet. 
 
 
-        :property UInt16 Jobs:
+        :property ushort Jobs:
             Gets the number of jobs that the restore will use. 
 
 
@@ -2441,15 +2441,15 @@ API Documentation
 
         :property ServerMessageType Type:
 
-        :property UInt16 MajorVersion:
+        :property ushort MajorVersion:
             Gets the major version of the server. 
 
 
-        :property UInt16 MinorVersion:
+        :property ushort MinorVersion:
             Gets the minor version of the server. 
 
 
-        :property IReadOnlyCollection`1 Extensions:
+        :property IReadOnlyCollection<ProtocolExtension> Extensions:
             Gets a collection of :dn:class:`EdgeDB.Binary.ProtocolExtension` s used by the server. 
 
 
@@ -2460,7 +2460,7 @@ API Documentation
 
         :property ServerMessageType Type:
 
-        :property IReadOnlyCollection`1 Key:
+        :property IReadOnlyCollection<byte> Key:
             Gets the key data. 
 
 
@@ -2521,23 +2521,23 @@ API Documentation
         Represents a session-level config. 
 
 
-        :property Nullable`1 IdleTransationTimeout:
+        :property Nullable<TimeSpan> IdleTransationTimeout:
             Gets the idle transation timeout duration. 
 
 
-        :property Nullable`1 QueryExecutionTimeout:
+        :property Nullable<TimeSpan> QueryExecutionTimeout:
             Gets the query execution timeout duration. 
 
 
-        :property Nullable`1 AllowDMLInFunctions:
+        :property Nullable<bool> AllowDMLInFunctions:
             Gets whether or not to allow data maniplulations in edgeql functions. 
 
 
-        :property Nullable`1 DDLPolicy:
+        :property Nullable<DDLPolicy> DDLPolicy:
             Gets the data definition policy for this client. 
 
 
-        :property Nullable`1 ApplyAccessPolicies:
+        :property Nullable<bool> ApplyAccessPolicies:
             Gets whether or not to apply the access policy. 
 
 
@@ -2550,23 +2550,23 @@ API Documentation
         Represents properties used to modify a :dn:class:`EdgeDB.State.Config`. 
 
 
-        :property Optional`1 IdleTransationTimeout:
+        :property Optional<TimeSpan> IdleTransationTimeout:
             Gets or sets the idle transation timeout duration. 
 
 
-        :property Optional`1 QueryExecutionTimeout:
+        :property Optional<TimeSpan> QueryExecutionTimeout:
             Gets or sets the query execution timeout duration. 
 
 
-        :property Optional`1 AllowDMLInFunctions:
+        :property Optional<bool> AllowDMLInFunctions:
             Gets or sets whether or not to allow data maniplulations in edgeql functions. 
 
 
-        :property Optional`1 DDLPolicy:
+        :property Optional<DDLPolicy> DDLPolicy:
             Gets or sets the data definition policy for this client. 
 
 
-        :property Optional`1 ApplyAccessPolicies:
+        :property Optional<bool> ApplyAccessPolicies:
             Gets or sets whether or not to apply the access policy. 
 
 
@@ -2607,11 +2607,11 @@ API Documentation
         Represents the memory type in EdgeDB. 
 
 
-        :property Int64 TotalBytes:
+        :property long TotalBytes:
             Gets the total amount of bytes for this memory object. 
 
 
-        :property Int64 TotalMegabytes:
+        :property long TotalMegabytes:
             Gets the total amount of megabytes for this memory object. 
 
 
@@ -2623,40 +2623,40 @@ API Documentation
             The inner type of the range.
 
 
-        :property Nullable`1 Lower:
+        :property Nullable<T> Lower:
             Gets the lower bound of the range. 
 
 
-        :property Nullable`1 Upper:
+        :property Nullable<T> Upper:
             Gets the upper bound of the range. 
 
 
-        :property Boolean IncludeLower:
+        :property bool IncludeLower:
             Gets whether or not the lower bound is included. 
 
 
-        :property Boolean IncludeUpper:
+        :property bool IncludeUpper:
             Gets whether or not the upper bound is included. 
 
 
-        :property Boolean IsEmpty:
+        :property bool IsEmpty:
             Gets whether or not the range is empty. 
 
 
-        .. dn:method:: Range<T>(T? lower, T? upper, Boolean includeLower, Boolean includeUpper): Range<T>
+        .. dn:method:: Range<T>(T? lower, T? upper, bool includeLower, bool includeUpper): Range<T>
 
             Constructs a new range type. 
 
-            :param Nullable`1 lower:
+            :param Nullable<T> lower:
                 The lower bound of the range.
 
-            :param Nullable`1 upper:
+            :param Nullable<T> upper:
                 The upper bound of the range.
 
-            :param Boolean includeLower:
+            :param bool includeLower:
                 Whether or not to include the lower bound.
 
-            :param Boolean includeUpper:
+            :param bool includeUpper:
                 Whether or not to include the upper bound.
 
         .. dn:method::  Empty(): Range<T>
@@ -2672,11 +2672,11 @@ API Documentation
         Represents an abstract tuple which is used for deserializing edgedb tuples to dotnet tuples. 
 
 
-        :property IReadOnlyCollection`1 Types:
+        :property IReadOnlyCollection<Type> Types:
             Gets the types within this tuple, following the arity order of the tuple. 
 
 
-        :property IReadOnlyCollection`1 Values:
+        :property IReadOnlyCollection<object> Values:
             Gets the values within this tuple, following the arity order of the tuple. 
 
 
