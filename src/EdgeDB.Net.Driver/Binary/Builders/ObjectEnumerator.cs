@@ -131,7 +131,8 @@ namespace EdgeDB
                     }
                     break;
                 case IWrappingCodec singleWrap
-                        when singleWrap.InnerCodec is Binary.Codecs.Object obj:
+                        when singleWrap.InnerCodec is Binary.Codecs.Object obj &&
+                        !obj.Initialized:
                     obj.Initialize(prop.Type);
                     break;
                 
