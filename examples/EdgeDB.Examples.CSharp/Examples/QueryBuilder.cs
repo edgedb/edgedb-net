@@ -17,39 +17,14 @@ namespace EdgeDB.ExampleApp.Examples
     {
         public ILogger? Logger { get; set; }
 
-        public class LinkPerson
+        public class Person
         {
             public string? Name { get; set; }
             public string? Email { get; set; }
-            public LinkPerson? BestFriend { get; set; }
-        }
 
-        public class MultiLinkPerson
-        {
-            public Guid Id { get; set; }
-            public string? Name { get; set; }
-            public string? Email { get; set; }
-            public MultiLinkPerson[]? BestFriends { get; set; }
-        }
+            public Person? BestFriend { get; set; }
 
-        public class ArrayPerson
-        {
-            public string? Name { get; set; }
-            public string? Email { get; set; }
-        
-            public IEnumerable<string>? Roles { get; set; }
-        }
-
-        public class PropertyConstraintPerson
-        {
-            public string? Name { get; set; }
-            public string? Email { get; set; }
-        }
-
-        public class ConstraintPerson
-        {
-            public string? Name { get; set; }
-            public string? Email { get; set; }
+            public Person[]? Friends { get; set; }
         }
 
         public async Task ExecuteAsync(EdgeDBClient client)
@@ -61,11 +36,11 @@ namespace EdgeDB.ExampleApp.Examples
         private static async Task QueryBuilderDemo(EdgeDBClient client)
         {
             // Selecting a type with autogen shape
-            var query = QueryBuilder.Select<LinkPerson>().Build().Prettify();
+            var query = QueryBuilder.Select<Person>().Build().Prettify();
 
             // Adding a filter, orderby, offset, and limit
             query = QueryBuilder
-                .Select<LinkPerson>()
+                .Select<Person>()
                 .Filter(x => EdgeQL.ILike(x.Name, "e%"))
                 .OrderByDesending(x => x.Name)
                 .Offset(2)
@@ -74,11 +49,11 @@ namespace EdgeDB.ExampleApp.Examples
                 .Prettify();
 
             // Specifying a shape
-            query = QueryBuilder.Select((ctx) => new LinkPerson
+            query = QueryBuilder.Select((ctx) => new Person
             {
                 Email = ctx.Include<string>(),
                 Name = ctx.Include<string>(),
-                BestFriend = ctx.IncludeLink(() => new LinkPerson
+                BestFriend = ctx.IncludeLink(() => new Person
                 {
                     Email = ctx.Include<string>(),
                 })
@@ -88,7 +63,7 @@ namespace EdgeDB.ExampleApp.Examples
             // Note: we need to use a new instance of query builder to provide the
             // 'LinkPerson' type as a generic, since its being used for local context
             // in the anon type.
-            query = new QueryBuilder<LinkPerson>().Select((ctx) => new
+            query = new QueryBuilder<Person>().Select((ctx) => new
             {
                 Name = ctx.Include<string>(),
                 Email = ctx.Include<string>(),
@@ -98,7 +73,7 @@ namespace EdgeDB.ExampleApp.Examples
             // selecting things that are not types
             query = QueryBuilder.Select(() => 
                 EdgeQL.Count(
-                    QueryBuilder.Select<LinkPerson>()
+                    QueryBuilder.Select<Person>()
                 )
             ).Build().Prettify();
 
@@ -108,15 +83,15 @@ namespace EdgeDB.ExampleApp.Examples
                 MyString = "This is a string",
                 MyNumber = 42,
                 SeveralNumbers = new long[] { 1, 2, 3 },
-                People = ctx.SubQuery(QueryBuilder.Select<MultiLinkPerson>())
+                People = ctx.SubQuery(QueryBuilder.Select<Person>())
             }).Build().Prettify();
 
             // Backlinks
-            query = new QueryBuilder<MultiLinkPerson>().Select(ctx => new
+            query = new QueryBuilder<Person>().Select(ctx => new
             {
                 Name = ctx.Include<string>(),
                 Email = ctx.Include<string>(),
-                BestFriends = ctx.IncludeLink(() => new MultiLinkPerson
+                Friends = ctx.IncludeLink(() => new Person
                 {
                     Name = ctx.Include<string>(),
                     Email = ctx.Include<string>(),
@@ -124,7 +99,7 @@ namespace EdgeDB.ExampleApp.Examples
                 // The 'ReferencedFriends' will be equal to '.<best_friends[is MultiLinkPerson] { name, email }'
                 // The '[is x]' statement is only inserted when a property selector is used with the generic,
                 // you can pass in a string instead of an expression to select out a 'EdgeDBObject' type.
-                ReferencedFriends = ctx.BackLink(x => x.BestFriends, () => new MultiLinkPerson
+                ReferencedFriends = ctx.BackLink(x => x.Friends, () => new Person
                 {
                     Name = ctx.Include<string>(),
                     Email = ctx.Include<string>(),
@@ -134,7 +109,7 @@ namespace EdgeDB.ExampleApp.Examples
             // With object variables
             query = QueryBuilder.With(new
             {
-                Args = EdgeQL.AsJson(new ConstraintPerson
+                Args = EdgeQL.AsJson(new Person
                 {
                     Name = "Example",
                     Email = "example@example.com"
@@ -146,7 +121,7 @@ namespace EdgeDB.ExampleApp.Examples
             }).Build().Pretty;
 
             // Inserting a new type
-            var person = new LinkPerson
+            var person = new Person
             {
                 Email = "example@example.com",
                 Name = "example"
@@ -156,7 +131,7 @@ namespace EdgeDB.ExampleApp.Examples
 
             // Complex insert with links & dealing with conflicts
             query = (await QueryBuilder
-                .Insert(new LinkPerson
+                .Insert(new Person
                 {
                     BestFriend = person,
                     Name = "example2",
@@ -184,18 +159,18 @@ namespace EdgeDB.ExampleApp.Examples
                 .Prettify();
 
             // Bulk inserts
-            var data = new LinkPerson[]
+            var data = new Person[]
             {
-                new LinkPerson
+                new Person
                 {
                     Email = "test1@mail.com",
                     Name = "test1",
                 },
-                new LinkPerson
+                new Person
                 {
                     Email = "test2@mail.com",
                     Name = "test2",
-                    BestFriend = new LinkPerson
+                    BestFriend = new Person
                     {
                         Email = "test3@mail.com",
                         Name = "test3",
@@ -212,7 +187,7 @@ namespace EdgeDB.ExampleApp.Examples
                 .Insert(person)
                 .UnlessConflict()
                 .Else(q =>
-                    q.Update(old => new LinkPerson
+                    q.Update(old => new Person
                     {
                         Name = old!.Name!.ToLower()
                     })
@@ -222,7 +197,7 @@ namespace EdgeDB.ExampleApp.Examples
 
             // Updating a type
             query = QueryBuilder
-                .Update<LinkPerson>(old => new LinkPerson
+                .Update<Person>(old => new Person
                 {
                     Name = "example new name"
                 })
@@ -232,7 +207,7 @@ namespace EdgeDB.ExampleApp.Examples
 
             // Deleting types
             query = QueryBuilder
-                .Delete<LinkPerson>()
+                .Delete<Person>()
                 .Filter(x => EdgeQL.ILike(x.Name, "e%"))
                 .Build()
                 .Prettify();
@@ -242,10 +217,10 @@ namespace EdgeDB.ExampleApp.Examples
         {
             // Get a 'collection' object, this class wraps the query
             // builder and provides simple CRUD methods.
-            var collection = client.GetCollection<LinkPerson>();
+            var collection = client.GetCollection<Person>();
 
             // Get or add a value
-            var person = await collection.GetOrAddAsync(new LinkPerson
+            var person = await collection.GetOrAddAsync(new Person
             {
                 Email = "example@example.com",
                 Name = "example"
@@ -257,7 +232,7 @@ namespace EdgeDB.ExampleApp.Examples
             await collection.UpdateAsync(person);
 
             // or we can provide an update function
-            person = await collection.UpdateAsync(person, old => new LinkPerson
+            person = await collection.UpdateAsync(person, old => new Person
             {
                 Name = "example"
             });
@@ -266,7 +241,7 @@ namespace EdgeDB.ExampleApp.Examples
             var people = await collection.WhereAsync(x => EdgeQL.ILike(x.Name, "e%"));
 
             // we can add or update a type
-            var otherPerson = await collection.AddOrUpdateAsync(new LinkPerson
+            var otherPerson = await collection.AddOrUpdateAsync(new Person
             {
                 Name = "example2",
                 Email = "example2@example.com",
@@ -274,7 +249,7 @@ namespace EdgeDB.ExampleApp.Examples
             });
 
             // we can delete types
-            var toBeDeleted = await collection.GetOrAddAsync(new LinkPerson
+            var toBeDeleted = await collection.GetOrAddAsync(new Person
             {
                 Email = "example3@example.com",
                 Name = "example3"
