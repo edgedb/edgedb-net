@@ -48,11 +48,11 @@ namespace EdgeDB
             => new SnakeCaseNamingStrategy();
 
         /// <summary>
-        ///     Converts the <paramref name="property"/>'s name to the desired naming scheme.
+        ///     Converts the <paramref name="member"/>'s name to the desired naming scheme.
         /// </summary>
-        /// <param name="property">The property info of which to convert its name.</param>
+        /// <param name="member">The property info of which to convert its name.</param>
         /// <returns>The name defined in the schema.</returns>
-        public string Convert(PropertyInfo property);
+        public string Convert(MemberInfo member);
 
         /// <summary>
         ///     Converts the name to the desired naming scheme.

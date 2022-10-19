@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,7 +10,7 @@ namespace EdgeDB.DataTypes
     ///     Represents the <see href="https://www.edgedb.com/docs/stdlib/range">Range</see> type in EdgeDB.
     /// </summary>
     /// <typeparam name="T">The inner type of the range.</typeparam>
-    public struct Range<T>
+    public struct Range<T> : IRange
         where T : struct
     {
         /// <summary>
@@ -60,5 +60,12 @@ namespace EdgeDB.DataTypes
         /// <returns>An empty range.</returns>
         public static Range<T> Empty()
             => new(null, null);
+
+        Type IRange.WrappingType => typeof(T);
+    }
+
+    internal interface IRange
+    {
+        Type WrappingType { get; }
     }
 }

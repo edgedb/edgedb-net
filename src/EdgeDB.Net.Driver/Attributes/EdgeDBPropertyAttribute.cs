@@ -1,4 +1,4 @@
-﻿namespace EdgeDB
+namespace EdgeDB
 {
     /// <summary>
     ///     Marks the current field or property as a valid target for serializing/deserializing.
@@ -7,24 +7,9 @@
     public class EdgeDBPropertyAttribute : Attribute
     {
         /// <summary>
-        ///     Gets or sets whether or not this member is a link.
+        ///     Gets or sets whether or not the property is on a link.
         /// </summary>
-        internal bool IsLink { get; set; }
-
-        /// <summary>
-        ///     Gets or sets whether or not this member is required.
-        /// </summary>
-        internal bool IsRequired { get; set; }
-
-        /// <summary>
-        ///     Gets or sets whether or not this member is a computed value.
-        /// </summary>
-        internal bool IsComputed { get; set; }
-
-        /// <summary>
-        ///     Gets or sets whether or not this member is read-only.
-        /// </summary>
-        internal bool IsReadOnly { get; set; }
+        public bool IsLinkProperty { get; set; }
 
         internal readonly string? Name;
 

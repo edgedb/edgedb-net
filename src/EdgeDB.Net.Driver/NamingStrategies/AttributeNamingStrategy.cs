@@ -9,9 +9,9 @@ namespace EdgeDB
 {
     internal sealed class AttributeNamingStrategy : INamingStrategy
     {
-        public string Convert(PropertyInfo property)
+        public string Convert(MemberInfo member)
         {
-            return property.GetCustomAttribute<EdgeDBPropertyAttribute>()?.Name ?? property.Name;
+            return member.GetCustomAttribute<EdgeDBPropertyAttribute>()?.Name ?? member.Name;
         }
 
         public string Convert(string name) => name;

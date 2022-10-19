@@ -47,6 +47,42 @@ namespace EdgeDB
         }
 
         /// <summary>
+        ///     Cherrypicks a property based on the name. This method uses a 'peek' style of reading.
+        ///     The <see cref="Next(out string?, out object?)"/> method is uneffected from this
+        ///     method.
+        /// </summary>
+        /// <param name="name">The property name to checrrypick.</param>
+        /// <param name="value">The value of the property.</param>
+        /// <returns>
+        ///     <see langword="true"/> if the property was able to be read; otherwise
+        ///     <see langword="false"/>.
+        /// </returns>
+        public bool TryCherryPick(string name, [MaybeNullWhen(false)]out object? value)
+        {
+            value = null;
+            var idx = Array.IndexOf(_names, name);
+
+            if (idx == -1)
+                return false;
+
+            var reader = Reader.CreateSubReader();
+
+            for(int i = 0; i != idx; i++)
+            {
+                reader.Skip(4);
+                reader.Skip(reader.ReadInt32());
+            }
+
+            reader.Skip(4);
+            var len = reader.ReadInt32();
+
+            reader.ReadBytes(len, out var buff);
+            var codecReader = new PacketReader(buff);
+            value = Codecs[idx].Deserialize(ref codecReader);
+            return true;
+        }
+
+        /// <summary>
         ///     Reads the next property within this enumerator.
         /// </summary>
         /// <param name="name">The name of the property.</param>

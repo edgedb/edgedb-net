@@ -9,8 +9,8 @@ namespace EdgeDB
 {
     internal sealed class PascalNamingStrategy : INamingStrategy
     {
-        public string Convert(PropertyInfo property)
-            => Convert(property.Name);
+        public string Convert(MemberInfo member)
+            => Convert(member.Name);
 
         public string Convert(string name)
         {

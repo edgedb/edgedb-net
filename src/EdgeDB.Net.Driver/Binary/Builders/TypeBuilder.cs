@@ -13,6 +13,8 @@ using EdgeDB.Binary;
 
 namespace EdgeDB
 {
+    internal delegate void OnObjectCreated(object obj, Guid id);
+
     /// <summary>
     ///     Represents the class used to build types from edgedb query results.
     /// </summary>
@@ -33,6 +35,8 @@ namespace EdgeDB
         
         internal readonly static ConcurrentDictionary<Type, TypeDeserializeInfo> TypeInfo = new();
         internal static readonly INamingStrategy AttributeNamingStrategy;
+        internal static event OnObjectCreated? OnObjectCreated;
+        
         private readonly static List<string> _scannedAssemblies;
 
         static TypeBuilder()
@@ -239,6 +243,11 @@ namespace EdgeDB
             }
         }
         #endregion
+
+        internal static void DispatchObjectCreate(object obj, Guid id)
+        {
+            OnObjectCreated?.Invoke(obj, id);
+        }
     }
 
     /// <summary>
@@ -479,7 +488,17 @@ namespace EdgeDB
         }
 
         public object? Deserialize(ref ObjectEnumerator enumerator)
-            => _factory(ref enumerator);
+        {
+            // create a copy of object enumerator to pull the id
+            var hasId = enumerator.TryCherryPick("id", out var guid);
+
+            var result = _factory(ref enumerator);
+
+            if (hasId && result is not null)
+                TypeBuilder.DispatchObjectCreate(result, (Guid)guid!);
+
+            return result;
+        }
 
         private delegate object ObjectActivator();
 

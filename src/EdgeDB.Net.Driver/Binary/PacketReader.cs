@@ -27,6 +27,9 @@ namespace EdgeDB.Binary
             Position = position;
         }
 
+        public PacketReader CreateSubReader()
+            => new(ref Data, Position);
+
         #region Unmanaged basic reads & endianness correction
         private T UnsafeReadAs<T>()
             where T : unmanaged
