@@ -401,7 +401,7 @@ namespace EdgeDB
                 return (ref ObjectEnumerator enumerator) =>
                 {
                     // introspect the type name
-                    if (!enumerator.Next(out var name, out var value) || name != "__tname__")
+                    if (!enumerator.TryCherryPick("__tname__", out var value))
                         throw new ConfigurationException("Type introspection is required for abstract types, this is a bug.");
 
                     var typeName = (string)value!;
