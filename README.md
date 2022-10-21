@@ -52,7 +52,7 @@ var connection = EdgeDBConnection.Parse("edgedb://user:password@localhost:5656/m
 var client = new EdgeDBClient(connection);
 ```
 
-### Quering the database
+### Querying the database
 ```cs
 
 var result = await client.QueryAsync<long>("select 2 + 2"); // 4

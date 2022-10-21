@@ -1,113 +1,116 @@
 using EdgeDB.Binary;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using Xunit;
 
 namespace EdgeDB.Tests.Integration
 {
-    [CollectionDefinition("TypeBuilder", DisableParallelization = true)]
-    public class TypeBuilderTests : IClassFixture<ClientFixture>
+    [TestClass]
+    public class TypeBuilderTests
     {
         private readonly EdgeDBClient _client;
+        private readonly Func<CancellationToken> _getToken;
 
-        public TypeBuilderTests(ClientFixture fixture)
+        public TypeBuilderTests()
         {
-            _client = fixture.EdgeDB;
+            _client = ClientProvider.EdgeDB;
+            _getToken = () => ClientProvider.GetTimeoutToken();
         }
 
         private async Task EnsurePersonIsAddedAsync()
         {
-            await _client.ExecuteAsync("insert Person { name := \"A random name\", email := \"test@example.com\"} unless conflict on .email");
+            await _client.ExecuteAsync("insert Person { name := \"A random name\", email := \"test@example.com\"} unless conflict on .email", token: _getToken());
         }
 
-        [Fact]
+        [TestMethod]
         public async Task BasicTypeDeserialize()
         {
             // insert person if they dont exist
             await EnsurePersonIsAddedAsync();
 
-            var person = await _client.QueryRequiredSingleAsync<PersonClass>("select Person { name, email } filter .email = \"test@example.com\"");
+            var person = await _client.QueryRequiredSingleAsync<PersonClass>("select Person { name, email } filter .email = \"test@example.com\"", token: _getToken());
 
-            Assert.Equal("A random name", person.Name);
-            Assert.Equal("test@example.com", person.Email);
+            Assert.AreEqual("A random name", person.Name);
+            Assert.AreEqual("test@example.com", person.Email);
         }
 
-        [Fact]
+        [TestMethod]
         public async Task LocalAbstractTypeDeserialize()
         {
             await EnsurePersonIsAddedAsync();
 
-            var person = await _client.QueryRequiredSingleAsync<PersonImpl>("select Person { name, email } filter .email = \"test@example.com\"");
+            var person = await _client.QueryRequiredSingleAsync<PersonImpl>("select Person { name, email } filter .email = \"test@example.com\"", token: _getToken());
 
-            Assert.Equal("A random name", person.Name);
-            Assert.Equal("test@example.com", person.Email);
+            Assert.AreEqual("A random name", person.Name);
+            Assert.AreEqual("test@example.com", person.Email);
         }
 
-        [Fact]
+        [TestMethod]
         public async Task SchemaAbstractTypeDeserialize()
         {
             // insert some types
-            await _client.ExecuteAsync("insert Thing { name := \"Thing1\", description := \"This is thing one!\" } unless conflict on .name");
-            await _client.ExecuteAsync("insert OtherThing { name := \"Thing2\", attribute := \"<readonly>\" } unless conflict on .name");
+            await _client.ExecuteAsync("insert Thing { name := \"Thing1\", description := \"This is thing one!\" } unless conflict on .name", token: _getToken());
+            await _client.ExecuteAsync("insert OtherThing { name := \"Thing2\", attribute := \"<readonly>\" } unless conflict on .name", token: _getToken());
 
-            var abstractSelect = await _client.QueryAsync<AbstractThing>("select AbstractThing { name, [is Thing].description, [is OtherThing].attribute }");
+            var abstractSelect = await _client.QueryAsync<AbstractThing>("select AbstractThing { name, [is Thing].description, [is OtherThing].attribute }", token: _getToken());
 
             foreach (var result in abstractSelect)
             {
                 if (result is Thing thing)
                 {
-                    Assert.Equal("Thing1", thing.Name);
-                    Assert.Equal("This is thing one!", thing.Description);
+                    Assert.AreEqual("Thing1", thing.Name);
+                    Assert.AreEqual("This is thing one!", thing.Description);
                 }
                 else if (result is OtherThing otherThing)
                 {
-                    Assert.Equal("Thing2", otherThing.Name);
-                    Assert.Equal("<readonly>", otherThing.Attribute);
+                    Assert.AreEqual("Thing2", otherThing.Name);
+                    Assert.AreEqual("<readonly>", otherThing.Attribute);
                 }
                 else
                     throw new Exception("Unexpected type");
             }
         }
 
-        [Fact]
+        [TestMethod]
         public async Task TestConstructorDeserializer()
         {
             await EnsurePersonIsAddedAsync();
             
-            var person = await _client.QueryRequiredSingleAsync<PersonConstructorBuilder>("select Person { name, email } limit 1");
+            var person = await _client.QueryRequiredSingleAsync<PersonConstructorBuilder>("select Person { name, email } limit 1", token: _getToken());
 
-            Assert.NotNull(person);
-            Assert.IsType<PersonConstructorBuilder>(person);
-            Assert.True(person.CustomDeserializerCalled);
+            Assert.IsNotNull(person);
+            Assert.IsInstanceOfType(person, typeof(PersonConstructorBuilder));
+            Assert.IsTrue(person.CustomDeserializerCalled);
         }
 
-        [Fact]
+        [TestMethod]
         public async Task TestCustomMethodDeserializer()
         {
             await EnsurePersonIsAddedAsync();
             
-            var person = await _client.QueryRequiredSingleAsync<PersonMethodBuilder>("select Person { name, email } limit 1");
+            var person = await _client.QueryRequiredSingleAsync<PersonMethodBuilder>("select Person { name, email } limit 1", token: _getToken());
 
-            Assert.NotNull(person);
-            Assert.IsType<PersonMethodBuilder>(person);
-            Assert.True(person.CustomDeserializerCalled);
+            Assert.IsNotNull(person);
+            Assert.IsInstanceOfType(person, typeof(PersonMethodBuilder));
+            Assert.IsTrue(person.CustomDeserializerCalled);
         }
 
-        [Fact]
+        [TestMethod]
         public async Task TestRecord()
         {
             await EnsurePersonIsAddedAsync();
             
-            var person = await _client.QueryRequiredSingleAsync<PersonRecord>("select Person { name, email } limit 1");
+            var person = await _client.QueryRequiredSingleAsync<PersonRecord>("select Person { name, email } limit 1", token: _getToken());
 
-            Assert.NotNull(person);
-            Assert.IsType<PersonRecord>(person);
+            Assert.IsNotNull(person);
+            Assert.IsInstanceOfType(person, typeof(PersonRecord));
         }
         
-        [Fact]
+        [TestMethod]
         public async Task TestAddedFactoryBuilder()
         {
             await EnsurePersonIsAddedAsync();
@@ -138,17 +141,17 @@ namespace EdgeDB.Tests.Integration
 
             TypeBuilder.AddOrUpdateTypeFactory<PersonClass>(customBuilder);
 
-            Assert.True(TypeBuilder.TypeInfo.ContainsKey(typeof(PersonClass)));
+            Assert.IsTrue(TypeBuilder.TypeInfo.ContainsKey(typeof(PersonClass)));
 
             var typeInfo = TypeBuilder.TypeInfo[typeof(PersonClass)];
 
-            Assert.Equal(customBuilder, typeInfo.Factory);
+            Assert.AreEqual(customBuilder, typeInfo.Factory);
 
-            var person = await _client.QueryAsync<PersonClass>("select Person { name, email }");
+            var person = await _client.QueryAsync<PersonClass>("select Person { name, email }", token: _getToken());
 
-            Assert.NotNull(person);
+            Assert.IsNotNull(person);
 
-            Assert.True(customDeserializerCalled);
+            Assert.IsTrue(customDeserializerCalled);
         }
 
         public class PersonClass

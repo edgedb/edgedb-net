@@ -100,30 +100,30 @@ Exceptions
     Represents a generic exception that occured with the edgedb library. 
 
 
-    .. dn:method:: EdgeDBException(Boolean shouldRetry, Boolean shouldReconnect): EdgeDBException
+    .. dn:method:: EdgeDBException(bool shouldRetry, bool shouldReconnect): EdgeDBException
 
         Constructs a new :dn:class:`EdgeDB.EdgeDBException`. 
 
-        :param Boolean shouldRetry:
+        :param bool shouldRetry:
             Whether or not this exception is retryable.
 
-        :param Boolean shouldReconnect:
+        :param bool shouldReconnect:
             Whether or not the client who caught this exception should reconnect.
 
-    .. dn:method:: EdgeDBException(string message, Boolean shouldRetry, Boolean shouldReconnect): EdgeDBException
+    .. dn:method:: EdgeDBException(string message, bool shouldRetry, bool shouldReconnect): EdgeDBException
 
         Constructs a new :dn:class:`EdgeDB.EdgeDBException` with the specified error message. 
 
         :param string message:
             The error message describing why this exception was thrown.
 
-        :param Boolean shouldRetry:
+        :param bool shouldRetry:
             Whether or not this exception is retryable.
 
-        :param Boolean shouldReconnect:
+        :param bool shouldReconnect:
             Whether or not the client who caught this exception should reconnect.
 
-    .. dn:method:: EdgeDBException(string message, Exception innerException, Boolean shouldRetry, Boolean shouldReconnect): EdgeDBException
+    .. dn:method:: EdgeDBException(string message, Exception innerException, bool shouldRetry, bool shouldReconnect): EdgeDBException
 
         Constructs a new :dn:class:`EdgeDB.EdgeDBException` with the specified error message and inner exception. 
 
@@ -133,10 +133,10 @@ Exceptions
         :param Exception innerException:
             The inner exception.
 
-        :param Boolean shouldRetry:
+        :param bool shouldRetry:
             Whether or not this exception is retryable.
 
-        :param Boolean shouldReconnect:
+        :param bool shouldReconnect:
             Whether or not the client who caught this exception should reconnect.
 
 .. dn:class:: EdgeDB.InvalidConnectionException

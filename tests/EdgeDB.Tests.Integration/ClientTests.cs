@@ -1,87 +1,86 @@
 using EdgeDB.DataTypes;
 using EdgeDB.State;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Xunit;
-using Xunit.Abstractions;
 
 namespace EdgeDB.Tests.Integration
 {
-    [CollectionDefinition("ClientTest", DisableParallelization = true)]
-    public class ClientTests : IClassFixture<ClientFixture>
+    [TestClass]
+    public class ClientTests
     {
         private readonly EdgeDBClient _edgedb;
-        private readonly ITestOutputHelper _output;
-
-        public ClientTests(ClientFixture clientFixture, ITestOutputHelper output)
+        private readonly Func<CancellationToken> _getToken;
+        
+        public ClientTests()
         {
-            _edgedb = clientFixture.EdgeDB;
-            _output = output;
+            _edgedb = ClientProvider.EdgeDB;
+            _getToken = () => ClientProvider.GetTimeoutToken();
         }
 
-        [Fact]
+        [TestMethod]
         public async Task TestCommandLocks()
         {
-            await using var client = await _edgedb.GetOrCreateClientAsync<EdgeDBBinaryClient>();
+            await using var client = await _edgedb.GetOrCreateClientAsync<EdgeDBBinaryClient>(token: _getToken());
             var timeoutToken = new CancellationTokenSource();
             timeoutToken.CancelAfter(1000);
             using var firstLock = await client.AquireCommandLockAsync(timeoutToken.Token);
 
-            await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await Assert.ThrowsExceptionAsync<OperationCanceledException>(async () =>
             {
                 var secondLock = await client.AquireCommandLockAsync(timeoutToken.Token);
             });
         }
 
-        [Fact]
+        [TestMethod]
         public async Task TestPoolQueryMethods()
         {
-            var jsonResult = await _edgedb.QueryJsonAsync("select {(a := 1), (a := 2)}");
-            Assert.Equal("[{\"a\" : 1}, {\"a\" : 2}]", jsonResult);
+            var jsonResult = await _edgedb.QueryJsonAsync("select {(a := 1), (a := 2)}", token: _getToken());
+            Assert.AreEqual("[{\"a\" : 1}, {\"a\" : 2}]", jsonResult.Value);
 
-            var queryJsonElementsResult = await _edgedb.QueryJsonElementsAsync("select {(a := 1), (a := 2)}");
+            var queryJsonElementsResult = await _edgedb.QueryJsonElementsAsync("select {(a := 1), (a := 2)}", token: _getToken());
 
-            Assert.Equal(2, queryJsonElementsResult.Count());
+            Assert.AreEqual(2, queryJsonElementsResult.Count());
 
-            Assert.Equal("{\"a\" : 1}", queryJsonElementsResult.First());
-            Assert.Equal("{\"a\" : 2}", queryJsonElementsResult.Last());
+            Assert.AreEqual("{\"a\" : 1}", queryJsonElementsResult.First().Value);
+            Assert.AreEqual("{\"a\" : 2}", queryJsonElementsResult.Last().Value);
 
-            var querySingleResult = await _edgedb.QuerySingleAsync<long>("select 123").ConfigureAwait(false);
-            Assert.Equal(123, querySingleResult);
+            var querySingleResult = await _edgedb.QuerySingleAsync<long>("select 123", token: _getToken()).ConfigureAwait(false);
+            Assert.AreEqual(123, querySingleResult);
 
-            var queryRequiredSingeResult = await _edgedb.QueryRequiredSingleAsync<long>("select 123");
-            Assert.Equal(123, queryRequiredSingeResult);
+            var queryRequiredSingeResult = await _edgedb.QueryRequiredSingleAsync<long>("select 123", token: _getToken());
+            Assert.AreEqual(123, queryRequiredSingeResult);
         }
 
-        [Fact]
+        [TestMethod]
         public async Task TestPoolRelease()
         {
             BaseEdgeDBClient client;
-            await using (client = await _edgedb.GetOrCreateClientAsync())
+            await using (client = await _edgedb.GetOrCreateClientAsync(token: _getToken()))
             {
                 await Task.Delay(100);
             }
 
             // client should be back in the pool
-            Assert.Contains(client, _edgedb.Clients);
+            Assert.IsTrue(_edgedb.Clients.Contains(client));
         }
 
-        [Fact]
+        [TestMethod]
         public async Task TestPoolTransactions()
         {
             var result = await _edgedb.TransactionAsync(async (tx) =>
             {
-                return await tx.QuerySingleAsync<string>("select \"Transaction within pools\"");
+                return await tx.QuerySingleAsync<string>("select \"Transaction within pools\"", token: _getToken());
             });
 
-            Assert.Equal("Transaction within pools", result);
+            Assert.AreEqual("Transaction within pools", result);
         }
 
-        [Fact]
+        [TestMethod]
         public async Task StandardScalarQueries()
         {
             await TestScalarQuery("true", true);
@@ -99,89 +98,94 @@ namespace EdgeDB.Tests.Integration
             await TestScalarQuery("\"Hello, Tests!\"", "Hello, Tests!");
         }
 
-        [Fact]
+        [TestMethod]
         public async Task ArrayQueries()
         {
             await TestScalarQuery("[1,2,3]", new long[] { 1, 2, 3 });
             await TestScalarQuery("[\"Hello\", \"World\"]", new string[] { "Hello", "World" });
         }
 
-        [Fact]
+        [TestMethod]
         public async Task TupleQueries()
         {
-            var result = await _edgedb.QuerySingleAsync<(long one, long two)>("select (1,2)");
-            Assert.Equal(1, result.one);
-            Assert.Equal(2, result.two);
+            var result = await _edgedb.QuerySingleAsync<(long one, long two)>("select (1,2)", token: _getToken());
+            Assert.AreEqual(1, result.one);
+            Assert.AreEqual(2, result.two);
 
-            var (one, two, three, four, five, six, seven, eight, nine, ten) = await _edgedb.QuerySingleAsync<(long one, long two, long three, long four, long five, long six, long seven, long eight, long nine, long ten)>("select (1,2,3,4,5,6,7,8,9,10)");
-            Assert.Equal(1, one);
-            Assert.Equal(2, two);
-            Assert.Equal(3, three);
-            Assert.Equal(4, four);
-            Assert.Equal(5, five);
-            Assert.Equal(6, six);
-            Assert.Equal(7, seven);
-            Assert.Equal(8, eight);
-            Assert.Equal(9, nine);
-            Assert.Equal(10, ten);
+            var (one, two, three, four, five, six, seven, eight, nine, ten) = await _edgedb.QuerySingleAsync<(long one, long two, long three, long four, long five, long six, long seven, long eight, long nine, long ten)>("select (1,2,3,4,5,6,7,8,9,10)", token: _getToken());
+            Assert.AreEqual(1, one);
+            Assert.AreEqual(2, two);
+            Assert.AreEqual(3, three);
+            Assert.AreEqual(4, four);
+            Assert.AreEqual(5, five);
+            Assert.AreEqual(6, six);
+            Assert.AreEqual(7, seven);
+            Assert.AreEqual(8, eight);
+            Assert.AreEqual(9, nine);
+            Assert.AreEqual(10, ten);
 
-            var result2 = await _edgedb.QuerySingleAsync<(long one, long two)>("select (one := 1, two := 2)");
-            Assert.Equal(1, result2.one);
-            Assert.Equal(2, result2.two);
+            var result2 = await _edgedb.QuerySingleAsync<(long one, long two)>("select (one := 1, two := 2)", token: _getToken());
+            Assert.AreEqual(1, result2.one);
+            Assert.AreEqual(2, result2.two);
         }
 
-        [Fact]
+        [TestMethod]
         public async Task SetQueries()
         {
-            var result = await _edgedb.QueryAsync<long>("select {1,2}");
-            Assert.Equal(1, result.First());
-            Assert.Equal(2, result.Last());
+            var result = await _edgedb.QueryAsync<long>("select {1,2}", token: _getToken());
+            Assert.AreEqual(1, result.First());
+            Assert.AreEqual(2, result.Last());
         }
 
-        [Fact]
+        [TestMethod]
         public async Task DisconnectAndReconnect()
         {
             // using raw client for this one,
-            var client = await _edgedb.GetOrCreateClientAsync();
+            var client = await _edgedb.GetOrCreateClientAsync(token: _getToken());
 
             // disconnect should close the underlying connection, and remove alloc'd resources for said connection.
-            await client.DisconnectAsync();
+            await client.DisconnectAsync(token: _getToken());
 
             // should run just fine, restarting the underlying connection.
-            var str = await client.QueryRequiredSingleAsync<string>("select \"Hello, EdgeDB.Net!\"");
+            var str = await client.QueryRequiredSingleAsync<string>("select \"Hello, EdgeDB.Net!\"", token: _getToken());
 
-            Assert.Equal("Hello, EdgeDB.Net!", str);
+            Assert.AreEqual("Hello, EdgeDB.Net!", str);
         }
 
-        [Fact]
+        [TestMethod]
         public void StateChange()
         {
             var client2 = _edgedb.WithConfig(x => x.DDLPolicy = DDLPolicy.AlwaysAllow);
 
-            Assert.Null(_edgedb.Config.DDLPolicy);
-            Assert.Equal(DDLPolicy.AlwaysAllow, client2.Config.DDLPolicy);
+            Assert.IsNull(_edgedb.Config.DDLPolicy);
+            Assert.AreEqual(DDLPolicy.AlwaysAllow, client2.Config.DDLPolicy);
 
             var client3 = client2.WithModule("test_module");
 
-            Assert.Null(_edgedb.Config.DDLPolicy);
-            Assert.Equal(DDLPolicy.AlwaysAllow, client2.Config.DDLPolicy);
-            Assert.Equal("test_module", client3.Module);
-            Assert.NotEqual("test_module", client2.Module);
-            Assert.NotEqual("test_module", _edgedb.Module);
+            Assert.IsNull(_edgedb.Config.DDLPolicy);
+            Assert.AreEqual(DDLPolicy.AlwaysAllow, client2.Config.DDLPolicy);
+            Assert.AreEqual("test_module", client3.Module);
+            Assert.AreNotEqual("test_module", client2.Module);
+            Assert.AreNotEqual("test_module", _edgedb.Module);
         }
 
         private async Task TestScalarQuery<TResult>(string select, TResult expected)
         {
-            var result = await _edgedb.QuerySingleAsync<TResult>($"select {select}");
+            var result = await _edgedb.QuerySingleAsync<TResult>($"select {select}", token: _getToken());
            
             switch(result)
             {
                 case byte[] bt:
-                    Assert.True(bt.SequenceEqual((expected as byte[])!));
+                    Assert.IsTrue(bt.SequenceEqual((expected as byte[])!));
                     break;
-
+                case long[] lg:
+                    Assert.IsTrue(lg.SequenceEqual((expected as long[])!));
+                    break;
+                case string[] st:
+                    Assert.IsTrue(st.SequenceEqual((expected as string[])!));
+                    break;
                 default:
-                    Assert.Equal(expected, result);
+                    Assert.AreEqual(expected, result);
                     break;
             }
         }
