@@ -2,7 +2,7 @@ name: NuGet Deploy (Prerelease)
 
 on:
   push:
-    branches: [ dev ]
+    branches: [ dev, feat/querybuilder-v2 ]
 
 env: 
   BuildNumber: "${{ github.run_number }}"
