@@ -30,6 +30,10 @@ API Documentation
         Marks the current field or property as a valid target for serializing/deserializing. 
 
 
+        :property bool IsLinkProperty:
+            Gets or sets whether or not the property is on a link. 
+
+
         .. dn:method:: EdgeDBPropertyAttribute(string propertyName): EdgeDBPropertyAttribute
 
             Marks this member to be used when serializing/deserializing. 
@@ -40,6 +44,10 @@ API Documentation
     .. dn:class:: EdgeDBTypeAttribute
 
         Marks this class or struct as a valid type to use when serializing/deserializing. 
+
+
+        :property string ModuleName:
+            Gets or sets the module name for this type. 
 
 
         .. dn:method:: EdgeDBTypeAttribute(string name): EdgeDBTypeAttribute
@@ -80,6 +88,20 @@ API Documentation
             :returns:
 
                 A ``dynamic`` object.
+
+        .. dn:method::  TryCherryPick(string name, ref Object& value): bool
+
+            Cherrypicks a property based on the name. This method uses a 'peek' style of reading. The :dn:method:` Next(ref System.String& name, ref System.Object& value): bool` method is uneffected from this method. 
+
+            :param string name:
+                The property name to checrrypick.
+
+            :param Object& value:
+                The value of the property.
+
+            :returns:
+
+                if the property was able to be read; otherwise ``true``. 
 
         .. dn:method::  Next(ref String& name, ref Object& value): bool
 
@@ -1898,11 +1920,11 @@ API Documentation
                 This is the default naming strategy for the :dn:class:`EdgeDB.TypeBuilder`. 
 
 
-        .. dn:method::  Convert(PropertyInfo property): string
+        .. dn:method::  Convert(MemberInfo member): string
 
             Converts the ``EdgeDB.DocGenerator.docMemberSummaryParamref``'s name to the desired naming scheme. 
 
-            :param PropertyInfo property:
+            :param MemberInfo member:
                 The property info of which to convert its name.
 
             :returns:
@@ -2601,6 +2623,20 @@ API Documentation
             :returns:
 
                 The deserialized form of ``EdgeDB.DataTypes.Json.Value``; or ``default``. 
+
+        .. dn:method::  Serialize(object value, JsonSerializer serializer): Json
+
+            Serializes an ``System.Object`` to :dn:class:`EdgeDB.DataTypes.Json` using the default ``EdgeDB.EdgeDBConfig.JsonSerializer`` or ``EdgeDB.DocGenerator.docMemberSummaryParamref`` if specified. 
+
+            :param object value:
+                The value to serialize.
+
+            :param JsonSerializer serializer:
+                The optional serializer to use when serializing.
+
+            :returns:
+
+                The json representation of ``EdgeDB.DocGenerator.docMemberSummaryParamref``.
 
     .. dn:struct:: Memory
 
