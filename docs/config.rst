@@ -68,6 +68,6 @@ returned from a state change shares the same underlying connection
 pool as the client it was derived from.
 
 See :dn:method:`EdgeDB.EdgeDBClient.WithConfig(Config)`, 
-:dn:method:`EdgeDB.EdgeDBClient.WithGlobals(Dictionary<string,object>)`,
+:dn:method:`EdgeDB.EdgeDBClient.WithGlobals(IDictionary<string,object>)`,
 :dn:method:`EdgeDB.EdgeDBClient.WithModule(string)`, and
-:dn:method:`EdgeDB.EdgeDBClient.WithAliases(Dictionary<string,string>)`
+:dn:method:`EdgeDB.EdgeDBClient.WithAliases(IDictionary<string,string>)`
