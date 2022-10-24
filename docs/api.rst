@@ -66,7 +66,7 @@ API Documentation
                 The type of the converter.
 
             :throws System.ArgumentException:
-                is not a valid ``EdgeDB.DocGenerator.docMemberSummaryParamref``. 
+                is not a valid ``EdgeDB.DocGenerator.docMemberSummaryParamref``. :dn:class:`EdgeDB.TypeConverters.EdgeDBTypeConverter<TSource, TTarget>`
 
     .. dn:struct:: ObjectEnumerator
 
@@ -75,7 +75,7 @@ API Documentation
 
         .. dn:method::  ToDynamic(): object
 
-            Converts this :dn:class:`EdgeDB.ObjectEnumerator` to a ``dynamic`` object. 
+            Converts this :dn:struct:`EdgeDB.ObjectEnumerator` to a ``dynamic`` object. 
 
             :returns:
 
@@ -93,7 +93,7 @@ API Documentation
 
             :returns:
 
-                if a property was read successfully; otherwise ``true``. 
+                if a property was read successfully; otherwise ``true``. ``false``
 
     .. dn:class:: TypeBuilder
 
@@ -149,685 +149,18 @@ API Documentation
 
             :returns:
 
-                if the type factory was removed; otherwise ``true``. 
+                if the type factory was removed; otherwise ``true``. ``false``
 
     .. dn:class:: TypeDeserializerFactory
 
-        A method that will create a object from a :dn:class:`EdgeDB.ObjectEnumerator`. 
+        A method that will create a object from a :dn:struct:`EdgeDB.ObjectEnumerator`. 
 
         The enumerator containing the property values.
 
         :returns:
 
-            An instance of an object that represents the data read from the :dn:class:`EdgeDB.ObjectEnumerator`. 
+            An instance of an object that represents the data read from the :dn:struct:`EdgeDB.ObjectEnumerator`. 
 
-
-    .. dn:struct:: MessageSeverity
-
-        Represents the log message severity within a 
-
-
-    .. dn:class:: BaseEdgeDBClient
-
-        Represents a base edgedb client that can interaction with the EdgeDB database. 
-
-
-        :property bool IsConnected:
-            Gets whether or not this client has connected to the database and is ready to send queries. 
-
-
-        :property ulong ClientId:
-            Gets the client id of this client. 
-
-
-        .. dn:method:: BaseEdgeDBClient(ulong clientId, IDisposable clientPoolHolder): BaseEdgeDBClient
-
-            Initialized the base client. 
-
-            :param ulong clientId:
-                The id of this client.
-
-            :param IDisposable clientPoolHolder:
-                The client pool holder for this client.
-
-        .. dn:method::  ConnectAsync(CancellationToken token): ValueTask
-
-            Connects this client to the database. 
-
-            .. note::
-
-                When overridden, it's  recommended to call base.ConnectAsync to ensure the client pool adds this client. 
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A ValueTask representing the asynchronous connect operation. 
-
-        .. dn:method::  DisconnectAsync(CancellationToken token): ValueTask
-
-            Disconnects this client from the database. 
-
-            .. note::
-
-                When overridden, it's  recommended to call base.DisconnectAsync to ensure the client pool removes this client. 
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A ValueTask representing the asynchronous disconnect operation. 
-
-        .. dn:method::  ExecuteAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task
-
-            Executes a given query without reading the returning result. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Any arguments that are part of the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous execute operation. 
-
-        .. dn:method::  QueryAsync<TResult>(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<IReadOnlyCollection<TResult>>
-
-            Executes a given query and returns the result as a collection. 
-
-            .. note::
-
-                Cardinality isn't enforced nor takes effect on the return result, the client will always construct a collection out of the data. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Any arguments that are part of the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The result of the task is the result of the query. 
-
-        .. dn:method::  QueryRequiredSingleAsync<TResult>(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<TResult>
-
-            Executes a given query and returns a single result. 
-
-            .. note::
-
-                This method enforces ``EdgeDB.Cardinality.One``, if your query returns zero or more than one result a :dn:class:`EdgeDB.EdgeDBException` will be thrown. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Any arguments that are part of the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The result of the task is the result of the query. 
-
-        .. dn:method::  QuerySingleAsync<TResult>(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<TResult>
-
-            Executes a given query and returns a single result or ``null``. 
-
-            .. note::
-
-                This method enforces ``EdgeDB.Cardinality.AtMostOne``, if your query returns more than one result a :dn:class:`EdgeDB.EdgeDBException` will be thrown. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Any arguments that are part of the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The result of the task is the result of the query. 
-
-        .. dn:method::  QueryJsonAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<Json>
-
-            Executes a given query and returns the result as a single json string. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Optional collection of arguments within the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The tasks result is the json result of the query. 
-
-            :throws EdgeDB.ResultCardinalityMismatchException:
-                The query returned more than 1 datapoint.
-
-        .. dn:method::  QueryJsonElementsAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<IReadOnlyCollection<Json>>
-
-            Executes a given query and returns the result as a read-only collection of json objects. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Optional collection of arguments within the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The tasks result is the json result of the query. 
-
-        .. dn:method::  DisposeAsync(): ValueTask<bool>
-
-            Disposes or releases this client to the client pool 
-
-            .. note::
-
-                When overriden in a child class, the child class ``true`` call base.DisposeAsync and only should dispose if the resulting base call return . 
-
-            :returns:
-
-                if the client disposed anything; ``true`` if the client was freed to the client pool. 
-
-    .. dn:class:: EdgeDBBinaryClient
-
-        Represents an abstract binary client. 
-
-
-        :property bool IsIdle:
-            Gets whether or not this connection is idle. 
-
-
-        :property IReadOnlyDictionary<string, object> ServerConfig:
-            Gets the raw server config. 
-
-            .. note::
-
-                This dictionary can be empty if the client hasn't connected to the database. 
-
-
-        :property TransactionState TransactionState:
-            Gets this clients transaction state. 
-
-
-        .. dn:method:: EdgeDBBinaryClient(EdgeDBConnection connection, EdgeDBConfig clientConfig, IDisposable clientPoolHolder, UInt64? clientId): EdgeDBBinaryClient
-
-            Creates a new binary client with the provided conection and config. 
-
-            :param EdgeDBConnection connection:
-                The connection details used to connect to the database.
-
-            :param EdgeDBConfig clientConfig:
-                The configuration for this client.
-
-            :param IDisposable clientPoolHolder:
-                The client pool holder for this client.
-
-            :param Nullable<ulong> clientId:
-                The optional client id of this client. This is used for logging and client pooling.
-
-        .. dn:method::  ExecuteAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task
-
-            Executes a given query without reading the returning result. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Any arguments that are part of the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous execute operation. 
-
-        .. dn:method::  QueryAsync<TResult>(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<IReadOnlyCollection<TResult>>
-
-            Executes a given query and returns the result as a collection. 
-
-            .. note::
-
-                Cardinality isn't enforced nor takes effect on the return result, the client will always construct a collection out of the data. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Any arguments that are part of the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The result of the task is the result of the query. 
-
-        .. dn:method::  QuerySingleAsync<TResult>(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<TResult>
-
-            Executes a given query and returns a single result or ``null``. 
-
-            .. note::
-
-                This method enforces ``EdgeDB.Cardinality.AtMostOne``, if your query returns more than one result a :dn:class:`EdgeDB.EdgeDBException` will be thrown. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Any arguments that are part of the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The result of the task is the result of the query. 
-
-        .. dn:method::  QueryRequiredSingleAsync<TResult>(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<TResult>
-
-            Executes a given query and returns a single result. 
-
-            .. note::
-
-                This method enforces ``EdgeDB.Cardinality.One``, if your query returns zero or more than one result a :dn:class:`EdgeDB.EdgeDBException` will be thrown. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Any arguments that are part of the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The result of the task is the result of the query. 
-
-        .. dn:method::  QueryJsonAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<Json>
-
-            Executes a given query and returns the result as a single json string. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Optional collection of arguments within the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The tasks result is the json result of the query. 
-
-            :throws EdgeDB.ResultCardinalityMismatchException:
-                The query returned more than 1 datapoint.
-
-        .. dn:method::  QueryJsonElementsAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<IReadOnlyCollection<Json>>
-
-            Executes a given query and returns the result as a read-only collection of json objects. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Optional collection of arguments within the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The tasks result is the json result of the query. 
-
-        .. dn:method::  ConnectAsync(CancellationToken token): ValueTask
-
-            Connects this client to the database. 
-
-            .. note::
-
-                When overridden, it's  recommended to call base.ConnectAsync to ensure the client pool adds this client. 
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A ValueTask representing the asynchronous connect operation. 
-
-        .. dn:method::  ReconnectAsync(CancellationToken token): Task
-
-            Disconnects and reconnects the current client. 
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous disconnect and reconnection operations.
-
-        .. dn:method::  DisconnectAsync(CancellationToken token): ValueTask
-
-            Disconnects this client from the database. 
-
-            .. note::
-
-                When overridden, it's  recommended to call base.DisconnectAsync to ensure the client pool removes this client. 
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A ValueTask representing the asynchronous disconnect operation. 
-
-        .. dn:method::  DisposeAsync(): ValueTask<bool>
-
-    .. dn:class:: HttpQueryResult
-
-        Represents the returned data from a http-based query. 
-
-
-        :property object Data:
-            Gets or sets the data returned from the query. 
-
-
-        :property QueryResultError Error:
-            Gets or sets the error returned from the query. 
-
-
-    .. dn:class:: QueryResultError
-
-        Represents a query error received over http 
-
-
-        :property string Message:
-            Gets or sets the error message. 
-
-
-        :property string Type:
-            Gets or sets the type of the error. 
-
-
-        :property ServerErrorCodes Code:
-            Gets or sets the error code. 
-
-
-    .. dn:class:: EdgeDBHttpClient
-
-        Represents a client that can preform queries over HTTP. 
-
-
-        :property bool IsConnected:
-            .. note::
-
-                This property is always ``true``. 
-
-
-        .. dn:method:: EdgeDBHttpClient(EdgeDBConnection connection, EdgeDBConfig clientConfig, IDisposable poolHolder, ulong clientId): EdgeDBHttpClient
-
-            Creates a new instance of the http client. 
-
-            :param EdgeDBConnection connection:
-                The connection details used to connect to the database.
-
-            :param EdgeDBConfig clientConfig:
-                The configuration for this client.
-
-            :param IDisposable poolHolder:
-                The client pool holder for this client.
-
-            :param ulong clientId:
-                The optional client id of this client. This is used for logging and client pooling.
-
-        .. dn:method::  DisconnectAsync(CancellationToken token): ValueTask
-
-            Disconnects this client from the database. 
-
-            .. note::
-
-                When overridden, it's  recommended to call base.DisconnectAsync to ensure the client pool removes this client. 
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A ValueTask representing the asynchronous disconnect operation. 
-
-        .. dn:method::  ConnectAsync(CancellationToken token): ValueTask
-
-            Connects this client to the database. 
-
-            .. note::
-
-                When overridden, it's  recommended to call base.ConnectAsync to ensure the client pool adds this client. 
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A ValueTask representing the asynchronous connect operation. 
-
-        .. dn:method::  ExecuteAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task
-
-            Executes a given query without reading the returning result. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Any arguments that are part of the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous execute operation. 
-
-        .. dn:method::  QueryAsync<TResult>(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<IReadOnlyCollection<TResult>>
-
-            Executes a given query and returns the result as a collection. 
-
-            .. note::
-
-                Cardinality isn't enforced nor takes effect on the return result, the client will always construct a collection out of the data. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Any arguments that are part of the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The result of the task is the result of the query. 
-
-        .. dn:method::  QueryRequiredSingleAsync<TResult>(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<TResult>
-
-            Executes a given query and returns a single result. 
-
-            .. note::
-
-                This method enforces ``EdgeDB.Cardinality.One``, if your query returns zero or more than one result a :dn:class:`EdgeDB.EdgeDBException` will be thrown. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Any arguments that are part of the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The result of the task is the result of the query. 
-
-        .. dn:method::  QuerySingleAsync<TResult>(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<TResult>
-
-            Executes a given query and returns a single result or ``null``. 
-
-            .. note::
-
-                This method enforces ``EdgeDB.Cardinality.AtMostOne``, if your query returns more than one result a :dn:class:`EdgeDB.EdgeDBException` will be thrown. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Any arguments that are part of the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The result of the task is the result of the query. 
-
-        .. dn:method::  QueryJsonAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<Json>
-
-            Executes a given query and returns the result as a single json string. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Optional collection of arguments within the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The tasks result is the json result of the query. 
-
-            :throws EdgeDB.ResultCardinalityMismatchException:
-                The query returned more than 1 datapoint.
-
-        .. dn:method::  QueryJsonElementsAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<IReadOnlyCollection<Json>>
-
-            Executes a given query and returns the result as a read-only collection of json objects. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Optional collection of arguments within the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The tasks result is the json result of the query. 
-
-    .. dn:class:: EdgeDBTcpClient
-
-        Represents a TCP client used to interact with EdgeDB. 
-
-
-        :property bool IsConnected:
-
-        .. dn:method:: EdgeDBTcpClient(EdgeDBConnection connection, EdgeDBConfig clientConfig, IDisposable clientPoolHolder, UInt64? clientId): EdgeDBTcpClient
-
-            Creates a new TCP client with the provided conection and config. 
-
-            :param EdgeDBConnection connection:
-                The connection details used to connect to the database.
-
-            :param EdgeDBConfig clientConfig:
-                The configuration for this client.
-
-            :param IDisposable clientPoolHolder:
-                The client pool holder for this client.
-
-            :param Nullable<ulong> clientId:
-                The optional client id of this client. This is used for logging and client pooling.
-
-        .. dn:method::  DisposeAsync(): ValueTask<bool>
 
     .. dn:interface:: IEdgeDBQueryable
 
@@ -1399,14 +732,9 @@ API Documentation
             Gets or sets the default client pool size. 
 
 
-    .. dn:struct:: EdgeDBClientType
-
-        Represents different client types used in a :dn:class:`EdgeDB.EdgeDBClient`. 
-
-
     .. dn:class:: EdgeDBConfig
 
-        Represents the configuration options for a :dn:class:`EdgeDB.EdgeDBClient` or 
+        Represents the configuration options for a :dn:class:`EdgeDB.EdgeDBClient` or :dn:class:`EdgeDB.EdgeDBTcpClient`
 
 
         :property ILogger Logger:
@@ -1741,17 +1069,17 @@ API Documentation
 
                 The source ``Microsoft.Extensions.DependencyInjection.IServiceCollection`` with :dn:class:`EdgeDB.EdgeDBClient` added as a singleton. 
 
-    .. dn:struct:: Capabilities
+    .. dn:enum:: Capabilities
 
         Represents a bitfield of capabilities used when executing queries. 
 
 
-    .. dn:struct:: Cardinality
+    .. dn:enum:: Cardinality
 
         A enum containing the cardinality specification of a command. 
 
 
-    .. dn:struct:: ConnectionRetryMode
+    .. dn:enum:: ConnectionRetryMode
 
         An enum representing the retry mode when connecting new clients. 
 
@@ -1794,9 +1122,9 @@ API Documentation
 
         .. dn:method::  GetEnumerator(): IEnumerator<TElement>
 
-    .. dn:struct:: ErrorSeverity
+    .. dn:enum:: ErrorSeverity
 
-        An enum representing the error severity of a :dn:class:`EdgeDB.Binary.Packets.ErrorResponse`. 
+        An enum representing the error severity of a :dn:struct:`EdgeDB.Binary.Packets.ErrorResponse`. 
 
 
     .. dn:struct:: ExecuteResult
@@ -1844,27 +1172,27 @@ API Documentation
             Gets the error code. 
 
 
-    .. dn:struct:: IOFormat
+    .. dn:enum:: IOFormat
 
         An enum representing the format of a commands result. 
 
 
-    .. dn:struct:: Isolation
+    .. dn:enum:: Isolation
 
         An enum representing the transaction mode within a :dn:class:`EdgeDB.Transaction`. 
 
 
-    .. dn:struct:: ServerErrorCodes
+    .. dn:enum:: ServerErrorCodes
 
         Represents the different error codes sent by the server defined 
 
 
-    .. dn:struct:: TLSSecurityMode
+    .. dn:enum:: TLSSecurityMode
 
         Represents the TLS security mode the client will follow. 
 
 
-    .. dn:struct:: TransactionState
+    .. dn:enum:: TransactionState
 
         Represents the transaction state of the client. 
 
@@ -2050,11 +1378,11 @@ API Documentation
 
         .. dn:method::  GetValueOrDefault(): T
 
-            Gets the value or ``default``{ ``T``}. 
+            Gets the value or ``default``{``T``}. 
 
             :returns:
 
-                The value or ``default``{ ``T``}.
+                The value or ``default``{``T``}.
 
         .. dn:method::  GetValueOrDefault(T defaultValue): T
 
@@ -2087,21 +1415,21 @@ API Documentation
 
             :returns:
 
-                A :dn:class:`EdgeDB.Optional<T>` with no value specified.
+                A :dn:struct:`EdgeDB.Optional<T>` with no value specified.
 
         .. dn:method::  Create<T>(T value): Optional<T>
 
             Creates an optional value. 
 
             :param T value:
-                The value of the :dn:class:`EdgeDB.Optional<T>`.
+                The value of the :dn:struct:`EdgeDB.Optional<T>`.
 
             :param T:
                 The inner type of the optional.
 
         .. dn:method::  ToNullable<T>(this Optional<T> val): T?
 
-            Converts the :dn:class:`EdgeDB.Optional<T>` to a ``System.Nullable`1``. 
+            Converts the :dn:struct:`EdgeDB.Optional<T>` to a ``System.Nullable`1``. 
 
             :param Optional<T> val:
                 The optional to convert.
@@ -2115,364 +1443,7 @@ API Documentation
 
 .. dn:namespace:: EdgeDB.Binary
 
-    .. dn:struct:: Annotation
-
-        Represents an annotation within a packet. 
-
-
-        :property string Name:
-            Gets the name of this annotation. 
-
-
-        :property string Value:
-            Gets the value of the annotation (in json format). 
-
-
-    .. dn:struct:: KeyValue
-
-        Represents a dynamic key-value pair received in a :dn:class:`EdgeDB.Binary.IReceiveable`. 
-
-
-        :property ushort Code:
-            Gets the key code. 
-
-
-        :property Byte[] Value:
-            Gets the value stored within this keyvalue. 
-
-
-        .. dn:method::  ToString(): string
-
-            Converts this headers value to a UTF8 encoded string 
-
-    .. dn:struct:: ProtocolExtension
-
-        Represents a protocol extension. 
-
-
-        :property IReadOnlyCollection<Annotation> Headers:
-            Gets a collection of headers for this protocol extension. 
-
-
-    .. dn:interface:: IReceiveable
-
-        Represents a generic packet received from the server. 
-
-
-        :property ServerMessageType Type:
-            Gets the type of the message. 
-
-
-    .. dn:struct:: AuthStatus
-
-        Represents the authentication state. 
-
-
-    .. dn:struct:: ServerMessageType
-
-        Represents all supported message types sent by the server. 
-
-
 .. dn:namespace:: EdgeDB.Binary.Packets
-
-    .. dn:struct:: AuthenticationStatus
-
-        Represents the `AuthenticationOK <https://www.edgedb.com/docs/reference/protocol/messages#authenticationok>`_, `AuthenticationSASL <https://www.edgedb.com/docs/reference/protocol/messages#authenticationsasl>`_, `AuthenticationSASLContinue <https://www.edgedb.com/docs/reference/protocol/messages#authenticationsaslcontinue>`_, and `AuthenticationSASLFinal <https://www.edgedb.com/docs/reference/protocol/messages#authenticationsaslfinal>`_ packets. 
-
-
-        :property ServerMessageType Type:
-
-        :property AuthStatus AuthStatus:
-            Gets the authentication state. 
-
-
-        :property String[] AuthenticationMethods:
-            Gets a collection of supported authentication methods. 
-
-
-        :property IReadOnlyCollection<byte> SASLData:
-            Gets the SASL data. 
-
-
-    .. dn:struct:: CommandComplete
-
-        Represents the `Command Complete <https://www.edgedb.com/docs/reference/protocol/messages#commandcomplete>`_ packet 
-
-
-        :property ServerMessageType Type:
-
-        :property Capabilities UsedCapabilities:
-            Gets the used capabilities within the completed command. 
-
-
-        :property string Status:
-            Gets the status of the completed command. 
-
-
-    .. dn:struct:: CommandDataDescription
-
-        Represents the `Command Data Description <https://www.edgedb.com/docs/reference/protocol/messages#commanddatadescription>`_ packet. 
-
-
-        :property ServerMessageType Type:
-
-        :property IReadOnlyCollection<Annotation> Annotations:
-            Gets a read-only collection of annotations. 
-
-
-        :property Cardinality Cardinality:
-            Gets the cardinality of the command. 
-
-
-        :property Guid InputTypeDescriptorId:
-            Gets the input type descriptor id. 
-
-
-        :property IReadOnlyCollection<byte> InputTypeDescriptor:
-            Gets the complete input type descriptor. 
-
-
-        :property Guid OutputTypeDescriptorId:
-            Gets the output type descriptor id. 
-
-
-        :property IReadOnlyCollection<byte> OutputTypeDescriptor:
-            Gets the complete output type descriptor. 
-
-
-    .. dn:struct:: Data
-
-        Represents the `Data <https://www.edgedb.com/docs/reference/protocol/messages#data>`_ packet 
-
-
-        :property ServerMessageType Type:
-
-        :property IReadOnlyCollection<byte> PayloadData:
-            Gets the payload of this data packet 
-
-
-    .. dn:struct:: DumpBlock
-
-        Represents the `Dump Block <https://www.edgedb.com/docs/reference/protocol/messages#dump-block>`_ packet. 
-
-
-        :property ServerMessageType Type:
-
-        :property IReadOnlyCollection<byte> Hash:
-            Gets the sha1 hash of this packets data, used when writing a dump file. 
-
-
-        :property int Length:
-            Gets the length of this packets data, used when writing a dump file. 
-
-
-        :property IReadOnlyCollection<KeyValue> Attributes:
-            Gets a collection of attributes for this packet. 
-
-
-    .. dn:struct:: DumpHeader
-
-        Represents the `Dump Header <https://www.edgedb.com/docs/reference/protocol/messages#dump-header>`_ packet. 
-
-
-        :property ServerMessageType Type:
-
-        :property IReadOnlyCollection<byte> Hash:
-            Gets the sha1 hash of this packets data, used when writing a dump file. 
-
-
-        :property int Length:
-            Gets the length of this packets data, used when writing a dump file. 
-
-
-        :property IReadOnlyCollection<KeyValue> Attributes:
-            Gets a collection of attributes sent with this packet. 
-
-
-        :property ushort MajorVersion:
-            Gets the EdgeDB major version. 
-
-
-        :property ushort MinorVersion:
-            Gets the EdgeDB minor version. 
-
-
-        :property string SchemaDDL:
-            Gets the schema currently within the database. 
-
-
-        :property IReadOnlyCollection<DumpTypeInfo> Types:
-            Gets a collection of types within the database. 
-
-
-        :property IReadOnlyCollection<DumpObjectDescriptor> Descriptors:
-            Gets a collection of descriptors used to define the types in ``EdgeDB.Binary.Packets.DumpHeader.Types``. 
-
-
-    .. dn:struct:: DumpTypeInfo
-
-        Represents the type info sent within a :dn:class:`EdgeDB.Binary.Packets.DumpHeader` packet. 
-
-
-        :property string Name:
-            Gets the name of this type info. 
-
-
-        :property string Class:
-            Gets the class of this type info. 
-
-
-        :property Guid Id:
-            Gets the Id of the type info. 
-
-
-    .. dn:struct:: DumpObjectDescriptor
-
-        Represents a object descriptor sent within the :dn:class:`EdgeDB.Binary.Packets.DumpHeader` packet. 
-
-
-        :property Guid ObjectId:
-            Gets the object Id that the descriptor describes. 
-
-
-        :property IReadOnlyCollection<byte> Description:
-            Gets the description of the object. 
-
-
-        :property IReadOnlyCollection<Guid> Dependencies:
-            Gets a collection of dependencies that this descriptor relies on. 
-
-
-    .. dn:struct:: ErrorResponse
-
-        Represents the `Error Response <https://www.edgedb.com/docs/reference/protocol/messages#errorresponse>`_ packet. 
-
-
-        :property ServerMessageType Type:
-
-        :property ErrorSeverity Severity:
-            Gets the severity of the error. 
-
-
-        :property ServerErrorCodes ErrorCode:
-            Gets the error code. 
-
-
-        :property string Message:
-            Gets the message of the error. 
-
-
-        :property IReadOnlyCollection<KeyValue> Attributes:
-            Gets a collection of attributes sent with this error. 
-
-
-    .. dn:struct:: LogMessage
-
-        Represents the `Log Message <https://www.edgedb.com/docs/reference/protocol/messages#logmessage>`_ packet. 
-
-
-        :property ServerMessageType Type:
-
-        :property MessageSeverity Severity:
-            Gets the severity of the log message. 
-
-
-        :property ServerErrorCodes Code:
-            Gets the error code related to the log message. 
-
-
-        :property string Content:
-            Gets the content of the log message. 
-
-
-        :property IReadOnlyCollection<Annotation> Annotations:
-            Gets a read-only collection of annotations. 
-
-
-    .. dn:struct:: ParameterStatus
-
-        Represents the `Parameter Status <https://www.edgedb.com/docs/reference/protocol/messages#parameterstatus>`_ packet. 
-
-
-        :property ServerMessageType Type:
-
-        :property string Name:
-            Gets the name of the parameter. 
-
-
-        :property IReadOnlyCollection<byte> Value:
-            Gets the value of the parameter. 
-
-
-    .. dn:struct:: ReadyForCommand
-
-        Represents the `Ready for Command <https://www.edgedb.com/docs/reference/protocol/messages#readyforcommand>`_ packet. 
-
-
-        :property ServerMessageType Type:
-
-        :property IReadOnlyCollection<Annotation> Annotations:
-            Gets a collection of annotations sent with this prepare packet. 
-
-
-        :property TransactionState TransactionState:
-            Gets the transaction state of the next command. 
-
-
-    .. dn:struct:: RestoreReady
-
-        Represents the `Restore Ready <https://www.edgedb.com/docs/reference/protocol/messages#restoreready>`_ packet. 
-
-
-        :property ServerMessageType Type:
-
-        :property IReadOnlyCollection<Annotation> Annotations:
-            Gets a collection of annotations that was sent with this packet. 
-
-
-        :property ushort Jobs:
-            Gets the number of jobs that the restore will use. 
-
-
-    .. dn:struct:: ServerHandshake
-
-        Represents the `Server Handshake <https://www.edgedb.com/docs/reference/protocol/messages#serverhandshake>`_ packet. 
-
-
-        :property ServerMessageType Type:
-
-        :property ushort MajorVersion:
-            Gets the major version of the server. 
-
-
-        :property ushort MinorVersion:
-            Gets the minor version of the server. 
-
-
-        :property IReadOnlyCollection<ProtocolExtension> Extensions:
-            Gets a collection of :dn:class:`EdgeDB.Binary.ProtocolExtension` s used by the server. 
-
-
-    .. dn:struct:: ServerKeyData
-
-        Represents the `Server Key Data <https://www.edgedb.com/docs/reference/protocol/messages#serverkeydata>`_ packet. 
-
-
-        :property ServerMessageType Type:
-
-        :property IReadOnlyCollection<byte> Key:
-            Gets the key data. 
-
-
-    .. dn:struct:: StateDataDescription
-
-        Represents the `State Data Description <https://www.edgedb.com/docs/reference/protocol/messages#statedatadescription>`_ packet. 
-
-
-    .. dn:class:: Parse
-
-        https://www.edgedb.com/docs/reference/protocol/messages#prepare 
-
 
 .. dn:namespace:: EdgeDB.TypeConverters
 
@@ -2511,7 +1482,7 @@ API Documentation
 
 .. dn:namespace:: EdgeDB.State
 
-    .. dn:struct:: DDLPolicy
+    .. dn:enum:: DDLPolicy
 
         Represents a DDL policy. 
 
