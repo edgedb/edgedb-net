@@ -464,7 +464,7 @@ namespace EdgeDB
         /// <returns>
         ///     A new client with the specified globals.
         /// </returns>
-        public EdgeDBClient WithGlobals(Dictionary<string, object?> globals)
+        public EdgeDBClient WithGlobals(IDictionary<string, object?> globals)
             => new(this, _session.WithGlobals(globals));
 
         /// <summary>
@@ -494,7 +494,7 @@ namespace EdgeDB
         /// <returns>
         ///     A new client with the specified module aliases.
         /// </returns>
-        public EdgeDBClient WithAliases(Dictionary<string, string> aliases)
+        public EdgeDBClient WithAliases(IDictionary<string, string> aliases)
             => new(this, _session.WithModuleAliases(aliases));
         #endregion
 

@@ -63,7 +63,7 @@ namespace EdgeDB.DocGenerator
             builder.AppendLine("**Namespaces**");
             builder.AppendLine();
             
-            foreach (var ns in namespaces)
+            foreach (var ns in namespaces.Where(x => x.Any(y => y.DotnetType!.IsPublic)))
             {
                 builder.AppendLine($"- :dn:namespace:`{ns.Key}`");
             }
@@ -75,7 +75,7 @@ namespace EdgeDB.DocGenerator
                 using (_ = builder.BeginScope($".. dn:namespace:: {namespc.Key}"))
                 {
                     builder.AppendLine();
-                    foreach(var member in namespc)
+                    foreach(var member in namespc.OrderBy(x => x.Name))
                     {
                         GenerateTypeSection(member, builder, false);
                     }
@@ -317,10 +317,16 @@ namespace EdgeDB.DocGenerator
 
             if (member is null || targetType is null)
                 return $"``{nodeName}``";
-
+            
             // fix method sig
             if (nodeName.Contains("(") && member is DocMethod docMethod)
             {
+                if(!docMethod.Method?.IsPublic ?? false)
+                {
+                    Console.WriteLine($"Warning: cref {cref} references a non-public member");
+                    return $"``{cref}``";
+                }
+
                 var sig = docMethod.Method!.GetSignature();
 
                 if(!sig.Contains("()"))
@@ -337,6 +343,12 @@ namespace EdgeDB.DocGenerator
 
             if(member is DocType tp)
             {
+                if (!tp.DotnetType?.IsPublic ?? false)
+                {
+                    Console.WriteLine($"Warning: cref {cref} references a non-public member");
+                    return $"``{cref}``";
+                }
+                
                 nodeName = Regex.Replace(nodeName, @"`\d+", m =>
                 {
                     return $"<{string.Join(", ", tp.DotnetType!.GetGenericArguments().Select(x => x.Name))}>";

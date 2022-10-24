@@ -7,432 +7,26 @@ API Documentation
 **Namespaces**
 
 - :dn:namespace:`EdgeDB`
-- :dn:namespace:`EdgeDB.Binary`
-- :dn:namespace:`EdgeDB.Binary.Packets`
 - :dn:namespace:`EdgeDB.TypeConverters`
 - :dn:namespace:`EdgeDB.State`
 - :dn:namespace:`EdgeDB.DataTypes`
 
 .. dn:namespace:: EdgeDB
 
-    .. dn:class:: EdgeDBDeserializerAttribute
+    .. dn:enum:: Capabilities
 
-        Marks the current method as the method to use to deserialize the current type. 
+        Represents a bitfield of capabilities used when executing queries. 
 
 
-    .. dn:class:: EdgeDBIgnoreAttribute
+    .. dn:enum:: Cardinality
 
-        Marks the current target to be ignored when deserializing or building queries. 
+        A enum containing the cardinality specification of a command. 
 
 
-    .. dn:class:: EdgeDBPropertyAttribute
+    .. dn:enum:: ConnectionRetryMode
 
-        Marks the current field or property as a valid target for serializing/deserializing. 
+        An enum representing the retry mode when connecting new clients. 
 
-
-        .. dn:method:: EdgeDBPropertyAttribute(string propertyName): EdgeDBPropertyAttribute
-
-            Marks this member to be used when serializing/deserializing. 
-
-            :param string propertyName:
-                The name of the member in the edgedb schema.
-
-    .. dn:class:: EdgeDBTypeAttribute
-
-        Marks this class or struct as a valid type to use when serializing/deserializing. 
-
-
-        .. dn:method:: EdgeDBTypeAttribute(string name): EdgeDBTypeAttribute
-
-            Marks this as a valid target to use when serializing/deserializing. 
-
-            :param string name:
-                The name of the type in the edgedb schema.
-
-        .. dn:method:: EdgeDBTypeAttribute(): EdgeDBTypeAttribute
-
-            Marks this as a valid target to use when serializing/deserializing. 
-
-    .. dn:class:: EdgeDBTypeConverterAttribute
-
-        Marks the current property to be deserialized/serialized with a specific :dn:class:`EdgeDB.TypeConverters.EdgeDBTypeConverter<TSource, TTarget>`. 
-
-
-        .. dn:method:: EdgeDBTypeConverterAttribute(Type converterType): EdgeDBTypeConverterAttribute
-
-            Initializes the :dn:class:`EdgeDB.EdgeDBTypeConverterAttribute` with the specified :dn:class:`EdgeDB.TypeConverters.EdgeDBTypeConverter<TSource, TTarget>`. 
-
-            :param Type converterType:
-                The type of the converter.
-
-            :throws System.ArgumentException:
-                is not a valid ``EdgeDB.DocGenerator.docMemberSummaryParamref``. :dn:class:`EdgeDB.TypeConverters.EdgeDBTypeConverter<TSource, TTarget>`
-
-    .. dn:struct:: ObjectEnumerator
-
-        Represents an enumerator for creating objects. 
-
-
-        .. dn:method::  ToDynamic(): object
-
-            Converts this :dn:struct:`EdgeDB.ObjectEnumerator` to a ``dynamic`` object. 
-
-            :returns:
-
-                A ``dynamic`` object.
-
-        .. dn:method::  Next(ref String& name, ref Object& value): bool
-
-            Reads the next property within this enumerator. 
-
-            :param String& name:
-                The name of the property.
-
-            :param Object& value:
-                The value of the property.
-
-            :returns:
-
-                if a property was read successfully; otherwise ``true``. ``false``
-
-    .. dn:class:: TypeBuilder
-
-        Represents the class used to build types from edgedb query results. 
-
-
-        :property INamingStrategy SchemaNamingStrategy:
-            Gets or sets the naming strategy used for deserialization of edgeql property names to dotnet property names. 
-
-            .. note::
-
-                All dotnet types passed to the type builder will have their properties converted to the edgeql version using this naming strategy, the naming convention of the dotnet type will be preserved. 
-
-            .. note::
-
-                If the naming strategy doesn't find a match, the ``EdgeDB.TypeBuilder.AttributeNamingStrategy`` will be used. 
-
-
-        .. dn:method::  AddOrUpdateTypeBuilder<TType>(Action<TType,IDictionary<string,object>> builder): void
-
-            Adds or updates a custom type builder. 
-
-            :param Action<TType, IDictionary<string, object>> builder:
-                The builder for ``TType``.
-
-            :param TType:
-                The type of which the builder will build.
-
-            :returns:
-
-                The type info for ``TType``.
-
-        .. dn:method::  AddOrUpdateTypeFactory<TType>(TypeDeserializerFactory factory): void
-
-            Adds or updates a custom type factory. 
-
-            :param TypeDeserializerFactory factory:
-                The factory for ``TType``.
-
-            :param TType:
-                The type of which the factory will build.
-
-            :returns:
-
-                The type info for ``TType``.
-
-        .. dn:method::  TryRemoveTypeFactory<TType>(ref TypeDeserializerFactory& factory): bool
-
-            Attempts to remove a type factory. 
-
-            :param TType:
-                The type of which to remove the factory.
-
-            :returns:
-
-                if the type factory was removed; otherwise ``true``. ``false``
-
-    .. dn:class:: TypeDeserializerFactory
-
-        A method that will create a object from a :dn:struct:`EdgeDB.ObjectEnumerator`. 
-
-        The enumerator containing the property values.
-
-        :returns:
-
-            An instance of an object that represents the data read from the :dn:struct:`EdgeDB.ObjectEnumerator`. 
-
-
-    .. dn:interface:: IEdgeDBQueryable
-
-        Represents a object that can be used to query a EdgeDB instance. 
-
-
-        .. dn:method::  ExecuteAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task
-
-            Executes a given query without reading the returning result. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Any arguments that are part of the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous execute operation. 
-
-        .. dn:method::  QueryAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<IReadOnlyCollection<object>>
-
-            Executes a given query and returns the result as a collection. 
-
-            .. note::
-
-                Cardinality isn't enforced nor takes effect on the return result, the client will always construct a collection out of the data. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Any arguments that are part of the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The result of the task is the result of the query. 
-
-        .. dn:method::  QueryAsync<TResult>(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<IReadOnlyCollection<TResult>>
-
-            Executes a given query and returns the result as a collection. 
-
-            .. note::
-
-                Cardinality isn't enforced nor takes effect on the return result, the client will always construct a collection out of the data. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Any arguments that are part of the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :param TResult:
-                The type of the return result of the query.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The result of the task is the result of the query. 
-
-        .. dn:method::  QuerySingleAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<object>
-
-            Executes a given query and returns a single result or ``null``. 
-
-            .. note::
-
-                This method enforces ``EdgeDB.Cardinality.AtMostOne``, if your query returns more than one result a :dn:class:`EdgeDB.EdgeDBException` will be thrown. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Any arguments that are part of the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The result of the task is the result of the query. 
-
-        .. dn:method::  QuerySingleAsync<TResult>(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<TResult>
-
-            Executes a given query and returns a single result or ``null``. 
-
-            .. note::
-
-                This method enforces ``EdgeDB.Cardinality.AtMostOne``, if your query returns more than one result a :dn:class:`EdgeDB.EdgeDBException` will be thrown. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Any arguments that are part of the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :param TResult:
-                The return type of the query.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The result of the task is the result of the query. 
-
-        .. dn:method::  QueryRequiredSingleAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<object>
-
-            Executes a given query and returns a single result. 
-
-            .. note::
-
-                This method enforces ``EdgeDB.Cardinality.One``, if your query returns zero or more than one result a :dn:class:`EdgeDB.EdgeDBException` will be thrown. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Any arguments that are part of the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The result of the task is the result of the query. 
-
-        .. dn:method::  QueryRequiredSingleAsync<TResult>(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<TResult>
-
-            Executes a given query and returns a single result. 
-
-            .. note::
-
-                This method enforces ``EdgeDB.Cardinality.One``, if your query returns zero or more than one result a :dn:class:`EdgeDB.EdgeDBException` will be thrown. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Any arguments that are part of the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :param TResult:
-                The return type of the query.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The result of the task is the result of the query. 
-
-        .. dn:method::  QueryJsonAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<Json>
-
-            Executes a given query and returns the result as a single json string. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Optional collection of arguments within the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The tasks result is the json result of the query. 
-
-            :throws EdgeDB.ResultCardinalityMismatchException:
-                The query returned more than 1 datapoint.
-
-        .. dn:method::  QueryJsonElementsAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<IReadOnlyCollection<Json>>
-
-            Executes a given query and returns the result as a read-only collection of json objects. 
-
-            :param string query:
-                The query to execute.
-
-            :param IDictionary<string, object> args:
-                Optional collection of arguments within the query.
-
-            :param Nullable<Capabilities> capabilities:
-                The allowed capabilities for the query.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A task representing the asynchronous query operation. The tasks result is the json result of the query. 
-
-    .. dn:interface:: ITransactibleClient
-
-        Represents a client that supports transactions. 
-
-
-        :property TransactionState TransactionState:
-            Gets the transaction state of the client. 
-
-
-        .. dn:method::  StartTransactionAsync(Isolation isolation, bool readOnly, bool deferrable, CancellationToken token): Task
-
-            Starts a transaction. 
-
-            :param Isolation isolation:
-                The isolation mode of the transaction.
-
-            :param bool readOnly:
-                Whether or not the transaction is in read-only mode.
-
-            :param bool deferrable:
-                Whether or not the trasaction is deferrable.
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A Task that represents the asynchronous operation of starting a transaction. 
-
-        .. dn:method::  CommitAsync(CancellationToken token): Task
-
-            Commits the transaction to the database. 
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A Task that represents the asynchronous operation of commiting a transaction. 
-
-        .. dn:method::  RollbackAsync(CancellationToken token): Task
-
-            Rolls back all commands preformed within the transaction. 
-
-            :param CancellationToken token:
-                A cancellation token used to cancel the asynchronous operation.
-
-            :returns:
-
-                A Task that represents the asynchronous operation of rolling back a transaction. 
 
     .. dn:class:: EdgeDBClient
 
@@ -676,7 +270,7 @@ API Documentation
 
                 A new client with the specified config. 
 
-        .. dn:method::  WithGlobals(Dictionary<string,object> globals): EdgeDBClient
+        .. dn:method::  WithGlobals(IDictionary<string,object> globals): EdgeDBClient
 
             Creates a new client with the specified `Globals <https://www.edgedb.com/docs/datamodel/globals#globals>`_. 
 
@@ -685,7 +279,7 @@ API Documentation
                 The created client is a 'sub' client of this one, the child client shares the same client pool as this one.
                 The newly created client doesn't copy any of the parents globals, this method is settative to the ``EdgeDB.EdgeDBClient.Globals`` property. 
 
-            :param Dictionary<string, object> globals:
+            :param IDictionary<string, object> globals:
                 The globals for the newly create client.
 
             :returns:
@@ -707,7 +301,7 @@ API Documentation
 
                 A new client with the specified module. 
 
-        .. dn:method::  WithAliases(Dictionary<string,string> aliases): EdgeDBClient
+        .. dn:method::  WithAliases(IDictionary<string,string> aliases): EdgeDBClient
 
             Creates a new client with the specified ``EdgeDB.EdgeDBClient.Aliases``. 
 
@@ -716,12 +310,128 @@ API Documentation
                 The created client is a 'sub' client of this one, the child client shares the same client pool as this one.
                 The newly created client doesn't copy any of the parents aliases, this method is settative to the ``EdgeDB.EdgeDBClient.Aliases`` property. 
 
-            :param Dictionary<string, string> aliases:
+            :param IDictionary<string, string> aliases:
                 The module aliases for the new client.
 
             :returns:
 
                 A new client with the specified module aliases. 
+
+    .. dn:class:: EdgeDBClientExtensions
+
+        A class containing extension methods for edgedb clients. 
+
+
+        .. dn:method::  TransactionAsync(this ITransactibleClient client, Func<Transaction,Task> func): Task
+
+            Creates a transaction and executes a callback with the transaction object. 
+
+            :param ITransactibleClient client:
+                The TCP client to preform the transaction with.
+
+            :param Func<Transaction, Task> func:
+                The callback to pass the transaction into.
+
+            :returns:
+
+                A task that proxies the passed in callbacks awaiter.
+
+        .. dn:method::  TransactionAsync<TResult>(this ITransactibleClient client, Func<Transaction,Task<TResult>> func): Task<TResult>
+
+            Creates a transaction and executes a callback with the transaction object. 
+
+            :param ITransactibleClient client:
+                The TCP client to preform the transaction with.
+
+            :param Func<Transaction, Task<TResult>> func:
+                The callback to pass the transaction into.
+
+            :param TResult:
+                The return result of the task.
+
+            :returns:
+
+                A task that proxies the passed in callbacks awaiter.
+
+        .. dn:method::  TransactionAsync(this ITransactibleClient client, TransactionSettings settings, Func<Transaction,Task> func): Task
+
+            Creates a transaction and executes a callback with the transaction object. 
+
+            :param ITransactibleClient client:
+                The TCP client to preform the transaction with.
+
+            :param TransactionSettings settings:
+                The transactions settings.
+
+            :param Func<Transaction, Task> func:
+                The callback to pass the transaction into.
+
+            :returns:
+
+                A task that proxies the passed in callbacks awaiter.
+
+        .. dn:method::  TransactionAsync<TResult>(this ITransactibleClient client, TransactionSettings settings, Func<Transaction,Task<TResult>> func): Task<TResult>
+
+            Creates a transaction and executes a callback with the transaction object. 
+
+            :param ITransactibleClient client:
+                The TCP client to preform the transaction with.
+
+            :param TransactionSettings settings:
+                The transactions settings.
+
+            :param Func<Transaction, Task<TResult>> func:
+                The callback to pass the transaction into.
+
+            :param TResult:
+                The return result of the task.
+
+            :returns:
+
+                A task that proxies the passed in callbacks awaiter.
+
+        .. dn:method::  DumpDatabaseAsync(this EdgeDBClient pool, CancellationToken token): Task<Stream>
+
+            Dumps the current database to a stream. 
+
+            :param EdgeDBClient pool:
+                The client to preform the dump with.
+
+            :param CancellationToken token:
+                A token to cancel the operation with.
+
+            :returns:
+
+                A stream containing the entire dumped database.
+
+            :throws EdgeDB.EdgeDBErrorException:
+                The server sent an error message during the dumping process.
+
+            :throws EdgeDB.EdgeDBException:
+                The server sent a mismatched packet.
+
+        .. dn:method::  RestoreDatabaseAsync(this EdgeDBClient pool, Stream stream, CancellationToken token): Task<string>
+
+            Restores the database based on a database dump stream. 
+
+            :param EdgeDBClient pool:
+                The TCP client to preform the restore with.
+
+            :param Stream stream:
+                The stream containing the database dump.
+
+            :param CancellationToken token:
+                A token to cancel the operation with.
+
+            :returns:
+
+                The status result of the restore.
+
+            :throws EdgeDB.EdgeDBException:
+                The server sent an invalid packet or the restore operation couldn't proceed due to the database not being empty. 
+
+            :throws EdgeDB.EdgeDBErrorException:
+                The server sent an error during the restore operation.
 
     .. dn:class:: EdgeDBClientPoolConfig
 
@@ -734,7 +444,7 @@ API Documentation
 
     .. dn:class:: EdgeDBConfig
 
-        Represents the configuration options for a :dn:class:`EdgeDB.EdgeDBClient` or :dn:class:`EdgeDB.EdgeDBTcpClient`
+        Represents the configuration options for a :dn:class:`EdgeDB.EdgeDBClient` or ``T:EdgeDB.EdgeDBTcpClient``
 
 
         :property ILogger Logger:
@@ -931,121 +641,10 @@ API Documentation
 
         .. dn:method::  ToString(): string
 
-    .. dn:class:: EdgeDBClientExtensions
+    .. dn:class:: EdgeDBDeserializerAttribute
 
-        A class containing extension methods for edgedb clients. 
+        Marks the current method as the method to use to deserialize the current type. 
 
-
-        .. dn:method::  TransactionAsync(this ITransactibleClient client, Func<Transaction,Task> func): Task
-
-            Creates a transaction and executes a callback with the transaction object. 
-
-            :param ITransactibleClient client:
-                The TCP client to preform the transaction with.
-
-            :param Func<Transaction, Task> func:
-                The callback to pass the transaction into.
-
-            :returns:
-
-                A task that proxies the passed in callbacks awaiter.
-
-        .. dn:method::  TransactionAsync<TResult>(this ITransactibleClient client, Func<Transaction,Task<TResult>> func): Task<TResult>
-
-            Creates a transaction and executes a callback with the transaction object. 
-
-            :param ITransactibleClient client:
-                The TCP client to preform the transaction with.
-
-            :param Func<Transaction, Task<TResult>> func:
-                The callback to pass the transaction into.
-
-            :param TResult:
-                The return result of the task.
-
-            :returns:
-
-                A task that proxies the passed in callbacks awaiter.
-
-        .. dn:method::  TransactionAsync(this ITransactibleClient client, TransactionSettings settings, Func<Transaction,Task> func): Task
-
-            Creates a transaction and executes a callback with the transaction object. 
-
-            :param ITransactibleClient client:
-                The TCP client to preform the transaction with.
-
-            :param TransactionSettings settings:
-                The transactions settings.
-
-            :param Func<Transaction, Task> func:
-                The callback to pass the transaction into.
-
-            :returns:
-
-                A task that proxies the passed in callbacks awaiter.
-
-        .. dn:method::  TransactionAsync<TResult>(this ITransactibleClient client, TransactionSettings settings, Func<Transaction,Task<TResult>> func): Task<TResult>
-
-            Creates a transaction and executes a callback with the transaction object. 
-
-            :param ITransactibleClient client:
-                The TCP client to preform the transaction with.
-
-            :param TransactionSettings settings:
-                The transactions settings.
-
-            :param Func<Transaction, Task<TResult>> func:
-                The callback to pass the transaction into.
-
-            :param TResult:
-                The return result of the task.
-
-            :returns:
-
-                A task that proxies the passed in callbacks awaiter.
-
-        .. dn:method::  DumpDatabaseAsync(this EdgeDBClient pool, CancellationToken token): Task<Stream>
-
-            Dumps the current database to a stream. 
-
-            :param EdgeDBClient pool:
-                The client to preform the dump with.
-
-            :param CancellationToken token:
-                A token to cancel the operation with.
-
-            :returns:
-
-                A stream containing the entire dumped database.
-
-            :throws EdgeDB.EdgeDBErrorException:
-                The server sent an error message during the dumping process.
-
-            :throws EdgeDB.EdgeDBException:
-                The server sent a mismatched packet.
-
-        .. dn:method::  RestoreDatabaseAsync(this EdgeDBClient pool, Stream stream, CancellationToken token): Task<string>
-
-            Restores the database based on a database dump stream. 
-
-            :param EdgeDBClient pool:
-                The TCP client to preform the restore with.
-
-            :param Stream stream:
-                The stream containing the database dump.
-
-            :param CancellationToken token:
-                A token to cancel the operation with.
-
-            :returns:
-
-                The status result of the restore.
-
-            :throws EdgeDB.EdgeDBException:
-                The server sent an invalid packet or the restore operation couldn't proceed due to the database not being empty. 
-
-            :throws EdgeDB.EdgeDBErrorException:
-                The server sent an error during the restore operation.
 
     .. dn:class:: EdgeDBHostingExtensions
 
@@ -1069,20 +668,69 @@ API Documentation
 
                 The source ``Microsoft.Extensions.DependencyInjection.IServiceCollection`` with :dn:class:`EdgeDB.EdgeDBClient` added as a singleton. 
 
-    .. dn:enum:: Capabilities
+    .. dn:class:: EdgeDBIgnoreAttribute
 
-        Represents a bitfield of capabilities used when executing queries. 
-
-
-    .. dn:enum:: Cardinality
-
-        A enum containing the cardinality specification of a command. 
+        Marks the current target to be ignored when deserializing or building queries. 
 
 
-    .. dn:enum:: ConnectionRetryMode
+    .. dn:class:: EdgeDBPropertyAttribute
 
-        An enum representing the retry mode when connecting new clients. 
+        Marks the current field or property as a valid target for serializing/deserializing. 
 
+
+        .. dn:method:: EdgeDBPropertyAttribute(string propertyName): EdgeDBPropertyAttribute
+
+            Marks this member to be used when serializing/deserializing. 
+
+            :param string propertyName:
+                The name of the member in the edgedb schema.
+
+    .. dn:class:: EdgeDBTypeAttribute
+
+        Marks this class or struct as a valid type to use when serializing/deserializing. 
+
+
+        .. dn:method:: EdgeDBTypeAttribute(string name): EdgeDBTypeAttribute
+
+            Marks this as a valid target to use when serializing/deserializing. 
+
+            :param string name:
+                The name of the type in the edgedb schema.
+
+        .. dn:method:: EdgeDBTypeAttribute(): EdgeDBTypeAttribute
+
+            Marks this as a valid target to use when serializing/deserializing. 
+
+    .. dn:class:: EdgeDBTypeConverterAttribute
+
+        Marks the current property to be deserialized/serialized with a specific :dn:class:`EdgeDB.TypeConverters.EdgeDBTypeConverter<TSource, TTarget>`. 
+
+
+        .. dn:method:: EdgeDBTypeConverterAttribute(Type converterType): EdgeDBTypeConverterAttribute
+
+            Initializes the :dn:class:`EdgeDB.EdgeDBTypeConverterAttribute` with the specified :dn:class:`EdgeDB.TypeConverters.EdgeDBTypeConverter<TSource, TTarget>`. 
+
+            :param Type converterType:
+                The type of the converter.
+
+            :throws System.ArgumentException:
+                is not a valid ``EdgeDB.DocGenerator.docMemberSummaryParamref``. :dn:class:`EdgeDB.TypeConverters.EdgeDBTypeConverter<TSource, TTarget>`
+
+    .. dn:enum:: ErrorSeverity
+
+        An enum representing the error severity of a ``T:EdgeDB.Binary.Packets.ErrorResponse``. 
+
+
+    .. dn:struct:: ExecuteResult
+
+        Represents a generic execution result of a command. 
+
+
+        :property bool IsSuccess:
+
+        :property Exception Exception:
+
+        :property string ExecutedQuery:
 
     .. dn:class:: Group<TKey, TElement>
 
@@ -1122,21 +770,239 @@ API Documentation
 
         .. dn:method::  GetEnumerator(): IEnumerator<TElement>
 
-    .. dn:enum:: ErrorSeverity
+    .. dn:interface:: IEdgeDBQueryable
 
-        An enum representing the error severity of a :dn:struct:`EdgeDB.Binary.Packets.ErrorResponse`. 
-
-
-    .. dn:struct:: ExecuteResult
-
-        Represents a generic execution result of a command. 
+        Represents a object that can be used to query a EdgeDB instance. 
 
 
-        :property bool IsSuccess:
+        .. dn:method::  ExecuteAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task
 
-        :property Exception Exception:
+            Executes a given query without reading the returning result. 
 
-        :property string ExecutedQuery:
+            :param string query:
+                The query to execute.
+
+            :param IDictionary<string, object> args:
+                Any arguments that are part of the query.
+
+            :param Nullable<Capabilities> capabilities:
+                The allowed capabilities for the query.
+
+            :param CancellationToken token:
+                A cancellation token used to cancel the asynchronous operation.
+
+            :returns:
+
+                A task representing the asynchronous execute operation. 
+
+        .. dn:method::  QueryAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<IReadOnlyCollection<object>>
+
+            Executes a given query and returns the result as a collection. 
+
+            .. note::
+
+                Cardinality isn't enforced nor takes effect on the return result, the client will always construct a collection out of the data. 
+
+            :param string query:
+                The query to execute.
+
+            :param IDictionary<string, object> args:
+                Any arguments that are part of the query.
+
+            :param Nullable<Capabilities> capabilities:
+                The allowed capabilities for the query.
+
+            :param CancellationToken token:
+                A cancellation token used to cancel the asynchronous operation.
+
+            :returns:
+
+                A task representing the asynchronous query operation. The result of the task is the result of the query. 
+
+        .. dn:method::  QueryAsync<TResult>(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<IReadOnlyCollection<TResult>>
+
+            Executes a given query and returns the result as a collection. 
+
+            .. note::
+
+                Cardinality isn't enforced nor takes effect on the return result, the client will always construct a collection out of the data. 
+
+            :param string query:
+                The query to execute.
+
+            :param IDictionary<string, object> args:
+                Any arguments that are part of the query.
+
+            :param Nullable<Capabilities> capabilities:
+                The allowed capabilities for the query.
+
+            :param CancellationToken token:
+                A cancellation token used to cancel the asynchronous operation.
+
+            :param TResult:
+                The type of the return result of the query.
+
+            :returns:
+
+                A task representing the asynchronous query operation. The result of the task is the result of the query. 
+
+        .. dn:method::  QuerySingleAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<object>
+
+            Executes a given query and returns a single result or ``null``. 
+
+            .. note::
+
+                This method enforces ``EdgeDB.Cardinality.AtMostOne``, if your query returns more than one result a :dn:class:`EdgeDB.EdgeDBException` will be thrown. 
+
+            :param string query:
+                The query to execute.
+
+            :param IDictionary<string, object> args:
+                Any arguments that are part of the query.
+
+            :param Nullable<Capabilities> capabilities:
+                The allowed capabilities for the query.
+
+            :param CancellationToken token:
+                A cancellation token used to cancel the asynchronous operation.
+
+            :returns:
+
+                A task representing the asynchronous query operation. The result of the task is the result of the query. 
+
+        .. dn:method::  QuerySingleAsync<TResult>(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<TResult>
+
+            Executes a given query and returns a single result or ``null``. 
+
+            .. note::
+
+                This method enforces ``EdgeDB.Cardinality.AtMostOne``, if your query returns more than one result a :dn:class:`EdgeDB.EdgeDBException` will be thrown. 
+
+            :param string query:
+                The query to execute.
+
+            :param IDictionary<string, object> args:
+                Any arguments that are part of the query.
+
+            :param Nullable<Capabilities> capabilities:
+                The allowed capabilities for the query.
+
+            :param CancellationToken token:
+                A cancellation token used to cancel the asynchronous operation.
+
+            :param TResult:
+                The return type of the query.
+
+            :returns:
+
+                A task representing the asynchronous query operation. The result of the task is the result of the query. 
+
+        .. dn:method::  QueryRequiredSingleAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<object>
+
+            Executes a given query and returns a single result. 
+
+            .. note::
+
+                This method enforces ``EdgeDB.Cardinality.One``, if your query returns zero or more than one result a :dn:class:`EdgeDB.EdgeDBException` will be thrown. 
+
+            :param string query:
+                The query to execute.
+
+            :param IDictionary<string, object> args:
+                Any arguments that are part of the query.
+
+            :param Nullable<Capabilities> capabilities:
+                The allowed capabilities for the query.
+
+            :param CancellationToken token:
+                A cancellation token used to cancel the asynchronous operation.
+
+            :returns:
+
+                A task representing the asynchronous query operation. The result of the task is the result of the query. 
+
+        .. dn:method::  QueryRequiredSingleAsync<TResult>(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<TResult>
+
+            Executes a given query and returns a single result. 
+
+            .. note::
+
+                This method enforces ``EdgeDB.Cardinality.One``, if your query returns zero or more than one result a :dn:class:`EdgeDB.EdgeDBException` will be thrown. 
+
+            :param string query:
+                The query to execute.
+
+            :param IDictionary<string, object> args:
+                Any arguments that are part of the query.
+
+            :param Nullable<Capabilities> capabilities:
+                The allowed capabilities for the query.
+
+            :param CancellationToken token:
+                A cancellation token used to cancel the asynchronous operation.
+
+            :param TResult:
+                The return type of the query.
+
+            :returns:
+
+                A task representing the asynchronous query operation. The result of the task is the result of the query. 
+
+        .. dn:method::  QueryJsonAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<Json>
+
+            Executes a given query and returns the result as a single json string. 
+
+            :param string query:
+                The query to execute.
+
+            :param IDictionary<string, object> args:
+                Optional collection of arguments within the query.
+
+            :param Nullable<Capabilities> capabilities:
+                The allowed capabilities for the query.
+
+            :param CancellationToken token:
+                A cancellation token used to cancel the asynchronous operation.
+
+            :returns:
+
+                A task representing the asynchronous query operation. The tasks result is the json result of the query. 
+
+            :throws EdgeDB.ResultCardinalityMismatchException:
+                The query returned more than 1 datapoint.
+
+        .. dn:method::  QueryJsonElementsAsync(string query, IDictionary<string,object> args, Capabilities? capabilities, CancellationToken token): Task<IReadOnlyCollection<Json>>
+
+            Executes a given query and returns the result as a read-only collection of json objects. 
+
+            :param string query:
+                The query to execute.
+
+            :param IDictionary<string, object> args:
+                Optional collection of arguments within the query.
+
+            :param Nullable<Capabilities> capabilities:
+                The allowed capabilities for the query.
+
+            :param CancellationToken token:
+                A cancellation token used to cancel the asynchronous operation.
+
+            :returns:
+
+                A task representing the asynchronous query operation. The tasks result is the json result of the query. 
+
+    .. dn:interface:: IExecuteError
+
+        Represents a generic execution error. 
+
+
+        :property string Message:
+            Gets the error message. 
+
+
+        :property ServerErrorCodes ErrorCode:
+            Gets the error code. 
+
 
     .. dn:interface:: IExecuteResult
 
@@ -1157,44 +1023,6 @@ API Documentation
 
         :property string ExecutedQuery:
             Gets the executed query string. 
-
-
-    .. dn:interface:: IExecuteError
-
-        Represents a generic execution error. 
-
-
-        :property string Message:
-            Gets the error message. 
-
-
-        :property ServerErrorCodes ErrorCode:
-            Gets the error code. 
-
-
-    .. dn:enum:: IOFormat
-
-        An enum representing the format of a commands result. 
-
-
-    .. dn:enum:: Isolation
-
-        An enum representing the transaction mode within a :dn:class:`EdgeDB.Transaction`. 
-
-
-    .. dn:enum:: ServerErrorCodes
-
-        Represents the different error codes sent by the server defined 
-
-
-    .. dn:enum:: TLSSecurityMode
-
-        Represents the TLS security mode the client will follow. 
-
-
-    .. dn:enum:: TransactionState
-
-        Represents the transaction state of the client. 
 
 
     .. dn:interface:: INamingStrategy
@@ -1247,6 +1075,196 @@ API Documentation
             :returns:
 
                 The name defined in the schema.
+
+    .. dn:enum:: IOFormat
+
+        An enum representing the format of a commands result. 
+
+
+    .. dn:enum:: Isolation
+
+        An enum representing the transaction mode within a :dn:class:`EdgeDB.Transaction`. 
+
+
+    .. dn:interface:: ITransactibleClient
+
+        Represents a client that supports transactions. 
+
+
+        :property TransactionState TransactionState:
+            Gets the transaction state of the client. 
+
+
+        .. dn:method::  StartTransactionAsync(Isolation isolation, bool readOnly, bool deferrable, CancellationToken token): Task
+
+            Starts a transaction. 
+
+            :param Isolation isolation:
+                The isolation mode of the transaction.
+
+            :param bool readOnly:
+                Whether or not the transaction is in read-only mode.
+
+            :param bool deferrable:
+                Whether or not the trasaction is deferrable.
+
+            :param CancellationToken token:
+                A cancellation token used to cancel the asynchronous operation.
+
+            :returns:
+
+                A Task that represents the asynchronous operation of starting a transaction. 
+
+        .. dn:method::  CommitAsync(CancellationToken token): Task
+
+            Commits the transaction to the database. 
+
+            :param CancellationToken token:
+                A cancellation token used to cancel the asynchronous operation.
+
+            :returns:
+
+                A Task that represents the asynchronous operation of commiting a transaction. 
+
+        .. dn:method::  RollbackAsync(CancellationToken token): Task
+
+            Rolls back all commands preformed within the transaction. 
+
+            :param CancellationToken token:
+                A cancellation token used to cancel the asynchronous operation.
+
+            :returns:
+
+                A Task that represents the asynchronous operation of rolling back a transaction. 
+
+    .. dn:struct:: ObjectEnumerator
+
+        Represents an enumerator for creating objects. 
+
+
+        .. dn:method::  ToDynamic(): object
+
+            Converts this :dn:struct:`EdgeDB.ObjectEnumerator` to a ``dynamic`` object. 
+
+            :returns:
+
+                A ``dynamic`` object.
+
+        .. dn:method::  Next(ref String& name, ref Object& value): bool
+
+            Reads the next property within this enumerator. 
+
+            :param String& name:
+                The name of the property.
+
+            :param Object& value:
+                The value of the property.
+
+            :returns:
+
+                if a property was read successfully; otherwise ``true``. ``false``
+
+    .. dn:class:: Optional
+
+        Represents an optional value. 
+
+
+        .. dn:method::  Create<T>(): Optional<T>
+
+            Creates an unspecified optional value. 
+
+            :param T:
+                The inner type of the optional.
+
+            :returns:
+
+                A :dn:struct:`EdgeDB.Optional<T>` with no value specified.
+
+        .. dn:method::  Create<T>(T value): Optional<T>
+
+            Creates an optional value. 
+
+            :param T value:
+                The value of the :dn:struct:`EdgeDB.Optional<T>`.
+
+            :param T:
+                The inner type of the optional.
+
+        .. dn:method::  ToNullable<T>(this Optional<T> val): T?
+
+            Converts the :dn:struct:`EdgeDB.Optional<T>` to a ``System.Nullable`1``. 
+
+            :param Optional<T> val:
+                The optional to convert.
+
+            :param T:
+                The inner type of the optional.
+
+            :returns:
+
+                A nullable version of the optional.
+
+    .. dn:struct:: Optional<T>
+
+        Represents an optional value type. 
+
+        :param T:
+            The type of the optional value.
+
+
+        :property Optional<T> Unspecified:
+            Gets the unspecified value for ``T``. 
+
+
+        :property T Value:
+            Gets the value for this parameter. 
+
+            :throws System.InvalidOperationException:
+                This property has no value set.
+
+
+        :property bool IsSpecified:
+            Returns true if this value has been specified. 
+
+
+        .. dn:method:: Optional<T>(T value): Optional<T>
+
+            Creates a new Parameter with the provided value. 
+
+        .. dn:method::  GetValueOrDefault(): T
+
+            Gets the value or ``default``{``T``}. 
+
+            :returns:
+
+                The value or ``default``{``T``}.
+
+        .. dn:method::  GetValueOrDefault(T defaultValue): T
+
+            Gets the value or the provided ``EdgeDB.DocGenerator.docMemberSummaryParamref``. 
+
+            :param T defaultValue:
+                The default value of ``T`` to return if the current :dn:class:`EdgeDB.Optional` does not have a value. 
+
+            :returns:
+
+                The ``EdgeDB.Optional`1.Value``; or ``EdgeDB.DocGenerator.docMemberSummaryParamref``.
+
+        .. dn:method::  Equals(object other): bool
+
+        .. dn:method::  GetHashCode(): int
+
+        .. dn:method::  ToString(): string
+
+    .. dn:enum:: ServerErrorCodes
+
+        Represents the different error codes sent by the server defined 
+
+
+    .. dn:enum:: TLSSecurityMode
+
+        Represents the TLS security mode the client will follow. 
+
 
     .. dn:class:: Transaction
 
@@ -1349,97 +1367,77 @@ API Documentation
 
                 A task representing the asynchronous query operation. The result of the task is the result of the query. 
 
-    .. dn:struct:: Optional<T>
+    .. dn:enum:: TransactionState
 
-        Represents an optional value type. 
-
-        :param T:
-            The type of the optional value.
+        Represents the transaction state of the client. 
 
 
-        :property Optional<T> Unspecified:
-            Gets the unspecified value for ``T``. 
+    .. dn:class:: TypeBuilder
+
+        Represents the class used to build types from edgedb query results. 
 
 
-        :property T Value:
-            Gets the value for this parameter. 
+        :property INamingStrategy SchemaNamingStrategy:
+            Gets or sets the naming strategy used for deserialization of edgeql property names to dotnet property names. 
 
-            :throws System.InvalidOperationException:
-                This property has no value set.
+            .. note::
+
+                All dotnet types passed to the type builder will have their properties converted to the edgeql version using this naming strategy, the naming convention of the dotnet type will be preserved. 
+
+            .. note::
+
+                If the naming strategy doesn't find a match, the ``EdgeDB.TypeBuilder.AttributeNamingStrategy`` will be used. 
 
 
-        :property bool IsSpecified:
-            Returns true if this value has been specified. 
+        .. dn:method::  AddOrUpdateTypeBuilder<TType>(Action<TType,IDictionary<string,object>> builder): void
 
+            Adds or updates a custom type builder. 
 
-        .. dn:method:: Optional<T>(T value): Optional<T>
+            :param Action<TType, IDictionary<string, object>> builder:
+                The builder for ``TType``.
 
-            Creates a new Parameter with the provided value. 
-
-        .. dn:method::  GetValueOrDefault(): T
-
-            Gets the value or ``default``{``T``}. 
-
-            :returns:
-
-                The value or ``default``{``T``}.
-
-        .. dn:method::  GetValueOrDefault(T defaultValue): T
-
-            Gets the value or the provided ``EdgeDB.DocGenerator.docMemberSummaryParamref``. 
-
-            :param T defaultValue:
-                The default value of ``T`` to return if the current :dn:class:`EdgeDB.Optional` does not have a value. 
+            :param TType:
+                The type of which the builder will build.
 
             :returns:
 
-                The ``EdgeDB.Optional`1.Value``; or ``EdgeDB.DocGenerator.docMemberSummaryParamref``.
+                The type info for ``TType``.
 
-        .. dn:method::  Equals(object other): bool
+        .. dn:method::  AddOrUpdateTypeFactory<TType>(TypeDeserializerFactory factory): void
 
-        .. dn:method::  GetHashCode(): int
+            Adds or updates a custom type factory. 
 
-        .. dn:method::  ToString(): string
+            :param TypeDeserializerFactory factory:
+                The factory for ``TType``.
 
-    .. dn:class:: Optional
-
-        Represents an optional value. 
-
-
-        .. dn:method::  Create<T>(): Optional<T>
-
-            Creates an unspecified optional value. 
-
-            :param T:
-                The inner type of the optional.
+            :param TType:
+                The type of which the factory will build.
 
             :returns:
 
-                A :dn:struct:`EdgeDB.Optional<T>` with no value specified.
+                The type info for ``TType``.
 
-        .. dn:method::  Create<T>(T value): Optional<T>
+        .. dn:method::  TryRemoveTypeFactory<TType>(ref TypeDeserializerFactory& factory): bool
 
-            Creates an optional value. 
+            Attempts to remove a type factory. 
 
-            :param T value:
-                The value of the :dn:struct:`EdgeDB.Optional<T>`.
-
-            :param T:
-                The inner type of the optional.
-
-        .. dn:method::  ToNullable<T>(this Optional<T> val): T?
-
-            Converts the :dn:struct:`EdgeDB.Optional<T>` to a ``System.Nullable`1``. 
-
-            :param Optional<T> val:
-                The optional to convert.
-
-            :param T:
-                The inner type of the optional.
+            :param TType:
+                The type of which to remove the factory.
 
             :returns:
 
-                A nullable version of the optional.
+                if the type factory was removed; otherwise ``true``. ``false``
+
+    .. dn:class:: TypeDeserializerFactory
+
+        A method that will create a object from a :dn:struct:`EdgeDB.ObjectEnumerator`. 
+
+        The enumerator containing the property values.
+
+        :returns:
+
+            An instance of an object that represents the data read from the :dn:struct:`EdgeDB.ObjectEnumerator`. 
+
 
 .. dn:namespace:: EdgeDB.Binary
 
@@ -1481,11 +1479,6 @@ API Documentation
                 An instance of ``TTarget``; or ``default``.
 
 .. dn:namespace:: EdgeDB.State
-
-    .. dn:enum:: DDLPolicy
-
-        Represents a DDL policy. 
-
 
     .. dn:class:: Config
 
@@ -1539,6 +1532,11 @@ API Documentation
 
         :property Optional<bool> ApplyAccessPolicies:
             Gets or sets whether or not to apply the access policy. 
+
+
+    .. dn:enum:: DDLPolicy
+
+        Represents a DDL policy. 
 
 
 .. dn:namespace:: EdgeDB.DataTypes
