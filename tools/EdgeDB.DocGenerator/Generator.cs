@@ -63,7 +63,7 @@ namespace EdgeDB.DocGenerator
             builder.AppendLine("**Namespaces**");
             builder.AppendLine();
             
-            foreach (var ns in namespaces)
+            foreach (var ns in namespaces.Where(x => x.Any(y => y.DotnetType!.IsPublic)))
             {
                 builder.AppendLine($"- :dn:namespace:`{ns.Key}`");
             }
@@ -75,7 +75,7 @@ namespace EdgeDB.DocGenerator
                 using (_ = builder.BeginScope($".. dn:namespace:: {namespc.Key}"))
                 {
                     builder.AppendLine();
-                    foreach(var member in namespc)
+                    foreach(var member in namespc.OrderBy(x => x.Name))
                     {
                         GenerateTypeSection(member, builder, false);
                     }
@@ -92,7 +92,10 @@ namespace EdgeDB.DocGenerator
             if (type.DotnetType is null)
                 throw new NullReferenceException();
 
-            var tname = GetTypeName(type.DotnetType!).ToLower();
+            if (!type.DotnetType.IsPublic)
+                return string.Empty;
+
+            var tname = GetDirectivePrefix(type.DotnetType!);
 
             var typeDefName = includeNamespace
                 ? $"{(type.DotnetType is not null ? $"{type.DotnetType?.Namespace}." : "")}{type.Name}"
@@ -307,17 +310,23 @@ namespace EdgeDB.DocGenerator
 
             var targetType = type switch
             {
-                MemberType.Type => "class",
                 MemberType.Method => "method",
+                _ when member is DocType t => GetDirectivePrefix(t.DotnetType!),
                 _ => null
             };
 
             if (member is null || targetType is null)
                 return $"``{nodeName}``";
-
+            
             // fix method sig
             if (nodeName.Contains("(") && member is DocMethod docMethod)
             {
+                if(!docMethod.Method?.IsPublic ?? false)
+                {
+                    Console.WriteLine($"Warning: cref {cref} references a non-public member");
+                    return $"``{cref}``";
+                }
+
                 var sig = docMethod.Method!.GetSignature();
 
                 if(!sig.Contains("()"))
@@ -334,6 +343,12 @@ namespace EdgeDB.DocGenerator
 
             if(member is DocType tp)
             {
+                if (!tp.DotnetType?.IsPublic ?? false)
+                {
+                    Console.WriteLine($"Warning: cref {cref} references a non-public member");
+                    return $"``{cref}``";
+                }
+                
                 nodeName = Regex.Replace(nodeName, @"`\d+", m =>
                 {
                     return $"<{string.Join(", ", tp.DotnetType!.GetGenericArguments().Select(x => x.Name))}>";
@@ -349,7 +364,10 @@ namespace EdgeDB.DocGenerator
 
             if (summary.Text is null)
                 return string.Empty;
-            
+
+            var items = new Stack<object>(summary.Items?.Reverse() ?? Array.Empty<object>());
+            var itemTypes = new Stack<ItemsChoiceType>(summary.ItemsElementName?.Reverse() ?? Array.Empty<ItemsChoiceType>());
+
             for(int i = 0; i != summary.Text.Length; i++)
             {
                 var text = summary.Text[i];
@@ -359,13 +377,16 @@ namespace EdgeDB.DocGenerator
                 if(text.StartsWith('\n') || i == 0)
                     text = text.TrimStart();
 
-                if (i != 0 && summary.Items is not null && summary.ItemsElementName is not null && summary.Items.Length >= i)
+                if (summary.Items is not null && summary.ItemsElementName is not null && summary.Items.Length >= i)
                 {
                     string? content = null;
 
                     // pull the item and parse it
-                    var itemType = summary.ItemsElementName[i - 1];
-                    var item = summary.Items[i - 1];
+                    if(!items.TryPop(out var item) || !itemTypes.TryPop(out var itemType))
+                    {
+                        compiledContent.Add(text);
+                        continue;
+                    }
                     
                     switch (itemType)
                     {
@@ -405,12 +426,13 @@ namespace EdgeDB.DocGenerator
                             break;
                     }
 
+                    compiledContent.Add(text);
+                    
                     if (content is not null)
                         compiledContent.Add(content);
                     else
                         Console.WriteLine($"Warning: no content generated for {itemType}:{item}");
-
-                    compiledContent.Add(text);
+                    
                 }
                 else
                     compiledContent.Add(text);
@@ -432,7 +454,7 @@ namespace EdgeDB.DocGenerator
                 else if (!last.EndsWith(' ') && Regex.IsMatch(cur, @"^\w"))
                     result += $" {cur}";
                 else if (cur[0] is ':' or '`' or '*')
-                    result += $"{(last.Last() == ' ' ? "" : " ")}{cur}";
+                    result += $"{(last.Last() is ' ' or '{' ? "" : " ")}{cur}";
                 else
                     result += cur;
             }
@@ -444,16 +466,18 @@ namespace EdgeDB.DocGenerator
         }
         
 
-        private string GetTypeName(Type type)
+        private string GetDirectivePrefix(Type type)
         {
             if (type.IsClass)
-                return "Class";
+                return "class";
             else if (type.IsInterface)
-                return "Interface";
+                return "interface";
+            else if (type.IsEnum)
+                return "enum";
             else if (type.IsValueType)
-                return "Struct";
+                return "struct";
 
-            return "Type";
+            return "type";
         }
     }
 }

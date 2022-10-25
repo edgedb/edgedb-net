@@ -236,6 +236,8 @@ namespace EdgeDB
                         ImplicitTypeIds = true,  // used for type builder
                     }, parseHandlerPredicate, alwaysReturnError: false, token: token).ConfigureAwait(false);
 
+                    result.ThrowIfErrrorResponse(query);
+
                     if (outCodecInfo is null)
                         throw new MissingCodecException("Couldn't find a valid output codec");
 
