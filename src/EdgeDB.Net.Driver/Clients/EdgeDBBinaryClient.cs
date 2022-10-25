@@ -178,6 +178,7 @@ namespace EdgeDB
             IsIdle = false;
             bool released = false;
             ExecuteResult? execResult = null;
+            ErrorResponse? error = null;
 
             try
             {
@@ -192,7 +193,8 @@ namespace EdgeDB
                         switch (packet)
                         {
                             case ErrorResponse err when err.ErrorCode is not ServerErrorCodes.StateMismatchError:
-                                throw new EdgeDBErrorException(err, query);
+                                error = err;
+                                break;
                             case CommandDataDescription descriptor:
                                 {
                                     outCodecInfo = new(descriptor.OutputTypeDescriptorId,
@@ -236,7 +238,8 @@ namespace EdgeDB
                         ImplicitTypeIds = true,  // used for type builder
                     }, parseHandlerPredicate, alwaysReturnError: false, token: token).ConfigureAwait(false);
 
-                    result.ThrowIfErrrorResponse(query);
+                    if (error.HasValue)
+                        throw new EdgeDBErrorException(error.Value, query);
 
                     if (outCodecInfo is null)
                         throw new MissingCodecException("Couldn't find a valid output codec");
@@ -258,7 +261,8 @@ namespace EdgeDB
                             receivedData.Add(data);
                             break;
                         case ErrorResponse err when err.ErrorCode is not ServerErrorCodes.ParameterTypeMismatchError:
-                            throw new EdgeDBErrorException(err, query);
+                            error = err;
+                            break;
                         case ReadyForCommand ready:
                             TransactionState = ready.TransactionState;
                             return true;
@@ -284,7 +288,8 @@ namespace EdgeDB
                     OutputTypeDescriptorId = outCodecInfo.Id,
                 }, handler, alwaysReturnError: false, token: linkedToken).ConfigureAwait(false);
 
-                executeResult.ThrowIfErrrorResponse(query);
+                if (error.HasValue)
+                    throw new EdgeDBErrorException(error.Value, query);
 
                 execResult = new ExecuteResult(true, null, query);
 
