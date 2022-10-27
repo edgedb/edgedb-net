@@ -21,7 +21,8 @@ to the clients constructor:
 
 .. tabs::
 
-  .. code-tab:: csharp#CSharp
+  .. code-tab:: csharp
+    :caption: C#
 
     var config = new EdgeDBClientPoolConfig()
     {
@@ -30,7 +31,8 @@ to the clients constructor:
 
     var client = new EdgeDBClient(config);
 
-  .. code-tab:: fsharp#FSharp
+  .. code-tab:: fsharp
+    :caption: F#
 
     let config = new EdgeDBClientPoolConfig()
     config.ConnectionTimeout <- 5000u
