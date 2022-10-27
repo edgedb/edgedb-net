@@ -10,6 +10,7 @@ using EdgeDB.TypeConverters;
 using EdgeDB.DataTypes;
 using System;
 using EdgeDB.Binary;
+using System.Diagnostics;
 
 namespace EdgeDB
 {
@@ -321,6 +322,36 @@ namespace EdgeDB
 
             if(_properties is null || _propertyIndexTable is null)
                 throw new NullReferenceException("Properties cannot be null");
+
+            // proxy type
+            var proxyAttr = _type.GetCustomAttribute<DebuggerTypeProxyAttribute>();
+            if (proxyAttr is not null)
+            {
+                var targetType = proxyAttr.Target;
+
+                // proxy should only have one constructor
+                var ctors = _type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance);
+
+                if (ctors.Length is > 1 or < 0)
+                    throw new InvalidOperationException($"Proxy type {_type} does not have a valid constructor");
+
+                var ctor = ctors[0];
+                var ctorParams = ctor.GetParameters();
+
+                if(ctorParams.Length is > 1 or < 0)
+                    throw new InvalidOperationException($"Proxy type {_type} does not have a valid constructor that takes one argument");
+
+                targetType ??= ctor.GetParameters()[0].ParameterType;
+
+                // return the proxied types factory
+                var proxiedFactory = TypeBuilder.GetDeserializationFactory(targetType);
+
+                return (ref ObjectEnumerator enumerator) =>
+                {
+                    var proxiedValue = proxiedFactory(ref enumerator);
+                    return ctor.Invoke(new[] { proxiedValue });
+                };
+            }
 
             // if type has custom method builder
             if (_type.TryGetCustomBuilder(out var methodInfo))
