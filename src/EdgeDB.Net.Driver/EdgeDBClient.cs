@@ -97,7 +97,6 @@ namespace EdgeDB
         private int _poolSize;
         private ulong _clientIndex;
         private int _totalClients;
-        private volatile bool _hasInitialized;
         
         #region ctors
         /// <summary>
@@ -241,7 +240,7 @@ namespace EdgeDB
         /// </returns>
         public async ValueTask EnsureConnectedAsync(CancellationToken token = default)
         {
-            if (_hasInitialized)
+            if (_availableClients.Any())
                 return;
 
             await using var client = await GetOrCreateClientAsync(token);
@@ -364,12 +363,10 @@ namespace EdgeDB
                             _poolSize = client.SuggestedPoolConcurrency;
                             await _poolHolder.ResizeAsync(_poolSize).ConfigureAwait(false);
                             client.OnConnect -= OnConnect;
-                            _hasInitialized = true;
                         }
 
-                        if(!_hasInitialized)
-                            client.OnConnect += OnConnect;
-                        
+                        client.OnConnect += OnConnect;
+
                         client.QueryExecuted += (i) => _queryExecuted.InvokeAsync(i);
 
                         client.OnDisposed += (c) =>
