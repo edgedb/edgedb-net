@@ -20,7 +20,6 @@ property to a results' property name:
 .. tabs::
   
   .. code-tab:: cs
-    :caption: C#
     
     public class Person
     {
@@ -32,7 +31,6 @@ property to a results' property name:
     }
   
   .. code-tab:: fsharp
-    :caption: F#
     
     type Person = {
       [<EdgeDBProperty("name")>]
@@ -58,7 +56,6 @@ in this example.
 .. tabs::
   
   .. code-tab:: cs
-    :caption: C#
     
     var config = new EdgeDBClientConfig
     {
@@ -68,7 +65,6 @@ in this example.
     var client = new EdgeDBClient(config);
   
   .. code-tab:: fsharp
-    :caption: F#
     
     let mutable config = new EdgeDBClientConfig()
     config.SchemaNamingStrategy <- INamingStrategy.SnakeCase
@@ -100,7 +96,6 @@ attribute on a class instead for specification.
 .. tabs::
 
   .. code-tab:: cs
-    :caption: C#
     
     public abstract class Content
     {
@@ -123,7 +118,6 @@ attribute on a class instead for specification.
     var movies = content.Where(x => x is Movie).Cast<Movie>();
 
   .. code-tab:: fsharp
-    :caption: F#
 
     type Content = {
       Title: string
@@ -175,7 +169,6 @@ values.
 .. tabs::
   
   .. code-tab:: cs
-    :caption: C#
     
     public class Person
     {
@@ -201,7 +194,6 @@ values.
     }
 
   .. code-tab:: fsharp
-    :caption: F#
 
     type Person(name : string, email : string) =
       class
@@ -239,7 +231,6 @@ instance.
 .. tabs::
   
   .. code-tab:: cs
-    :caption: C#
     
     public class Person
     {
@@ -266,7 +257,6 @@ instance.
     });
 
   .. code-tab:: fsharp
-    :caption: F#
 
     type Person(name: string, age: int32) =
       member this.Name with get() = name
