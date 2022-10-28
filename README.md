@@ -32,8 +32,6 @@ $ dotnet add package EdgeDB.Net.Driver
 
 ## Basic usage
 
-> Full documentation is yet to be written.
-
 ### Create a client
 A client is what allows your code to talk with EdgeDB. The `EdgeDBClient` class maintains a pool of connections and provides abstractions for executing queries with ease.
 ```cs
