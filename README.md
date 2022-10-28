@@ -16,11 +16,6 @@
   </p>
 </p>
 
-<h1 align="center">IMPORTANT read before using</h1>
-
-EdgeDB.Net v1.0.0 is not yet released as its still in development, you can install the nightly version on our [myget](https://www.myget.org/feed/edgedb-net/package/nuget/EdgeDB.Net.Driver) feed. Please note bugs may be presents, if you encounter any issues please open a github issue.
-
-
 ## Installation
 
 EdgeDB DotNet is distributed through the NuGet package manager; the most recommended way to install 
