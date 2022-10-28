@@ -240,6 +240,17 @@ API Documentation
 
                 A task representing the asynchronous query operation. The tasks result is the json result of the query. 
 
+        .. dn:method::  EnsureConnectedAsync(CancellationToken token): ValueTask
+
+            Ensures that a connection is established to the EdgeDB server; and that the client pool is configured to the servers recommended pool size. 
+
+            :param CancellationToken token:
+                A cancellation token used to cancel the asynchronous operation.
+
+            :returns:
+
+                A ``System.Threading.Tasks.ValueTask`` representing the asynchronous connection operation. 
+
         .. dn:method::  WithConfig(Action<ConfigProperties> configDelegate): EdgeDBClient
 
             Creates a new client with the specified ``EdgeDB.EdgeDBClient.Config``. 

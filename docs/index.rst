@@ -42,11 +42,13 @@ following command in your terminal:
 
 .. tabs::
 
-  .. code-tab:: bash#NuGet
+  .. code-tab:: bash
+    :caption: NuGet
     
     $ dotnet add package EdgeDB.Net.Driver
   
-  .. code-tab:: bash#MyGet
+  .. code-tab:: bash
+    :caption: MyGet
 
     $ dotnet add package EdgeDB.Net.Driver --source https://www.myget.org/F/edgedb-net/api/v3/index.json
 
@@ -63,13 +65,13 @@ After you have an instance running, you may now create an ``EdgeDBClient``:
 
 .. tabs::
 
-  .. code-tab:: cs#CSharp
+  .. code-tab:: cs
 
     using EdgeDB.Net;
   
     var client = new EdgeDBClient();
 
-  .. code-tab:: fsharp#FSharp
+  .. code-tab:: fsharp
 
     open EdgeDB.Net;
     
@@ -88,13 +90,13 @@ with the ``QuerySingleAsync<T>`` method and printing its result:
 
 .. tabs::
 
-  .. code-tab:: cs#CSharp
+  .. code-tab:: cs
 
     var result = await client.QuerySingleAsync<string>("SELECT \"Hello, World!\"");
 
     Console.WriteLine(result);
     
-  .. code-tab:: fsharp#FSharp
+  .. code-tab:: fsharp
   
     let! result = client.QuerySingleAsync<string>("SELECT \"Hello, World!\"")
     
@@ -131,7 +133,7 @@ names and values within each result.
 
 .. tabs:: 
 
-  .. code-tab:: cs#CSharp
+  .. code-tab:: cs
 
     public class Person
     {
@@ -141,7 +143,7 @@ names and values within each result.
 
     var result = await client.QueryAsync<Person>("SELECT Person { Name, Age }");
 
-  .. code-tab:: fsharp#FSharp
+  .. code-tab:: fsharp
 
     type Person = {
       Name: string;
@@ -163,7 +165,7 @@ easily integrate EdgeDB with your existing applications.
 
 .. tabs::
 
-  .. code-tab:: cs#CSharp
+  .. code-tab:: cs
 
     using EdgeDB.Net;
     using Microsoft.Extensions.DependencyInjection;
@@ -172,7 +174,7 @@ easily integrate EdgeDB with your existing applications.
 
     services.AddEdgeDB();
 
-  .. code-tab:: fsharp#FSharp
+  .. code-tab:: fsharp
 
     open EdgeDB.Net;
     open Microsoft.Extensions.DependencyInjection;

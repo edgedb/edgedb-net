@@ -19,7 +19,7 @@ property to a results' property name:
 
 .. tabs::
   
-  .. code-tab:: cs#CSharp
+  .. code-tab:: cs
     
     public class Person
     {
@@ -30,7 +30,7 @@ property to a results' property name:
         public int Age { get; set; }
     }
   
-  .. code-tab:: fsharp#FSharp
+  .. code-tab:: fsharp
     
     type Person = {
       [<EdgeDBProperty("name")>]
@@ -55,7 +55,7 @@ in this example.
 
 .. tabs::
   
-  .. code-tab:: cs#CSharp
+  .. code-tab:: cs
     
     var config = new EdgeDBClientConfig
     {
@@ -64,7 +64,7 @@ in this example.
 
     var client = new EdgeDBClient(config);
   
-  .. code-tab:: fsharp#FSharp
+  .. code-tab:: fsharp
     
     let mutable config = new EdgeDBClientConfig()
     config.SchemaNamingStrategy <- INamingStrategy.SnakeCase
@@ -95,7 +95,7 @@ attribute on a class instead for specification.
 
 .. tabs::
 
-  .. code-tab:: cs#CSharp
+  .. code-tab:: cs
     
     public abstract class Content
     {
@@ -117,7 +117,7 @@ attribute on a class instead for specification.
     var shows = content.Where(x => x is TVShow).Cast<TVShow>();
     var movies = content.Where(x => x is Movie).Cast<Movie>();
 
-  .. code-tab:: fsharp#FSharp
+  .. code-tab:: fsharp
 
     type Content = {
       Title: string
@@ -168,7 +168,7 @@ values.
 
 .. tabs::
   
-  .. code-tab:: cs#CSharp
+  .. code-tab:: cs
     
     public class Person
     {
@@ -193,7 +193,7 @@ values.
         }
     }
 
-  .. code-tab:: fsharp#FSharp
+  .. code-tab:: fsharp
 
     type Person(name : string, email : string) =
       class
@@ -230,7 +230,7 @@ instance.
 
 .. tabs::
   
-  .. code-tab:: cs#CSharp
+  .. code-tab:: cs
     
     public class Person
     {
@@ -256,7 +256,7 @@ instance.
         };
     });
 
-  .. code-tab:: fsharp#FSharp
+  .. code-tab:: fsharp
 
     type Person(name: string, age: int32) =
       member this.Name with get() = name

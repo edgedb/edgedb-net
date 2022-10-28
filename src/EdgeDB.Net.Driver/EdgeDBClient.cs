@@ -86,20 +86,18 @@ namespace EdgeDB
         private readonly AsyncEvent<Func<IExecuteResult, ValueTask>> _queryExecuted = new();
         private readonly EdgeDBConnection _connection;
         private readonly EdgeDBClientPoolConfig _poolConfig;
-        private ConcurrentStack<BaseEdgeDBClient> _availableClients;
         private readonly ConcurrentDictionary<ulong, BaseEdgeDBClient> _clients; 
         private readonly Dictionary<string, object?> _edgedbConfig;
-        private int _poolSize;
-
-        private readonly object _clientsLock = new();
         private readonly SemaphoreSlim _clientWaitSemaphore;
         private readonly ClientPoolHolder _poolHolder;
-
+        private readonly object _clientsLock = new();
+        private readonly Session _session;
+        
+        private ConcurrentStack<BaseEdgeDBClient> _availableClients;
+        private int _poolSize;
         private ulong _clientIndex;
         private int _totalClients;
-
-        private readonly Session _session;
-
+        
         #region ctors
         /// <summary>
         ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
@@ -233,6 +231,25 @@ namespace EdgeDB
 
         #region Client creation
         /// <summary>
+        ///     Ensures that a connection is established to the EdgeDB server; and that the client
+        ///     pool is configured to the servers recommended pool size.
+        /// </summary>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
+        /// <returns>
+        ///     A <see cref="ValueTask"/> representing the asynchronous connection operation.
+        /// </returns>
+        public async ValueTask EnsureConnectedAsync(CancellationToken token = default)
+        {
+            if (_availableClients.Any())
+                return;
+
+            await using var client = await GetOrCreateClientAsync(token);
+
+            // do nothing here, we just want to ensure the client is connected
+            // and then freed back to the pool.
+        }
+
+        /// <summary>
         ///     Gets or creates a client in the client pool used to interact with edgedb.
         /// </summary>
         /// <remarks>
@@ -349,7 +366,7 @@ namespace EdgeDB
                         }
 
                         client.OnConnect += OnConnect;
-                        
+
                         client.QueryExecuted += (i) => _queryExecuted.InvokeAsync(i);
 
                         client.OnDisposed += (c) =>
