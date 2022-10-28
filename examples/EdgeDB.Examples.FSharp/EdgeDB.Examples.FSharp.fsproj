@@ -10,6 +10,7 @@
     <Compile Include="ExampleRunner.fs" />
     <Compile Include="Examples\AbstractTypes.fs" />
     <Compile Include="Examples\BasicQueryFunctions.fs" />
+    <Compile Include="Examples\CancelQueries.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
