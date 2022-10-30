@@ -14,11 +14,6 @@ namespace EdgeDB.QueryNodes
     /// </summary>
     internal class SelectNode : QueryNode<SelectContext>
     {
-        /// <summary>
-        ///     The max recursion depth for generating default shapes.
-        /// </summary>
-        public const int MAX_DEPTH = 2;
-
         /// <inheritdoc/>
         public SelectNode(NodeBuilder builder) : base(builder) { }
 
@@ -43,7 +38,7 @@ namespace EdgeDB.QueryNodes
                 if (EdgeDBTypeUtils.IsLink(x.PropertyType, out var isArray, out var innerType))
                 {
                     var shapeType = isArray ? innerType! : x.PropertyType;
-                    if (currentDepth < MAX_DEPTH)
+                    if (currentDepth < Context.SubShapeDepth)
                     {
                         var subShape = GetShape(shapeType, currentDepth + 1);
                         return subShape is not null ? $"{name}: {subShape}" : null;

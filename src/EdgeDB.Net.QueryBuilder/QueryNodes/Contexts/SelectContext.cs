@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -27,7 +27,15 @@ namespace EdgeDB.QueryNodes
         /// </summary>
         public bool IsFreeObject { get; init; }
 
+        public int SubShapeDepth
+        {
+            get => _subShapeDepth;
+            set => _subShapeDepth = value < 0 ? 0 : value;
+        }
+
         public bool IncludeShape { get; set; } = true;
+
+        private int _subShapeDepth = 2;
 
         public SelectContext(Type currentType) : base(currentType)
         {

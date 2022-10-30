@@ -370,6 +370,13 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
+        public ISelectQuery<TType, TContext> Select(int subShapeDepth)
+        {
+            AddNode<SelectNode>(new SelectContext(typeof(TType)) { SubShapeDepth = subShapeDepth });
+            return this;
+        }
+
+        /// <inheritdoc/>
         public ISelectQuery<TResult, TContext> Select<TResult>(Expression<Func<TResult>> selectFunc)
         {
             AddNode<SelectNode>(new SelectContext(typeof(TResult)) 
