@@ -30,6 +30,10 @@ namespace EdgeDB
         public static ISelectQuery<TType, QueryContext> Select<TType>()
             => new QueryBuilder<TType>().Select();
 
+        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Select(int)"/>
+        public static ISelectQuery<TType, QueryContext> Select<TType>(int subShapeDepth)
+            => new QueryBuilder<TType>().Select(subShapeDepth);
+
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Select{TResult}(Expression{Func{TResult}})"/>
         public static ISelectQuery<TResult, QueryContext> Select<TResult>(Expression<Func<TResult>> selectFunc)
             => new QueryBuilder<TResult>().Select(selectFunc);
