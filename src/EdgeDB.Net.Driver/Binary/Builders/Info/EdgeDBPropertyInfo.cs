@@ -20,7 +20,7 @@ namespace EdgeDB
             => _propertyAttribute?.Name;
 
         public IEdgeDBTypeConverter? CustomConverter
-            => _typeConverter?.Converter;
+            => _typeConverterAttribute?.Converter ?? _typeConverter;
 
         public Type Type
             => _property.PropertyType;
@@ -29,15 +29,19 @@ namespace EdgeDB
             => _ignore is not null;
 
         private readonly EdgeDBPropertyAttribute? _propertyAttribute;
-        private readonly EdgeDBTypeConverterAttribute? _typeConverter;
+        private readonly EdgeDBTypeConverterAttribute? _typeConverterAttribute;
         private readonly EdgeDBIgnoreAttribute? _ignore;
         private readonly PropertyInfo _property;
+        private readonly IEdgeDBTypeConverter? _typeConverter;
         public EdgeDBPropertyInfo(PropertyInfo propInfo)
         {
             _property = propInfo;
             _propertyAttribute = propInfo.GetCustomAttribute<EdgeDBPropertyAttribute>();
-            _typeConverter = propInfo.GetCustomAttribute<EdgeDBTypeConverterAttribute>();
+            _typeConverterAttribute = propInfo.GetCustomAttribute<EdgeDBTypeConverterAttribute>();
             _ignore = propInfo.GetCustomAttribute<EdgeDBIgnoreAttribute>();
+
+            if (TypeBuilder.TypeConverters.TryGetValue(_property.PropertyType, out var converter))
+                _typeConverter = converter;
         }
 
         public object? ConvertToPropertyType(object? value)

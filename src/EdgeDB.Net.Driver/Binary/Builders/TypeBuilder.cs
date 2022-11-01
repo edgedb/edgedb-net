@@ -33,6 +33,7 @@ namespace EdgeDB
         public static INamingStrategy SchemaNamingStrategy { get; set; }
         
         internal readonly static ConcurrentDictionary<Type, EdgeDBTypeDeserializeInfo> TypeInfo = new();
+        internal readonly static ConcurrentDictionary<Type, IEdgeDBTypeConverter> TypeConverters = new();
         internal static readonly INamingStrategy AttributeNamingStrategy;
         private readonly static List<string> _scannedAssemblies;
 
@@ -72,6 +73,20 @@ namespace EdgeDB
 
             if (!TypeInfo.ContainsKey(typeof(TType)))
                 ScanAssemblyForTypes(typeof(TType).Assembly);
+        }
+
+        /// <summary>
+        ///     Adds or updates a custom <see cref="EdgeDBTypeConverter{TSource, TTarget}"/>
+        /// </summary>
+        /// <typeparam name="TConverter">The type converter to add.</typeparam>
+        /// <returns/>
+        /// <inheritdoc cref="Activator.CreateInstance(Type)"/>
+        public static void AddOrUpdateTypeConverter<TConverter>()
+            where TConverter : IEdgeDBTypeConverter
+        {
+            var instance = (IEdgeDBTypeConverter)Activator.CreateInstance(typeof(TConverter))!;
+
+            TypeConverters.AddOrUpdate(instance.Source, instance, (_, _) => instance);
         }
 
         /// <summary>
