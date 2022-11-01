@@ -1161,6 +1161,14 @@ API Documentation
 
                 A ``dynamic`` object.
 
+        .. dn:method::  Flatten(): IDictionary<string,object>
+
+            Flattens this :dn:struct:`EdgeDB.ObjectEnumerator` into a dictionary with keys being property names. 
+
+            :returns:
+
+                A ``System.Collections.Generic.Dictionary`2`` representing the objects properties.
+
         .. dn:method::  Next(ref String& name, ref Object& value): bool
 
             Reads the next property within this enumerator. 
@@ -1414,6 +1422,13 @@ API Documentation
 
                 The type info for ``TType``.
 
+        .. dn:method::  AddOrUpdateTypeConverter<TConverter>(): void
+
+            Adds or updates a custom :dn:class:`EdgeDB.TypeConverters.EdgeDBTypeConverter<TSource, TTarget>`
+
+            :param TConverter:
+                The type converter to add.
+
         .. dn:method::  AddOrUpdateTypeFactory<TType>(TypeDeserializerFactory factory): void
 
             Adds or updates a custom type factory. 
@@ -1488,6 +1503,61 @@ API Documentation
             :returns:
 
                 An instance of ``TTarget``; or ``default``.
+
+        .. dn:method::  CanConvert(Type from, Type to): bool
+
+            Checks if the type builder can convert one type to another. 
+
+            :param Type from:
+                The source type.
+
+            :param Type to:
+                The target type.
+
+            :returns:
+
+                if the source type can be converted to the target type; otherwise ``true``. ``false``
+
+    .. dn:interface:: IEdgeDBTypeConverter
+
+        Represents a custom type converter capable of converting one type to another. 
+
+
+        :property Type Source:
+            Gets the source type of the converter. 
+
+
+        :property Type Target:
+            Gets the target type of the converter. 
+
+
+        .. dn:method::  ConvertFrom(object value): object
+
+            Converts the given target value to the source value. 
+
+            :param object value:
+                The value to convert.
+
+        .. dn:method::  ConvertTo(object value): object
+
+            Converts the given source value to a the target value. 
+
+            :param object value:
+                The value to convert.
+
+        .. dn:method::  CanConvert(Type from, Type to): bool
+
+            Checks if the type builder can convert one type to another. 
+
+            :param Type from:
+                The source type.
+
+            :param Type to:
+                The target type.
+
+            :returns:
+
+                if the source type can be converted to the target type; otherwise ``true``. ``false``
 
 .. dn:namespace:: EdgeDB.State
 
