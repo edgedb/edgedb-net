@@ -12,6 +12,7 @@
     <Compile Include="Examples\BasicQueryFunctions.fs" />
     <Compile Include="Examples\CancelQueries.fs" />
     <Compile Include="Examples\CustomDeserializer.fs" />
+    <Compile Include="Examples\CustomTypeConverters.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
