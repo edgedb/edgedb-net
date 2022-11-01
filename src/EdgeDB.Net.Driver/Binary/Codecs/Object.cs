@@ -12,7 +12,7 @@ namespace EdgeDB.Binary.Codecs
         private readonly ICodec[] _innerCodecs;
         private readonly string[] _propertyNames;
         private TypeDeserializerFactory? _factory;
-        private TypeDeserializeInfo? _deserializerInfo;
+        private EdgeDBTypeDeserializeInfo? _deserializerInfo;
         internal Type? TargetType;
         internal bool Initialized;
         
