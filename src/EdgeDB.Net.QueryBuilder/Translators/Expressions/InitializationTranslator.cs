@@ -1,4 +1,4 @@
-﻿using EdgeDB.QueryNodes;
+using EdgeDB.QueryNodes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -110,7 +110,7 @@ namespace EdgeDB.Translators.Expressions
                             else if (newContext.IsShape) // includelink
                                 initializations.Add($"{memberName}: {{ {value} }}");
                             else
-                                initializations.Add($"{memberName}{(isSetter || context.IsFreeObject ? " :=" : "")} {value}");
+                                initializations.Add($"{memberName}{((isSetter || context.IsFreeObject) && !newContext.HasInitializationOperator ? " :=" : "")} {value}");
                         }
                         break;
                 }
