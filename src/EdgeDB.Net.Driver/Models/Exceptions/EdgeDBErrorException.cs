@@ -84,7 +84,12 @@ namespace EdgeDB
         /// <returns></returns>
         public override string ToString()
         {
-            return Prettify() ?? $"{ErrorResponse.ErrorCode}: {ErrorResponse.Message}";
+            var formatted = Prettify() ?? $"{ErrorResponse.ErrorCode}: {ErrorResponse.Message}";
+
+            if (StackTrace is not null)
+                formatted += $"{Environment.NewLine}{StackTrace}";
+
+            return formatted;
         }
 
         private string? Prettify()

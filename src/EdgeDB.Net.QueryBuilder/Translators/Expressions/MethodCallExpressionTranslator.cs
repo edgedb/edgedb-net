@@ -1,4 +1,4 @@
-﻿using EdgeDB.Operators;
+using EdgeDB.Operators;
 using EdgeDB.QueryNodes;
 using System;
 using System.Collections.Generic;
@@ -51,7 +51,7 @@ namespace EdgeDB.Translators.Expressions
         private string? TranslateToEdgeQL(MethodCallExpression expression, ExpressionContext context)
         {
             // if our method is within the query context class
-            if (expression.Method.DeclaringType == typeof(QueryContext))
+            if (expression.Method.DeclaringType?.IsAssignableTo(typeof(IQueryContext)) ?? false)
             {
                 switch (expression.Method.Name)
                 {

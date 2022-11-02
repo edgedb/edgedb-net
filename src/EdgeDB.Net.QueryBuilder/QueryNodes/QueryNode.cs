@@ -1,4 +1,4 @@
-﻿using EdgeDB.Schema;
+using EdgeDB.Schema;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,12 +41,21 @@ namespace EdgeDB.QueryNodes
         /// <summary>
         ///     Gets or sets whether or not this node requires introspection to build.
         /// </summary>
-        public bool RequiresIntrospection { get; protected set; }
+        public virtual bool RequiresIntrospection
+        {
+            get => _requiresIntrospection || SubNodes.Any(x => x.RequiresIntrospection);
+            set => _requiresIntrospection = value;
+        }
 
         /// <summary>
         ///     Gets or sets the schema introspection data.
         /// </summary>
         public SchemaInfo? SchemaInfo { get; set; }
+        
+        /// <summary>
+        ///     The operating type within the context of the query builder.
+        /// </summary>
+        public readonly Type OperatingType;
 
         /// <summary>
         ///     Gets a collection of child nodes.
@@ -80,10 +89,7 @@ namespace EdgeDB.QueryNodes
         /// </summary>
         internal readonly NodeBuilder Builder;
 
-        /// <summary>
-        ///     The operating type within the context of the query builder.
-        /// </summary>
-        public readonly Type OperatingType;
+        private bool _requiresIntrospection;
 
         /// <summary>
         ///     Constructs a new query node with the given builder.

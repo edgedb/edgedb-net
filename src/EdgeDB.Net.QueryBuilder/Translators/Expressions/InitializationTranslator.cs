@@ -1,5 +1,6 @@
 using EdgeDB.QueryNodes;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -11,6 +12,52 @@ namespace EdgeDB.Translators.Expressions
 {
     internal static class InitializationTranslator
     {
+        private static SubQuery? GenerateMultiLinkInserter(Type innerType, IEnumerable collection, ExpressionContext context)
+        {
+            var methodDef = typeof(InitializationTranslator)
+                .GetMethods(BindingFlags.Static | BindingFlags.NonPublic).FirstOrDefault(x => x.ContainsGenericParameters && x.Name == nameof(GenerateMultiLinkInserter));
+
+            if (methodDef is null)
+                throw new NotSupportedException("Unable to find GenerateMultiLinkInserter<T>. this is a bug");
+
+            return (SubQuery?)methodDef.MakeGenericMethod(innerType).Invoke(null, new object[] { collection, context });
+        }
+        private static SubQuery? GenerateMultiLinkInserter<T>(IEnumerable<T> collection, ExpressionContext context)
+        {
+            if (collection is null || !collection.Any())
+                return null;
+
+            return new SubQuery(info =>
+            {
+                var builder = new QueryBuilder<T>(info);
+
+                var builtQuery = builder
+                    .For(collection, x => QueryBuilder
+                        .Insert(x)
+                        .UnlessConflict()
+                    )
+                    .BuildWithGlobals();
+
+                if(builtQuery.Parameters is not null)
+                {
+                    foreach (var param in builtQuery.Parameters)
+                    {
+                        context.SetVariable(param.Key, param.Value);
+                    }
+                }
+
+                if(builtQuery.Globals is not null)
+                {
+                    foreach(var global in builtQuery.Globals)
+                    {
+                        context.SetGlobal(global.Name, global.Value, global.Reference);
+                    }
+                }
+
+                return builtQuery.Query;
+            });
+        }
+
         public static string? Translate(IDictionary<MemberInfo, Expression> expressions, ExpressionContext context)
         {
             List<string> initializations = new();
@@ -22,13 +69,38 @@ namespace EdgeDB.Translators.Expressions
                 var memberName = Member.GetEdgeDBPropertyName();
                 var typeName = memberType.GetEdgeDBTypeName();
                 var isLink = EdgeDBTypeUtils.IsLink(memberType, out var isMultiLink, out var innerType);
-
+                var disassembled = ExpressionUtils.DisassembleExpression(Expression).ToArray();
+                
                 switch (Expression)
                 {
-                    case MemberExpression when isLink:
+                    case MemberExpression when isLink && isMultiLink:
                         {
-                            var disassembled = ExpressionUtils.DisassembleExpression(Expression).ToArray();
-                            if (disassembled.Last() is ConstantExpression constant && disassembled[disassembled.Length - 2] is MemberExpression constParent)
+                            if (disassembled.Last() is ConstantExpression constant && disassembled[^2] is MemberExpression constParent)
+                            {
+                                if (!memberType.IsAssignableTo(typeof(IEnumerable)))
+                                    throw new NotSupportedException($"cannot use {memberType} as a multi link collection type; its not assignable to IEnumerable.");
+
+                                // get the value
+                                var memberValue = constParent.Member.GetMemberValue(constant.Value);
+
+                                var result = GenerateMultiLinkInserter(innerType!, (IEnumerable)memberValue!, context);
+
+                                if (result == null)
+                                {
+                                    initializations.Add($"{memberName} := {{}}");
+                                    break;
+                                }
+
+                                var name = context.GetOrAddGlobal(memberValue, result);
+
+                                initializations.Add($"{memberName} := {name}");
+                            }
+                        }
+                        break;
+                    case MemberExpression when isLink && !isMultiLink:
+                        {
+                            
+                            if (disassembled.Last() is ConstantExpression constant && disassembled[^2] is MemberExpression constParent)
                             {
                                 // get the value
                                 var memberValue = constParent.Member.GetMemberValue(constant.Value);

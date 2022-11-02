@@ -106,19 +106,39 @@ namespace EdgeDB.QueryNodes
         {
             // if parent is defined, our select logic was generated in the
             // visit step, we can just return out.
-            if (Parent is not null)
+            if (SubNodes.Count == 1)
             {
-                var result = Parent.Build();
+                var node = SubNodes.First();
 
-                if (string.IsNullOrEmpty(result.Query))
-                    throw new InvalidOperationException("Cannot wrap a global-defined query");
+                // set introspection details & finalize
+                node.SchemaInfo = SchemaInfo;
+                node.FinalizeQuery();
 
-                Query.Append($"select ({result.Query})");
+                var result = node.Build();
+
+                var selectTarget = result.Query;
+
+                if (string.IsNullOrEmpty(selectTarget))
+                {
+                    if(node.Context.SetAsGlobal && !string.IsNullOrEmpty(node.Context.GlobalName))
+                    {
+                        // wrap global name
+                        selectTarget = node.Context.GlobalName;
+                    }
+
+                    throw new InvalidOperationException($"Cannot resolve parent node {Parent}'s query");
+                }
+
+                Query.Append($"select ({selectTarget})");
 
                 // append the shape of the parents node operating type if we should include ours
                 if (Context.IncludeShape)
-                    Query.Append($" {GetShape(Parent.OperatingType)}");
+                    Query.Append($" {GetShape(node.OperatingType)}");
                 return;
+            }
+            else if(SubNodes.Count > 1)
+            {
+                throw new NotSupportedException("Got more than one child node for select statement (this is a bug)");
             }
 
             if(!Context.IncludeShape)

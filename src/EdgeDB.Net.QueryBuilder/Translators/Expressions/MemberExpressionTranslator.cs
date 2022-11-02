@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -22,7 +22,7 @@ namespace EdgeDB.Translators.Expressions
             var baseExpression = deconstructed.LastOrDefault();
             
             // if the base class is context
-            if (baseExpression is not null && baseExpression.Type.IsAssignableTo(typeof(QueryContext)))
+            if (baseExpression is not null && baseExpression.Type.IsAssignableTo(typeof(IQueryContext)))
             {
                 // switch the name of the accessed member
                 var accessExpression = deconstructed[^2];
@@ -31,7 +31,7 @@ namespace EdgeDB.Translators.Expressions
 
                 switch (memberExpression.Member.Name)
                 {
-                    case nameof(QueryContext<object>.Variables):
+                    case nameof(QueryContext<object, object>.Variables):
                         // get the reference
                         var target = deconstructed[^3];
 
@@ -70,6 +70,9 @@ namespace EdgeDB.Translators.Expressions
                             default:
                                 throw new NotSupportedException($"Cannot use expression type {target.NodeType} as a variable access");
                         }
+                    case nameof(QueryContext.Self):
+                        var paths = deconstructed[..^2];
+                        return $".{string.Join('.', paths.Select(x => x is MemberExpression m ? m.Member.GetEdgeDBPropertyName() : throw new NotSupportedException($"Cannot use expression type {x.NodeType} for a contextual member access")))}";
                 }
             }
 

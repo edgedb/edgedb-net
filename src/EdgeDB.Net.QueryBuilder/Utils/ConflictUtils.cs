@@ -1,4 +1,4 @@
-﻿using EdgeDB.Schema.DataTypes;
+using EdgeDB.Schema.DataTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,7 +34,7 @@ namespace EdgeDB
             // does the type have a single property that is exclusive?
             if(type.Properties!.Count(x => x.Name != "id" && x.IsExclusive) == 1)
             {
-                return $"unless conflict on .{type.Properties!.First(x => x.IsExclusive).Name}";
+                return $"unless conflict on .{type.Properties!.First(x => x.Name != "id" && x.IsExclusive).Name}";
             }
 
             // if it doesn't have an else statement we can simply add 'UNLESS CONFLICT'

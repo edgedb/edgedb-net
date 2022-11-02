@@ -18,7 +18,7 @@ namespace EdgeDB
     public static class QueryBuilder
     {
         /// <inheritdoc cref="IQueryBuilder{TType, TContext}.With{TVariables}(TVariables)"/>
-        public static IQueryBuilder<dynamic, QueryContext<TVariables>> With<TVariables>(TVariables variables)
+        public static IQueryBuilder<dynamic, QueryContext<dynamic, TVariables>> With<TVariables>(TVariables variables)
             => QueryBuilder<dynamic>.With(variables);
 
         /// <inheritdoc cref="IQueryBuilder{TType, TContext}.For(IEnumerable{TType}, Expression{Func{JsonCollectionVariable{TType}, IQueryBuilder}})"/>
@@ -27,47 +27,47 @@ namespace EdgeDB
             => new QueryBuilder<TType>().For(collection, iterator);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Select()"/>
-        public static ISelectQuery<TType, QueryContext> Select<TType>()
+        public static ISelectQuery<TType, QueryContext<TType>> Select<TType>()
             => new QueryBuilder<TType>().Select();
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Select(int)"/>
-        public static ISelectQuery<TType, QueryContext> Select<TType>(int subShapeDepth)
+        public static ISelectQuery<TType, QueryContext<TType>> Select<TType>(int subShapeDepth)
             => new QueryBuilder<TType>().Select(subShapeDepth);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Select{TResult}(Expression{Func{TResult}})"/>
-        public static ISelectQuery<TResult, QueryContext> Select<TResult>(Expression<Func<TResult>> selectFunc)
-            => new QueryBuilder<TResult>().Select(selectFunc);
+        public static ISelectQuery<TType, QueryContext<TType>> Select<TType>(Expression<Func<TType>> selectFunc)
+            => new QueryBuilder<TType>().Select(selectFunc);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Select(Expression{Func{QueryContext, TType}})"/>
-        public static ISelectQuery<TType, QueryContext> Select<TType>(Expression<Func<QueryContext, TType?>> shape)
+        public static ISelectQuery<TType, QueryContext<TType>> Select<TType>(Expression<Func<QueryContext, TType?>> shape)
             => new QueryBuilder<TType>().Select(shape);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(TType, bool)"/>
-        public static IInsertQuery<TType, QueryContext> Insert<TType>(TType value, bool returnInsertedValue)
+        public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(TType value, bool returnInsertedValue)
             => new QueryBuilder<TType>().Insert(value, returnInsertedValue);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(TType)"/>
-        public static IInsertQuery<TType, QueryContext> Insert<TType>(TType value)
+        public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(TType value)
             => new QueryBuilder<TType>().Insert(value, false);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(Expression{Func{QueryContext, TType}}, bool)"/>
-        public static IInsertQuery<TType, QueryContext> Insert<TType>(Expression<Func<QueryContext, TType>> value, bool returnInsertedValue)
+        public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(Expression<Func<QueryContext<TType>, TType>> value, bool returnInsertedValue)
             => new QueryBuilder<TType>().Insert(value, returnInsertedValue);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(Expression{Func{QueryContext, TType}})"/>
-        public static IInsertQuery<TType, QueryContext> Insert<TType>(Expression<Func<QueryContext, TType>> value)
+        public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(Expression<Func<QueryContext<TType>, TType>> value)
             => new QueryBuilder<TType>().Insert(value);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{TType, TType}}, bool)"/>
-        public static IUpdateQuery<TType, QueryContext> Update<TType>(Expression<Func<TType, TType>> updateFunc, bool returnUpdatedValue)
+        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(Expression<Func<TType, TType>> updateFunc, bool returnUpdatedValue)
             => new QueryBuilder<TType>().Update(updateFunc, returnUpdatedValue);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{TType, TType}})"/>
-        public static IUpdateQuery<TType, QueryContext> Update<TType>(Expression<Func<TType, TType>> updateFunc)
+        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(Expression<Func<TType, TType>> updateFunc)
             => new QueryBuilder<TType>().Update(updateFunc, false);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Delete"/>
-        public static IDeleteQuery<TType, QueryContext> Delete<TType>()
+        public static IDeleteQuery<TType, QueryContext<TType>> Delete<TType>()
             => new QueryBuilder<TType>().Delete;
     }
 
@@ -75,14 +75,16 @@ namespace EdgeDB
     ///     Represents a query builder used to build queries against <typeparamref name="TType"/>.
     /// </summary>
     /// <typeparam name="TType">The type that this query builder is currently building queries for.</typeparam>
-    public class QueryBuilder<TType> : QueryBuilder<TType, QueryContext> 
+    public class QueryBuilder<TType> : QueryBuilder<TType, QueryContext<TType>> 
     {
         public QueryBuilder() : base() { }
+
+        internal QueryBuilder(SchemaInfo info) : base(info) { }
 
         internal QueryBuilder(List<QueryNode> nodes, List<QueryGlobal> globals, Dictionary<string, object?> variables) 
             : base(nodes, globals, variables) { }
 
-        new public static IQueryBuilder<TType, QueryContext<TVariables>> With<TVariables>(TVariables variables)
+        new public static IQueryBuilder<TType, QueryContext<TType, TVariables>> With<TVariables>(TVariables variables)
             => new QueryBuilder<TType, TVariables>().With(variables);
     }
 
@@ -102,7 +104,32 @@ namespace EdgeDB
         /// <summary>
         ///     The current user defined query node.
         /// </summary>
-        private QueryNode? CurrentUserNode => _nodes.LastOrDefault(x => !x.IsAutoGenerated);
+        private QueryNode? CurrentUserNode
+        {
+            get
+            {
+                var latestNode = _nodes.LastOrDefault(x => !x.IsAutoGenerated);
+
+                if (latestNode is not null)
+                    return latestNode;
+
+                if (_nodes.Count == 0)
+                    return null;
+
+                for (int i = _nodes.Count - 1; i >= 0; i--)
+                {
+                    var n = _nodes[i];
+                    if (n.IsAutoGenerated)
+                    {
+                        var child = n.SubNodes.FirstOrDefault(x => !x.IsAutoGenerated);
+                        if (child is not null)
+                            return child;
+                    }    
+                }
+
+                throw new NotSupportedException("No user defined query node found. (this is most likely a bug)");
+            }
+        }
 
         /// <summary>
         ///     A list of query globals used by this query builder.
@@ -151,6 +178,16 @@ namespace EdgeDB
         }
 
         /// <summary>
+        ///     Constructs a query builder with the given schema introspection info.
+        /// </summary>
+        /// <param name="info">The schema introspection info.</param>
+        internal QueryBuilder(SchemaInfo info)
+            : this()
+        {
+            _schemaInfo = info;
+        }
+
+        /// <summary>
         ///     Adds a query variable to the current query builder.
         /// </summary>
         /// <param name="name">The name of the variable.</param>
@@ -189,9 +226,9 @@ namespace EdgeDB
         ///     Whether or not this node was added by the user or was added as 
         ///     part of an implicit build step.
         /// </param>
-        /// <param name="parent">The parent node for the newly added node.</param>
+        /// <param name="child">The child node for the newly added node.</param>
         /// <returns>An instance of the specified <typeparamref name="TNode"/>.</returns>
-        private TNode AddNode<TNode>(NodeContext context, bool autoGenerated = false, QueryNode? parent = null)
+        private TNode AddNode<TNode>(NodeContext context, bool autoGenerated = false, QueryNode? child = null)
             where TNode : QueryNode
         {
             // create a new builder for the node.
@@ -203,9 +240,12 @@ namespace EdgeDB
             // construct the node.
             var node = (TNode)Activator.CreateInstance(typeof(TNode), builder)!;
 
-            node.Parent = parent;
-            
-            parent?.SubNodes.Add(node);
+            if(child is not null)
+            {
+                node.SubNodes.Add(child);
+                child.Parent = node;
+                _nodes.Remove(child);
+            }
             
             // visit the node
             node.Visit();
@@ -308,7 +348,7 @@ namespace EdgeDB
             => InternalBuild(false, preFinalizerModifier);
 
         #region Root nodes
-        public QueryBuilder<TType, QueryContext<TVariables>> With<TVariables>(TVariables variables)
+        public QueryBuilder<TType, QueryContext<TType, TVariables>> With<TVariables>(TVariables variables)
         {
             if (variables is null)
                 throw new NullReferenceException("Variables cannot be null");
@@ -352,7 +392,7 @@ namespace EdgeDB
                     throw new InvalidOperationException($"Cannot serialize {property.Name}: No serialization strategy found for {property.PropertyType}");
             }
 
-            return EnterNewContext<QueryContext<TVariables>>();
+            return EnterNewContext<QueryContext<TType, TVariables>>();
         }
 
         public IMultiCardinalityExecutable<TType> For(IEnumerable<TType> collection, Expression<Func<JsonCollectionVariable<TType>, IQueryBuilder>> iterator)
@@ -393,6 +433,18 @@ namespace EdgeDB
 
         /// <inheritdoc cref="IQueryBuilder{TType, TContext}.Select(Expression{Func{TContext, TType}})"/>
         public ISelectQuery<TType, TContext> Select(Expression<Func<TContext, TType?>> shape)
+        {
+            AddNode<SelectNode>(new SelectContext(typeof(TType))
+            {
+                Shape = shape,
+                IsFreeObject = typeof(TType).IsAnonymousType(),
+            });
+            return this;
+        }
+
+        /// <inheritdoc cref="IQueryBuilder{TType, TContext}.Select(Expression{Func{TContext, TType}})"/>
+        public ISelectQuery<TType, TContext> Select<TBaseContext>(Expression<Func<TBaseContext, TType?>> shape)
+            where TBaseContext : QueryContext
         {
             AddNode<SelectNode>(new SelectContext(typeof(TType))
             {
@@ -858,7 +910,7 @@ namespace EdgeDB
         IReadOnlyCollection<QueryNode> IQueryBuilder.Nodes => _nodes;
         IReadOnlyCollection<QueryGlobal> IQueryBuilder.Globals => _queryGlobals;
         IReadOnlyDictionary<string, object?> IQueryBuilder.Variables => _queryVariables;
-        IQueryBuilder<TType, QueryContext<TVariables>> IQueryBuilder<TType, TContext>.With<TVariables>(TVariables variables) => With(variables);
+        IQueryBuilder<TType, QueryContext<TType, TVariables>> IQueryBuilder<TType, TContext>.With<TVariables>(TVariables variables) => With(variables);
         BuiltQuery IQueryBuilder.BuildWithGlobals(Action<QueryNode>? preFinalizerModifier) => BuildWithGlobals(preFinalizerModifier);
         #endregion
     }

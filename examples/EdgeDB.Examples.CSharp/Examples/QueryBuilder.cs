@@ -29,8 +29,14 @@ namespace EdgeDB.ExampleApp.Examples
 
         public async Task ExecuteAsync(EdgeDBClient client)
         {
-            await QueryBuilderDemo(client);
-            await QueryableCollectionDemo(client);
+            try
+            {
+                await QueryBuilderDemo(client);
+                await QueryableCollectionDemo(client);
+            }
+            catch(Exception x)
+            {
+            }
         }
 
         private static async Task QueryBuilderDemo(EdgeDBClient client)
@@ -67,7 +73,7 @@ namespace EdgeDB.ExampleApp.Examples
             {
                 Name = ctx.Include<string>(),
                 Email = ctx.Include<string>(),
-                HasBestfriend = ctx.Local("BestFriend") != null
+                HasBestfriend = ctx.Self.BestFriend != null
             }).Build().Prettify();
 
             // selecting things that are not types
@@ -240,13 +246,13 @@ namespace EdgeDB.ExampleApp.Examples
             // we can select types based on a filter
             var people = await collection.WhereAsync(x => EdgeQL.ILike(x.Name, "e%"));
 
-            // we can add or update a type
-            var otherPerson = await collection.AddOrUpdateAsync(new Person
-            {
-                Name = "example2",
-                Email = "example2@example.com",
-                BestFriend = person
-            });
+            // we can add or update a type (Broken https://github.com/edgedb/edgedb/issues/4577)
+            //var otherPerson = await collection.AddOrUpdateAsync(new Person
+            //{
+            //    Name = "example2",
+            //    Email = "example2@example.com",
+            //    BestFriend = person
+            //});
 
             // we can delete types
             var toBeDeleted = await collection.GetOrAddAsync(new Person

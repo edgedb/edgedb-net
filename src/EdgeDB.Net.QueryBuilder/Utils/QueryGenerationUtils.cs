@@ -1,4 +1,4 @@
-﻿using EdgeDB.Schema;
+using EdgeDB.Schema;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -137,7 +137,7 @@ namespace EdgeDB
         ///     A ValueTask representing the (a)sync operation of preforming the introspection query.
         ///     The result of the task is a generated filter expression.
         /// </returns>
-        public static async ValueTask<Expression<Func<TType, QueryContext, bool>>> GenerateUpdateFilterAsync<TType>(IEdgeDBQueryable edgedb, TType value, CancellationToken token = default)
+        public static async ValueTask<Expression<Func<TType, QueryContext<TType>, bool>>> GenerateUpdateFilterAsync<TType>(IEdgeDBQueryable edgedb, TType value, CancellationToken token = default)
         {
             // try and get object id
             if (QueryObjectManager.TryGetObjectId(value, out var id))
@@ -146,22 +146,22 @@ namespace EdgeDB
             // get exclusive properties.
             var exclusiveProperties = await GetPropertiesAsync<TType>(edgedb, exclusive: true, token: token).ConfigureAwait(false);
 
-            var unsafeLocalMethod = typeof(QueryContext).GetMethod("UnsafeLocal")!;
-            return Expression.Lambda<Func<TType, QueryContext, bool>>(
+            var unsafeLocalMethod = typeof(QueryContext<TType>).GetMethod("UnsafeLocal", genericParameterCount: 0, new Type[] {typeof(string)})!;
+            return Expression.Lambda<Func<TType, QueryContext<TType>, bool>>(
                 exclusiveProperties.Select(x =>
                 {
 
                     return Expression.Equal(
                         Expression.Call(
-                            Expression.Parameter(typeof(QueryContext), "ctx"),
+                            Expression.Parameter(typeof(QueryContext<TType>), "ctx"),
                             unsafeLocalMethod,
                             Expression.Constant(x.GetEdgeDBPropertyName())
                         ),
-                        Expression.MakeMemberAccess(Expression.Parameter(typeof(TType), "x"), x)
+                        Expression.MakeMemberAccess(Expression.Constant(value), x)
                     );
                 }).Aggregate((x, y) => Expression.And(x, y)),
-                Expression.Parameter(typeof(QueryContext), "ctx"),
-                Expression.Parameter(typeof(TType), "x")
+                Expression.Parameter(typeof(TType), "x"),
+                Expression.Parameter(typeof(QueryContext<TType>), "ctx")
             );
         }
     }

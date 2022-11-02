@@ -127,7 +127,7 @@ namespace EdgeDB
         /// <returns>The inserted or conflicting item.</returns>
         public Task<TType> GetOrAddAsync(TType item, CancellationToken token = default)
             => QueryBuilder
-                .Insert(item)
+                .Insert(item, true)
                 .UnlessConflict()
                 .ElseReturn()
                 .ExecuteAsync(_edgedb, token: token)!;
@@ -166,7 +166,7 @@ namespace EdgeDB
 
             Dictionary<PropertyInfo, string> variables = new();
             // generate the expression
-            var expr = Expression.Lambda<Func<TType, QueryContext, bool>>(props.Select(x =>
+            var expr = Expression.Lambda<Func<TType, QueryContext<TType>, bool>>(props.Select(x =>
             {
                 var name = QueryUtils.GenerateRandomVariableName();
                 var typeCast = PacketSerializer.GetEdgeQLType(x.PropertyType);
@@ -179,7 +179,7 @@ namespace EdgeDB
 
                 return e;
             }
-            ).Aggregate((x, y) => Expression.And(x, y)), Expression.Parameter(typeof(TType), "x"), Expression.Parameter(typeof(QueryContext), "ctx"));
+            ).Aggregate((x, y) => Expression.And(x, y)), Expression.Parameter(typeof(TType), "x"), Expression.Parameter(typeof(QueryContext<TType>), "ctx"));
 
             var builder = QueryBuilder;
             foreach (var (prop, name) in variables)

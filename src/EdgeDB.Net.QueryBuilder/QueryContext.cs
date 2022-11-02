@@ -1,4 +1,4 @@
-﻿using EdgeDB.Interfaces;
+using EdgeDB.Interfaces;
 using EdgeDB.Interfaces.Queries;
 using EdgeDB.Operators;
 using System;
@@ -10,11 +10,17 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
+    public class QueryContext : QueryContext<dynamic> { }
     /// <summary>
     ///     Represents context used within query functions.
     /// </summary>
-    public class QueryContext
+    public class QueryContext<TSelf> : IQueryContext
     {
+        /// <summary>
+        ///     Gets a mock reference to the current working type.
+        /// </summary>
+        public TSelf Self { get; } = default!;
+        
         /// <summary>
         ///     References a defined query global given a name.
         /// </summary>
@@ -228,7 +234,7 @@ namespace EdgeDB
     ///     Represents context used within query functions containing a variable type.
     /// </summary>
     /// <typeparam name="TVariables">The type containing the variables defined in the query.</typeparam>
-    public abstract class QueryContext<TVariables> : QueryContext
+    public abstract class QueryContext<TSelf, TVariables> : QueryContext<TSelf>
     {
         /// <summary>
         ///     Gets a collection of variables defined in a with block.
@@ -236,4 +242,6 @@ namespace EdgeDB
         public TVariables Variables
             => default!;
     }
+
+    internal interface IQueryContext { }
 }

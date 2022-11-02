@@ -545,7 +545,7 @@ namespace EdgeDB.QueryNodes
                     var exclusiveCondition = exclusiveProps.Any() ?
                         $" unless conflict on {(exclusiveProps.Count() > 1 ? $"({string.Join(", ", exclusiveProps.Select(x => $".{x.GetEdgeDBPropertyName()}"))})" : $".{exclusiveProps.First().GetEdgeDBPropertyName()}")} else (select {name})"
                         : string.Empty;
-                    return $"(insert {name} {BuildInsertShape(type, value)}{exclusiveCondition})";
+                    return $"(insert {name} {BuildInsertShape(type, value).Build(info)}{exclusiveCondition})";
                 }), value);
             }
         }
