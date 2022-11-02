@@ -72,7 +72,7 @@ namespace EdgeDB
         ///     Adds a <c>SELECT</c> statement selecting the current <typeparamref name="TType"/> with the given shape.
         /// </summary>
         /// <remarks>
-        ///     To define a shape, use <see cref="QueryContext.Include{TType}"/> to include a property. any other 
+        ///     To define a shape, use <see cref="QueryContext{TSelf}.Include{TType}"/> to include a property. any other 
         ///     methods/values will be treated as computed values.
         /// </remarks>
         /// <param name="shape">The shape to select.</param>
@@ -85,7 +85,7 @@ namespace EdgeDB
         ///     Adds a <c>SELECT</c> statement selecting the type <typeparamref name="TNewType"/> with the given shape.
         /// </summary>
         /// <remarks>
-        ///     To define a shape, use <see cref="QueryContext.Include{TType}"/> to include a property. any other 
+        ///     To define a shape, use <see cref="QueryContext{TSelf}.Include{TType}"/> to include a property. any other 
         ///     methods/values will be treated as computed values.
         /// </remarks>
         /// <typeparam name="TNewType">The type to select.</typeparam>

@@ -234,6 +234,7 @@ namespace EdgeDB
     ///     Represents context used within query functions containing a variable type.
     /// </summary>
     /// <typeparam name="TVariables">The type containing the variables defined in the query.</typeparam>
+    /// <typeparam name="TSelf">The current working type of the query.</typeparam>
     public abstract class QueryContext<TSelf, TVariables> : QueryContext<TSelf>
     {
         /// <summary>
