@@ -59,7 +59,7 @@ The `QueryAsync` method always returns a `IReadOnlyCollection<T>`, regardless of
 EdgeDB.Net is a fully asynchronous driver, and as such, all IO operations are performed asynchronously.
 
 ## Examples
-You can view our curated examples [here](https://github.com/quinchs/EdgeDB.Net/tree/dev/examples/EdgeDB.Examples.ExampleApp/Examples). We also have a demo asp.net project you can view [here](https://github.com/quinchs/EdgeDB.Net/tree/dev/examples/EdgeDB.Examples.ExampleTODOApi). You're more than welcome to contribute to the examples!
+You can view our curated examples [here](examples/EdgeDB.Examples.CSharp/Examples). We also have a demo asp.net project you can view [here](examples/EdgeDB.Examples.ExampleTODOApi). You're more than welcome to contribute to the examples!
 
 ## Compiling
 If you want to build the EdgeDB.Net project from source, you will need the [.NET 6 SDK](https://dotnet.microsoft.com/en-us/download).
