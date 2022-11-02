@@ -83,7 +83,7 @@ GitHub Issue or Pull Request, please see our [contribution requirements](CONTRIB
 
 ## Examples
 
-This repository contains a list of [working examples](https://github.com/quinchs/EdgeDB.Net/tree/dev/examples/EdgeDB.Examples.ExampleApp/Examples),
+This repository contains a list of [working examples](examples/EdgeDB.Examples.CSharp/Examples),
 check them out to see EdgeDB.Net in action!
 
 We also have a [demo ASP.NET project](https://github.com/quinchs/EdgeDB.Net/tree/dev/examples/EdgeDB.Examples.ExampleTODOApi).
