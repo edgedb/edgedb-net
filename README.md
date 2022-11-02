@@ -18,8 +18,9 @@
 
 ## Installation
 
-EdgeDB DotNet is distributed through the NuGet package manager; the most recommended way to install 
-it is to use the dotnet command line tool or NuGet package manager in Visual Studio.
+EdgeDB.Net is distributed through the NuGet package manager.
+We recommend using the `dotnet` command or NuGet package manager in Visual
+Studio:
 
 ```bash
 $ dotnet add package EdgeDB.Net.Driver
@@ -27,16 +28,27 @@ $ dotnet add package EdgeDB.Net.Driver
 
 ## Basic usage
 
-### Create a client
-A client is what allows your code to talk with EdgeDB. The `EdgeDBClient` class maintains a pool of connections and provides abstractions for executing queries with ease.
+### Creating a client
+
+Clients are what allow your code to talk and interface with EdgeDB. The
+[`EdgeDBClient`](https://www.edgedb.com/docs/clients/dotnet/api#EdgeDB.EdgeDBClient)
+class contains a pool of connections and numerous abstractions for executing
+queries with ease:
+
 ```cs
 using EdgeDB;
 
 var client = new EdgeDBClient();
 ```
 
-### Configuring the client
-The `EdgeDBClient` automatically determines how to connect to your edgedb database, using [EdgeDB Projects](https://www.edgedb.com/docs/intro/projects). If you want to specify custom connection arguments, you can use the static `EdgeDBConnection.Parse()` method.
+### Client configuration
+
+`EdgeDBClient` will automatically determine how to connect to your EdgeDB
+instance through [EdgeDB Projects](https://www.edgedb.com/docs/intro/projects).
+For specifying custom connection arguments, considering checking out the
+[`EdgeDBConnection`](https://www.edgedb.com/docs/clients/dotnet/connection_parameters#EdgeDBConnection)
+class. Here's an example of using the [`.Parse()`](https://www.edgedb.com/docs/clients/dotnet/connection_parameters#EdgeDBConnection.Parse-string?-string?-Action_EdgeDBConnection_?-bool)
+method:
 
 ```cs
 using EdgeDB;
@@ -45,26 +57,44 @@ var connection = EdgeDBConnection.Parse("edgedb://user:password@localhost:5656/m
 var client = new EdgeDBClient(connection);
 ```
 
-### Querying the database
-```cs
+### Executing queries
 
-var result = await client.QueryAsync<long>("select 2 + 2"); // 4
+**Note**: EdgeDB.Net is a fully asynchronous driver, and as such, all I/O
+operations are performed asynchronously.
+
+----
+
+Queries are executed through the `EdgeDBClient` by using different helper
+methods. Your choice of method is dependent on the kind of query you're making,
+better known as [cardinality](https://www.edgedb.com/docs/clients/dotnet/index#cardinality-and-return-types).
+
+Query helper methods will expect a generic `T` type. It's recommended to use
+the [.NET version of an EdgeDB type](https://www.edgedb.com/docs/clients/dotnet/datatypes#datatypes),
+shown below:
+
+```cs
+var result = await client.QueryAsync<long>("select 2 + 2"); // returns 4
 ```
 
-**Note**
-The `QueryAsync` method always returns a `IReadOnlyCollection<T>`, regardless of actual query cardinality. If you want to explicitly define cardinality when querying, you can use the `QuerySingleAsync` or `QueryRequiredSingle` methods.
+## Contributing
 
-
-**Note**
-EdgeDB.Net is a fully asynchronous driver, and as such, all IO operations are performed asynchronously.
+We openly welcome and accept contributions to EdgeDB.Net! Before writing a
+GitHub Issue or Pull Request, please see our [contribution requirements](CONTRIBUTING.md).
 
 ## Examples
-You can view our curated examples [here](https://github.com/quinchs/EdgeDB.Net/tree/dev/examples/EdgeDB.Examples.ExampleApp/Examples). We also have a demo asp.net project you can view [here](https://github.com/quinchs/EdgeDB.Net/tree/dev/examples/EdgeDB.Examples.ExampleTODOApi). You're more than welcome to contribute to the examples!
+
+This repository contains a list of [working examples](https://github.com/quinchs/EdgeDB.Net/tree/dev/examples/EdgeDB.Examples.ExampleApp/Examples),
+check them out to see EdgeDB.Net in action!
+
+We also have a [demo ASP.NET project](https://github.com/quinchs/EdgeDB.Net/tree/dev/examples/EdgeDB.Examples.ExampleTODOApi).
 
 ## Compiling
-If you want to build the EdgeDB.Net project from source, you will need the [.NET 6 SDK](https://dotnet.microsoft.com/en-us/download).
+
+If you're building EdgeDB.Net from its source, you will need to download the
+[.NET 6 SDK](https://dotnet.microsoft.com/en-us/download).
   
-Once you have the SDK installed you can run the dotnet build command in the root directory of the project:
+Once you have the SDK installed, you can then run `dotnet` in the root
+directory of the project:
 
 ```bash
 $ dotnet build
@@ -72,7 +102,7 @@ $ dotnet build
 
 ## Testing
 
-You can run the test suite by using the dotnet test command like so:
+You can run the test suite by using `dotnet` like so:
 
 ```bash
 $ dotnet test
