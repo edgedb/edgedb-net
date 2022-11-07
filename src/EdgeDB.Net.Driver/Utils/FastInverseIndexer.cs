@@ -18,7 +18,7 @@ namespace EdgeDB
             _bits = count;
 
             // create a span with 'count' bits
-            // since we're dividing by 8, we can shift the number by 3 and then add one if the frist 3 bits are not zero
+            // since we're dividing by 8, we can shift the number by 3 and then add one if the first 3 bits are not zero
             var c = count + 0b111;
             var t = (count >> 3) + ((count | c) >> 3);
             _buffer = new byte[t];
