@@ -116,6 +116,12 @@ namespace EdgeDB.CLI
             public string? EdgeQLHash { get; set; }
 
             /// <summary>
+            ///     Gets or sets whether or not this is a
+            ///     create operation; else is a update operation.
+            /// </summary>
+            public bool WasCreated { get; set; }
+
+            /// <summary>
             ///     Checks if the target file exists and the header matches the hash of the edgeql.
             /// </summary>
             /// <returns></returns>

@@ -52,7 +52,7 @@ public class Generate : ConnectionArguments, ICommand
         var connection = GetConnection();
 
         // create the client
-        var client = new EdgeDBTcpClient(connection, new(), ClientPoolHolder.Empty);
+        var client = new EdgeDBTcpClient(connection, new() { Logger = logger.CreateClientLogger() }, ClientPoolHolder.Empty);
 
         logger.Information("Connecting to {@Host}:{@Port}...", connection.Hostname, connection.Port);
         await client.ConnectAsync();

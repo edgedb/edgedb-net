@@ -686,10 +686,16 @@ namespace EdgeDB
         /// <inheritdoc/>
         public override async ValueTask ConnectAsync(CancellationToken token = default)
         {
+            if (IsConnected)
+                return;
+
             await _connectSemaphone.WaitAsync(token);
 
             try
             {
+                if (IsConnected)
+                    return;
+
                 _authCompleteSource = new();
 
                 await ConnectInternalAsync(token: token);

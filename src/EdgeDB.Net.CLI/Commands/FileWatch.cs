@@ -48,9 +48,10 @@ public class FileWatch : ConnectionArguments, ICommand
     public string GeneratedProjectName { get; set; } = "EdgeDB.Generated";
 
     private readonly FileSystemWatcher _watcher = new();
-    private EdgeDBTcpClient? _client;
+    private readonly Dictionary<string, string> _latestGenerations = new();
     private readonly SemaphoreSlim _mutex = new(1, 1);
     private readonly ConcurrentStack<EdgeQLParser.GenerationTargetInfo> _writeQueue = new();
+    private EdgeDBTcpClient? _client;
     private TaskCompletionSource _writeDispatcher = new();
     private string? _watchDirectory;
     private ILogger? _logger;
@@ -61,7 +62,7 @@ public class FileWatch : ConnectionArguments, ICommand
 
         var connection = GetConnection();
 
-        _client = new(connection, new(), ClientPoolHolder.Empty);
+        _client = new(connection, new() { Logger = logger.CreateClientLogger() }, ClientPoolHolder.Empty);
 
         _watchDirectory = Directory ?? (ProjectUtils.TryGetProjectRoot(out var root) ? root : Environment.CurrentDirectory);
         OutputDirectory ??= Path.Combine(Environment.CurrentDirectory, GeneratedProjectName);
@@ -127,13 +128,21 @@ public class FileWatch : ConnectionArguments, ICommand
 
         while (true)
         {
+            _logger!.Debug("Waiting for dispatch");
             await _writeDispatcher.Task;
 
             while (_writeQueue.TryPop(out var info))
             {
-                await GenerateAsync(info);
+                if(_latestGenerations.TryGetValue(info.EdgeQLFilePath!, out var hash) && hash == info.EdgeQLHash)
+                    _logger.Information("Skipping {@file}: already at latest generation ({@hash})", info.EdgeQLFilePath, info.EdgeQLHash[..7]);
+                else
+                {
+                    await GenerateAsync(info);
+                    _latestGenerations[info.EdgeQLFilePath!] = info.EdgeQLHash!;
+                }
             }
 
+            _logger!.Debug("Reseting dispatcher...");
             _writeDispatcher = new();
         }
     }
@@ -145,18 +154,26 @@ public class FileWatch : ConnectionArguments, ICommand
     {
         await _mutex.WaitAsync().ConfigureAwait(false);
 
+        _logger!.Debug("Entering generation step for {@file}. Hash: {@hash}", info.EdgeQLFilePath, info.EdgeQLHash);
         try
         {
             // check if the file is a valid file
             if (!IsValidFile(info.EdgeQLFilePath!))
+            {
+                _logger.Information("Skipping {@file}: invalid target", info.EdgeQLFilePath);
+
                 return;
+            }
 
             await _client!.ConnectAsync();
 
             try
             {
+                _logger.Debug("Parsing {@file}...", info.EdgeQLFilePath);
                 var result = await EdgeQLParser.ParseAndGenerateAsync(_client, GeneratedProjectName!, info);
+                _logger.Debug("Completed parse of {@file} -> {@target}", info.EdgeQLFilePath, info.TargetFilePath);
                 File.WriteAllText(info.TargetFilePath!, result.Code);
+                _logger!.Information($"{(info.WasCreated ? "Created" : "Updated")} {{@info}}", info.TargetFilePath);
             }
             catch (EdgeDBErrorException err)
             {
@@ -187,10 +204,17 @@ public class FileWatch : ConnectionArguments, ICommand
         if (info.IsGeneratedTargetExistsAndIsUpToDate())
             return;
 
-        _writeQueue.Push(info);
-        _writeDispatcher.TrySetResult();
+        info.WasCreated = created;
 
-        _logger!.Information($"{(created ? "Created" : "Updated")} {{@info}}", info.TargetFilePath);
+        _logger!.Debug("Dispatching write task for {@file}", e.FullPath);
+        _writeQueue.Push(info);
+        var dispatchResult = _writeDispatcher.TrySetResult();
+        _logger!.Debug("Dispatch result: {@r}", dispatchResult);
+
+        if (!dispatchResult)
+        {
+            _logger!.Error("Failed to dispatch file change");
+        }
     }
 
     private void _watcher_Deleted(object sender, FileSystemEventArgs e)
