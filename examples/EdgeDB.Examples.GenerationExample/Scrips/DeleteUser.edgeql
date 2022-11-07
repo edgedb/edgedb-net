@@ -1,1 +1,2 @@
-delete Person filter .email = <str>$email
+DELETE Person 
+FILTER .email = <str>$email

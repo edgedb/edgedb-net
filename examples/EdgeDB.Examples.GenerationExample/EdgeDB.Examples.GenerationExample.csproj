@@ -16,5 +16,4 @@
   <ItemGroup>
     <ProjectReference Include="EdgeDB.Generated\EdgeDB.Generated.csproj" />
   </ItemGroup>
-
 </Project>

@@ -282,7 +282,10 @@ namespace EdgeDB
             CancellationToken token)
         {
             ErrorResponse? error = null;
-            
+            Cardinality? trueCardinality = null;
+            Capabilities? trueCapabilities = null;
+
+
             var cacheKey = CodecBuilder.GetCacheHashKey(query, cardinality, format);
 
             var serializedState = Session.Serialize();
@@ -305,6 +308,9 @@ namespace EdgeDB
                                     CodecBuilder.BuildCodec(descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer));
 
                                 CodecBuilder.UpdateKeyMap(cacheKey, descriptor.InputTypeDescriptorId, descriptor.OutputTypeDescriptorId);
+
+                                trueCardinality = descriptor.Cardinality;
+                                trueCapabilities = descriptor.Capabilities;
                             }
                             break;
                         case StateDataDescription stateDescriptor:
@@ -349,7 +355,7 @@ namespace EdgeDB
                     throw new MissingCodecException("Couldn't find a valid input codec");
             }
 
-            return new ParseResult(inCodecInfo, outCodecInfo, serializedState, cardinality, capabilities ?? Capabilities.ReadOnly);
+            return new ParseResult(inCodecInfo, outCodecInfo, serializedState, trueCardinality ?? cardinality, trueCapabilities ?? capabilities ?? Capabilities.ReadOnly);
         }
 
         /// <inheritdoc/>

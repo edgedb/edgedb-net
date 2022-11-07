@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj" />
+    <PackageReference Include="EdgeDB.Net.Driver" Version="1.0.1" />
   </ItemGroup>
 
 </Project>

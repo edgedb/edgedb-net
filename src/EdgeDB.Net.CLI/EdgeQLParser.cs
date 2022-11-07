@@ -185,6 +185,26 @@ namespace EdgeDB.CLI
             writer.AppendLine($"// Generated on {DateTime.UtcNow:O}");
             writer.AppendLine("#nullable enable");
             writer.AppendLine($"using EdgeDB;");
+
+            IEnumerable<string> GetNamespaces(CodecTypeInfo typeInfo)
+            {
+                if (typeInfo.Namespace is not null)
+                    yield return typeInfo.Namespace;
+
+                if(typeInfo.Children is not null && typeInfo.Children.Any())
+                {
+                    foreach (var ns in typeInfo.Children.SelectMany(x => GetNamespaces(x)))
+                        yield return ns;
+                }
+
+            }
+
+            foreach(var ns in GetNamespaces(codecType).Distinct())
+            {
+                writer.AppendLine($"using {ns};");
+            }
+
+
             writer.AppendLine();
             writer.AppendLine($"namespace {@namespace};");
             writer.AppendLine();
@@ -451,9 +471,11 @@ namespace EdgeDB.CLI
                     break;
                 case ICodec scalar when ReflectionUtils.IsSubclassOfInterfaceGeneric(typeof(IScalarCodec<>), codec!.GetType()):
                     {
+                        var scalarTarget = codec.GetType().GetInterface("IScalarCodec`1")!.GetGenericArguments()[0];
                         info = new CodecTypeInfo
                         {
-                            TypeName = $"{codec.GetType().GetInterface("IScalarCodec`1")!.GetGenericArguments()[0].Name}{(codec.GetType().GetInterface("IScalarCodec`1")!.GetGenericArguments()[0].IsValueType ? "" : "?")}",
+                            Namespace = scalarTarget.Namespace,
+                            TypeName = $"{scalarTarget.ToFormattedString()}{(scalarTarget.IsValueType ? "" : "?")}",
                         };
                     }
                     break;
@@ -503,6 +525,15 @@ namespace EdgeDB.CLI
             ///     codec serializes/deserializes.
             /// </summary>
             public string? TypeName { get; set; }
+
+            /// <summary>
+            ///     Gets or sets the namespace of the given type info.
+            /// </summary>
+            /// <remarks>
+            ///     This property is always <see langword="null"/> when the type info is not
+            ///     representing a scalar type.
+            /// </remarks>
+            public string? Namespace { get; set; }
 
             /// <summary>
             ///     Gets or sets the child <see cref="CodecTypeInfo"/>s for this parent <see cref="CodecTypeInfo"/>.

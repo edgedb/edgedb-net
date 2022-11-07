@@ -1,4 +1,4 @@
-select Person {
+SELECT Person {
 	name, email
 }
-filter .email = <str>$email
+FILTER .email = <str>$email
