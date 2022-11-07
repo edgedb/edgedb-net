@@ -1,0 +1,1 @@
+update Person filter .id = <uuid>$id set { name := <str>$name, email := <str>$email }

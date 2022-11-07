@@ -1,0 +1,1 @@
+delete Person filter .email = <str>$email
