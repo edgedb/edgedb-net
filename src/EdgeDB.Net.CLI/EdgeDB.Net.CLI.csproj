@@ -8,7 +8,7 @@
     <AssemblyName>EdgeDB.Net.CLI</AssemblyName>
     <RootNamespace>EdgeDB</RootNamespace>
     <Description>A CLI tool to generate C# files from edgeql files</Description>
-    <ToolCommandName>edgeql</ToolCommandName>
+    <ToolCommandName>edgeql-net</ToolCommandName>
     <PackAsTool>true</PackAsTool>
   </PropertyGroup>
 

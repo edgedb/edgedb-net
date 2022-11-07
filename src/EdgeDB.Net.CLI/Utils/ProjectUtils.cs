@@ -1,9 +1,12 @@
 ﻿using CliWrap;
+using EdgeDB.Utils;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -14,6 +17,17 @@ namespace EdgeDB.CLI.Utils
     /// </summary>
     internal static class ProjectUtils
     {
+        public static string EdgeQLNetDataDir
+            => Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create),
+                "edgeql-net"
+            );
+
+        static ProjectUtils()
+        {
+            Directory.CreateDirectory(EdgeQLNetDataDir);
+        }
+
         /// <summary>
         ///     Gets the edgedb project root from the current directory.
         /// </summary>
@@ -35,6 +49,21 @@ namespace EdgeDB.CLI.Utils
             return directory;
         }
 
+        public static bool TryGetProjectRoot([MaybeNullWhen(false)] out string root)
+        {
+            root = null;
+
+            try
+            {
+                root = GetProjectRoot();
+                return true;
+            }
+            catch (FileNotFoundException)
+            {
+                return false;
+            }
+        }
+
         /// <summary>
         ///     Starts a watcher process.
         /// </summary>
@@ -43,7 +72,7 @@ namespace EdgeDB.CLI.Utils
         /// <param name="outputDir">The output directory for files the watcher generates to place.</param>
         /// <param name="namespace">The namespace for generated files.</param>
         /// <returns>The started watcher process id.</returns>
-        public static int StartWatchProcess(EdgeDBConnection connection, string root, string outputDir, string @namespace)
+        public static int StartBackgroundWatchProcess(EdgeDBConnection connection, string root, string outputDir, string @namespace)
         {
             var current = Process.GetCurrentProcess();
             var connString = JsonConvert.SerializeObject(connection).Replace("\"", "\\\"");
@@ -51,15 +80,17 @@ namespace EdgeDB.CLI.Utils
             return Process.Start(new ProcessStartInfo
             {
                 FileName = current.MainModule!.FileName,
-                Arguments = $"file-watch-internal --connection \"{connString}\" --dir {root} --output \"{outputDir}\" --namespace \"{@namespace}\"",
-                UseShellExecute = true,
+                Arguments = $"watch --raw-connection \"{connString}\" -t \"{root}\" -o \"{outputDir}\" -n \"{@namespace}\"",
+                UseShellExecute = false,
                 CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
                 WindowStyle = ProcessWindowStyle.Hidden
             })!.Id;
         }
 
         /// <summary>
-        ///     Gets the watcher process for the provided root directory.
+        ///     Gets the watcher process for the provided root directory and/or its parents.
         /// </summary>
         /// <param name="root">The project root.</param>
         /// <returns>
@@ -67,14 +98,20 @@ namespace EdgeDB.CLI.Utils
         /// </returns>
         public static Process? GetWatcherProcess(string root)
         {
-            var file = Path.Combine(root, "edgeql.dotnet.watcher.process");
-            if (File.Exists(file) && int.TryParse(File.ReadAllText(file), out var id))
+            string? path = root;
+            Process? proc = null;
+            while(path is not null)
             {
-                try
+                var target = GetWatcherProcessTargetPath(path);
+                if (File.Exists(target))
                 {
-                    return Process.GetProcesses().FirstOrDefault(x => x.Id == id);
+                    var rawPid = File.ReadAllText(target);
+
+                    if (int.TryParse(rawPid, out var pid) && (proc = Process.GetProcesses().FirstOrDefault(x => x.Id == pid)) is not null)
+                        return proc;
                 }
-                catch { return null; }
+
+                path = Directory.GetParent(path)?.FullName;
             }
 
             return null;
@@ -88,20 +125,19 @@ namespace EdgeDB.CLI.Utils
         {
             var id = Environment.ProcessId;
 
-            File.WriteAllText(Path.Combine(root, "edgeql.dotnet.watcher.process"), $"{id}");
+            if(GetWatcherProcess(root) is not null)
+                throw new ArgumentException("Watch directory already has a watcher", nameof(root));
 
-            // add to gitignore if its here
-            var gitignore = Path.Combine(root, ".gitignore");
-            if (File.Exists(gitignore))
-            {
-                var contents = File.ReadAllText(gitignore);
-                
-                if(!contents.Contains("edgeql.dotnet.watcher.process"))
-                {
-                    contents += $"{Environment.NewLine}# EdgeDB.Net CLI watcher info file{Environment.NewLine}edgeql.dotnet.watcher.process";
-                    File.WriteAllText(gitignore, contents);
-                }
-            }
+            File.WriteAllText(GetWatcherProcessTargetPath(root), id.ToString());
+        }
+
+        private static string GetWatcherProcessTargetPath(string root)
+        {
+            using var hash = SHA256.Create();
+
+            var name = HexConverter.ToHex(hash.ComputeHash(Encoding.UTF8.GetBytes(root)));
+
+            return Path.Combine(EdgeQLNetDataDir, name);
         }
 
         /// <summary>
@@ -147,6 +183,6 @@ namespace EdgeDB.CLI.Utils
         ///     An <see cref="IEnumerable{T}"/> that enumerates a collection of files ending in .edgeql.
         /// </returns>
         public static IEnumerable<string> GetTargetEdgeQLFiles(string root)
-            => Directory.GetFiles(root, "*.edgeql", SearchOption.AllDirectories).Where(x => !x.StartsWith(Path.Combine(root, "dbschema", "migrations")));
+            => Directory.GetFiles(root, "*.edgeql", SearchOption.AllDirectories).Where(x => !x.Contains(Path.Combine("dbschema", "migrations")));
     }
 }

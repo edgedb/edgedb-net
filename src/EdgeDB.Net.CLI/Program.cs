@@ -20,7 +20,17 @@ var parser = new Parser(x =>
 });
 
 // parse the 'args'.
-var result = parser.ParseArguments(args, commands.ToArray());
+ParserResult<object> result;
+
+try
+{
+    result = parser.ParseArguments(args, commands.ToArray());
+}
+catch (Exception x)
+{
+    Log.Logger.Error(x, "Failed to parse args: {@arg}", args);
+    return;
+}
 
 try
 {

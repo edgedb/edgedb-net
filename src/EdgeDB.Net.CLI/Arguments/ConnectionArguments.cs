@@ -44,8 +44,14 @@ namespace EdgeDB.CLI.Arguments
         [Option("tls-security", HelpText = "Specify the client-side TLS security mode.")]
         public TLSSecurityMode? TLSSecurity { get; set; }
 
+        [Option("raw-connection", Hidden = true)]
+        public string? ConnectionJson { get; set; }
+
         public EdgeDBConnection GetConnection()
         {
+            if (ConnectionJson is not null)
+                return JsonConvert.DeserializeObject<EdgeDBConnection>(ConnectionJson) ?? throw new Exception("Cannot decode connection args");
+
             if (DSN is not null)
                 return EdgeDBConnection.FromDSN(DSN);
 

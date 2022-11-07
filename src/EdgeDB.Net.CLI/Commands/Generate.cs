@@ -42,7 +42,7 @@ public class Generate : ConnectionArguments, ICommand
     /// <summary>
     ///     Gets or sets whether or not to start a watch process post-generate.
     /// </summary>
-    [Option("watch", HelpText = "Listens for any changes or new edgeql files and (re)generates them automatically")]
+    [Option('w', "watch", HelpText = "Listens for any changes or new edgeql files and (re)generates them automatically")]
     public bool Watch { get; set; }
 
     /// <inheritdoc/>
@@ -131,7 +131,7 @@ public class Generate : ConnectionArguments, ICommand
             }
 
             logger.Information("Starting file watcher...");
-            var pid = ProjectUtils.StartWatchProcess(connection, projectRoot, OutputDirectory, GeneratedProjectName);
+            var pid = ProjectUtils.StartBackgroundWatchProcess(connection, projectRoot, OutputDirectory, GeneratedProjectName);
             logger.Information("File watcher process started, PID: {@PID}", pid);
         }
     }
