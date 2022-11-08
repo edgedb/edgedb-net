@@ -29,19 +29,56 @@ namespace EdgeDB.TypeConverters
         /// <returns>An instance of <typeparamref name="TTarget"/>; or <see langword="default"/>.</returns>
         public abstract TTarget? ConvertTo(TSource? value);
 
+        /// <inheritdoc/>
+        public virtual bool CanConvert(Type from, Type to)
+            => from == typeof(TSource) && to == typeof(TTarget);
+
         object? IEdgeDBTypeConverter.ConvertFrom(object? value)
             => ConvertFrom((TTarget?)value);
         object? IEdgeDBTypeConverter.ConvertTo(object? value)
             => ConvertTo((TSource?)value);
-        bool IEdgeDBTypeConverter.CanConvert(System.Type from, System.Type to)
-            => from == typeof(TSource) && to == typeof(TTarget);
+        
+        Type IEdgeDBTypeConverter.Source => typeof(TSource);
+        Type IEdgeDBTypeConverter.Target => typeof(TTarget);
     }
 
-    internal interface IEdgeDBTypeConverter
+    /// <summary>
+    ///     Represents a custom type converter capable of converting
+    ///     one type to another.
+    /// </summary>
+    public interface IEdgeDBTypeConverter
     {
+        /// <summary>
+        ///     Converts the given target value to the source value.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
         object? ConvertFrom(object? value);
+
+        /// <summary>
+        ///     Converts the given source value to a the target value.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
         object? ConvertTo(object? value);
 
+        /// <summary>
+        ///     Checks if the type builder can convert one type to another.
+        /// </summary>
+        /// <param name="from">The source type.</param>
+        /// <param name="to">The target type.</param>
+        /// <returns>
+        ///     <see langword="true"/> if the source type can be converted to the target type;
+        ///     otherwise <see langword="false"/>.
+        /// </returns>
         bool CanConvert(Type from, Type to);
+
+        /// <summary>
+        ///     Gets the source type of the converter.
+        /// </summary>
+        Type Source { get; }
+
+        /// <summary>
+        ///     Gets the target type of the converter.
+        /// </summary>
+        Type Target { get; }
     }
 }

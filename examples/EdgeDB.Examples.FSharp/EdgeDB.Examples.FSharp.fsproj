@@ -6,9 +6,24 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="IExample.fs" />
+    <Compile Include="ExampleRunner.fs" />
+    <Compile Include="Examples\AbstractTypes.fs" />
+    <Compile Include="Examples\BasicQueryFunctions.fs" />
+    <Compile Include="Examples\CancelQueries.fs" />
+    <Compile Include="Examples\CustomDeserializer.fs" />
+    <Compile Include="Examples\CustomTypeConverters.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
+    <PackageReference Include="Serilog" Version="2.11.0" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="4.2.0" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="3.1.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="4.0.1" />
+  </ItemGroup>
+    
   <ItemGroup>
     <ProjectReference Include="..\..\src\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj" />
   </ItemGroup>

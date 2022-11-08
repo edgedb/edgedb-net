@@ -144,7 +144,7 @@ namespace EdgeDB.Binary
             {
                 var buff = numRead == 0
                     ? buffer
-                    : buffer[numRead..(targetLength - numRead)];
+                    : buffer[numRead..];
 
                 var read = await _stream!.ReadAsync(buff, token);
 
@@ -156,26 +156,7 @@ namespace EdgeDB.Binary
 
             return numRead;
         }
-
-        private unsafe int ReadIntoHandle(int length, int offset, ref MemoryHandle handle)
-        {
-            if (_stream == null)
-                return 0;
-
-            int read = offset;
-            byte* ptr = ((byte*)handle.Pointer) + offset;
-            while (read < length)
-            {
-                // should be no allocations with this span as we're giving it a pointer
-                var span = new Span<byte>(ptr, length - read);
-                var count = _stream.Read(span);
-                ptr += count;
-                read += count;
-            }
-
-            return read;
-        }
-
+        
         public async Task<IReceiveable> DuplexAsync(Predicate<IReceiveable>? predicate = null, bool alwaysReturnError = true, CancellationToken token = default, params Sendable[] packets)
         {
             var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectTokenSource.Token);

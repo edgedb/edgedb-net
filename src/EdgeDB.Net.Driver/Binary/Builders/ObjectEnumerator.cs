@@ -15,10 +15,12 @@ namespace EdgeDB
     /// </summary>
     public ref struct ObjectEnumerator
     {
+        internal static readonly Type RefType = typeof(ObjectEnumerator).MakeByRefType();
+
         public int Length => _names.Length;
         internal PacketReader Reader;
         internal readonly ICodec[] Codecs;
-        private readonly TypeDeserializeInfo? _deserializerInfo;
+        private readonly EdgeDBTypeDeserializeInfo? _deserializerInfo;
         private readonly string[] _names;
         private readonly int _numElements;
         private int _pos;
@@ -28,7 +30,7 @@ namespace EdgeDB
             int position,
             string[] names,
             ICodec[] codecs,
-            TypeDeserializeInfo? deserializerInfo)
+            EdgeDBTypeDeserializeInfo? deserializerInfo)
         {
             Reader = new PacketReader(ref data, position);
             Codecs = codecs;
@@ -43,7 +45,7 @@ namespace EdgeDB
         ///     Converts this <see cref="ObjectEnumerator"/> to a <see langword="dynamic"/> object.
         /// </summary>
         /// <returns>A <see langword="dynamic"/> object.</returns>
-        public object? ToDynamic()
+        public dynamic? ToDynamic()
         {
             var data = new ExpandoObject();
 
@@ -88,6 +90,14 @@ namespace EdgeDB
             value = Codecs[idx].Deserialize(ref codecReader);
             return true;
         }
+        
+        /// <summary>
+        ///     Flattens this <see cref="ObjectEnumerator"/> into a dictionary with keys being property
+        ///     names.
+        /// </summary>
+        /// <returns>A <see cref="Dictionary{TKey, TValue}"/> representing the objects properties.</returns>
+        public IDictionary<string, object?>? Flatten()
+            => (IDictionary<string, object?>?)ToDynamic();
 
         /// <summary>
         ///     Reads the next property within this enumerator.

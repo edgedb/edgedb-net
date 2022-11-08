@@ -119,24 +119,24 @@ attribute on a class instead for specification.
 
   .. code-tab:: fsharp
 
-    type Content = {
-      Title: string
-    }
-
     type Movie = {
-      inherit Content
-      ReleaseYear: int64
+        ReleaseYear: int;
+        Title: string;
     }
-
+    
     type TVShow = {
-      inherit Content
-      Seasons: int64
+        Seasons: int64;
+        Title: string;
     }
+    
+    type Content =
+        | Movie of Movie
+        | Show of Show
 
-    let content = client.QueryAsync<Content>("SELECT Content")
+    let! content = client.QueryAsync<Content>("SELECT Content")
 
-    let shows = content.Where(fun x -> x :? TVShow).Cast<TVShow>()
-    let movies = content.Where(fun x -> x :? Movie).Cast<Movie>()
+    let movies = content.Where(fun x -> match x with Movie -> true | _ -> false)
+    let shows = content.Where(fun x -> match x with TVShow -> true | _ -> false)
 
 .. _edgedb-dotnet-custom-deserialization:
 
@@ -195,24 +195,25 @@ values.
 
   .. code-tab:: fsharp
 
-    type Person(name : string, email : string) =
-      class
-      member this.Name with get() = name
-      member this.Email with get() = email
+    type Person() =
+        let mutable name = ""
+        let mutable email = ""
+        member this.Name with get() = name and set(v) = name <- v
+        member this.Email with get() = email and set(v) = email <- v
 
-      // constructor
-      [<EdgeDBDeserializer()>]
-      new(data: IDictionary<string, obj>) =
-        let name = (string)data["name"]
-        let email = (string)data["email"]
-        Person(name,email)
-      end
+        // constructor
+        [<EdgeDBDeserializer()>]
+        new(raw: IDictionary<string, obj>) as this =
+            PersonConstructor()
+            then
+                this.Name <- raw.["name"] :?> string
+                this.Email <- raw.["email"] :?> string
 
-      // method
-      [<EdgeDBDeserializer()>]
-      member this.Deserialize(data : IDictionary<string, obj>) =
-        this.Name <- string data["name"]
-        this.Email <- string data["email"]
+        // method
+        [<EdgeDBDeserializer()>]
+        member this.Deserialize(raw: IDictionary<string, obj>) =
+            this.Name <- raw.["name"] :?> string
+            this.Email <- raw.["email"] :?> string
 
 .. note:: 
 
@@ -258,17 +259,20 @@ instance.
 
   .. code-tab:: fsharp
 
-    type Person(name: string, age: int32) =
-      member this.Name with get() = name
-      member this.Age with get() = age
+    type Person() =
+        member val Name = String.Empty with get, set
+        member val Age = 0 with get, set
 
     TypeBuilder.AddOrUpdateTypeBuilder<Person>(fun person data -> 
-      person.Name <- string data["name"]
-      person.Age <- data["age"] :?> int32
+        person.Name <- data.["name"] :?> string
+        person.Email <- data.["age"] :?> int
     )
 
     TypeBuilder.AddOrUpdateTypeFactory<Person>(fun (ref ObjectEnumerator enumerator) ->
-      let data = enumerator.ToDynamic()
+        let data = enumerator.ToDynamic()
 
-      Person(string data["name"], data["age"] :?> int32)
+        let person = new Person()
+
+        person.Name <- data.["name"] :?> string
+        person.Email <- data.["age"] :?> int
     )

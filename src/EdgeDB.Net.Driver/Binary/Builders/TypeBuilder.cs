@@ -34,7 +34,8 @@ namespace EdgeDB
         /// </remarks>
         public static INamingStrategy SchemaNamingStrategy { get; set; }
         
-        internal readonly static ConcurrentDictionary<Type, TypeDeserializeInfo> TypeInfo = new();
+        internal readonly static ConcurrentDictionary<Type, EdgeDBTypeDeserializeInfo> TypeInfo = new();
+        internal readonly static ConcurrentDictionary<Type, IEdgeDBTypeConverter> TypeConverters = new();
         internal static readonly INamingStrategy AttributeNamingStrategy;
         internal static event OnObjectCreated? OnObjectCreated;
         
@@ -56,12 +57,12 @@ namespace EdgeDB
         public static void AddOrUpdateTypeBuilder<TType>(
             Action<TType, IDictionary<string, object?>> builder)
         {
+            if(!EdgeDBTypeConstructorInfo.TryGetConstructorInfo(typeof(TType), out var ctorInfo) || ctorInfo.EmptyConstructor is null)
+                throw new TargetInvocationException($"Cannot create an instance of {typeof(TType).Name}: no empty constructor found", null);
+
             object Factory(ref ObjectEnumerator enumerator)
             {
-                var instance = Activator.CreateInstance<TType>();
-
-                if (instance is null)
-                    throw new TargetInvocationException($"Cannot create an instance of {typeof(TType).Name}", null);
+                var instance = (TType)ctorInfo.EmptyConstructor.Invoke(Array.Empty<object>());
 
                 var dynamicData = enumerator.ToDynamic();
 
@@ -70,12 +71,26 @@ namespace EdgeDB
                 return instance;
             }
 
-            var inst = new TypeDeserializeInfo(typeof(TType), Factory);
+            var inst = new EdgeDBTypeDeserializeInfo(typeof(TType), Factory);
 
             TypeInfo.AddOrUpdate(typeof(TType), inst, (_, _) => inst);
 
             if (!TypeInfo.ContainsKey(typeof(TType)))
                 ScanAssemblyForTypes(typeof(TType).Assembly);
+        }
+
+        /// <summary>
+        ///     Adds or updates a custom <see cref="EdgeDBTypeConverter{TSource, TTarget}"/>
+        /// </summary>
+        /// <typeparam name="TConverter">The type converter to add.</typeparam>
+        /// <returns/>
+        /// <inheritdoc cref="Activator.CreateInstance(Type)"/>
+        public static void AddOrUpdateTypeConverter<TConverter>()
+            where TConverter : IEdgeDBTypeConverter
+        {
+            var instance = (IEdgeDBTypeConverter)Activator.CreateInstance(typeof(TConverter))!;
+
+            TypeConverters.AddOrUpdate(instance.Source, instance, (_, _) => instance);
         }
 
         /// <summary>
@@ -118,9 +133,9 @@ namespace EdgeDB
             if (!IsValidObjectType(type))
                 throw new InvalidOperationException($"Cannot deserialize data to {type.Name}");
             
-            if (!TypeInfo.TryGetValue(type, out TypeDeserializeInfo? info))
+            if (!TypeInfo.TryGetValue(type, out EdgeDBTypeDeserializeInfo? info))
             {
-                info = TypeInfo.AddOrUpdate(type, new TypeDeserializeInfo(type), (_, v) => v);
+                info = TypeInfo.AddOrUpdate(type, new EdgeDBTypeDeserializeInfo(type), (_, v) => v);
                 ScanAssemblyForTypes(type.Assembly);
             }
 
@@ -137,7 +152,7 @@ namespace EdgeDB
 
             if (!TypeInfo.TryGetValue(type, out var info))
             {
-                info = TypeInfo.AddOrUpdate(type, new TypeDeserializeInfo(type), (_, v) => v);
+                info = TypeInfo.AddOrUpdate(type, new EdgeDBTypeDeserializeInfo(type), (_, v) => v);
                 ScanAssemblyForTypes(type.Assembly);
             }
 
@@ -149,15 +164,14 @@ namespace EdgeDB
             // check if we know already how to build this type
             if (TypeInfo.ContainsKey(type))
                 return true;
-
-            // check constructor for builder
-            var validConstructor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, Type.EmptyTypes) != null ||
-                                   type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, type.GetProperties().Select(x => x.PropertyType).ToArray()) != null ||
-                                   type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, new Type[] { typeof(IDictionary<string, object?>) })
-                                       ?.GetCustomAttribute<EdgeDBDeserializerAttribute>() != null;
-
-            // allow abstract & record passthru
-            return type.IsAssignableTo(typeof(ITuple)) || type.IsAbstract || type.IsRecord() || (type.IsClass || type.IsValueType) && validConstructor;
+            
+            return
+                type == typeof(object) || 
+                type.IsAssignableTo(typeof(ITuple)) ||
+                type.IsAbstract ||
+                type.IsRecord() ||
+                (type.IsClass || type.IsValueType)
+                && EdgeDBTypeConstructorInfo.TryGetConstructorInfo(type, out _);
         }
 
         internal static bool TryGetCollectionParser(Type type, out Func<Array, Type, object>? builder)
@@ -218,7 +232,7 @@ namespace EdgeDB
                 // register them with the default builder
                 foreach (var type in types)
                 {
-                    var info = new TypeDeserializeInfo(type);
+                    var info = new EdgeDBTypeDeserializeInfo(type);
                     TypeInfo.TryAdd(type, info);
                     foreach (var parentType in TypeInfo.Where(x => (x.Key.IsInterface || x.Key.IsAbstract) && x.Key != type && type.IsAssignableTo(x.Key)))
                         parentType.Value.AddOrUpdateChildren(info);
@@ -240,7 +254,7 @@ namespace EdgeDB
             foreach (var abstractType in TypeInfo.Where(x => x.Value.IsAbtractType))
             {
                 var childTypes = assembly.DefinedTypes.Where(x => (x.IsSubclassOf(abstractType.Key) || x.ImplementedInterfaces.Contains(abstractType.Key) || x.IsAssignableTo(abstractType.Key)));
-                abstractType.Value.AddOrUpdateChildren(childTypes.Select(x => new TypeDeserializeInfo(x)));
+                abstractType.Value.AddOrUpdateChildren(childTypes.Select(x => new EdgeDBTypeDeserializeInfo(x)));
             }
         }
         #endregion
@@ -260,332 +274,5 @@ namespace EdgeDB
     /// </returns>
     public delegate object? TypeDeserializerFactory(ref ObjectEnumerator enumerator);
 
-    internal sealed class TypeDeserializeInfo
-    {
-        public string EdgeDBTypeName { get; }
-
-        public bool IsAbtractType
-            => _type.IsAbstract || _type.IsInterface;
-
-        public TypeDeserializerFactory Factory => _factory;
-
-        public Dictionary<Type, TypeDeserializeInfo> Children { get; } = new();
-        
-        private readonly Type _type;
-        private EdgeDBPropertyInfo[]? _properties;
-        private Dictionary<EdgeDBPropertyInfo, int>? _propertyIndexTable;
-        private TypeDeserializerFactory _factory;
-        internal readonly Dictionary<string, EdgeDBPropertyInfo> PropertyMap;
-        private readonly ObjectActivator? _typeActivator;
-        
-        public TypeDeserializeInfo(Type type)
-        {
-            _type = type;
-            _typeActivator = CreateActivator();
-            PropertyMap = GetPropertyMap(type);
-            _factory = CreateDefaultFactory();
-            EdgeDBTypeName = _type.GetCustomAttribute<EdgeDBTypeAttribute>()?.Name ?? _type.Name;
-        }
-
-        public TypeDeserializeInfo(Type type, TypeDeserializerFactory factory)
-        {
-            _type = type;
-            _typeActivator = CreateActivator();
-            _factory = factory;
-            PropertyMap = GetPropertyMap(type);
-            EdgeDBTypeName = _type.GetCustomAttribute<EdgeDBTypeAttribute>()?.Name ?? _type.Name;
-        }
-
-        private ObjectActivator? CreateActivator()
-        {
-            if (IsAbtractType)
-                return null;
-
-            // get an empty constructor
-            var ctor = _type.GetConstructor(Type.EmptyTypes) ?? _type.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, Type.EmptyTypes);
-
-            if (ctor == null)
-                return null;
-
-            return Expression.Lambda<ObjectActivator>(Expression.New(ctor)).Compile();
-        }
-
-        public void AddOrUpdateChildren(TypeDeserializeInfo child)
-           => Children[child._type] = child;
-        
-        public void AddOrUpdateChildren(IEnumerable<TypeDeserializeInfo> children)
-        {
-            foreach (var child in children)
-                AddOrUpdateChildren(child);
-        }
-
-        public void UpdateFactory(TypeDeserializerFactory factory)
-        {
-            _factory = factory;
-        }
-
-        private TypeDeserializerFactory CreateDefaultFactory()
-        {
-            if (_type == typeof(object))
-                return (ref ObjectEnumerator enumerator) => enumerator.ToDynamic();
-
-            if(_properties is null || _propertyIndexTable is null)
-                throw new NullReferenceException("Properties cannot be null");
-
-            // proxy type
-            var proxyAttr = _type.GetCustomAttribute<DebuggerTypeProxyAttribute>();
-            if (proxyAttr is not null)
-            {
-                var targetType = proxyAttr.Target;
-
-                // proxy should only have one constructor
-                var ctors = _type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance);
-
-                if (ctors.Length is > 1 or < 0)
-                    throw new InvalidOperationException($"Proxy type {_type} does not have a valid constructor");
-
-                var ctor = ctors[0];
-                var ctorParams = ctor.GetParameters();
-
-                if(ctorParams.Length is > 1 or < 0)
-                    throw new InvalidOperationException($"Proxy type {_type} does not have a valid constructor that takes one argument");
-
-                targetType ??= ctor.GetParameters()[0].ParameterType;
-
-                // return the proxied types factory
-                var proxiedFactory = TypeBuilder.GetDeserializationFactory(targetType);
-
-                return (ref ObjectEnumerator enumerator) =>
-                {
-                    var proxiedValue = proxiedFactory(ref enumerator);
-                    return ctor.Invoke(new[] { proxiedValue });
-                };
-            }
-
-            // if type has custom method builder
-            if (_type.TryGetCustomBuilder(out var methodInfo))
-            {
-                return (ref ObjectEnumerator enumerator) =>
-                {
-                    var instance = CreateInstance();
-
-                    if (instance is null)
-                        throw new TargetInvocationException($"Cannot create an instance of {_type.Name}", null);
-
-                    methodInfo!.Invoke(instance, new object?[] { enumerator.ToDynamic() });
-
-                    return instance;
-                };
-            }
-
-            // if type has custom constructor factory
-            var constructor = _type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[] { typeof(IDictionary<string, object?>) }, null);
-
-            if (constructor?.GetCustomAttribute<EdgeDBDeserializerAttribute>() is not null)
-                return (ref ObjectEnumerator enumerator) => constructor.Invoke(new object?[] { enumerator.ToDynamic() }) ??
-                                 throw new TargetInvocationException($"Cannot create an instance of {_type.Name}", null);
-
-            // if type is anon type or record, or has a constructor with all properties
-            if (_type.IsRecord() ||
-                _type.GetCustomAttribute<CompilerGeneratedAttribute>() != null ||
-                _type.GetConstructor(_properties.Select(x => x.Type).ToArray()) != null)
-            {
-                return (ref ObjectEnumerator enumerator) =>
-                {
-                    //var data = (IDictionary<string, object?>)enumerator.ToDynamic()!;
-                    var ctorParams = new object?[_properties.Length];
-                    var reverseIndexer = new FastInverseIndexer(_properties.Length);
-
-                    while (enumerator.Next(out var name, out var value))
-                    {
-                        if (PropertyMap.TryGetValue(name, out var prop))
-                        {
-                            var index = _propertyIndexTable[prop];
-                            reverseIndexer.Track(index);
-
-                            try
-                            {
-                                ctorParams[index] = prop.ConvertToPropertyType(value);
-                            }
-                            catch (Exception x)
-                            {
-                                throw new NoTypeConverterException($"Cannot assign property {prop.PropertyName} with type {value?.GetType().Name ?? "unknown"}", x);
-                            }
-                        }
-                    }
-
-                    // fill the missed properties with defaults
-                    var missed = reverseIndexer.GetIndexies();
-                    for (int i = 0; i != missed.Length; i++)
-                    {
-                        var prop = _properties[missed[i]];
-                        ctorParams[missed[i]] = ReflectionUtils.GetDefault(prop.Type);
-                    }
-
-                    return Activator.CreateInstance(_type, ctorParams)!;
-                };
-            }
-
-            // is it abstract
-            if (IsAbtractType)
-            {
-                return (ref ObjectEnumerator enumerator) =>
-                {
-                    // introspect the type name
-                    if (!enumerator.TryCherryPick("__tname__", out var value))
-                        throw new ConfigurationException("Type introspection is required for abstract types, this is a bug.");
-
-                    var typeName = (string)value!;
-                    
-                    // remove the modulename
-                    typeName = typeName.Split("::").Last();
-
-                    TypeDeserializeInfo? info = null;
-
-                    if((info = Children.FirstOrDefault(x => x.Value.EdgeDBTypeName == typeName).Value) is null)
-                    {
-                        throw new EdgeDBException($"Failed to deserialize the edgedb type '{typeName}'. Could not find relivant child of {_type.Name}");
-                    }
-
-                    // deserialize as child
-                    return info.Deserialize(ref enumerator);
-                };
-            }
-
-            // is it a tuple
-            if (_type.IsAssignableTo(typeof(ITuple)))
-            {
-                return (ref ObjectEnumerator enumerator) =>
-                {
-                    var transient = TransientTuple.FromObjectEnumerator(ref enumerator);
-
-                    if (_type.Name.StartsWith("ValueTuple"))
-                        return transient.ToValueTuple();
-                    else
-                        return transient.ToReferenceTuple();
-                };
-            }
-            
-            return (ref ObjectEnumerator enumerator) =>
-            {
-                var instance = CreateInstance();
-
-                if (instance is null)
-                    throw new TargetInvocationException($"Cannot create an instance of {_type.Name}", null);
-
-                while(enumerator.Next(out var name, out var value))
-                {
-                    if (!PropertyMap.TryGetValue(name, out var prop))
-                        continue;
-
-                    prop.ConvertAndSetValue(instance, value);
-                }
-
-                return instance;
-            };
-        }
-
-        private object CreateInstance()
-        {
-            if (_typeActivator is null)
-                throw new InvalidOperationException($"No empty constructor found on type {_type}");
-
-            return _typeActivator();
-        }
-
-        private Dictionary<string, EdgeDBPropertyInfo> GetPropertyMap(Type objectType)
-        {
-            var props = objectType.GetProperties();
-            _properties = new EdgeDBPropertyInfo[props.Length];
-            _propertyIndexTable = new(_properties.Length);
-            
-            var dict = new Dictionary<string, EdgeDBPropertyInfo>(_properties.Length);
-
-            for (var i = 0; i != _properties.Length; i++)
-            {
-                var prop = props[i];
-                var edbProp = new EdgeDBPropertyInfo(prop);
-                _properties[i] = edbProp;
-
-                _propertyIndexTable.Add(_properties[i], i);
-
-                if (prop.GetCustomAttribute<EdgeDBIgnoreAttribute>() is null)
-                {
-                    dict.Add(edbProp.EdgeDBName, edbProp);
-                }
-            }
-
-            return dict;
-        }
-
-        public object? Deserialize(ref ObjectEnumerator enumerator)
-        {
-            // create a copy of object enumerator to pull the id
-            var hasId = enumerator.TryCherryPick("id", out var guid);
-
-            var result = _factory(ref enumerator);
-
-            if (hasId && result is not null)
-                TypeBuilder.DispatchObjectCreate(result, (Guid)guid!);
-
-            return result;
-        }
-
-        private delegate object ObjectActivator();
-
-        public static implicit operator TypeDeserializerFactory(TypeDeserializeInfo info) => info._factory;
-    }
-
-    internal sealed class EdgeDBPropertyInfo
-    {
-        public string PropertyName
-            => _property.Name;
-
-        public string EdgeDBName
-            => AttributeName ?? TypeBuilder.SchemaNamingStrategy.Convert(_property);
-
-        public string? AttributeName
-            => _propertyAttribute?.Name;
-
-        public IEdgeDBTypeConverter? CustomConverter
-            => _typeConverter?.Converter;
-
-        public Type Type
-            => _property.PropertyType;
-
-        public bool IsIgnored
-            => _ignore is not null;
-
-        private readonly EdgeDBPropertyAttribute? _propertyAttribute;
-        private readonly EdgeDBTypeConverterAttribute? _typeConverter;
-        private readonly EdgeDBIgnoreAttribute? _ignore;
-        private readonly PropertyInfo _property;
-        public EdgeDBPropertyInfo(PropertyInfo propInfo)
-        {
-            _property = propInfo;
-            _propertyAttribute = propInfo.GetCustomAttribute<EdgeDBPropertyAttribute>();
-            _typeConverter = propInfo.GetCustomAttribute<EdgeDBTypeConverterAttribute>();
-            _ignore = propInfo.GetCustomAttribute<EdgeDBIgnoreAttribute>();
-        }
-
-        public object? ConvertToPropertyType(object? value)
-        {
-            if (value is null)
-                return ReflectionUtils.GetDefault(Type);
-
-            // check if we can use the custom converter
-            if (CustomConverter is not null && CustomConverter.CanConvert(Type, value.GetType()))
-            {
-                return CustomConverter.ConvertFrom(value);
-            }
-
-            return ObjectBuilder.ConvertTo(Type, value);
-        }
-
-        public void ConvertAndSetValue(object instance, object? value)
-        {
-            var converted = ConvertToPropertyType(value);
-            _property.SetValue(instance, converted);
-        }
-    }
+    internal delegate object? NonRefTypeDeserializerFactory(ObjectEnumerator enumerator);
 }

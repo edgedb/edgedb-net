@@ -689,10 +689,6 @@ API Documentation
         Marks the current field or property as a valid target for serializing/deserializing. 
 
 
-        :property bool IsLinkProperty:
-            Gets or sets whether or not the property is on a link. 
-
-
         .. dn:method:: EdgeDBPropertyAttribute(string propertyName): EdgeDBPropertyAttribute
 
             Marks this member to be used when serializing/deserializing. 
@@ -703,10 +699,6 @@ API Documentation
     .. dn:class:: EdgeDBTypeAttribute
 
         Marks this class or struct as a valid type to use when serializing/deserializing. 
-
-
-        :property string ModuleName:
-            Gets or sets the module name for this type. 
 
 
         .. dn:method:: EdgeDBTypeAttribute(string name): EdgeDBTypeAttribute
@@ -1073,11 +1065,11 @@ API Documentation
                 This is the default naming strategy for the :dn:class:`EdgeDB.TypeBuilder`. 
 
 
-        .. dn:method::  Convert(MemberInfo member): string
+        .. dn:method::  Convert(PropertyInfo property): string
 
             Converts the ``EdgeDB.DocGenerator.docMemberSummaryParamref``'s name to the desired naming scheme. 
 
-            :param MemberInfo member:
+            :param PropertyInfo property:
                 The property info of which to convert its name.
 
             :returns:
@@ -1169,19 +1161,13 @@ API Documentation
 
                 A ``dynamic`` object.
 
-        .. dn:method::  TryCherryPick(string name, ref Object& value): bool
+        .. dn:method::  Flatten(): IDictionary<string,object>
 
-            Cherrypicks a property based on the name. This method uses a 'peek' style of reading. The :dn:method:` Next(ref System.String& name, ref System.Object& value): bool` method is uneffected from this method. 
-
-            :param string name:
-                The property name to checrrypick.
-
-            :param Object& value:
-                The value of the property.
+            Flattens this :dn:struct:`EdgeDB.ObjectEnumerator` into a dictionary with keys being property names. 
 
             :returns:
 
-                if the property was able to be read; otherwise ``true``. ``false``
+                A ``System.Collections.Generic.Dictionary`2`` representing the objects properties.
 
         .. dn:method::  Next(ref String& name, ref Object& value): bool
 
@@ -1436,6 +1422,13 @@ API Documentation
 
                 The type info for ``TType``.
 
+        .. dn:method::  AddOrUpdateTypeConverter<TConverter>(): void
+
+            Adds or updates a custom :dn:class:`EdgeDB.TypeConverters.EdgeDBTypeConverter<TSource, TTarget>`
+
+            :param TConverter:
+                The type converter to add.
+
         .. dn:method::  AddOrUpdateTypeFactory<TType>(TypeDeserializerFactory factory): void
 
             Adds or updates a custom type factory. 
@@ -1510,6 +1503,61 @@ API Documentation
             :returns:
 
                 An instance of ``TTarget``; or ``default``.
+
+        .. dn:method::  CanConvert(Type from, Type to): bool
+
+            Checks if the type builder can convert one type to another. 
+
+            :param Type from:
+                The source type.
+
+            :param Type to:
+                The target type.
+
+            :returns:
+
+                if the source type can be converted to the target type; otherwise ``true``. ``false``
+
+    .. dn:interface:: IEdgeDBTypeConverter
+
+        Represents a custom type converter capable of converting one type to another. 
+
+
+        :property Type Source:
+            Gets the source type of the converter. 
+
+
+        :property Type Target:
+            Gets the target type of the converter. 
+
+
+        .. dn:method::  ConvertFrom(object value): object
+
+            Converts the given target value to the source value. 
+
+            :param object value:
+                The value to convert.
+
+        .. dn:method::  ConvertTo(object value): object
+
+            Converts the given source value to a the target value. 
+
+            :param object value:
+                The value to convert.
+
+        .. dn:method::  CanConvert(Type from, Type to): bool
+
+            Checks if the type builder can convert one type to another. 
+
+            :param Type from:
+                The source type.
+
+            :param Type to:
+                The target type.
+
+            :returns:
+
+                if the source type can be converted to the target type; otherwise ``true``. ``false``
 
 .. dn:namespace:: EdgeDB.State
 
@@ -1603,20 +1651,6 @@ API Documentation
             :returns:
 
                 The deserialized form of ``EdgeDB.DataTypes.Json.Value``; or ``default``. 
-
-        .. dn:method::  Serialize(object value, JsonSerializer serializer): Json
-
-            Serializes an ``System.Object`` to :dn:struct:`EdgeDB.DataTypes.Json` using the default ``EdgeDB.EdgeDBConfig.JsonSerializer`` or ``EdgeDB.DocGenerator.docMemberSummaryParamref`` if specified. 
-
-            :param object value:
-                The value to serialize.
-
-            :param JsonSerializer serializer:
-                The optional serializer to use when serializing.
-
-            :returns:
-
-                The json representation of ``EdgeDB.DocGenerator.docMemberSummaryParamref``.
 
     .. dn:struct:: Memory
 
