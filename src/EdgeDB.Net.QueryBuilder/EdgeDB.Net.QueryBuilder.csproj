@@ -15,11 +15,23 @@
     <Compile Remove="Translators\Methods\Generated\**" />
     <EmbeddedResource Remove="Translators\Methods\Generated\**" />
     <None Remove="Translators\Methods\Generated\**" />
+    <None Remove="Translators\CIL\Interpreters\" />
+    <None Remove="Translators\CIL\Interpreters\Numerics\" />
+    <None Remove="Translators\CIL\Interpreters\Bitwise\" />
+    <None Remove="Translators\CIL\Interpreters\Typing\" />
+    <None Remove="Translators\CIL\Interpreters\Branching\" />
+    <None Remove="Translators\CIL\Interpreters\Methods\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="stdlib\" />
+    <Folder Include="Translators\CIL\Interpreters\" />
+    <Folder Include="Translators\CIL\Interpreters\Numerics\" />
+    <Folder Include="Translators\CIL\Interpreters\Bitwise\" />
+    <Folder Include="Translators\CIL\Interpreters\Typing\" />
+    <Folder Include="Translators\CIL\Interpreters\Branching\" />
+    <Folder Include="Translators\CIL\Interpreters\Methods\" />
   </ItemGroup>
 </Project>
