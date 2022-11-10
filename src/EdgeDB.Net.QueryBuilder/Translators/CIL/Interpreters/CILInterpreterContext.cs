@@ -1,26 +1,33 @@
 using System;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Reflection.Emit;
 
 namespace EdgeDB.CIL.Interpreters
 {
     internal class CILInterpreterContext
     {
+        public MethodBase RootMethod
+            => Reader.MethodBase;
+
         public ParameterExpression[] Locals { get; }
         public ParameterExpression[] Parameters { get; }
-        public Stack<Expression> Stack { get; set; }
+        public Stack<Expression> ExpressionStack { get; set; }
+        public Stack<MemberInfo> MemberStack { get; set; }
         public ILReader Reader { get; }
 
         public bool IsTailCall { get; set; }
 
         public CILInterpreterContext(
             ILReader reader,
-            Stack<Expression> stack,
+            Stack<Expression> expressionStack,
+            Stack<MemberInfo> memberStack,
             ParameterExpression[] locals,
             ParameterExpression[] parameters)
         {
             Reader = reader;
-            Stack = stack;
+            ExpressionStack = expressionStack;
+            MemberStack = memberStack;
             Locals = locals;
             Parameters = parameters;
         }

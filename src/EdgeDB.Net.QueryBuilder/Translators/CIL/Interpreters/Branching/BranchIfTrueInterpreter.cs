@@ -12,7 +12,7 @@ namespace EdgeDB.CIL.Interpreters
 
         public override Expression Interpret(Instruction instruction, CILInterpreterContext context)
         {
-            var conditional = context.Stack.Pop();
+            var conditional = context.ExpressionStack.Pop();
 
             if(!instruction.TryGetOperandAs<Label>(out var label))
                 throw new ArgumentException("Oprand must be a label");

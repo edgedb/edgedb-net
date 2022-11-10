@@ -42,11 +42,15 @@ namespace EdgeDB.CIL
             var functionParameters = func.Method.GetParameters().Select(x => Expression.Parameter(x.ParameterType, x.Name)).ToArray();
 
             var tree = new Stack<Expression>();
-            var context = new CILInterpreterContext(reader, tree, locals, functionParameters);
+            var members = new Stack<MemberInfo>();
+            var context = new CILInterpreterContext(reader, tree, members, locals, functionParameters);
 
             while(reader.ReadNext(out var instruction))
             {
-                tree.Push(Interpret(instruction, context));
+                var expression = Interpret(instruction, context);
+                if (expression is DefaultExpression d && d.Type == typeof(void))
+                    continue;
+                tree.Push(expression);
             }
 
             // TODO: check stack for any remaining expressions that wern't consumed

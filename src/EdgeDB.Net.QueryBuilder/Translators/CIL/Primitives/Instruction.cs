@@ -1,9 +1,12 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,7 +19,7 @@ namespace EdgeDB.CIL
         public readonly object? Oprand;
 
         public OpCodeType OpCodeType
-            => (OpCodeType)OpCode.Value;
+            => (OpCodeType)unchecked((ushort)OpCode.Value);
 
         private readonly MethodBase _rootMethod;
 
@@ -32,8 +35,9 @@ namespace EdgeDB.CIL
             if (OpCode.OperandType != OperandType.InlineMethod && OpCode.OperandType != OperandType.InlineTok)
                 throw new InvalidOperationException("The current instruction doesn't reference a method");
 
-            var asm = Assembly.GetExecutingAssembly();
-            return _rootMethod.Module.ResolveMethod((int)Oprand!, _rootMethod.DeclaringType!.GenericTypeArguments, _rootMethod.GetGenericArguments())!;
+            // TODO: parent generics?
+
+            return _rootMethod.Module.ResolveMethod((int)Oprand!, Type.EmptyTypes, _rootMethod.GetGenericArguments())!;
         }
 
         public Type OprandAsType()
@@ -41,7 +45,7 @@ namespace EdgeDB.CIL
             if (OpCode.OperandType != OperandType.InlineType && OpCode.OperandType != OperandType.InlineTok)
                 throw new InvalidOperationException("The current instruction doesn't reference a type");
 
-            return _rootMethod.Module.ResolveType((int)Oprand!, _rootMethod.DeclaringType!.GenericTypeArguments, _rootMethod.GetGenericArguments())!;
+            return _rootMethod.Module.ResolveType((int)Oprand!, Type.EmptyTypes, _rootMethod.GetGenericArguments())!;
         }
 
         public FieldInfo OprandAsField()
@@ -49,7 +53,7 @@ namespace EdgeDB.CIL
             if (OpCode.OperandType != OperandType.InlineField && OpCode.OperandType != OperandType.InlineTok)
                 throw new InvalidOperationException("The current instruction doesn't reference a field");
 
-            return _rootMethod.Module.ResolveField((int)Oprand!, _rootMethod.DeclaringType!.GenericTypeArguments, _rootMethod.GetGenericArguments())!;
+            return _rootMethod.Module.ResolveField((int)Oprand!, Type.EmptyTypes, _rootMethod.GetGenericArguments())!;
         }
 
         public string OprandAsString()
@@ -65,7 +69,7 @@ namespace EdgeDB.CIL
             if (OpCode.OperandType != OperandType.InlineTok)
                 throw new InvalidOperationException("Instruction does not reference a member.");
 
-            return _rootMethod.Module.ResolveMember((int)Oprand!)!;
+            return _rootMethod.Module.ResolveMember((int)Oprand!, Type.EmptyTypes, _rootMethod.GetGenericArguments())!;
         }
 
         public byte[] OprandAsSignature()
@@ -111,6 +115,17 @@ namespace EdgeDB.CIL
                 return true;
             }
             return false;
+        }
+
+        private EntityHandle GetMetadataHandle()
+        {
+            if (Oprand is not int i)
+                throw new NotSupportedException("Oprand must be of type int");
+
+            if (i <= 0)
+                throw new NotSupportedException("metadata tokens less that or zero are invalid");
+
+            return MetadataTokens.EntityHandle(i);
         }
     }
 }

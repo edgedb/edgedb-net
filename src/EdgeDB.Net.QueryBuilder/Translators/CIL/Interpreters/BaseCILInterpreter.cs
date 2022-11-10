@@ -20,7 +20,7 @@ namespace EdgeDB.CIL.Interpreters
             var blockContext = context.Enter(x =>
             {
                 // reset stack to capture block (should not reference to instructions from previous frames)
-                x.Stack = new();
+                x.ExpressionStack = new();
             });
 
             return InterpretInstructions(context.Reader.ReadTo(label), blockContext);
@@ -32,7 +32,10 @@ namespace EdgeDB.CIL.Interpreters
 
             foreach (var instruction in instructions)
             {
-                tree.Add(CILInterpreter.Interpret(instruction, context));
+                var expression = Interpret(instruction, context);
+                if (expression is DefaultExpression d && d.Type == typeof(void))
+                    continue;
+                tree.Add(expression);
             }
 
             return tree.Count == 1 ? tree[0] : Expression.Block(tree);

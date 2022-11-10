@@ -21,6 +21,11 @@
     <None Remove="Translators\CIL\Interpreters\Typing\" />
     <None Remove="Translators\CIL\Interpreters\Branching\" />
     <None Remove="Translators\CIL\Interpreters\Methods\" />
+    <None Remove="Translators\CIL\Interpreters\Memory\" />
+    <None Remove="Translators\CIL\Interpreters\Types\" />
+    <None Remove="Translators\CIL\Interpreters\Members\" />
+    <None Remove="Translators\CIL\Interpreters\Locals\" />
+    <None Remove="Translators\CIL\Interpreters\Arguments\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj" />
@@ -33,5 +38,10 @@
     <Folder Include="Translators\CIL\Interpreters\Typing\" />
     <Folder Include="Translators\CIL\Interpreters\Branching\" />
     <Folder Include="Translators\CIL\Interpreters\Methods\" />
+    <Folder Include="Translators\CIL\Interpreters\Memory\" />
+    <Folder Include="Translators\CIL\Interpreters\Types\" />
+    <Folder Include="Translators\CIL\Interpreters\Members\" />
+    <Folder Include="Translators\CIL\Interpreters\Locals\" />
+    <Folder Include="Translators\CIL\Interpreters\Arguments\" />
   </ItemGroup>
 </Project>

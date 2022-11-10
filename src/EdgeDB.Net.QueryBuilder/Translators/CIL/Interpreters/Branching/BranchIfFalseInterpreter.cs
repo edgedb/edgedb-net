@@ -16,7 +16,7 @@ namespace EdgeDB.CIL.Interpreters
             // we can get a "else" body which is our current position..branch target
             // and then invert the else and if clause to form the proper if statement.
 
-            var conditional = context.Stack.Pop();
+            var conditional = context.ExpressionStack.Pop();
 
             if (!instruction.TryGetOperandAs<Label>(out var label))
                 throw new ArgumentException("Oprand must be a label");

@@ -13,7 +13,7 @@ namespace EdgeDB.CIL.Interpreters
         public override Expression Interpret(Instruction instruction, CILInterpreterContext context)
         {
             // do nothing as theres no need to box value types in expressions
-            return context.Stack.Pop();
+            return context.ExpressionStack.Pop();
         }
     }
 }

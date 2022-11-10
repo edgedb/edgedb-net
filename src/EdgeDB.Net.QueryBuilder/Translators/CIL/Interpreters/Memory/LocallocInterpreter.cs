@@ -3,17 +3,16 @@ using System.Linq.Expressions;
 
 namespace EdgeDB.CIL.Interpreters
 {
-    internal class NegateInterpreter : BaseCILInterpreter
+    internal class LocallocInterpreter : BaseCILInterpreter
     {
-        public NegateInterpreter()
-            : base(OpCodeType.Neg)
+        public LocallocInterpreter()
+            : base(OpCodeType.Localloc)
         {
         }
 
         public override Expression Interpret(Instruction instruction, CILInterpreterContext context)
         {
-            var value = context.ExpressionStack.Pop();
-            return Expression.Negate(value);
+            throw new NotSupportedException("Cannot build expression from localloc instruction");
         }
     }
 }

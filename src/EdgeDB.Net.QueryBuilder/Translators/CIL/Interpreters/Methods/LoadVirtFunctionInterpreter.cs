@@ -3,15 +3,17 @@ using System.Linq.Expressions;
 
 namespace EdgeDB.CIL.Interpreters
 {
-    internal class LoadFunctionInterpreter : BaseCILInterpreter
+    internal class LoadVirtFunctionInterpreter : BaseCILInterpreter
     {
-        public LoadFunctionInterpreter()
-            : base(OpCodeType.Ldftn)
+        public LoadVirtFunctionInterpreter()
+            : base(OpCodeType.Ldvirtftn)
         {
         }
 
         public override Expression Interpret(Instruction instruction, CILInterpreterContext context)
         {
+            // TODO: is this correct?
+
             var method = instruction.OprandAsMethod();
             context.MemberStack.Push(method);
             return Expression.Empty();
