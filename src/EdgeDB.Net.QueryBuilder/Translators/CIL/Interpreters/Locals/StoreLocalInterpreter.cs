@@ -1,9 +1,13 @@
 using System;
-namespace EdgeDB.Translators.CIL.Interpreters.Locals
+namespace EdgeDB.CIL.Interpreters
 {
-    public class StoreLocalInterpreter
+    internal class StoreLocalInterpreter : BaseCILInterpreter
     {
         public StoreLocalInterpreter()
+            : base(
+                  OpCodeType.Stloc,
+                  OpCodeType.Stloc_1,
+                  )
         {
         }
     }
