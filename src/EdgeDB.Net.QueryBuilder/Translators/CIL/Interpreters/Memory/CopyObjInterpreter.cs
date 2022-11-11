@@ -14,8 +14,8 @@ namespace EdgeDB.CIL.Interpreters
         {
             // TODO: is this correct translation of cpobj?
 
-            var source = context.ExpressionStack.Pop();
-            var dest = context.ExpressionStack.Pop();
+            var source = context.Stack.PopExp();
+            var dest = context.Stack.PopExp();
 
             return Expression.Assign(dest, source);
         }

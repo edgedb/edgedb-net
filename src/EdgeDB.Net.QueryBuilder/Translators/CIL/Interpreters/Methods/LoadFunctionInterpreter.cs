@@ -13,7 +13,7 @@ namespace EdgeDB.CIL.Interpreters
         public override Expression Interpret(Instruction instruction, CILInterpreterContext context)
         {
             var method = instruction.OprandAsMethod();
-            context.MemberStack.Push(method);
+            context.Stack.Push(method);
             return Expression.Empty();
         }
     }

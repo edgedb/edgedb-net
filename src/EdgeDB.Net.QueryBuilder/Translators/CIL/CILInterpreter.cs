@@ -23,6 +23,9 @@ namespace EdgeDB.CIL
 
             foreach(var interpreter in interpreters)
             {
+                if (interpreter.IsAbstract)
+                    continue;
+
                 var inst = (BaseCILInterpreter)Activator.CreateInstance(interpreter)!;
                 foreach(var opcode in inst.SupportedCodes)
                 {
@@ -41,22 +44,23 @@ namespace EdgeDB.CIL
             var locals = reader.MethodBody.LocalVariables.Select(x => Expression.Variable(x.LocalType, $"local_{x.LocalIndex}")).ToArray();
             var functionParameters = func.Method.GetParameters().Select(x => Expression.Parameter(x.ParameterType, x.Name)).ToArray();
 
-            var tree = new Stack<Expression>();
-            var members = new Stack<MemberInfo>();
-            var context = new CILInterpreterContext(reader, tree, members, locals, functionParameters);
+            var stack = new InterpreterStack();
+            var context = new CILInterpreterContext(reader, stack, locals, functionParameters);
 
             while(reader.ReadNext(out var instruction))
             {
                 var expression = Interpret(instruction, context);
                 if (expression is DefaultExpression d && d.Type == typeof(void))
                     continue;
-                tree.Push(expression);
+                stack.Push(expression);
             }
 
             // TODO: check stack for any remaining expressions that wern't consumed
 
+            var tree = stack.GetTree();
+
             var body = tree.Count == 1
-                ? tree.Pop()
+                ? tree.First()
                 : Expression.Block(tree);
 
             return Expression.Lambda<T>(body, context.IsTailCall, functionParameters);

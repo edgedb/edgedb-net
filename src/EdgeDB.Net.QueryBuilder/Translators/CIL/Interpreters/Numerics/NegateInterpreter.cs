@@ -12,7 +12,7 @@ namespace EdgeDB.CIL.Interpreters
 
         public override Expression Interpret(Instruction instruction, CILInterpreterContext context)
         {
-            var value = context.ExpressionStack.Pop();
+            var value = context.Stack.PopExp();
             return Expression.Negate(value);
         }
     }

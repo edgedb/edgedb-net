@@ -13,7 +13,7 @@ namespace EdgeDB.CIL.Interpreters
         public override Expression Interpret(Instruction instruction, CILInterpreterContext context)
         {
             var instance = instruction.OpCodeType is OpCodeType.Ldfld
-                ? context.ExpressionStack.Pop()
+                ? context.Stack.PopExp()
                 : null;
 
             var field = instruction.OprandAsField();

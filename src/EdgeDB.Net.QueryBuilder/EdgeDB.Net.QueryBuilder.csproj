@@ -26,6 +26,9 @@
     <None Remove="Translators\CIL\Interpreters\Members\" />
     <None Remove="Translators\CIL\Interpreters\Locals\" />
     <None Remove="Translators\CIL\Interpreters\Arguments\" />
+    <None Remove="Translators\CIL\Interpreters\Misc\" />
+    <None Remove="Translators\CIL\Interpreters\Arrays\" />
+    <None Remove="Translators\CIL\Interpreters\Stack\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj" />
@@ -43,5 +46,8 @@
     <Folder Include="Translators\CIL\Interpreters\Members\" />
     <Folder Include="Translators\CIL\Interpreters\Locals\" />
     <Folder Include="Translators\CIL\Interpreters\Arguments\" />
+    <Folder Include="Translators\CIL\Interpreters\Misc\" />
+    <Folder Include="Translators\CIL\Interpreters\Arrays\" />
+    <Folder Include="Translators\CIL\Interpreters\Stack\" />
   </ItemGroup>
 </Project>

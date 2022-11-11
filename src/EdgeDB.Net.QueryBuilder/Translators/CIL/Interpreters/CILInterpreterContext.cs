@@ -12,22 +12,19 @@ namespace EdgeDB.CIL.Interpreters
 
         public ParameterExpression[] Locals { get; }
         public ParameterExpression[] Parameters { get; }
-        public Stack<Expression> ExpressionStack { get; set; }
-        public Stack<MemberInfo> MemberStack { get; set; }
+        public InterpreterStack Stack { get; set; }
         public ILReader Reader { get; }
 
         public bool IsTailCall { get; set; }
 
         public CILInterpreterContext(
             ILReader reader,
-            Stack<Expression> expressionStack,
-            Stack<MemberInfo> memberStack,
+            InterpreterStack stack,
             ParameterExpression[] locals,
             ParameterExpression[] parameters)
         {
             Reader = reader;
-            ExpressionStack = expressionStack;
-            MemberStack = memberStack;
+            Stack = stack;
             Locals = locals;
             Parameters = parameters;
         }

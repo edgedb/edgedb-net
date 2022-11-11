@@ -21,10 +21,10 @@ namespace EdgeDB.CIL.Interpreters
             Expression[] methodArgs = new Expression[method.GetParameters().Length];
 
             for (int i = methodArgs.Length - 1; i >= 0; i--)
-                methodArgs[i] = context.ExpressionStack.Pop();
+                methodArgs[i] = context.Stack.PopExp();
 
             var instance = instruction.OpCodeType is OpCodeType.Callvirt
-                ? context.ExpressionStack.Pop()
+                ? context.Stack.PopExp()
                 : null;
 
             return Expression.Call(instance, methodInfo, methodArgs);

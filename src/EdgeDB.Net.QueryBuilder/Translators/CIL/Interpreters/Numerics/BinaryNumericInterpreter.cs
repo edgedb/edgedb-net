@@ -25,8 +25,8 @@ namespace EdgeDB.CIL.Interpreters
 
         public override Expression Interpret(Instruction instruction, CILInterpreterContext context)
         {
-            var right = context.ExpressionStack.Pop();
-            var left = context.ExpressionStack.Pop();
+            var right = context.Stack.PopExp();
+            var left = context.Stack.PopExp();
 
             return instruction.OpCodeType switch
             {

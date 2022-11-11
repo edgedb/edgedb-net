@@ -3,16 +3,16 @@ using System.Linq.Expressions;
 
 namespace EdgeDB.CIL.Interpreters
 {
-    internal class BoxInterpreter : BaseCILInterpreter
+    internal class DupInterpreter : BaseCILInterpreter
     {
-        public BoxInterpreter()
-            : base(OpCodeType.Box)
+        public DupInterpreter()
+            : base(OpCodeType.Dup)
         {
         }
 
         public override Expression Interpret(Instruction instruction, CILInterpreterContext context)
         {
-            // do nothing as theres no need to box value types in expressions
+            context.Stack.Push(context.Stack.Peek());
             return Expression.Empty();
         }
     }

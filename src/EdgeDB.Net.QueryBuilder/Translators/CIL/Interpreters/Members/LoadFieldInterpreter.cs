@@ -14,14 +14,14 @@ namespace EdgeDB.CIL.Interpreters
         {
             // pop the instance off the stack if its non-static
             if (instruction.OpCodeType is OpCodeType.Ldflda)
-                context.ExpressionStack.Pop();
+                context.Stack.PopExp();
 
             // resolve the field
             var field = instruction.OprandAsField();
 
             // push the field onto the member stack for
             // later use.
-            context.MemberStack.Push(field);
+            context.Stack.Push(field);
 
             return Expression.Empty();
         }

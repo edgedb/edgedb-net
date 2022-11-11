@@ -15,7 +15,7 @@ namespace EdgeDB.CIL.Interpreters
             // TODO: is this correct?
 
             var method = instruction.OprandAsMethod();
-            context.MemberStack.Push(method);
+            context.Stack.Push(method);
             return Expression.Empty();
         }
     }

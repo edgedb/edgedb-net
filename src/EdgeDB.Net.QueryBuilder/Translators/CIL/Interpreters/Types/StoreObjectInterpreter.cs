@@ -3,17 +3,18 @@ using System.Linq.Expressions;
 
 namespace EdgeDB.CIL.Interpreters
 {
-    internal class NotInterpreter : BaseCILInterpreter
+    internal class StoreObjectInterpreter : BaseCILInterpreter
     {
-        public NotInterpreter()
-            : base(OpCodeType.Not)
+        public StoreObjectInterpreter()
+            : base(OpCodeType.Stobj)
         {
         }
 
         public override Expression Interpret(Instruction instruction, CILInterpreterContext context)
         {
             var value = context.Stack.PopExp();
-            return Expression.Not(value);
+            var target = context.Stack.PopExp();
+            return Expression.Assign(target, value);
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -59,6 +60,20 @@ namespace EdgeDB.CIL
         public Span<byte> PeekBytes(int index, int count)
             => _il[index..count];
 
+        public bool TryPeek(out Instruction instruction)
+        {
+            instruction = default;
+            if (_position >= _il.Length)
+                return false;
+
+            var opCode = GetOpCode(false);
+
+            var oprand = ParseOprand(opCode);
+
+            instruction = new(opCode, oprand, MethodBase);
+            return true;
+        }
+
         public bool ReadNext(out Instruction instruction)
         {
             instruction = default;
@@ -66,8 +81,18 @@ namespace EdgeDB.CIL
                 return false;
 
             var opCode = GetOpCode();
+
+            var oprand = ParseOprand(opCode);
+
+            instruction = new(opCode, oprand, MethodBase);
+            _instructionPosition++;
+            return true;
+        }
+
+        private object? ParseOprand(OpCode opCode)
+        {
             object? oprand;
-            
+
             switch (opCode.OperandType)
             {
                 case OperandType.InlineSwitch:
@@ -121,9 +146,7 @@ namespace EdgeDB.CIL
                     throw new NotImplementedException($"No implementation found for oprand {opCode}");
             }
 
-            instruction = new(opCode, oprand, MethodBase);
-            _instructionPosition++;
-            return true;
+            return oprand;
         }
 
         public IEnumerable<Instruction> ReadTo(Label label)
@@ -132,13 +155,15 @@ namespace EdgeDB.CIL
                 yield return i;
         }
 
-        private OpCode GetOpCode()
+        private OpCode GetOpCode(bool incrementPos = true)
         {
             OpCodeType code = CurrentByte == 0xfe 
                 ? (OpCodeType)((CurrentByte << 8) + NextByte) 
                 : (OpCodeType)CurrentByte;
 
-            _position += CurrentByte == 0xfe ? 2 : 1;
+            _position += incrementPos
+                ? CurrentByte == 0xfe ? 2 : 1
+                : 0;
 
             if (!_opCodes.TryGetValue(code, out var opCode))
                 throw new Exception($"Unknown opcode {code:X}");

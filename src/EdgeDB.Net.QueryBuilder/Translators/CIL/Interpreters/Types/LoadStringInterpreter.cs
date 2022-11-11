@@ -3,17 +3,17 @@ using System.Linq.Expressions;
 
 namespace EdgeDB.CIL.Interpreters
 {
-    internal class BoxInterpreter : BaseCILInterpreter
+    internal class LoadStringInterpreter : BaseCILInterpreter
     {
-        public BoxInterpreter()
-            : base(OpCodeType.Box)
+        public LoadStringInterpreter()
+            : base(OpCodeType.Ldstr)
         {
         }
 
         public override Expression Interpret(Instruction instruction, CILInterpreterContext context)
         {
-            // do nothing as theres no need to box value types in expressions
-            return Expression.Empty();
+            var str = instruction.OprandAsString();
+            return Expression.Constant(str);
         }
     }
 }
