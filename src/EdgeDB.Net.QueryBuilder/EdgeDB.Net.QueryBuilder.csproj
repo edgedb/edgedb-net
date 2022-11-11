@@ -29,6 +29,7 @@
     <None Remove="Translators\CIL\Interpreters\Misc\" />
     <None Remove="Translators\CIL\Interpreters\Arrays\" />
     <None Remove="Translators\CIL\Interpreters\Stack\" />
+    <None Remove="Translators\CIL\ExpressionRefiners\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj" />
@@ -49,5 +50,6 @@
     <Folder Include="Translators\CIL\Interpreters\Misc\" />
     <Folder Include="Translators\CIL\Interpreters\Arrays\" />
     <Folder Include="Translators\CIL\Interpreters\Stack\" />
+    <Folder Include="Translators\CIL\ExpressionRefiners\" />
   </ItemGroup>
 </Project>

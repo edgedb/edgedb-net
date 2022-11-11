@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using System.Linq.Expressions;
 
 new TestClass().Test();
     
@@ -41,6 +42,8 @@ public class TestClass
     public void Test()
     {
         Func<int, int> fun = (i) => i + 1;
+
+        Expression<Func<uint>> t = () => 1;
 
         var exp = CILInterpreter.InterpretFunc(fun);
 

@@ -380,3 +380,4 @@ MigrationBackup/
 FodyWeavers.xsd
 src/EdgeDB.ExampleApp/dump.db
 docs/tmp/*
+.DS_Store
