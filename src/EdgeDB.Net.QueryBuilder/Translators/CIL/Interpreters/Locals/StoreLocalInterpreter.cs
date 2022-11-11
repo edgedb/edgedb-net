@@ -8,6 +8,7 @@ namespace EdgeDB.CIL.Interpreters
         public StoreLocalInterpreter()
             : base(
                   OpCodeType.Stloc,
+                  OpCodeType.Stloc_0,
                   OpCodeType.Stloc_1,
                   OpCodeType.Stloc_2,
                   OpCodeType.Stloc_3,

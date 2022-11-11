@@ -13,9 +13,13 @@ namespace EdgeDB.CIL.Interpreters
 
         public override Expression Interpret(Instruction instruction, CILInterpreterContext context)
         {
+            return Expression.Empty();
+
             // TODO: refine logic for returns
+#pragma warning disable CS0162 // Unreachable code detected
             if (context.RootMethod is not MethodInfo methodInfo)
                 throw new ArgumentException("Cannot derive method info from root method");
+#pragma warning restore CS0162 // Unreachable code detected
 
             if (methodInfo.ReturnType == typeof(void))
                 return Expression.Empty();

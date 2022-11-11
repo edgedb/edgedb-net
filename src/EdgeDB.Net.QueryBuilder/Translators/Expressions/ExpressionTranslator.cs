@@ -100,13 +100,16 @@ namespace EdgeDB
         public abstract string? Translate(Expression expression, ExpressionContext context);
 
         /// <summary>
-        ///     Translates a lambda function into the edgeql equivalent
+        ///     Translates a lambda function into the edgeql equivalent.
         /// </summary>
+        /// <remarks>
+        ///     This function has no regards to query context, query globals, or query arguments.
+        /// </remarks>
         /// <typeparam name="TInnerExpression">The type of the delegate that the expression represents.</typeparam>
         /// <param name="expression">The expression to translate.</param>
         /// <returns>The string form of the expression.</returns>
         public static string Translate<TInnerExpression>(Expression<TInnerExpression> expression)
-            => Translate(expression);
+            => Translate(expression, new Dictionary<string, object?>(), new SelectContext(typeof(void)), new());
 
         /// <summary>
         ///     Translates a lambda expression into the edgeql equivalent.

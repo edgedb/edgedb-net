@@ -37,7 +37,9 @@ namespace EdgeDB.CIL.Interpreters
 
             var tree = stack.GetTree();
 
-            return tree.Count == 1 ? tree.First() : Expression.Block(tree);
+            return tree.Count == 1
+                ? tree.First()
+                : Expression.Block(tree.Reverse());
         }
     }
 }
