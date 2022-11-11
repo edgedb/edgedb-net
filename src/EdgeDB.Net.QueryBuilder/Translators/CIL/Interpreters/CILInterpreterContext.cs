@@ -15,8 +15,6 @@ namespace EdgeDB.CIL.Interpreters
         public InterpreterStack Stack { get; set; }
         public ILReader Reader { get; }
 
-        public bool IsTailCall { get; set; }
-
         public CILInterpreterContext(
             ILReader reader,
             InterpreterStack stack,

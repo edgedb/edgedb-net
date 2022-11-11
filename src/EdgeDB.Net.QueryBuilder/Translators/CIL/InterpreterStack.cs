@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -13,6 +14,15 @@ namespace EdgeDB.CIL
 
     internal class InterpreterStack
     {
+        public int Count
+            => _elementStack.Count;
+
+        public int ExpressionCount
+            => _expressionStack.Count;
+
+        public int MemberCount
+            => _memberStack.Count;
+
         private readonly Stack<Expression> _expressionStack;
         private readonly Stack<MemberInfo> _memberStack;
         private readonly Stack<ElementType> _elementStack;
@@ -91,6 +101,20 @@ namespace EdgeDB.CIL
                 ElementType.Expression => _expressionStack.Peek(),
                 _ => throw new NotSupportedException()
             };
+        }
+
+        public bool TryPeek([MaybeNullWhen(false)]out object value)
+        {
+            try
+            {
+                value = Peek();
+                return true;
+            }
+            catch(Exception x) when (x is not NotSupportedException)
+            {
+                value = null;
+                return false;
+            }
         }
 
         public IReadOnlyCollection<Expression> GetTree()
