@@ -10,6 +10,7 @@ namespace EdgeDB.Tests.Unit
             CompileExpression = true;
             RunAndCompareExpression = true;
 
+            // basic func calls
             TestFunction(() => InstanceVoid());
             TestFunction(() => InstanceArgumentVoid(123));
             TestFunction(() => InstanceReturn());
@@ -19,13 +20,16 @@ namespace EdgeDB.Tests.Unit
             TestFunction(() => StaticReturn());
             TestFunction(() => StaticArgReturn(123));
 
+            // supplied root func args
             TestFunction((int x) => InstanceArgReturn(x), 123);
             TestFunction((int x) => InstanceArgumentVoid(x), 123);
             TestFunction((int x) => StaticArgReturn(x), 123);
             TestFunction((int x) => StaticArgument(x), 123);
 
+            // other class method
             TestFunction(() => DummyClass.DummyStaticMethod());
 
+            // external instance
             var inst = new DummyClass();
             TestFunction(() => inst.DummyInstanceMethod());
             TestFunction((int x) => inst.DummyReturnMethod(x), 123);
@@ -42,15 +46,9 @@ namespace EdgeDB.Tests.Unit
 
         private class DummyClass
         {
-            public static void DummyStaticMethod()
-            {
+            public static void DummyStaticMethod() { }
 
-            }
-
-            public void DummyInstanceMethod()
-            {
-
-            }
+            public void DummyInstanceMethod() { }
 
             public int DummyReturnMethod(int x)
             {

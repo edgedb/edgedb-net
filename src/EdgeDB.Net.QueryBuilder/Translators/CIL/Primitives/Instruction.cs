@@ -17,17 +17,18 @@ namespace EdgeDB.CIL
     {
         public readonly OpCode OpCode;
         public readonly object? Oprand;
-
+        public readonly Label Label;
         public OpCodeType OpCodeType
             => (OpCodeType)unchecked((ushort)OpCode.Value);
 
         private readonly MethodBase _rootMethod;
 
-        public Instruction(OpCode code, object? oprand, MethodBase method)
+        public Instruction(OpCode code, object? oprand, MethodBase method, Label label)
         {
             OpCode = code;
             Oprand = oprand;
             _rootMethod = method;
+            Label = label;
         }
 
         public MethodBase OprandAsMethod()

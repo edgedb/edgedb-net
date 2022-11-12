@@ -17,7 +17,15 @@ namespace EdgeDB.Tests.Unit
 
             if (CompileExpression)
             {
-                interpreted.Compile();
+                try
+                {
+                    interpreted.Compile();
+                }
+                catch(Exception x)
+                {
+                    _ = x;
+                    throw;
+                }
             }
 
             if (RunAndCompareExpression)

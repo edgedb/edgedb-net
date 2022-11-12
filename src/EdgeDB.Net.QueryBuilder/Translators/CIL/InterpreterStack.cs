@@ -27,11 +27,23 @@ namespace EdgeDB.CIL
         private readonly Stack<MemberInfo> _memberStack;
         private readonly Stack<ElementType> _elementStack;
 
+        private int _transitionPoint = 0;
+
         public InterpreterStack()
         {
             _expressionStack = new();
             _memberStack = new();
             _elementStack = new();
+        }
+
+        public InterpreterStack(
+            InterpreterStack other)
+        {
+            _expressionStack = other._expressionStack;
+            _memberStack = other._memberStack;
+            _elementStack = other._elementStack;
+
+            _transitionPoint = _elementStack.Count;
         }
 
         public void Push(MemberInfo member)
@@ -118,7 +130,22 @@ namespace EdgeDB.CIL
         }
 
         public IReadOnlyCollection<Expression> GetTree()
-            => _expressionStack.ToImmutableArray();
+        {
+            List<Expression> expressions = new(_expressionStack.Count - _transitionPoint);
+
+            for(int i = Count; i > _transitionPoint; i--)
+            {
+                if (Pop() is Expression x)
+                    expressions.Add(x);
+            }
+
+            return expressions.ToImmutableArray();
+        }
+
+        public InterpreterStack TransitionStack()
+        {
+            return new InterpreterStack(this);
+        }
     }
 }
 

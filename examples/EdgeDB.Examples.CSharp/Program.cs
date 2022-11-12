@@ -41,14 +41,6 @@ public class TestClass
 {
     public void Test()
     {
-        var tt = typeof(int).ConvertToTargetNumber(123, typeof(byte));
-
-        Func<uint> fun = () => 1u;
-
-        Expression<Func<uint>> t = () => 1;
-
-        var exp = CILInterpreter.InterpretFunc(fun);
-
-        var translated = ExpressionTranslator.Translate(exp);
+        Expression<Func<bool, int>> test = (bool x) => x ? 1 : 0;
     }
 }

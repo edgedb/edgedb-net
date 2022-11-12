@@ -20,7 +20,6 @@ namespace EdgeDB.CIL
         private readonly byte[] _il;
 
         private int _position;
-        private int _instructionPosition;
 
         private byte CurrentByte
             => _il[_position];
@@ -28,7 +27,7 @@ namespace EdgeDB.CIL
         private byte NextByte
             => _il[_position + 1];
 
-        public Label MarkPosition() => new Label(_instructionPosition);
+        public Label MarkPosition() => new Label(_position);
 
         public ILReader(MethodBase method)
         {
@@ -66,11 +65,12 @@ namespace EdgeDB.CIL
             if (_position >= _il.Length)
                 return false;
 
+            var pos = MarkPosition();
             var opCode = GetOpCode(false);
 
             var oprand = ParseOprand(opCode);
 
-            instruction = new(opCode, oprand, MethodBase);
+            instruction = new(opCode, oprand, MethodBase, pos);
             return true;
         }
 
@@ -80,12 +80,12 @@ namespace EdgeDB.CIL
             if (_position >= _il.Length)
                 return false;
 
+            var pos = MarkPosition();
             var opCode = GetOpCode();
 
             var oprand = ParseOprand(opCode);
 
-            instruction = new(opCode, oprand, MethodBase);
-            _instructionPosition++;
+            instruction = new(opCode, oprand, MethodBase, pos);
             return true;
         }
 
@@ -151,7 +151,7 @@ namespace EdgeDB.CIL
 
         public IEnumerable<Instruction> ReadTo(Label label)
         {
-            while (label.Offset > _instructionPosition && ReadNext(out var i))
+            while ((_position < label.Offset) && ReadNext(out var i))
                 yield return i;
         }
 

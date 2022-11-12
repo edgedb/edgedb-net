@@ -23,7 +23,7 @@ namespace EdgeDB.CIL.Interpreters
 
         protected Expression InterpretInstructions(IEnumerable<Instruction> instructions, CILInterpreterContext context)
         {
-            var stack = new InterpreterStack();
+            var stack = context.Stack.TransitionStack();
             var blockContext = context.Enter(x =>
             {
                 x.Stack = stack;
@@ -31,7 +31,7 @@ namespace EdgeDB.CIL.Interpreters
 
             foreach (var instruction in instructions)
             {
-                var expression = CILInterpreter.Interpret(instruction, context);
+                var expression = CILInterpreter.Interpret(instruction, blockContext);
                 if (expression is DefaultExpression d && d.Type == typeof(void))
                     continue;
                 stack.Push(expression);
@@ -60,6 +60,11 @@ namespace EdgeDB.CIL.Interpreters
                             // TODO: size change needs a check here?
                             var converted = constant.Type.ConvertToTargetNumber(constant.Value!, target);
                             expression = Expression.Constant(converted, target);
+                        }
+                        // since there is no bool type in CIL we must convert an int to bool
+                        else if(IsBooleanConversion(constant.Type, target))
+                        {
+                            expression = Expression.Constant((int)constant.Value! > 0, target);
                         }
                     }
                     break;
@@ -94,6 +99,9 @@ namespace EdgeDB.CIL.Interpreters
 
             return !Object.ReferenceEquals(copy, expression);
         }
+
+        private static bool IsBooleanConversion(Type source, Type target)
+            => source == typeof(int) && target == typeof(bool);
     }
 }
 

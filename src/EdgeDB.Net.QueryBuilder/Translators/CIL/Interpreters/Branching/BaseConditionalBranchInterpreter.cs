@@ -24,38 +24,40 @@ namespace EdgeDB.CIL.Interpreters
 
             // the true clause is everything from our current
             // to the label, read it
-            var trueClauseInstructions = context.Reader.ReadTo(label).ToArray();
+            var bodyClauseInstructions = context.Reader.ReadTo(label).ToArray();
 
-            Instruction? trueClauseBranch = null;
+            Instruction? jumpClauseInstruction = null;
 
-            if (trueClauseInstructions[^1].OpCodeType is OpCodeType.Br or OpCodeType.Br_s)
+            if (bodyClauseInstructions[^1].OpCodeType is OpCodeType.Br or OpCodeType.Br_s)
             {
                 // remove the ending branch instruction
                 // and store it for later
-                trueClauseBranch = trueClauseInstructions[^1];
-                trueClauseInstructions = trueClauseInstructions[..^1];
+                jumpClauseInstruction = bodyClauseInstructions[^1];
+                bodyClauseInstructions = bodyClauseInstructions[..^1];
             }
 
-            var trueClause = base.InterpretInstructions(
-                trueClauseInstructions,
+            var bodyClause = base.InterpretInstructions(
+                bodyClauseInstructions,
                 context);
 
             // if the true clause ends with a br or br.s that signifies
             // that there is an else block
-            Expression? elseClause = null;
+            Expression? jumpClause = null;
 
-            if (trueClauseBranch.HasValue)
+            if (jumpClauseInstruction.HasValue)
             {
-                if(!trueClauseBranch.Value.TryGetOperandAs<Label>(out label))
+                if(!jumpClauseInstruction.Value.TryGetOperandAs<Label>(out label))
                     throw new NotSupportedException("branch instructions must contain a label");
 
                 // pull the else block
-                elseClause = InterpretTo(label, context);
+                jumpClause = InterpretTo(label, context);
             }
 
-            return elseClause is null
-                ? Expression.IfThen(condition, trueClause)
-                : Expression.IfThenElse(condition, trueClause, elseClause);
+            return jumpClause is null
+                ? Expression.IfThen(condition, bodyClause)
+                : instruction.OpCodeType is OpCodeType.Brtrue or OpCodeType.Brtrue_s
+                    ? Expression.Condition(condition, jumpClause, bodyClause)   // ternary
+                    : Expression.IfThenElse(condition, bodyClause, jumpClause); // standard ifelse (flipped due to brfalse)
         }
     }
 }

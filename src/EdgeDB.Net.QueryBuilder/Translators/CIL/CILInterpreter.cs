@@ -18,7 +18,7 @@ namespace EdgeDB.CIL
 
         static CILInterpreter()
         {
-            var interpreters = typeof(BaseCILInterpreter).Assembly.GetTypes().Where(x => x.BaseType == typeof(BaseCILInterpreter));
+            var interpreters = typeof(BaseCILInterpreter).Assembly.GetTypes().Where(x => x.IsAssignableTo(typeof(BaseCILInterpreter)));
             var dict = new Dictionary<OpCodeType, BaseCILInterpreter>();
 
             foreach(var interpreter in interpreters)
@@ -65,9 +65,17 @@ namespace EdgeDB.CIL
 
             var body = tree.Count == 1
                 ? tree.First()
-                : Expression.Block(tree.Reverse());
+                : Expression.Block(locals, tree.Reverse());
 
-            return Expression.Lambda<T>(body, functionParameters);
+            try
+            {
+                return Expression.Lambda<T>(body, functionParameters);
+            }
+            catch(Exception x)
+            {
+                _ = x;
+                throw;
+            }
         }
 
         internal static Expression Interpret(Instruction instruction, CILInterpreterContext context)
