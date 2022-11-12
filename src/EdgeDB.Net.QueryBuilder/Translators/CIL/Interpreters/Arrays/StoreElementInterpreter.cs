@@ -31,7 +31,8 @@ namespace EdgeDB.CIL.Interpreters
             {
                 var targetType = instruction.OprandAsType();
 
-                // TODO: check if value is of type 'targetType'
+                EnsureValidTypes(ref value, targetType);
+
                 expression = Expression.Assign(
                     Expression.ArrayIndex(array, index),
                     Expression.Convert(value, targetType)
@@ -39,6 +40,12 @@ namespace EdgeDB.CIL.Interpreters
             }
             else
             {
+                // TODO: is this correct for getting array type?
+                var arrayType = array.GetType().GetElementType()
+                    ?? array.GetType().GetInterfaces().First(x => x.Name == "IEnumerable`1").GenericTypeArguments[0];
+
+                EnsureValidTypes(ref value, arrayType);
+
                 expression = Expression.Assign(
                     Expression.ArrayIndex(array, index),
                     value

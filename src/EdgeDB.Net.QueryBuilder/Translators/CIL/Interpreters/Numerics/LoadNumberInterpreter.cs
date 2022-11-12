@@ -9,6 +9,7 @@ namespace EdgeDB.CIL.Interpreters
             : base(
                   // int32
                   OpCodeType.Ldc_i4_m1,
+                  OpCodeType.Ldc_i4_s,
                   OpCodeType.Ldc_i4_0,
                   OpCodeType.Ldc_i4_1,
                   OpCodeType.Ldc_i4_2,
@@ -42,6 +43,7 @@ namespace EdgeDB.CIL.Interpreters
                 OpCodeType.Ldc_i4_7 => 7,
                 OpCodeType.Ldc_i4_8 => 8,
                 OpCodeType.Ldc_i4_m1 => -1,
+                OpCodeType.Ldc_i4_s => (int)(byte)instruction.Oprand!,
                 _ => instruction.ParseOprand()!
             };
 

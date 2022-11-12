@@ -41,7 +41,9 @@ public class TestClass
 {
     public void Test()
     {
-        Func<int, int> fun = (i) => i + 1;
+        var tt = typeof(int).ConvertToTargetNumber(123, typeof(byte));
+
+        Func<uint> fun = () => 1u;
 
         Expression<Func<uint>> t = () => 1;
 

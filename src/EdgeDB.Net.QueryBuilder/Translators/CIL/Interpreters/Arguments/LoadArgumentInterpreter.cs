@@ -19,9 +19,11 @@ namespace EdgeDB.CIL.Interpreters
 
         public override Expression Interpret(Instruction instruction, CILInterpreterContext context)
         {
+            if (instruction.OpCodeType is OpCodeType.Ldarg_0)
+                return context.RootDelegateTarget;
+
             var index = instruction.OpCodeType switch
             {
-                OpCodeType.Ldarg_0 => 0,
                 OpCodeType.Ldarg_1 => 1,
                 OpCodeType.Ldarg_2 => 2,
                 OpCodeType.Ldarg_3 => 3,

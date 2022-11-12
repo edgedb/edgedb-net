@@ -28,7 +28,7 @@ namespace EdgeDB.CIL.Interpreters
             var right = context.Stack.PopExp();
             var left = context.Stack.PopExp();
 
-            return instruction.OpCodeType switch
+            Expression expression = instruction.OpCodeType switch
             {
                 OpCodeType.Add or OpCodeType.Add_ovf or OpCodeType.Add_ovf_un
                     => Expression.Add(left, right),
@@ -42,6 +42,10 @@ namespace EdgeDB.CIL.Interpreters
                     => Expression.Modulo(left, right),
                 _ => throw new Exception($"Unkown binary numeric operation {instruction.OpCodeType}")
             };
+
+            EnsureValidTypes(ref expression);
+
+            return expression;
         }
     }
 }

@@ -49,7 +49,7 @@ namespace EdgeDB.CIL
             ).ToArray();
 
             var stack = new InterpreterStack();
-            var context = new CILInterpreterContext(reader, stack, locals, interpreterParameters);
+            var context = new CILInterpreterContext(func.Target, reader, stack, locals, interpreterParameters);
 
             while(reader.ReadNext(out var instruction))
             {

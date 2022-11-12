@@ -33,6 +33,7 @@ namespace EdgeDB.CIL.Interpreters
             if(instruction.OpCodeType is OpCodeType.Ldelem)
             {
                 var targetType = instruction.OprandAsType();
+
                 expression = Expression.Convert(expression, targetType);
             }
 

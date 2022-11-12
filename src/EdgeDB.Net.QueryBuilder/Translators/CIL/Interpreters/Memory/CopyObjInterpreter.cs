@@ -17,6 +17,8 @@ namespace EdgeDB.CIL.Interpreters
             var source = context.Stack.PopExp();
             var dest = context.Stack.PopExp();
 
+            // TODO: ensure typing from source -> dest?
+
             return Expression.Assign(dest, source);
         }
     }

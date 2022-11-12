@@ -18,12 +18,20 @@ namespace EdgeDB.CIL.Interpreters
             if (method is not MethodInfo methodInfo)
                 throw new NotSupportedException($"Expected a method info but got {method.GetType()}");
 
-            Expression[] methodArgs = new Expression[method.GetParameters().Length];
+            var methodArgsInfo = method.GetParameters();
+
+            Expression[] methodArgs = new Expression[methodArgsInfo.Length];
 
             for (int i = methodArgs.Length - 1; i >= 0; i--)
-                methodArgs[i] = context.Stack.PopExp();
+            {
+                var value = context.Stack.PopExp();
 
-            var instance = instruction.OpCodeType is OpCodeType.Callvirt
+                EnsureValidTypes(ref value, methodArgsInfo[i].ParameterType);
+
+                methodArgs[i] = value;
+            }
+
+            var instance = methodInfo.CallingConvention.HasFlag(CallingConventions.HasThis)
                 ? context.Stack.PopExp()
                 : null;
 

@@ -21,6 +21,8 @@ namespace EdgeDB.CIL.Interpreters
                 ? context.Stack.PopExp()
                 : null;
 
+            EnsureValidTypes(ref value, field.FieldType);
+
             // TODO: is this right syntax?
             return Expression.Assign(
                 Expression.Field(instance, field),

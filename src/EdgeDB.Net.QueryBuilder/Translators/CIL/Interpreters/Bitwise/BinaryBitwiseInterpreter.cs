@@ -21,7 +21,7 @@ namespace EdgeDB.CIL.Interpreters
             var right = context.Stack.PopExp();
             var left = context.Stack.PopExp();
 
-            return instruction.OpCodeType switch
+            Expression expression = instruction.OpCodeType switch
             {
                 OpCodeType.And
                     => Expression.And(left, right),
@@ -36,6 +36,10 @@ namespace EdgeDB.CIL.Interpreters
 
                 _ => throw new Exception($"Unkown binary bitwise operation {instruction.OpCodeType}")
             };
+
+            EnsureValidTypes(ref expression);
+
+            return expression;
         }
     }
 }

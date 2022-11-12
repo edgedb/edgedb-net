@@ -6,6 +6,7 @@
     <Description>An optional extension to the base driver that adds a query builder.</Description>
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <Nullable>enable</Nullable>
 	  <NoWarn>CS1591</NoWarn>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>

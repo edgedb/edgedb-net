@@ -10,17 +10,21 @@ namespace EdgeDB.CIL.Interpreters
         public MethodBase RootMethod
             => Reader.MethodBase;
 
+        public Expression RootDelegateTarget { get; }
+
         public ParameterExpression[] Locals { get; }
         public ParameterExpression[] Parameters { get; }
         public InterpreterStack Stack { get; set; }
         public ILReader Reader { get; }
 
         public CILInterpreterContext(
+            object? rootDelegateTarget,
             ILReader reader,
             InterpreterStack stack,
             ParameterExpression[] locals,
             ParameterExpression[] parameters)
         {
+            RootDelegateTarget = Expression.Constant(rootDelegateTarget);
             Reader = reader;
             Stack = stack;
             Locals = locals;

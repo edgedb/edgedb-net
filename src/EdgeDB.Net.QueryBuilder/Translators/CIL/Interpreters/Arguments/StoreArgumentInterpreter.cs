@@ -14,6 +14,9 @@ namespace EdgeDB.CIL.Interpreters
         {
             var index = (short)instruction.Oprand!;
             var value = context.Stack.PopExp();
+
+            EnsureValidTypes(ref value, context.Parameters[index].Type);
+
             return Expression.Assign(context.Parameters[index], value);
         }
     }

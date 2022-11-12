@@ -23,6 +23,8 @@ namespace EdgeDB.CIL.Interpreters
             var value = context.Stack.PopExp();
             var address = context.Stack.PopExp();
 
+            // TODO: ensure valid typing for value -> address
+
             return Expression.Assign(address, value);
         }
     }

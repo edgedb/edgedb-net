@@ -12,15 +12,11 @@ namespace EdgeDB.Tests.Unit
 
             TestFunction(() => 1u);
             TestFunction(() => 1ul);
-            TestFunction(() => DummyUIntFunc(1u));
-            TestFunction(() =>
-            {
-                uint x = 1;
-                ulong y = 1234;
-            });
+            TestFunction(() => 1u + 1);
+            TestFunction(() => 500u - 499);
+            TestFunction(() => 50ul * 200ul);
+            TestFunction(() => (50u / 10u) % 2);
         }
-
-        public void DummyUIntFunc(uint t) { }
     }
 }
 

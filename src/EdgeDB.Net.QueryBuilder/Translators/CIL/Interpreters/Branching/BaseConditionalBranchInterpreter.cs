@@ -17,6 +17,8 @@ namespace EdgeDB.CIL.Interpreters
         {
             var condition = GetCondition(context);
 
+            EnsureValidTypes(ref condition);
+
             if (!instruction.TryGetOperandAs<Label>(out var label))
                 throw new NotSupportedException("branch instructions must contain a label");
 
