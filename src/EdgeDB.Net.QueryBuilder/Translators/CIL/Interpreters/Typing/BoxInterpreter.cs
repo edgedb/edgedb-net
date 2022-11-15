@@ -12,8 +12,14 @@ namespace EdgeDB.CIL.Interpreters
 
         public override Expression Interpret(Instruction instruction, CILInterpreterContext context)
         {
-            // do nothing as theres no need to box value types in expressions
-            return Expression.Empty();
+            var value = context.Stack.PopExp();
+
+            // TODO: accept non-const?
+
+            if (value is not ConstantExpression cnst)
+                throw new ArgumentException($"Cannot box {value.GetType()} expression");
+
+            return Expression.Constant(cnst.Value, typeof(object));
         }
     }
 }

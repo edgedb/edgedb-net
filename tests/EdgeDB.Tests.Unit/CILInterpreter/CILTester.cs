@@ -1,5 +1,8 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections;
+using System.Collections.Generic;
+
 namespace EdgeDB.Tests.Unit
 {
     [TestClass]
@@ -33,7 +36,16 @@ namespace EdgeDB.Tests.Unit
                 var funcResult = func.DynamicInvoke(args);
                 var interpretedResult = interpreted.Compile().DynamicInvoke(args);
 
-                Assert.AreEqual(funcResult, interpretedResult);
+                if(funcResult is Array array && interpretedResult is Array otherArr)
+                {
+                    Assert.AreEqual(array.Length, otherArr.Length);
+                    for(int i = 0; i != array.Length; i++)
+                    {
+                        Assert.AreEqual(array.GetValue(i), otherArr.GetValue(i));
+                    }
+                }
+                else
+                    Assert.AreEqual(funcResult, interpretedResult);
             }
 
             if (TranslateToEdgeQL)

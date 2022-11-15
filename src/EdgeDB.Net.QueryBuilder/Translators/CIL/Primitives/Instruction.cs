@@ -37,7 +37,13 @@ namespace EdgeDB.CIL
                 throw new InvalidOperationException("The current instruction doesn't reference a method");
 
             // TODO: parent generics?
+            var handle = GetMetadataHandle();
+            var asm = Assembly.GetExecutingAssembly();
+            var modules = asm.GetLoadedModules();
 
+            var kind = handle.Kind;
+
+                
             return _rootMethod.Module.ResolveMethod((int)Oprand!, Type.EmptyTypes, _rootMethod.GetGenericArguments())!;
         }
 
@@ -118,7 +124,7 @@ namespace EdgeDB.CIL
             return false;
         }
 
-        private EntityHandle GetMetadataHandle()
+        public EntityHandle GetMetadataHandle()
         {
             if (Oprand is not int i)
                 throw new NotSupportedException("Oprand must be of type int");

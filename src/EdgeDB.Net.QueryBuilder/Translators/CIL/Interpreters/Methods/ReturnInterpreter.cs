@@ -17,7 +17,7 @@ namespace EdgeDB.CIL.Interpreters
             if(context.Stack.TryPeek(out var obj) && obj is Expression exp && context.RootMethod is MethodInfo methodInfo)
             {
                 exp = context.Stack.PopExp();
-                EnsureValidTypes(ref exp, methodInfo.ReturnType);
+                Refine(ref exp, context, methodInfo.ReturnType);
                 context.Stack.Push(exp);
             }
 

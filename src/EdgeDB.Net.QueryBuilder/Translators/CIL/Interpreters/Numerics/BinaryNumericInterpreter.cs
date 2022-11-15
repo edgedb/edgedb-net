@@ -43,7 +43,7 @@ namespace EdgeDB.CIL.Interpreters
                 _ => throw new Exception($"Unkown binary numeric operation {instruction.OpCodeType}")
             };
 
-            EnsureValidTypes(ref expression);
+            Refine(ref expression, context);
 
             return expression;
         }

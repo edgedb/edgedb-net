@@ -53,9 +53,16 @@ namespace EdgeDB.CIL
 
             while(reader.ReadNext(out var instruction))
             {
+                // interpret the raw instuction
                 var expression = Interpret(instruction, context);
+
                 if (expression is DefaultExpression d && d.Type == typeof(void))
                     continue;
+
+                // refine the expression
+                expression = ExpressionRefiner.RefineExpression(expression, new RefiningContext(context));
+
+                // push to the stack
                 stack.Push(expression);
             }
 

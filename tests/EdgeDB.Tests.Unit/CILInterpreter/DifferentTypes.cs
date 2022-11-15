@@ -14,7 +14,12 @@ namespace EdgeDB.Tests.Unit
             TestFunction(() => "Hello, World!");
             TestFunction(() => $"Hello, {("Wor" + "ld!")}");
 
+            TestFunction(() => new int[] { 1, 2, 3 });
+            TestFunction(() => new string[] { "a", "b", "c" });
+
             TranslateToEdgeQL = false;
+
+            TestFunction(() => TestParams("1", "ab", "cd"));
 
             TestFunction(() =>
             {
@@ -23,6 +28,8 @@ namespace EdgeDB.Tests.Unit
             });
 
         }
+
+        public void TestParams(params string[] args) { }
 
         public class TestClass
         {

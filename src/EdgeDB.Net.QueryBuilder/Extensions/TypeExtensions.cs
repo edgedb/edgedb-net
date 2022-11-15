@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -119,5 +120,37 @@ namespace EdgeDB
 
         public static unsafe TTo ConvertToTargetNumber<TFrom, TTo>(TFrom value)
             => Unsafe.As<TFrom, TTo>(ref value);
+
+        private static FieldInfo? _vTokenFieldInfo;
+        public static int GetMetadataToken(this EntityHandle handle)
+        {
+            var field = _vTokenFieldInfo ?? (_vTokenFieldInfo = typeof(EntityHandle).GetField("_vToken", BindingFlags.NonPublic | BindingFlags.Instance));
+
+            return (int)(uint)field!.GetValue(handle)!;
+        }
+
+        public static bool IsRuntimeHandle(this Type handle)
+        {
+            return handle == typeof(RuntimeTypeHandle) ||
+                handle == typeof(RuntimeMethodHandle) ||
+                handle == typeof(RuntimeFieldHandle);
+        }
+
+        public static object ConvertToRuntimeHandle(this EntityHandle handle, Module module)
+        {
+            var token = handle.GetMetadataToken();
+
+            switch (handle.Kind)
+            {
+                case HandleKind.TypeDefinition or HandleKind.TypeReference or HandleKind.TypeSpecification or HandleKind.ExportedType:
+                    return module.ResolveType(token).TypeHandle;
+                case HandleKind.MethodDefinition or HandleKind.MethodImplementation or HandleKind.MethodSpecification:
+                    return module.ResolveMethod(token)!.MethodHandle;
+                case HandleKind.FieldDefinition:
+                    return module.ResolveField(token)!.FieldHandle;
+                default:
+                    throw new NotSupportedException();
+            }
+        }
     }
 }

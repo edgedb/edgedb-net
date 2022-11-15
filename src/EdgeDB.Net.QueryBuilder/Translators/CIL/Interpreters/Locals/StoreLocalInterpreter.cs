@@ -31,7 +31,7 @@ namespace EdgeDB.CIL.Interpreters
 
             var value = context.Stack.PopExp();
 
-            EnsureValidTypes(ref value, context.Locals[index].Type);
+            Refine(ref value, context, context.Locals[index].Type);
 
             return Expression.Assign(context.Locals[index], value);
         }
