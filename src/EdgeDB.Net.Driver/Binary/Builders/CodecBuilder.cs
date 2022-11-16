@@ -129,6 +129,11 @@ namespace EdgeDB.Binary
             return hashedValue;
         }
 
+        internal static bool IsScalarType(Type type)
+        {
+            return _defaultCodecs.Values.Contains(type);
+        }
+
         private static readonly Dictionary<Guid, Type> _defaultCodecs = new()
         {
             { NullCodec, typeof(NullCodec) },

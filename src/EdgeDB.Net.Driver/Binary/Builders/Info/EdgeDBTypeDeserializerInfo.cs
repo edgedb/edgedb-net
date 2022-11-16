@@ -18,6 +18,8 @@ namespace EdgeDB
         public bool IsAbtractType
             => _type.IsAbstract || _type.IsInterface;
 
+        public bool RequiresTypeName { get; private set; }
+
         public TypeDeserializerFactory Factory => _factory;
 
         public Dictionary<Type, EdgeDBTypeDeserializeInfo> Children { get; } = new();
@@ -219,6 +221,8 @@ namespace EdgeDB
             // is it abstract
             if (IsAbtractType)
             {
+                RequiresTypeName = true;
+                
                 return (ref ObjectEnumerator enumerator) =>
                 {
                     // introspect the type name
