@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace EdgeDB.Binary.Codecs
@@ -87,12 +89,13 @@ namespace EdgeDB.Binary.Codecs
             return writer.GetBytes().ToArray();
         }
 
-        private static readonly List<ICodec> _codecs;
-
+        private static readonly List<ICodec> _scalarCodecs;
+        private static readonly ConcurrentDictionary<Type, ICodec> _scalarCodecMap;
         static ICodec()
         {
-            _codecs = new();
-
+            _scalarCodecs = new();
+            _scalarCodecMap = new();
+            
             var codecs = Assembly.GetExecutingAssembly().GetTypes().Where(x => x.GetInterfaces().Any(x => x.Name == "IScalarCodec`1"));
 
             foreach (var codec in codecs)
@@ -100,12 +103,19 @@ namespace EdgeDB.Binary.Codecs
                 // create instance
                 var inst = (ICodec)Activator.CreateInstance(codec)!;
 
-                _codecs.Add(inst);
+                _scalarCodecs.Add(inst);
+                _scalarCodecMap.TryAdd(inst.ConverterType, inst);
             }
         }
 
+        static bool ContainsScalarCodec(Type type)
+            => _scalarCodecMap.ContainsKey(type);
+
+        static bool TryGetScalarCodec(Type type, [MaybeNullWhen(false)] out ICodec codec)
+            => _scalarCodecMap.TryGetValue(type, out codec);
+
         static IScalarCodec<TType>? GetScalarCodec<TType>()
-            => (IScalarCodec<TType>?)_codecs.FirstOrDefault(x => x.ConverterType == typeof(TType) || x.CanConvert(typeof(TType)));
+            => (IScalarCodec<TType>?)_scalarCodecs.FirstOrDefault(x => x.ConverterType == typeof(TType) || x.CanConvert(typeof(TType)));
     }
 
     internal interface IScalarCodec<TInner> : ICodec<TInner> { }

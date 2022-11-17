@@ -160,7 +160,7 @@ namespace EdgeDB
         /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         internal async Task<RawExecuteResult> ExecuteInternalAsync<TResult>(string query, IDictionary<string, object?>? args = null, Cardinality? cardinality = null,
-            Capabilities? capabilities = Capabilities.Modifications, IOFormat format = IOFormat.Binary, bool isRetry = false, 
+            Capabilities? capabilities = Capabilities.Modifications, IOFormat format = IOFormat.Binary, bool isRetry = false, bool implicitTypeName = false,
             CancellationToken token = default)
         {
             // if the current client is not connected, reconnect it
@@ -234,7 +234,7 @@ namespace EdgeDB
                         StateTypeDescriptorId = _stateDescriptorId,
                         StateData = stateBuf,
                         ImplicitLimit = _config.ImplicitLimit,
-                        ImplicitTypeNames = true, // used for type builder
+                        ImplicitTypeNames = implicitTypeName, // used for type builder
                         ImplicitTypeIds = true,  // used for type builder
                     }, parseHandlerPredicate, alwaysReturnError: false, token: token).ConfigureAwait(false);
 
@@ -280,7 +280,7 @@ namespace EdgeDB
                     ExplicitObjectIds = _config.ExplicitObjectIds,
                     StateTypeDescriptorId = _stateDescriptorId,
                     StateData = _stateCodec?.Serialize(serializedState),
-                    ImplicitTypeNames = true, // used for type builder
+                    ImplicitTypeNames = implicitTypeName, // used for type builder
                     ImplicitTypeIds = true,  // used for type builder
                     Arguments = argumentCodec.SerializeArguments(args),
                     ImplicitLimit = _config.ImplicitLimit,
@@ -307,14 +307,14 @@ namespace EdgeDB
                 _semaphore.Release();
                 released = true;
 
-                return await ExecuteInternalAsync<TResult>(query, args, cardinality, capabilities, format, true, token).ConfigureAwait(false);
+                return await ExecuteInternalAsync<TResult>(query, args, cardinality, capabilities, format, true, implicitTypeName, token).ConfigureAwait(false);
             }
             catch (EdgeDBException x) when (x.ShouldRetry && !isRetry)
             {
                 _semaphore.Release();
                 released = true;
 
-                return await ExecuteInternalAsync<TResult>(query, args, cardinality, capabilities, format, true, token).ConfigureAwait(false);
+                return await ExecuteInternalAsync<TResult>(query, args, cardinality, capabilities, format, true, implicitTypeName, token).ConfigureAwait(false);
             }
             catch (Exception x)
             {
@@ -358,17 +358,25 @@ namespace EdgeDB
             Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
             where TResult : default
         {
-            var result = await ExecuteInternalAsync<TResult>(query, args, Cardinality.Many, capabilities, token: token);
+            var implicitTypeName = TypeBuilder.TryGetTypeDeserializerInfo(typeof(TResult), out var info) && info.RequiresTypeName;
 
-            List<TResult?> returnResults = new();
+            var result = await ExecuteInternalAsync<TResult>(
+                query,
+                args,
+                Cardinality.Many,
+                capabilities,
+                implicitTypeName: implicitTypeName,
+                token: token);
+
+            var array = new TResult?[result.Data.Length];
 
             for(int i = 0; i != result.Data.Length; i++)
             {
                 var obj = ObjectBuilder.BuildResult<TResult>(result.Deserializer, ref result.Data[i]);
-                returnResults.Add(obj);
+                array[i] = obj;
             }
-            
-            return returnResults.ToImmutableArray();
+
+            return array.ToImmutableArray();
         }
 
         /// <inheritdoc/>
@@ -383,7 +391,15 @@ namespace EdgeDB
             Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
             where TResult : default
         {
-            var result = await ExecuteInternalAsync<TResult>(query, args, Cardinality.AtMostOne, capabilities, token: token);
+            var implicitTypeName = TypeBuilder.TryGetTypeDeserializerInfo(typeof(TResult), out var info) && info.RequiresTypeName;
+            
+            var result = await ExecuteInternalAsync<TResult>(
+                query,
+                args,
+                Cardinality.AtMostOne,
+                capabilities,
+                implicitTypeName: implicitTypeName,
+                token: token);
 
             if (result.Data.Length > 1)
                 throw new ResultCardinalityMismatchException(Cardinality.AtMostOne, Cardinality.Many);
@@ -407,7 +423,15 @@ namespace EdgeDB
         public override async Task<TResult> QueryRequiredSingleAsync<TResult>(string query, IDictionary<string, object?>? args = null,
             Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
-            var result = await ExecuteInternalAsync<TResult>(query, args, Cardinality.AtMostOne, capabilities, token: token);
+            var implicitTypeName = TypeBuilder.TryGetTypeDeserializerInfo(typeof(TResult), out var info) && info.RequiresTypeName;
+            
+            var result = await ExecuteInternalAsync<TResult>(
+                query,
+                args,
+                Cardinality.AtMostOne,
+                capabilities,
+                implicitTypeName: implicitTypeName,
+                token: token);
 
             if (result.Data.Length is > 1 or 0)
                 throw new ResultCardinalityMismatchException(Cardinality.One, result.Data.Length > 1 ? Cardinality.Many : Cardinality.AtMostOne);
