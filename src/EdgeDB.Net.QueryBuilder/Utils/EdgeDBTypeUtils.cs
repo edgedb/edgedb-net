@@ -1,4 +1,5 @@
 using EdgeDB.Binary;
+using EdgeDB.Binary.Codecs;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -136,6 +137,9 @@ namespace EdgeDB
             innerLinkType = null;
             isMultiLink = false;
 
+            if (ICodec.ContainsScalarCodec(type))
+                return false;
+
             Type? enumerableType = ReflectionUtils.IsSubclassOfRawGeneric(typeof(IEnumerable<>), type) ? type : null;
             if (type != typeof(string) && (enumerableType is not null || (enumerableType = type.GetInterfaces().FirstOrDefault(x => ReflectionUtils.IsSubclassOfRawGeneric(typeof(IEnumerable<>), x))) != null))
             {
@@ -147,6 +151,27 @@ namespace EdgeDB
             }
 
             return TypeBuilder.IsValidObjectType(type) && !TryGetScalarType(type, out _);
+        }
+
+        /// <summary>
+        ///     Checks whether or not a type is a valid link type.
+        /// </summary>
+        /// <param name="info">The property info to check whether or not its a link.</param>
+        /// <param name="isMultiLink">
+        ///     The out parameter which is <see langword="true"/> 
+        ///     if the type is a 'multi link'; otherwise a 'single link'.
+        /// </param>
+        /// <param name="innerLinkType">The inner type of the multi link if <paramref name="isMultiLink"/> is <see langword="true"/>; otherwise <see langword="null"/>.</param>
+        /// <returns>
+        ///     <see langword="true"/> if the given type is a link; otherwise <see langword="false"/>.
+        /// </returns>
+        public static bool IsLink(EdgeDBPropertyInfo info, out bool isMultiLink, [MaybeNullWhen(false)] out Type? innerLinkType)
+        {
+            // check for custom converter
+            if (info.CustomConverter is not null)
+                return IsLink(info.CustomConverter.Target, out isMultiLink, out innerLinkType);
+
+            return IsLink(info.Type, out isMultiLink, out innerLinkType);
         }
     }
 }

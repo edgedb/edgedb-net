@@ -424,20 +424,31 @@ namespace EdgeDB.QueryNodes
                 return $"{{ {ExpressionTranslator.Translate(expression, Builder.QueryVariables, Context, Builder.QueryGlobals)} }}";
 
             // get all properties that aren't marked with the EdgeDBIgnore attribute
-            var properties = type.GetEdgeDBTargetProperties();
+            var map = EdgeDBPropertyMapInfo.Create(type);
 
-            foreach (var property in properties)
+            foreach (var property in map.Properties)
             {
                 // define the type and whether or not it's a link
-                var propType = property.PropertyType;
-                var propValue = property.GetValue(value);
-                var isScalar = EdgeDBTypeUtils.TryGetScalarType(propType, out var edgeqlType);
-
-                // get the equivalent edgedb property name
-                var propertyName = property.GetEdgeDBPropertyName();
+                var propValue = property.PropertyInfo.GetValue(value);
+                var isScalar = EdgeDBTypeUtils.TryGetScalarType(property.Type, out var edgeqlType);
+                
+                if(property.CustomConverter is not null)
+                {
+                    // convert it and parameterize it
+                    if(!EdgeDBTypeUtils.TryGetScalarType(property.CustomConverter.Target, out var scalar))
+                        throw new ArgumentException($"Cannot resolve scalar type for {property.CustomConverter.Target}");
+                    propValue = property.CustomConverter.ConvertTo(propValue);
+                    var varName = QueryUtils.GenerateRandomVariableName();
+                    SetVariable(varName, propValue);
+                    setters.Add($"{property.EdgeDBName} := <{scalar}>${varName}");
+                    continue;
+                }
                 
                 // if its a default value of a struct, ignore it.
-                if (isScalar && propType.IsValueType && !propType.IsEnum && (propValue?.Equals(ReflectionUtils.GetValueTypeDefault(propType)) ?? false))
+                if (isScalar &&
+                    property.Type.IsValueType &&
+                    !property.Type.IsEnum &&
+                    (propValue?.Equals(ReflectionUtils.GetValueTypeDefault(property.Type)) ?? false))
                 {
                     setters.Add(new(s =>
                     {
@@ -446,17 +457,17 @@ namespace EdgeDB.QueryNodes
                             throw new InvalidOperationException($"Could not find {type!.GetEdgeDBTypeName()} in schema info!");
 
                         // get the property defined in the schema
-                        var edgedbProp = info.Properties!.FirstOrDefault(x => x.Name == propertyName);
+                        var edgedbProp = info.Properties!.FirstOrDefault(x => x.Name == property.EdgeDBName);
 
                         if (edgedbProp is null)
-                            throw new InvalidOperationException($"Could not find property '{propertyName}' on type {type!.GetEdgeDBTypeName()}");
+                            throw new InvalidOperationException($"Could not find property '{property.EdgeDBName}' on type {type!.GetEdgeDBTypeName()}");
 
                         // if its required and it doesn't have a default value, set it
                         if (edgedbProp.Required && !edgedbProp.HasDefault)
                         {
                             var varName = QueryUtils.GenerateRandomVariableName();
                             SetVariable(varName, propValue);
-                            return $"{propertyName} := <{edgeqlType}>${varName}";
+                            return $"{property.EdgeDBName} := <{edgeqlType}>${varName}";
                         }
 
                         return null;
@@ -464,47 +475,44 @@ namespace EdgeDB.QueryNodes
                     continue;
                 }
 
-                var isLink = EdgeDBTypeUtils.IsLink(property.PropertyType, out var isArray, out var innerType);
+                var isLink = EdgeDBTypeUtils.IsLink(property.Type, out var isArray, out var innerType);
 
                 // if a scalar type is found for the property type
                 if (isScalar)
                 {
                     // set it as a variable and continue the iteration
                     var varName = QueryUtils.GenerateRandomVariableName();
-                    SetVariable(varName, property.GetValue(value));
-                    setters.Add($"{propertyName} := <{edgeqlType}>${varName}");
+                    SetVariable(varName, propValue);
+                    setters.Add($"{property.EdgeDBName} := <{edgeqlType}>${varName}");
                     continue;
                 }
 
                 // if the property is a link
                 if (isLink)
                 {
-                    // get the value
-                    var subValue = property.GetValue(value);
-
                     // if its null we can append an empty set
-                    if (subValue is null)
-                        setters.Add($"{propertyName} := {{}}");
+                    if (propValue is null)
+                        setters.Add($"{property.EdgeDBName} := {{}}");
                     else if (isArray) // if its a multi link
                     {
                         List<string> subShape = new();
 
                         // iterate over all values and generate their resolver
-                        foreach (var item in (IEnumerable)subValue!)
+                        foreach (var item in (IEnumerable)propValue!)
                         {
                             subShape.Add(BuildLinkResolver(innerType!, item));
                         }
 
                         // append the sub-shape
-                        setters.Add($"{propertyName} := {{ {string.Join(", ", subShape)} }}");
+                        setters.Add($"{property.EdgeDBName} := {{ {string.Join(", ", subShape)} }}");
                     }
                     else // generate the link resolver and append it
-                        setters.Add($"{propertyName} := {BuildLinkResolver(propType, subValue)}");
+                        setters.Add($"{property.EdgeDBName} := {BuildLinkResolver(property.Type, propValue)}");
 
                     continue;
                 }
 
-                throw new InvalidOperationException($"Failed to find method to serialize the property \"{property.PropertyType.Name}\" on type {type.Name}");
+                throw new InvalidOperationException($"Failed to find method to serialize the property \"{property.Type.Name}\" on type {type.Name}");
             }
 
             return new ShapeDefinition(setters);

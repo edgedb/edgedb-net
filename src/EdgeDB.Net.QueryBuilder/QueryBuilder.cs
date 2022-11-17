@@ -41,15 +41,7 @@ namespace EdgeDB
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Select(Expression{Func{QueryContext, TType}})"/>
         public static ISelectQuery<TType, QueryContext<TType>> Select<TType>(Expression<Func<QueryContext, TType?>> shape)
             => new QueryBuilder<TType>().Select(shape);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(TType, bool)"/>
-        public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(TType value, bool returnInsertedValue)
-            => new QueryBuilder<TType>().Insert(value, returnInsertedValue);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(TType)"/>
-        public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(TType value)
-            => new QueryBuilder<TType>().Insert(value, false);
-
+        
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(Expression{Func{QueryContext, TType}}, bool)"/>
         public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(Expression<Func<QueryContext<TType>, TType>> value, bool returnInsertedValue)
             => new QueryBuilder<TType>().Insert(value, returnInsertedValue);
@@ -57,6 +49,15 @@ namespace EdgeDB
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(Expression{Func{QueryContext, TType}})"/>
         public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(Expression<Func<QueryContext<TType>, TType>> value)
             => new QueryBuilder<TType>().Insert(value);
+
+        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(TType, bool)"/>
+        public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(TType value, bool returnInsertedValue)
+            => new QueryBuilder<TType>().Insert(value, returnInsertedValue);
+
+        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(TType)"/>
+        public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(TType value)
+            where TType : class
+            => new QueryBuilder<TType>().Insert(value, false);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{TType, TType}}, bool)"/>
         public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(Expression<Func<TType, TType>> updateFunc, bool returnUpdatedValue)
