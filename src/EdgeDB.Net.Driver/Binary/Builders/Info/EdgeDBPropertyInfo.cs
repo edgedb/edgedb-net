@@ -28,6 +28,9 @@ namespace EdgeDB
         public bool IsIgnored
             => _ignore is not null;
 
+        public PropertyInfo PropertyInfo
+            => _property;
+
         private readonly EdgeDBPropertyAttribute? _propertyAttribute;
         private readonly EdgeDBTypeConverterAttribute? _typeConverterAttribute;
         private readonly EdgeDBIgnoreAttribute? _ignore;
@@ -52,6 +55,8 @@ namespace EdgeDB
             // check if we can use the custom converter
             if (CustomConverter is not null && CustomConverter.CanConvert(Type, value.GetType()))
             {
+                CustomConverter.ValidateTargetType();
+
                 return CustomConverter.ConvertFrom(value);
             }
 

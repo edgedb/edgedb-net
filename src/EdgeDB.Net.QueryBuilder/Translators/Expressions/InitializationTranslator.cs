@@ -7,6 +7,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using LinqExpression = System.Linq.Expressions.Expression;
 
 namespace EdgeDB.Translators.Expressions
 {
@@ -58,17 +59,14 @@ namespace EdgeDB.Translators.Expressions
             });
         }
 
-        public static string? Translate(IDictionary<MemberInfo, Expression> expressions, ExpressionContext context)
+        public static string? Translate(IDictionary<EdgeDBPropertyInfo, Expression> expressions, ExpressionContext context)
         {
             List<string> initializations = new();
             
-            foreach(var (Member, Expression) in expressions)
+            foreach(var (Property, Expression) in expressions)
             {
                 // get the members type and edgedb equivalent name
-                var memberType = Member.GetMemberType();
-                var memberName = Member.GetEdgeDBPropertyName();
-                var typeName = memberType.GetEdgeDBTypeName();
-                var isLink = EdgeDBTypeUtils.IsLink(memberType, out var isMultiLink, out var innerType);
+                var isLink = EdgeDBTypeUtils.IsLink(Property.Type, out var isMultiLink, out var innerType);
                 var disassembled = ExpressionUtils.DisassembleExpression(Expression).ToArray();
                 
                 switch (Expression)
@@ -77,8 +75,8 @@ namespace EdgeDB.Translators.Expressions
                         {
                             if (disassembled.Last() is ConstantExpression constant && disassembled[^2] is MemberExpression constParent)
                             {
-                                if (!memberType.IsAssignableTo(typeof(IEnumerable)))
-                                    throw new NotSupportedException($"cannot use {memberType} as a multi link collection type; its not assignable to IEnumerable.");
+                                if (!Property.Type.IsAssignableTo(typeof(IEnumerable)))
+                                    throw new NotSupportedException($"cannot use {Property.Type} as a multi link collection type; its not assignable to IEnumerable.");
 
                                 // get the value
                                 var memberValue = constParent.Member.GetMemberValue(constant.Value);
@@ -87,13 +85,13 @@ namespace EdgeDB.Translators.Expressions
 
                                 if (result == null)
                                 {
-                                    initializations.Add($"{memberName} := {{}}");
+                                    initializations.Add($"{Property.EdgeDBName} := {{}}");
                                     break;
                                 }
 
                                 var name = context.GetOrAddGlobal(memberValue, result);
 
-                                initializations.Add($"{memberName} := {name}");
+                                initializations.Add($"{Property.EdgeDBName} := {name}");
                             }
                         }
                         break;
@@ -108,15 +106,15 @@ namespace EdgeDB.Translators.Expressions
                                 // check if its a global value we've alreay got a query for
                                 if (context.TryGetGlobal(memberValue, out var global))
                                 {
-                                    initializations.Add($"{memberName} := {global.Name}");
+                                    initializations.Add($"{Property.EdgeDBName} := {global.Name}");
                                     break;
                                 }
 
                                 // check if its a value returned in a previous query
                                 if (QueryObjectManager.TryGetObjectId(memberValue, out var id))
                                 {
-                                    var globalName = context.GetOrAddGlobal(id, id.SelectSubQuery(memberType));
-                                    initializations.Add($"{memberName} := {globalName}");
+                                    var globalName = context.GetOrAddGlobal(id, id.SelectSubQuery(Property.Type));
+                                    initializations.Add($"{Property.EdgeDBName} := {globalName}");
                                     break;
                                 }
 
@@ -125,23 +123,35 @@ namespace EdgeDB.Translators.Expressions
                                 context.SetGlobal(name, new SubQuery((info) =>
                                 {
                                     // generate an insert shape
-                                    var insertShape = ExpressionTranslator.ContextualTranslate(QueryGenerationUtils.GenerateInsertShapeExpression(memberValue, memberType), context);
+                                    var insertShape = ExpressionTranslator.ContextualTranslate(QueryGenerationUtils.GenerateInsertShapeExpression(memberValue, Property.Type), context);
 
-                                    if (!info.TryGetObjectInfo(memberType, out var objInfo))
-                                        throw new InvalidOperationException($"No schema type found for {memberType}");
+                                    if (!info.TryGetObjectInfo(Property.Type, out var objInfo))
+                                        throw new InvalidOperationException($"No schema type found for {Property.Type}");
 
-                                    var exclusiveCondition = $"{ConflictUtils.GenerateExclusiveConflictStatement(objInfo, true)} else (select {typeName})";
-                                    return $"(insert {memberType.GetEdgeDBTypeName()} {{ {insertShape} }} {exclusiveCondition})";
+                                    var exclusiveCondition = $"{ConflictUtils.GenerateExclusiveConflictStatement(objInfo, true)} else (select {Property.Type.GetEdgeDBTypeName()})";
+                                    return $"(insert {Property.Type.GetEdgeDBTypeName()} {{ {insertShape} }} {exclusiveCondition})";
                                 }), null);
-                                initializations.Add($"{memberName} := {name}");
+                                initializations.Add($"{Property.EdgeDBName} := {name}");
                             }
                             else if (disassembled.Last().Type.IsAssignableTo(typeof(QueryContext)))
                             {
                                 var translated = ExpressionTranslator.ContextualTranslate(Expression, context);
-                                initializations.Add($"{memberName} := {translated}");
+                                initializations.Add($"{Property.EdgeDBName} := {translated}");
                             }
                             else
                                 throw new InvalidOperationException($"Cannot translate {Expression}");
+                        }
+                        break;
+                    case LinqExpression when Property.CustomConverter is not null:
+                        {
+                            // get the value, convert it, and parameterize it
+                            if (!EdgeDBTypeUtils.TryGetScalarType(Property.CustomConverter.Target, out var scalar))
+                                throw new ArgumentException($"Cannot resolve scalar type for {Property.CustomConverter.Target}");
+
+                            var result = LinqExpression.Lambda(Expression).Compile().DynamicInvoke();
+                            var converted = Property.CustomConverter.ConvertTo(result);
+                            var varName = context.AddVariable(converted);
+                            initializations.Add($"{Property.EdgeDBName} := <{scalar}>${varName}");
                         }
                         break;
                     case MemberInitExpression or NewExpression:
@@ -153,14 +163,14 @@ namespace EdgeDB.Translators.Expressions
                                 // generate an insert shape
                                 var insertShape = ExpressionTranslator.ContextualTranslate(expression, context);
 
-                                if (!info.TryGetObjectInfo(memberType, out var objInfo))
-                                    throw new InvalidOperationException($"No schema type found for {memberType}");
+                                if (!info.TryGetObjectInfo(Property.Type, out var objInfo))
+                                    throw new InvalidOperationException($"No schema type found for {Property.Type}");
 
-                                var exclusiveCondition = $"{ConflictUtils.GenerateExclusiveConflictStatement(objInfo, true)} else (select {typeName})";
+                                var exclusiveCondition = $"{ConflictUtils.GenerateExclusiveConflictStatement(objInfo, true)} else (select {Property.Type.GetEdgeDBTypeName()})";
 
-                                return $"(insert {memberType.GetEdgeDBTypeName()} {{ {insertShape} }} {exclusiveCondition})";
+                                return $"(insert {Property.Type.GetEdgeDBTypeName()} {{ {insertShape} }} {exclusiveCondition})";
                             }), null);
-                            initializations.Add($"{memberName} := {name}");
+                            initializations.Add($"{Property.EdgeDBName} := {name}");
                         }
                         break;
                     default:
@@ -168,21 +178,21 @@ namespace EdgeDB.Translators.Expressions
                             // translate the value and determine if were setting a value or referencing a value.
                             var newContext = context.Enter(x =>
                             {
-                                x.LocalScope = memberType;
+                                x.LocalScope = Property.Type;
                                 x.IsShape = false;
                             });
                             string? value = ExpressionTranslator.ContextualTranslate(Expression, newContext);
-                            bool isSetter = context.NodeContext is InsertContext or UpdateContext || 
-                                context.NodeContext.CurrentType.GetProperty(Member.Name) == null || 
-                                Expression is MethodCallExpression;
+                            bool isSetter = !(context.NodeContext is not InsertContext and not UpdateContext && 
+                                context.NodeContext.CurrentType.GetProperty(Property.PropertyName) != null && 
+                                Expression is not MethodCallExpression);
 
                             // add it to our shape
                             if (value is null) // include
-                                initializations.Add(memberName);
+                                initializations.Add(Property.EdgeDBName);
                             else if (newContext.IsShape) // includelink
-                                initializations.Add($"{memberName}: {{ {value} }}");
+                                initializations.Add($"{Property.EdgeDBName}: {{ {value} }}");
                             else
-                                initializations.Add($"{memberName}{((isSetter || context.IsFreeObject) && !newContext.HasInitializationOperator ? " :=" : "")} {value}");
+                                initializations.Add($"{Property.EdgeDBName}{((isSetter || context.IsFreeObject) && !newContext.HasInitializationOperator ? " :=" : "")} {value}");
                         }
                         break;
                 }

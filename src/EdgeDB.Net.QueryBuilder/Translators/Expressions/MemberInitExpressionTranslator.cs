@@ -18,14 +18,26 @@ namespace EdgeDB.Translators.Expressions
         /// <inheritdoc/>
         public override string? Translate(MemberInitExpression expression, ExpressionContext context)
         {
-            List<(MemberInfo, Expression)> expressions = new();
+            List<(EdgeDBPropertyInfo, Expression)> expressions = new();
 
-            if(expression.NewExpression.Arguments is not null && expression.NewExpression.Arguments.Any())
-                for(int i = 0; i != expression.NewExpression.Arguments.Count; i++)
-                    expressions.Add((expression.NewExpression.Members![i], expression.NewExpression.Arguments[i]));
+            var map = new Dictionary<PropertyInfo, EdgeDBPropertyInfo>(
+                EdgeDBPropertyMapInfo.Create(expression.Type).Properties
+                .Select(x => new KeyValuePair<PropertyInfo, EdgeDBPropertyInfo>(x.PropertyInfo, x)));
 
+            // ctor
+            // TODO: custom type converters?
+            //if(expression.NewExpression.Arguments is not null && expression.NewExpression.Arguments.Any())
+            //    for(int i = 0; i != expression.NewExpression.Arguments.Count; i++)
+            //        expressions.Add((expression.NewExpression.Members![i], expression.NewExpression.Arguments[i]));
+
+            // members
             foreach (var binding in expression.Bindings.Where(x => x is MemberAssignment).Cast<MemberAssignment>())
-                expressions.Add((binding.Member, binding.Expression));
+            {
+                if (binding.Member is not PropertyInfo propInfo || !map.TryGetValue(propInfo, out var edgedbPropInfo))
+                    continue;
+                
+                expressions.Add((edgedbPropInfo, binding.Expression));
+            }
 
             return InitializationTranslator.Translate(expressions.ToDictionary(x => x.Item1, x => x.Item2), context);
         }

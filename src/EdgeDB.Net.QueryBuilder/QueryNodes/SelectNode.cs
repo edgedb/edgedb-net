@@ -25,19 +25,19 @@ namespace EdgeDB.QueryNodes
         /// <returns>The shape of the given type.</returns>
         private string? GetShape(Type type, int currentDepth = 0)
         {
-            // get all properties that dont have the 'EdgeDBIgnore' attribute
-            var properties = type.GetProperties().Where(x => x.GetCustomAttribute<EdgeDBIgnoreAttribute>() == null);
+            // get the properties for the type
+            var properties = EdgeDBPropertyMapInfo.Create(type);
 
             // map each property to its shape form
-            var propertyNames = properties.Select(x =>
+            var propertyNames = properties.Map.Select(x =>
             {
                 // get the edgedb name equivalent
-                var name = x.GetEdgeDBPropertyName();
+                var name = x.Key;
 
                 // if its a link, build a nested shape if we're not past our max depth
-                if (EdgeDBTypeUtils.IsLink(x.PropertyType, out var isArray, out var innerType))
+                if (EdgeDBTypeUtils.IsLink(x.Value, out var isArray, out var innerType))
                 {
-                    var shapeType = isArray ? innerType! : x.PropertyType;
+                    var shapeType = isArray ? innerType! : x.Value.Type;
                     if (currentDepth < Context.SubShapeDepth)
                     {
                         var subShape = GetShape(shapeType, currentDepth + 1);
