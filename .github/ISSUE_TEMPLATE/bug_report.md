@@ -22,7 +22,7 @@ A clear and concise description of what you expected to happen. If applicable, a
 **Versions (please complete the following information):**
 
 <!--
-For EdgeDB version: Run `edgedb query 'select sys::get_version_as_str()'` from your project directory or query `select sys::get_version_as_str();`
+For EdgeDB Version: run `edgedb query 'select sys::get_version_as_str()'` from your project directory (or run `select sys::get_version_as_str();` in the EdgeDB interactive shell).
 For EdgeDB CLI version: Run `edgedb --version` from anywhere
 For `edgedb-net` version: Run `dotnet list package` from your project directory and look for "EdgeDB.Net.Driver", or find the version number in NuGet's "Installed" tab.
 For .NET version: dotnet --version
