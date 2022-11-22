@@ -1,9 +1,8 @@
 name: Docs Build
 
 on:
-  - push
-  - pull_request
-
+  release:
+    types: [released]
 env: 
   BuildNumber: "${{ github.run_number }}"
 
