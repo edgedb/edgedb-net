@@ -1,4 +1,4 @@
-﻿using EdgeDB;
+using EdgeDB;
 using EdgeDB.BinaryDebugger;
 
 var client = new EdgeDBClient(new EdgeDBClientPoolConfig
@@ -12,16 +12,20 @@ var client = new EdgeDBClient(new EdgeDBClientPoolConfig
     ClientType = EdgeDBClientType.Custom
 });
 
-var debugClient = await client.GetOrCreateClientAsync();
+var debugClient = await client.GetOrCreateClientAsync<DebuggerClient>();
 
 try
 {
     await debugClient.QueryAsync<string>("select \"Hello, World!\"");
 }
-catch (Exception) { }
+catch (Exception x )
+{
+    Console.WriteLine(x);
+}
 finally
 {
-    ((DebuggerClient)debugClient).FileStream.Close();
+    await debugClient.DisconnectAsync();
+    await debugClient.DisposeAsync();
 }
 
 await Task.Delay(-1);

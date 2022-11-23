@@ -48,7 +48,7 @@ namespace EdgeDB
 
         internal readonly AsyncEvent<Func<BaseEdgeDBClient, ValueTask>> OnConnectInternal = new();
 
-        protected IDisposable ClientPoolHolder;
+        protected IDisposable? ClientPoolHolder;
 
         /// <summary>
         ///     Initialized the base client.
@@ -65,7 +65,7 @@ namespace EdgeDB
         public void AcceptHolder(IDisposable holder)
         {
             // dispose the old holder
-            ClientPoolHolder.Dispose();
+            ClientPoolHolder?.Dispose();
             ClientPoolHolder = holder;
         }
 
@@ -166,7 +166,7 @@ namespace EdgeDB
         public virtual async ValueTask<bool> DisposeAsync()
         {
             bool shouldDispose = true;
-            ClientPoolHolder.Dispose();
+            ClientPoolHolder?.Dispose();
             if (_onDisposed.HasSubscribers)
             {
                 var results = await _onDisposed.InvokeAsync(this).ConfigureAwait(false);

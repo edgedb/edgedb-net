@@ -1,15 +1,19 @@
 using EdgeDB.Binary;
+using EdgeDB.Utils;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace EdgeDB.BinaryDebugger
 {
+
     internal class DebuggerClient : EdgeDBBinaryClient
     {
         public StreamWriter Writer { get; }
@@ -18,12 +22,7 @@ namespace EdgeDB.BinaryDebugger
         public override bool IsConnected => _tcpClient.Connected;
 
         private Stream? _proxy;
-
-        private bool _readingPacket;
-        private ServerMessageType _packetType;
-        private bool _isReadingBody;
-        private int _packetLength;
-        private List<byte>? _packetBody;
+        
 
         private TcpClient _tcpClient;
         private NetworkStream? _stream;
@@ -122,40 +121,48 @@ namespace EdgeDB.BinaryDebugger
             }
         }
 
+        private readonly struct PacketHeader
+        {
+            public readonly ServerMessageType Type { get; init; }
+            public readonly int Length { get; init; }
+            public readonly byte[] Raw { get; init; }
+        }
+
+        private PacketHeader? Header { get; set; }
+
         private void OnRead(int read, byte[] buffer, int offset, int count)
         {
-            if (!_readingPacket && count == 1)
+            var copyBuffer = new byte[buffer.Length];
+
+            buffer.CopyTo(copyBuffer, 0);
+            var reader = new PacketReader(copyBuffer);
+            
+            if(read == 5)
             {
-                _readingPacket = true;
-                _packetType = (ServerMessageType)buffer[0];
-                return;
-            }
-
-            if (!_isReadingBody && count == 4)
-            {
-                _isReadingBody = true;
-                _packetLength = BitConverter.ToInt32(buffer.Reverse().ToArray());
-                _packetBody = new();
-                return;
-
-            }
-
-            if (_isReadingBody)
-            {
-                _packetBody!.AddRange(buffer);
-
-                if (_packetBody.Count >= _packetLength - 4)
+                var raw = copyBuffer.ToArray();
+                // packet header
+                Header = new PacketHeader
                 {
-                    Writer.WriteLine($"READING\n" +
-                             $"=======\n" +
-                             $"Packet: {_packetType}\n" +
-                             $"Length: {_packetLength}\n" +
-                             $"Data: {Utils.HexConverter.ToHex(_packetBody.ToArray())}\n" +
-                             $"Raw: {_packetType:X}{Utils.HexConverter.ToHex(BitConverter.GetBytes(_packetLength).Reverse().ToArray())}{Utils.HexConverter.ToHex(_packetBody.ToArray())}\n");
+                    Type = (ServerMessageType)reader.ReadByte(),
+                    Length = reader.ReadInt32() - 4,
+                    Raw = raw[..5]
+                };
+                return;
+            }
 
-                    _isReadingBody = false;
-                    _readingPacket = false;
-                }
+            if (Header.HasValue)
+            {
+                var memory = copyBuffer.AsMemory()[..read];
+                var raw = HexConverter.ToHex(memory.ToArray());
+                var packet = PacketSerializer.DeserializePacket(Header.Value.Type, ref memory, Header.Value.Length, this);
+
+                Writer.WriteLine($"READING\n" +
+                                $"=======\n" +
+                                $"Packet Type: {Header.Value.Type}\n" +
+                                $"Raw: {HexConverter.ToHex(Header.Value.Raw)}{raw}\n" +
+                                $"{JsonConvert.SerializeObject(packet, Formatting.Indented, new JsonSerializerSettings { MaxDepth = 5 })}\n");
+
+                Header = null;
             }
         }
 
@@ -164,6 +171,7 @@ namespace EdgeDB.BinaryDebugger
             Writer.WriteLine($"WRITING\n" +
                              $"=======\n" +
                              $"Buffer: {EdgeDB.Utils.HexConverter.ToHex(buffer)}\n" +
+                             $"Type: {(ClientMessageTypes)buffer[0]}\n" +
                              $"Length: {count}\n" +
                              $"Offset: {offset}\n");
         }
@@ -171,6 +179,7 @@ namespace EdgeDB.BinaryDebugger
         protected override ValueTask CloseStreamAsync(CancellationToken token = default)
         {
             _proxy?.Close();
+            Writer.Flush();
             FileStream.Flush();
             FileStream.Close();
 
