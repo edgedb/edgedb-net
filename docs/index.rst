@@ -20,11 +20,7 @@ VB.NET.
 
 .. note::
 
-  EdgeDB version 2.0 and above are required to use EdgeDB.Net.
-
-.. note:: 
-
-  The documentation surrounding EdgeDB.Net has not yet been finalised.
+  EdgeDB version 2.0 and above is required to use EdgeDB.Net.
 
 .. _edgedb-dotnet-installing:
 
