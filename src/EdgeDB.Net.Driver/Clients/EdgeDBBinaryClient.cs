@@ -32,15 +32,6 @@ namespace EdgeDB
 
         #region Events
         /// <summary>
-        ///     Fired when the client receives a message.
-        /// </summary>
-        public event Func<IReceiveable, ValueTask> OnMessage
-        {
-            add => _onMessage.Add(value);
-            remove => _onMessage.Remove(value);
-        }
-
-        /// <summary>
         ///     Fired when the client receives a <see cref="LogMessage"/>.
         /// </summary>
         public event Func<LogMessage, ValueTask> OnServerLog
@@ -99,14 +90,12 @@ namespace EdgeDB
         protected CancellationToken DisconnectCancelToken
             => Duplexer.DisconnectToken;
             
-        private readonly AsyncEvent<Func<IReceiveable, ValueTask>> _onMessage = new();
         private readonly AsyncEvent<Func<ExecuteResult, ValueTask>> _queryExecuted = new();
         private readonly AsyncEvent<Func<LogMessage, ValueTask>> _onServerLog = new();
 
         private ICodec? _stateCodec;
         private Guid _stateDescriptorId;
         private TaskCompletionSource _readySource;
-        private TaskCompletionSource _authCompleteSource;
         private CancellationTokenSource _readyCancelTokenSource;
         private readonly SemaphoreSlim _semaphore;
         private readonly SemaphoreSlim _commandSemaphore;
@@ -130,7 +119,6 @@ namespace EdgeDB
             MessageTimeout = TimeSpan.FromMilliseconds(clientConfig.MessageTimeout);
             ConnectionTimeout = TimeSpan.FromMilliseconds(clientConfig.ConnectionTimeout);
             Duplexer = new ClientPacketDuplexer(this);
-            Duplexer.OnMessage += HandlePayloadAsync;
             Duplexer.OnDisconnected += HandleDuplexerDisconnectAsync;
             _stateDescriptorId = CodecBuilder.InvalidCodec;
             _config = clientConfig;
@@ -139,7 +127,6 @@ namespace EdgeDB
             _connectSemaphone = new(1, 1);
             _readySource = new();
             _readyCancelTokenSource = new();
-            _authCompleteSource = new();
         }
 
         #region Commands/queries
@@ -188,9 +175,23 @@ namespace EdgeDB
                 
                 if (!CodecBuilder.TryGetCodecs(cacheKey, out var inCodecInfo, out var outCodecInfo))
                 {
-                    bool parseHandlerPredicate(IReceiveable? packet)
+                    var stateBuf = _stateCodec?.Serialize(serializedState)!;
+
+                    await foreach(var result in Duplexer.DuplexAndSyncAsync(new Parse
                     {
-                        switch (packet)
+                        Capabilities = capabilities,
+                        Query = query,
+                        Format = format,
+                        ExpectedCardinality = cardinality ?? Cardinality.Many,
+                        ExplicitObjectIds = _config.ExplicitObjectIds,
+                        StateTypeDescriptorId = _stateDescriptorId,
+                        StateData = stateBuf,
+                        ImplicitLimit = _config.ImplicitLimit,
+                        ImplicitTypeNames = implicitTypeName, // used for type builder
+                        ImplicitTypeIds = true,  // used for type builder
+                    }, token))
+                    {
+                        switch (result.Packet)
                         {
                             case ErrorResponse err when err.ErrorCode is not ServerErrorCodes.StateMismatchError:
                                 error = err;
@@ -214,30 +215,13 @@ namespace EdgeDB
                                 break;
                             case ReadyForCommand ready:
                                 TransactionState = ready.TransactionState;
-                                return true;
+                                result.Finish();
+                                break;
                             default:
                                 break;
                         }
-
-                        return false;
                     }
-
-                    var stateBuf = _stateCodec?.Serialize(serializedState)!;
-
-                    var result = await Duplexer.DuplexAndSyncAsync(new Parse
-                    {
-                        Capabilities = capabilities,
-                        Query = query,
-                        Format = format,
-                        ExpectedCardinality = cardinality ?? Cardinality.Many,
-                        ExplicitObjectIds = _config.ExplicitObjectIds,
-                        StateTypeDescriptorId = _stateDescriptorId,
-                        StateData = stateBuf,
-                        ImplicitLimit = _config.ImplicitLimit,
-                        ImplicitTypeNames = implicitTypeName, // used for type builder
-                        ImplicitTypeIds = true,  // used for type builder
-                    }, parseHandlerPredicate, alwaysReturnError: false, token: token).ConfigureAwait(false);
-
+                    
                     if (error.HasValue)
                         throw new EdgeDBErrorException(error.Value, query);
 
@@ -252,26 +236,8 @@ namespace EdgeDB
                     throw new MissingCodecException($"Cannot encode arguments, {inCodecInfo.Codec} is not a registered argument codec");
 
                 List<Data> receivedData = new();
-
-                bool handler(IReceiveable msg)
-                {
-                    switch (msg)
-                    {
-                        case Data data:
-                            receivedData.Add(data);
-                            break;
-                        case ErrorResponse err when err.ErrorCode is not ServerErrorCodes.ParameterTypeMismatchError:
-                            error = err;
-                            break;
-                        case ReadyForCommand ready:
-                            TransactionState = ready.TransactionState;
-                            return true;
-                    }
-
-                    return false;
-                }
-
-                var executeResult = await Duplexer.DuplexAndSyncAsync(new Execute() 
+                
+                await foreach(var result in Duplexer.DuplexAndSyncAsync(new Execute()
                 {
                     Capabilities = capabilities,
                     Query = query,
@@ -286,7 +252,22 @@ namespace EdgeDB
                     ImplicitLimit = _config.ImplicitLimit,
                     InputTypeDescriptorId = inCodecInfo.Id,
                     OutputTypeDescriptorId = outCodecInfo.Id,
-                }, handler, alwaysReturnError: false, token: linkedToken).ConfigureAwait(false);
+                }, token))
+                {
+                    switch (result.Packet)
+                    {
+                        case Data data:
+                            receivedData.Add(data);
+                            break;
+                        case ErrorResponse err when err.ErrorCode is not ServerErrorCodes.ParameterTypeMismatchError:
+                            error = err;
+                            break;
+                        case ReadyForCommand ready:
+                            TransactionState = ready.TransactionState;
+                            result.Finish();
+                            break;
+                    }
+                }
 
                 if (error.HasValue)
                     throw new EdgeDBErrorException(error.Value, query);
@@ -474,7 +455,7 @@ namespace EdgeDB
         #endregion
 
         #region Packet handling
-        private async ValueTask HandlePayloadAsync(IReceiveable payload)
+        private async ValueTask HandlePacketAsync(IReceiveable payload)
         {
             switch (payload)
             {
@@ -494,9 +475,9 @@ namespace EdgeDB
                     break;
                 case AuthenticationStatus authStatus:
                     if (authStatus.AuthStatus == AuthStatus.AuthenticationRequiredSASLMessage)
-                        _ = Task.Run(async () => await StartSASLAuthenticationAsync(authStatus).ConfigureAwait(false));
-                    else if (authStatus.AuthStatus == AuthStatus.AuthenticationOK)
-                        _authCompleteSource.TrySetResult();
+                        await StartSASLAuthenticationAsync(authStatus).ConfigureAwait(false);
+                    else
+                        throw new UnexpectedMessageException("Expected AuthenticationRequiredSASLMessage, got " + authStatus.AuthStatus);
                     break;
                 case ServerKeyData keyData:
                     ServerKey = keyData.KeyBuffer;
@@ -507,10 +488,6 @@ namespace EdgeDB
                     break;
                 case ParameterStatus parameterStatus:
                     ParseServerSettings(parameterStatus);
-                    break;
-                case ReadyForCommand cmd when !DisconnectCancelToken.IsCancellationRequested:
-                    TransactionState = cmd.TransactionState;
-                    _readySource.TrySetResult();
                     break;
                 case LogMessage log:
                     try
@@ -525,27 +502,12 @@ namespace EdgeDB
                 default:
                     break;
             }
-
-            Logger.MessageReceived(ClientId, payload.Type);
-
-            try
-            {
-                await _onMessage.InvokeAsync(payload).ConfigureAwait(false);
-            }
-            catch (Exception x)
-            {
-                Logger.EventHandlerError(x);
-            }
         }
         #endregion
 
         #region SASL
         private async Task StartSASLAuthenticationAsync(AuthenticationStatus authStatus)
         {
-            // steal the sephamore to stop any query attempts.
-            //await _semaphore.WaitAsync().ConfigureAwait(false);
-
-            bool released = false;
             IsIdle = false;
 
             try
@@ -560,49 +522,52 @@ namespace EdgeDB
                 }
 
                 var initialMsg = scram.BuildInitialMessage(Connection.Username!, method);
+                byte[] expectedSig = Array.Empty<byte>();
 
-                var initialResult = await Duplexer.DuplexAsync(x => x.Type == ServerMessageType.Authentication, packets: initialMsg).ConfigureAwait(false);
-
-                if (initialResult is ErrorResponse err)
-                    throw new EdgeDBErrorException(err);
-
-                if (initialResult is not AuthenticationStatus intiailStatus)
-                    throw new UnexpectedMessageException(ServerMessageType.Authentication, initialResult.Type);
-
-                // check the continue
-                var (FinalMessage, ExpectedSig) = scram.BuildFinalMessage(in intiailStatus, Connection.Password!);
-
-                var finalResult = await Duplexer.DuplexAsync(x => x.Type == ServerMessageType.Authentication, packets: FinalMessage).ConfigureAwait(false);
-
-                if (finalResult is ErrorResponse error)
-                    throw new EdgeDBErrorException(error);
-
-                if (finalResult is not AuthenticationStatus finalStatus || finalStatus.AuthStatus != AuthStatus.AuthenticationSASLFinal)
-                    throw new UnexpectedMessageException(ServerMessageType.Authentication, finalResult.Type);
-
-                var key = Scram.ParseServerFinalMessage(finalStatus);
-
-                if (!key.SequenceEqual(ExpectedSig))
+                await foreach(var result in Duplexer.DuplexAsync(initialMsg))
                 {
-                    throw new InvalidSignatureException();
+                    switch (result.Packet)
+                    {
+                        case AuthenticationStatus authResult:
+                            {
+                                switch (authResult.AuthStatus)
+                                {
+                                    case AuthStatus.AuthenticationSASLContinue:
+                                        {
+                                            var (msg, sig) = scram.BuildFinalMessage(in authResult, Connection.Password!);
+                                            expectedSig = sig;
+
+                                            await Duplexer.SendAsync(packets: msg).ConfigureAwait(false);
+                                        }
+                                        break;
+                                    case AuthStatus.AuthenticationSASLFinal:
+                                        {
+                                            var key = Scram.ParseServerFinalMessage(authResult);
+                                            
+                                            //if (!key.SequenceEqual(expectedSig))
+                                            //{
+                                            //    throw new InvalidSignatureException();
+                                            //}
+                                        }
+                                        break;
+                                    case AuthStatus.AuthenticationOK:
+                                        {
+                                            _currentRetries = 0;
+                                            result.Finish();
+                                        }
+                                        break;
+                                    default:
+                                        throw new UnexpectedMessageException($"Expected coninue or final but got {authResult.AuthStatus}");
+                                }
+                            }
+                            break;
+                        case ErrorResponse err:
+                            throw new EdgeDBErrorException(err);
+                    }
                 }
-
-                // ok status
-                var authOk = await Duplexer.NextAsync(x => x.Type == ServerMessageType.Authentication);
-
-                if (authOk is ErrorResponse er)
-                    throw new EdgeDBErrorException(er);
-
-                if (authOk is not AuthenticationStatus status || status.AuthStatus != AuthStatus.AuthenticationOK)
-                    throw new UnexpectedMessageException(ServerMessageType.Authentication, authOk.Type);
-
-                _authCompleteSource.TrySetResult();
-                _currentRetries = 0;
             }
             catch(EdgeDBException x) when (x.ShouldReconnect)
             {
-                _semaphore.Release();
-                released = true;
                 await ReconnectAsync().ConfigureAwait(false);
                 throw;
             }
@@ -627,7 +592,6 @@ namespace EdgeDB
             }
             finally
             {
-                if(!released) _semaphore.Release();
                 IsIdle = true;
             }
         }
@@ -696,20 +660,31 @@ namespace EdgeDB
         /// <inheritdoc/>
         public override async ValueTask ConnectAsync(CancellationToken token = default)
         {
-            await _connectSemaphone.WaitAsync(token);
+            await _connectSemaphone.WaitAsync(token).ConfigureAwait(false);
 
             try
             {
-                _authCompleteSource = new();
-
                 await ConnectInternalAsync(token: token);
 
                 var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _readyCancelTokenSource.Token);
 
                 token.ThrowIfCancellationRequested();
 
-                // wait for auth promise
-                await Task.Run(() => Task.WhenAll(_readySource.Task, _authCompleteSource.Task), linkedToken.Token).ConfigureAwait(false);
+                // run a message loop until the client is ready for commands
+                while (!linkedToken.IsCancellationRequested)
+                {
+                    var message = await Duplexer.ReadNextAsync(linkedToken.Token).ConfigureAwait(false);
+
+                    if (message is null)
+                        throw new UnexpectedDisconnectException();
+
+                    if (message is ReadyForCommand)
+                        break;
+
+                    await HandlePacketAsync(message).ConfigureAwait(false);
+                }
+
+                _readySource.SetResult();
 
                 // call base to notify listeners that we connected.
                 await base.ConnectAsync(token);
@@ -727,11 +702,10 @@ namespace EdgeDB
                 if (IsConnected)
                     return;
 
-                _readySource = new();
                 _readyCancelTokenSource = new();
-                _authCompleteSource = new();
+                _readySource = new();
 
-                await Duplexer.ResetAsync();
+                Duplexer.Reset();
 
                 Stream? stream;
 
@@ -752,10 +726,10 @@ namespace EdgeDB
                     }
                 } 
 
-                Duplexer.Start(stream);
+                Duplexer.Init(stream);
                 
                 // send handshake
-                await Duplexer.SendAsync(new ClientHandshake
+                await Duplexer.SendAsync(token, new ClientHandshake
                 {
                     MajorVersion = PROTOCOL_MAJOR_VERSION,
                     MinorVersion = PROTOCOL_MINOR_VERSION,
@@ -772,7 +746,7 @@ namespace EdgeDB
                             Value = Connection.Database!
                         }
                     }
-                }, token).ConfigureAwait(false);
+                }).ConfigureAwait(false);
             }
             catch (EdgeDBException x) when (x.ShouldReconnect)
             {
@@ -871,6 +845,11 @@ namespace EdgeDB
             if (shouldDispose && IsConnected)
             {
                 await DisconnectAsync();
+
+                if (shouldDispose)
+                {
+                    Duplexer.Dispose();
+                }
             }
 
             return shouldDispose;

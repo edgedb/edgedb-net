@@ -179,7 +179,6 @@ namespace EdgeDB
         /// <inheritdoc/>
         async ValueTask IAsyncDisposable.DisposeAsync()
         {
-            GC.SuppressFinalize(this);
             await DisposeAsync().ConfigureAwait(false);
         }
         #endregion

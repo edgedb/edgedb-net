@@ -27,5 +27,11 @@ namespace EdgeDB
         {
 
         }
+
+        internal UnexpectedMessageException(string msg)
+            : base(msg)
+        {
+            
+        }
     }
 }

@@ -64,13 +64,33 @@ namespace EdgeDB.Tests.Benchmarks.Utils
             public override void Flush() { }
             public override int Read(byte[] buffer, int offset, int count)
             {
-                SpinWait.SpinUntil(() => _trigger);
-                _trigger = false;
-
-                buffer = _nextBuffer![_pos..(_pos + count)];
-                _pos += count;
-                return count;
+                try
+                {
+                    buffer = _nextBuffer![_pos..(_pos + count)];
+                    _pos += count;
+                    return count;
+                }
+                catch(Exception x)
+                {
+                    return 0;
+                }
             }
+
+            public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                try
+                {
+                    var data = _nextBuffer![_pos..(_pos + buffer.Length)];
+                    data.CopyTo(buffer);
+                    _pos += buffer.Length;
+                    return ValueTask.FromResult(buffer.Length);
+                }
+                catch(Exception x)
+                {
+                    return ValueTask.FromResult(0);
+                }
+            }
+
             public override long Seek(long offset, SeekOrigin origin) => throw new NotImplementedException();
             public override void SetLength(long value) => throw new NotImplementedException();
             public override void Write(byte[] buffer, int offset, int count)
@@ -94,17 +114,20 @@ namespace EdgeDB.Tests.Benchmarks.Utils
                     ClientMessageTypes.Execute => Data
                                                 .Concat(CommandComplete)
                                                 .Concat(ReadyForCommand).ToArray(),
+                    ClientMessageTypes.Terminate => Array.Empty<byte>(),
                     _ => throw new Exception($"unknown message type {type}"),
                 };
+                _pos = 0;
                 _trigger = true;
             }
         }
 
-        public override bool IsConnected => true;
-
+        public override bool IsConnected => _con;
+        private bool _con;
         protected override ValueTask CloseStreamAsync(CancellationToken token = default(CancellationToken)) => ValueTask.CompletedTask;
         protected override ValueTask<Stream> GetStreamAsync(CancellationToken token = default(CancellationToken))
         {
+            _con = true;
             return ValueTask.FromResult<Stream>(new MockQueryClientStream());
         }
     }
