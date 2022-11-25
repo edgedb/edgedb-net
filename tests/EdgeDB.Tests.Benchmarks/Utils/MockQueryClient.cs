@@ -23,6 +23,11 @@ namespace EdgeDB.Tests.Benchmarks.Utils
         public static readonly byte[] Data;
         public static readonly byte[] CommandComplete;
 
+        internal override IBinaryDuplexer Duplexer
+            => _duplexer;
+
+        private readonly StreamDuplexer _duplexer;
+
         static MockQueryClient()
         {
             AuthenticationFirst = HexConverter.FromHex("520000001D0000000A000000010000000D534352414D2D5348412D323536");
@@ -42,7 +47,8 @@ namespace EdgeDB.Tests.Benchmarks.Utils
         public MockQueryClient(EdgeDBConnection connection, EdgeDBConfig clientConfig, IDisposable clientPoolHolder, ulong? clientId = null)
             : base(connection, clientConfig, clientPoolHolder, clientId)
         {
-            
+
+            _duplexer = new StreamDuplexer(this);
         }
 
         private class MockQueryClientStream : Stream

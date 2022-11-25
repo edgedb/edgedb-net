@@ -21,7 +21,7 @@ namespace EdgeDB.Binary.Packets
 
         public byte[]? HeaderData { get; set; }
 
-        protected override void BuildPacket(ref PacketWriter writer, EdgeDBBinaryClient client)
+        protected override void BuildPacket(ref PacketWriter writer)
         {
             writer.Write(Headers);
             writer.Write(Jobs);

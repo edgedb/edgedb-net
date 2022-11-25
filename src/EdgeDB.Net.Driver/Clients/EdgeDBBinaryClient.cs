@@ -18,7 +18,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents an abstract binary client.
     /// </summary>
-    internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient, ITransactibleClient
+    internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
     {
         /// <summary>
         ///     The major version of the protocol that this client supports.
@@ -62,7 +62,7 @@ namespace EdgeDB
         /// <summary>
         ///     Gets whether or not this connection is idle.
         /// </summary>
-        public bool IsIdle { get; private set; } = true;
+        public virtual bool IsIdle { get; private set; } = true;
 
         /// <summary>
         ///     Gets the raw server config.
@@ -72,17 +72,14 @@ namespace EdgeDB
         /// </remarks>
         public IReadOnlyDictionary<string, object?> ServerConfig
             => RawServerConfig.ToImmutableDictionary();
-
-        /// <summary>
-        ///     Gets this clients transaction state.
-        /// </summary>
-        public TransactionState TransactionState { get; private set; }
+        
+        internal abstract IBinaryDuplexer Duplexer { get; }
 
         internal byte[] ServerKey;
         internal int SuggestedPoolConcurrency;
-        internal ILogger Logger;
         internal Dictionary<string, object?> RawServerConfig = new();
-        internal readonly ClientPacketDuplexer Duplexer;
+        
+        internal readonly ILogger Logger;
         internal readonly TimeSpan MessageTimeout;
         internal readonly TimeSpan ConnectionTimeout;
         internal readonly EdgeDBConnection Connection;
@@ -110,7 +107,11 @@ namespace EdgeDB
         /// <param name="clientConfig">The configuration for this client.</param>
         /// <param name="clientPoolHolder">The client pool holder for this client.</param>
         /// <param name="clientId">The optional client id of this client. This is used for logging and client pooling.</param>
-        public EdgeDBBinaryClient(EdgeDBConnection connection, EdgeDBConfig clientConfig, IDisposable clientPoolHolder, ulong? clientId = null)
+        public EdgeDBBinaryClient(
+            EdgeDBConnection connection,
+            EdgeDBConfig clientConfig,
+            IDisposable clientPoolHolder,
+            ulong? clientId = null)
             : base(clientId ?? 0, clientPoolHolder)
         {
             Logger = clientConfig.Logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
@@ -118,8 +119,6 @@ namespace EdgeDB
             ServerKey = new byte[32];
             MessageTimeout = TimeSpan.FromMilliseconds(clientConfig.MessageTimeout);
             ConnectionTimeout = TimeSpan.FromMilliseconds(clientConfig.ConnectionTimeout);
-            Duplexer = new ClientPacketDuplexer(this);
-            Duplexer.OnDisconnected += HandleDuplexerDisconnectAsync;
             _stateDescriptorId = CodecBuilder.InvalidCodec;
             _config = clientConfig;
             _semaphore = new(1, 1);
@@ -146,7 +145,7 @@ namespace EdgeDB
         /// <exception cref="EdgeDBErrorException">The client received an <see cref="ErrorResponse"/>.</exception>
         /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
-        internal async Task<RawExecuteResult> ExecuteInternalAsync<TResult>(string query, IDictionary<string, object?>? args = null, Cardinality? cardinality = null,
+        internal virtual async Task<RawExecuteResult> ExecuteInternalAsync<TResult>(string query, IDictionary<string, object?>? args = null, Cardinality? cardinality = null,
             Capabilities? capabilities = Capabilities.Modifications, IOFormat format = IOFormat.Binary, bool isRetry = false, bool implicitTypeName = false,
             CancellationToken token = default)
         {
@@ -176,51 +175,84 @@ namespace EdgeDB
                 if (!CodecBuilder.TryGetCodecs(cacheKey, out var inCodecInfo, out var outCodecInfo))
                 {
                     var stateBuf = _stateCodec?.Serialize(serializedState)!;
-
-                    await foreach(var result in Duplexer.DuplexAndSyncAsync(new Parse
+                    bool gotStateDescriptor = false;
+                    bool successfullyParsed = false;
+                    int parseAttempts = 0;
+                    
+                    while (!successfullyParsed)
                     {
-                        Capabilities = capabilities,
-                        Query = query,
-                        Format = format,
-                        ExpectedCardinality = cardinality ?? Cardinality.Many,
-                        ExplicitObjectIds = _config.ExplicitObjectIds,
-                        StateTypeDescriptorId = _stateDescriptorId,
-                        StateData = stateBuf,
-                        ImplicitLimit = _config.ImplicitLimit,
-                        ImplicitTypeNames = implicitTypeName, // used for type builder
-                        ImplicitTypeIds = true,  // used for type builder
-                    }, token))
-                    {
-                        switch (result.Packet)
+                        if(parseAttempts > 2)
                         {
-                            case ErrorResponse err when err.ErrorCode is not ServerErrorCodes.StateMismatchError:
-                                error = err;
-                                break;
-                            case CommandDataDescription descriptor:
-                                {
-                                    outCodecInfo = new(descriptor.OutputTypeDescriptorId,
-                                        CodecBuilder.BuildCodec(descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer));
-
-                                    inCodecInfo = new(descriptor.InputTypeDescriptorId,
-                                        CodecBuilder.BuildCodec(descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer));
-
-                                    CodecBuilder.UpdateKeyMap(cacheKey, descriptor.InputTypeDescriptorId, descriptor.OutputTypeDescriptorId);
-                                }
-                                break;
-                            case StateDataDescription stateDescriptor:
-                                {
-                                    _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
-                                    _stateDescriptorId = stateDescriptor.TypeDescriptorId;
-                                }
-                                break;
-                            case ReadyForCommand ready:
-                                TransactionState = ready.TransactionState;
-                                result.Finish();
-                                break;
-                            default:
-                                break;
+                            throw error.HasValue
+                                ? new EdgeDBException($"Failed to parse query after {parseAttempts} attempts", new EdgeDBErrorException(error.Value, query))
+                                : new EdgeDBException($"Failed to parse query after {parseAttempts} attempts");
                         }
+
+                        await foreach (var result in Duplexer.DuplexAndSyncAsync(new Parse
+                        {
+                            Capabilities = capabilities,
+                            Query = query,
+                            Format = format,
+                            ExpectedCardinality = cardinality ?? Cardinality.Many,
+                            ExplicitObjectIds = _config.ExplicitObjectIds,
+                            StateTypeDescriptorId = _stateDescriptorId,
+                            StateData = stateBuf,
+                            ImplicitLimit = _config.ImplicitLimit,
+                            ImplicitTypeNames = implicitTypeName, // used for type builder
+                            ImplicitTypeIds = true,  // used for type builder
+                        }, token))
+                        {
+                            switch (result.Packet)
+                            {
+                                case ErrorResponse err when err.ErrorCode is not ServerErrorCodes.StateMismatchError:
+                                    error = err;
+                                    break;
+                                case ErrorResponse err when err.ErrorCode is ServerErrorCodes.StateMismatchError:
+                                    {
+                                        // we should have received a state descriptor at this point,
+                                        // if we have not, this is a issue with the client implementation
+                                        if (!gotStateDescriptor)
+                                        {
+                                            throw new EdgeDBException("Failed to properly encode state data, this is a bug.");
+                                        }
+
+                                        // we can safely retry by finishing this duplex and starting a
+                                        // new one with the 'while' loop.
+                                        result.Finish();
+                                    }
+                                    break;
+                                case CommandDataDescription descriptor:
+                                    {
+                                        outCodecInfo = new(descriptor.OutputTypeDescriptorId,
+                                            CodecBuilder.BuildCodec(descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer));
+
+                                        inCodecInfo = new(descriptor.InputTypeDescriptorId,
+                                            CodecBuilder.BuildCodec(descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer));
+
+                                        CodecBuilder.UpdateKeyMap(cacheKey, descriptor.InputTypeDescriptorId, descriptor.OutputTypeDescriptorId);
+                                    }
+                                    break;
+                                case StateDataDescription stateDescriptor:
+                                    {
+                                        _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                                        _stateDescriptorId = stateDescriptor.TypeDescriptorId;
+                                        gotStateDescriptor = true;
+                                        stateBuf = _stateCodec?.Serialize(serializedState)!;
+                                    }
+                                    break;
+                                case ReadyForCommand ready:
+                                    UpdateTransactionState(ready.TransactionState);
+                                    result.Finish();
+                                    successfullyParsed = true;
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        
+                        parseAttempts++;
                     }
+                    
                     
                     if (error.HasValue)
                         throw new EdgeDBErrorException(error.Value, query);
@@ -263,7 +295,7 @@ namespace EdgeDB
                             error = err;
                             break;
                         case ReadyForCommand ready:
-                            TransactionState = ready.TransactionState;
+                            UpdateTransactionState(ready.TransactionState);
                             result.Finish();
                             break;
                     }
@@ -521,7 +553,7 @@ namespace EdgeDB
                     throw new ProtocolViolationException("The only supported method is SCRAM-SHA-256");
                 }
 
-                var initialMsg = scram.BuildInitialMessage(Connection.Username!, method);
+                var initialMsg = scram.BuildInitialMessagePacket(Connection.Username!, method);
                 byte[] expectedSig = Array.Empty<byte>();
 
                 await foreach(var result in Duplexer.DuplexAsync(initialMsg))
@@ -534,7 +566,7 @@ namespace EdgeDB
                                 {
                                     case AuthStatus.AuthenticationSASLContinue:
                                         {
-                                            var (msg, sig) = scram.BuildFinalMessage(in authResult, Connection.Password!);
+                                            var (msg, sig) = scram.BuildFinalMessagePacket(in authResult, Connection.Password!);
                                             expectedSig = sig;
 
                                             await Duplexer.SendAsync(packets: msg).ConfigureAwait(false);
@@ -543,11 +575,11 @@ namespace EdgeDB
                                     case AuthStatus.AuthenticationSASLFinal:
                                         {
                                             var key = Scram.ParseServerFinalMessage(authResult);
-                                            
-                                            //if (!key.SequenceEqual(expectedSig))
-                                            //{
-                                            //    throw new InvalidSignatureException();
-                                            //}
+
+                                            if (!key.SequenceEqual(expectedSig))
+                                            {
+                                                throw new InvalidSignatureException();
+                                            }
                                         }
                                         break;
                                     case AuthStatus.AuthenticationOK:
@@ -598,6 +630,11 @@ namespace EdgeDB
         #endregion
 
         #region Helper functions
+        protected void TriggerReady()
+        {
+            _readySource.TrySetResult();
+        }
+
         private void ParseServerSettings(ParameterStatus status)
         {
             try
@@ -726,8 +763,9 @@ namespace EdgeDB
                     }
                 } 
 
-                Duplexer.Init(stream);
-                
+                if(Duplexer is StreamDuplexer streamDuplexer)
+                    streamDuplexer.Init(stream);
+
                 // send handshake
                 await Duplexer.SendAsync(token, new ClientHandshake
                 {
@@ -778,14 +816,6 @@ namespace EdgeDB
         /// <inheritdoc/>
         public override ValueTask DisconnectAsync(CancellationToken token = default)
             => Duplexer.DisconnectAsync(token);
-
-        private async ValueTask HandleDuplexerDisconnectAsync()
-        {
-            // if we receive a disconnect from the duplexer we should call our disconnect methods to property close down our client.
-            await CloseStreamAsync().ConfigureAwait(false);
-            await base.DisconnectAsync();
-        }
-
         #endregion
 
         #region Command locks
@@ -854,35 +884,6 @@ namespace EdgeDB
 
             return shouldDispose;
         }
-        #endregion
-
-        #region ITransactibleClient
-        /// <inheritdoc/>
-        async Task ITransactibleClient.StartTransactionAsync(Isolation isolation, bool readOnly, bool deferrable, CancellationToken token)
-        {
-            var isolationMode = isolation switch
-            {
-                Isolation.Serializable => "serializable",
-                _ => throw new EdgeDBException("Unknown isolation mode")
-            };
-
-            var readMode = readOnly ? "read only" : "read write";
-
-            var deferMode = $"{(!deferrable ? "not " : "")}deferrable";
-
-            await ExecuteInternalAsync<object>($"start transaction isolation {isolationMode}, {readMode}, {deferMode}", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
-        }
-
-        /// <inheritdoc/>
-        async Task ITransactibleClient.CommitAsync(CancellationToken token)
-            => await ExecuteInternalAsync<object>($"commit", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
-
-        /// <inheritdoc/>
-        async Task ITransactibleClient.RollbackAsync(CancellationToken token)
-            => await ExecuteInternalAsync<object>($"rollback", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
-
-        /// <inheritdoc/>
-        TransactionState ITransactibleClient.TransactionState => TransactionState;
         #endregion
     }
 }

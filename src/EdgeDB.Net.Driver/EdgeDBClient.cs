@@ -383,30 +383,26 @@ namespace EdgeDB
 
                         return client;
                     }
-                //case EdgeDBClientType.Http:
-                //    {
-                //        var client = new EdgeDBHttpClient(_connection, _config, id);
-                //        client.WithSession(DefaultSession.Clone());
+                case EdgeDBClientType.Http:
+                    {
+                        var holder = await _poolHolder.GetPoolHandleAsync(token).ConfigureAwait(false);
+                        var client = new EdgeDBHttpClient(_connection, _poolConfig, holder, id);
 
-                //        client.QueryExecuted += (i) => _queryExecuted.InvokeAsync(i);
+                        client.WithSession(_session);
 
-                //        client.OnDisposed += (c) =>
-                //        {
-                //            _availableClients.Push(c);
-                //            c.WithSession(DefaultSession.Clone());
-                //            return ValueTask.FromResult(false);
-                //        };
+                        //client.QueryExecuted += (i) => _queryExecuted.InvokeAsync(i);
 
-                //        client.OnDisconnect += (c) =>
-                //        {
-                //            RemoveClient(c.ClientId);
-                //            return ValueTask.CompletedTask;
-                //        };
+                        client.OnDisposed += (c) =>
+                        {
+                            _availableClients.Push(c);
+                            c.WithSession(Session.Default);
+                            return ValueTask.FromResult(false);
+                        };
+                        
+                        _clients[id] = client;
 
-                //        _clients[id] = client;
-
-                //        return client;
-                //    }
+                        return client;
+                    }
                 case EdgeDBClientType.Custom when _clientFactory is not null:
                     {
                         var client = await _clientFactory(id, _connection, _poolConfig).ConfigureAwait(false)!;

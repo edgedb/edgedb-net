@@ -13,8 +13,13 @@ namespace EdgeDB.Utils
 
         private byte[]? _clientNonce;
         private string? _rawFirstMessage;
-
+        private static readonly IScalarCodec<string> _stringCodec;
         private static string SanitizeString(string str) => str.Normalize(NormalizationForm.FormKC);
+
+        static Scram()
+        {
+            _stringCodec = ICodec.GetScalarCodec<string>()!;
+        }
 
         public Scram(byte[]? clientNonce = null)
         {
@@ -33,32 +38,28 @@ namespace EdgeDB.Utils
             return bytes;
         }
 
-        public AuthenticationSASLInitialResponse BuildInitialMessage(string username, string method)
+        public string BuildInitialMessage(string username)
         {
             _clientNonce ??= GenerateNonce();
-
             _rawFirstMessage = $"n={SanitizeString(username)},r={Convert.ToBase64String(_clientNonce)}";
-
-            return new AuthenticationSASLInitialResponse(
-                ICodec.GetScalarCodec<string>()!.Serialize($"n,,{_rawFirstMessage}"),
-                method);
+            return $"n,,{_rawFirstMessage}";
         }
 
-        public (AuthenticationSASLResponse FinalMessage, byte[] ExpectedSig) BuildFinalMessage(in AuthenticationStatus status, string password)
+
+        public AuthenticationSASLInitialResponse BuildInitialMessagePacket(string username, string method)
+            => new(
+                _stringCodec.Serialize(BuildInitialMessage(username)),
+                method);
+
+        public (string final, byte[] expectedSig) BuildFinalMessage(string initialResponse, string password)
         {
-            if (status.AuthStatus != AuthStatus.AuthenticationSASLContinue)
-                throw new ArgumentException($"Expected continuation message for SASL, got {status.AuthStatus}");
-
-            // parse the message
-            var msg = ICodec.GetScalarCodec<string>()!.Deserialize(status.SASLDataBuffer)!;
-
-            var parsedMessage = ParseServerMessage(msg);
+            var parsedMessage = ParseServerMessage(initialResponse);
 
             if (parsedMessage.Count < 3)
             {
                 throw new FormatException("Received malformed scram message");
             }
-            
+
             var salt = Convert.FromBase64String(parsedMessage["s"]);
 
             if (!int.TryParse(parsedMessage["i"], out var iterations))
@@ -68,7 +69,7 @@ namespace EdgeDB.Utils
 
             // build final
             var final = $"c=biws,r={parsedMessage["r"]}";
-            var authMsg = Encoding.UTF8.GetBytes($"{_rawFirstMessage},{msg},{final}");
+            var authMsg = Encoding.UTF8.GetBytes($"{_rawFirstMessage},{initialResponse},{final}");
 
             var saltedPassword = SaltPassword(SanitizeString(password), salt, iterations);
             var clientKey = GetClientKey(saltedPassword);
@@ -79,12 +80,19 @@ namespace EdgeDB.Utils
             var serverKey = GetServerKey(saltedPassword);
             var serverProof = ComputeHMACHash(serverKey, authMsg);
 
-            return (new AuthenticationSASLResponse(ICodec.GetScalarCodec<string>()!.Serialize($"{final},p={Convert.ToBase64String(clientProof)}")), serverProof);
+            return ($"{final},p={Convert.ToBase64String(clientProof)}", serverProof);
+        }
+
+        public (AuthenticationSASLResponse FinalMessage, byte[] ExpectedSig) BuildFinalMessagePacket(in AuthenticationStatus status, string password)
+        {
+            var (final, sig) = BuildFinalMessage(_stringCodec.Deserialize(status.SASLDataBuffer)!, password);
+
+            return (new AuthenticationSASLResponse(_stringCodec.Serialize(final)), sig);
         }
 
         public static byte[] ParseServerFinalMessage(AuthenticationStatus status)
         {
-            var msg = ICodec.GetScalarCodec<string>()!.Deserialize(status.SASLDataBuffer)!;
+            var msg = _stringCodec.Deserialize(status.SASLDataBuffer)!;
 
             var parsed = ParseServerMessage(msg);
 
@@ -119,15 +127,7 @@ namespace EdgeDB.Utils
 
         private static byte[] GetServerKey(byte[] password)
             => ComputeHMACHash(password, "Server Key");
-
-        //private byte[] HMAC(byte[] key, string val)
-        //    => HMAC(key, Encoding.UTF8.GetBytes(val));
-
-        //private byte[] HMAC(byte[] key, byte[] val)
-        //{
-        //    var db = new Rfc2898DeriveBytes()
-        //}
-
+        
         private static byte[] Hash(byte[] input)
         {
             using var hs = SHA256.Create();

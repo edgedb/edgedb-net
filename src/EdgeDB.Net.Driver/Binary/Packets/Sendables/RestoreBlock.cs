@@ -17,7 +17,7 @@ namespace EdgeDB.Binary.Packets
 
         public byte[]? BlockData { get; set; }
 
-        protected override void BuildPacket(ref PacketWriter writer, EdgeDBBinaryClient client)
+        protected override void BuildPacket(ref PacketWriter writer)
         {
             writer.WriteArray(BlockData!);
         }

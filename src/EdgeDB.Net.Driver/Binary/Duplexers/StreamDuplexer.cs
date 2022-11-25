@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 
 namespace EdgeDB.Binary
 {
-    internal sealed class ClientPacketDuplexer : IDisposable
+    internal sealed class StreamDuplexer : IBinaryDuplexer
     {
         public const int PACKET_HEADER_SIZE = 5;
         public bool IsConnected
@@ -42,7 +42,7 @@ namespace EdgeDB.Binary
         private CancellationTokenSource _disconnectTokenSource;
 
         [StructLayout(LayoutKind.Explicit, Pack = 0, Size = 5)]
-        private struct PacketHeader
+        internal struct PacketHeader
         {
             [FieldOffset(0)]
             public readonly ServerMessageType Type;
@@ -58,7 +58,7 @@ namespace EdgeDB.Binary
             }
         }
 
-        public unsafe ClientPacketDuplexer(EdgeDBBinaryClient client)
+        public unsafe StreamDuplexer(EdgeDBBinaryClient client)
         {
             _client = client;
             _disconnectTokenSource = new();
@@ -141,10 +141,7 @@ namespace EdgeDB.Binary
                 _readLock.Release();
             }
         }
-
-        public ValueTask SendAsync(Sendable packet, CancellationToken token = default)
-            => SendAsync(token, packet);
-
+        
         public async ValueTask SendAsync(CancellationToken token = default, params Sendable[] packets)
         {
             var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectTokenSource.Token);
@@ -152,37 +149,15 @@ namespace EdgeDB.Binary
             if (_stream == null || !IsConnected)
                 throw new EdgeDBException("Cannot send message to a closed connection");
 
-            await _stream.WriteAsync(BuildPackets(packets), linkedToken.Token).ConfigureAwait(false);
+            await _stream.WriteAsync(BinaryUtils.BuildPackets(packets), linkedToken.Token).ConfigureAwait(false);
         }
-
-        public async Task<IReceiveable?> DuplexSingleAsync(Sendable packet, CancellationToken token = default)
+        
+        public async IAsyncEnumerable<DuplexResult> DuplexAsync(
+            [EnumeratorCancellation] CancellationToken token = default,
+            params Sendable[] packets)
         {
-            await SendAsync(token, packet).ConfigureAwait(false);
-            return await ReadNextAsync(token).ConfigureAwait(false);
-        }
-
-        public async Task<IReceiveable?> DuplexAndSyncSingleAsync(Sendable packet, CancellationToken token = default)
-        {
-            await SendAsync(token, packet, new Sync()).ConfigureAwait(false);
-            return await ReadNextAsync(token).ConfigureAwait(false);
-        }
-
-        public IAsyncEnumerable<DuplexResult> DuplexAsync(Sendable packet, CancellationToken token = default)
-            => DuplexMultiInternalAsync(packet, false, token);
-
-        public IAsyncEnumerable<DuplexResult> DuplexAndSyncAsync(Sendable packet, CancellationToken token = default)
-            => DuplexMultiInternalAsync(packet, true, token);
-
-        private async IAsyncEnumerable<DuplexResult> DuplexMultiInternalAsync(
-            Sendable packet,
-            bool sync,
-            [EnumeratorCancellation] CancellationToken token = default)
-        {
-            if (sync)
-                await SendAsync(token, packet, new Sync()).ConfigureAwait(false);
-            else
-                await SendAsync(token, packet).ConfigureAwait(false);
-
+            await SendAsync(token, packets).ConfigureAwait(false);
+            
             var enumerationFinishToken = new CancellationTokenSource();
 
             while(!enumerationFinishToken.IsCancellationRequested && !token.IsCancellationRequested)
@@ -197,32 +172,7 @@ namespace EdgeDB.Binary
 
             yield break;
         }
-        internal readonly struct DuplexResult
-        {
-            public readonly IReceiveable Packet;
-            private readonly CancellationTokenSource _token;
-            public DuplexResult(IReceiveable packet, CancellationTokenSource finishToken)
-            {
-                Packet = packet;
-                _token = finishToken;
-            }
-
-            public void Finish()
-                => _token.Cancel();
-        }
-
-        private ReadOnlyMemory<byte> BuildPackets(Sendable[] packets)
-        {
-            var size = packets.Sum(x => x.GetSize());
-            var writer = new PacketWriter(size);
-
-            for (int i = 0; i != packets.Length; i++)
-            {
-                packets[i].Write(ref writer, _client);
-            }
-
-            return writer.GetBytes();
-        }
+        
         private async ValueTask<int> ReadExactAsync(Memory<byte> buffer, CancellationToken token)
         {
             var targetLength = buffer.Length;

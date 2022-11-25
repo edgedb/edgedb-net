@@ -17,7 +17,7 @@ namespace EdgeDB.Binary.Packets
         public ConnectionParam[] ConnectionParameters { get; set; } = Array.Empty<ConnectionParam>();
         public ProtocolExtension[] Extensions { get; set; } = Array.Empty<ProtocolExtension>();
 
-        protected override void BuildPacket(ref PacketWriter writer, EdgeDBBinaryClient client)
+        protected override void BuildPacket(ref PacketWriter writer)
         {
             writer.Write(MajorVersion);
             writer.Write(MinorVersion);

@@ -23,6 +23,7 @@ using var host = Host.CreateDefaultBuilder()
         services.AddEdgeDB(clientConfig: clientConfig =>
         {
             clientConfig.SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy;
+            clientConfig.ClientType = EdgeDBClientType.Tcp;
         });
 
         services.AddSingleton<ExampleRunner>();

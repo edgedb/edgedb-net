@@ -22,7 +22,7 @@ namespace EdgeDB.Binary.Packets
             _payload = payload;
         }
 
-        protected override void BuildPacket(ref PacketWriter writer, EdgeDBBinaryClient client)
+        protected override void BuildPacket(ref PacketWriter writer)
         {
             writer.WriteArray(_payload);
         }

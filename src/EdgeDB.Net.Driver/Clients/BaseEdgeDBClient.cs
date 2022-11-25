@@ -93,6 +93,8 @@ namespace EdgeDB
             Session.WithGlobals(globals);
             return this;
         }
+
+        protected virtual void UpdateTransactionState(TransactionState state) { }
         #endregion
 
         #region Connect/Disconnect

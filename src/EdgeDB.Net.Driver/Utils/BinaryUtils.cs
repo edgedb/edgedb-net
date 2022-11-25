@@ -80,5 +80,18 @@ namespace EdgeDB.Utils
                     return;
             }
         }
+
+        internal static ReadOnlyMemory<byte> BuildPackets(Sendable[] packets)
+        {
+            var size = packets.Sum(x => x.GetSize());
+            var writer = new PacketWriter(size);
+
+            for (int i = 0; i != packets.Length; i++)
+            {
+                packets[i].Write(ref writer);
+            }
+
+            return writer.GetBytes();
+        }
     }
 }
