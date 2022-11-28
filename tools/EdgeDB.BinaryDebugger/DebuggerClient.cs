@@ -18,11 +18,12 @@ namespace EdgeDB.BinaryDebugger
     {
         public StreamWriter Writer { get; }
         public FileStream FileStream { get; }
+        internal override IBinaryDuplexer Duplexer => _duplexer;
 
         public override bool IsConnected => _tcpClient.Connected;
 
         private Stream? _proxy;
-        
+        private StreamDuplexer _duplexer;
 
         private TcpClient _tcpClient;
         private NetworkStream? _stream;
@@ -35,7 +36,8 @@ namespace EdgeDB.BinaryDebugger
                 File.Delete("./debug.log");
 
             _tcpClient = new();
-
+            _duplexer = new(this);
+            
             FileStream = File.OpenWrite("./debug.log");
             Writer = new StreamWriter(FileStream, Encoding.UTF8);
         }
@@ -129,7 +131,7 @@ namespace EdgeDB.BinaryDebugger
         }
 
         private PacketHeader? Header { get; set; }
-
+        
         private void OnRead(int read, byte[] buffer, int offset, int count)
         {
             var copyBuffer = new byte[buffer.Length];
