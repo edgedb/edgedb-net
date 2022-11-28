@@ -38,6 +38,12 @@ namespace EdgeDB
         /// </summary>
         public string? Query { get; }
 
+        /// <summary>
+        ///     Gets the server error code.
+        /// </summary>
+        public ServerErrorCodes ErrorCode
+            => ErrorResponse.ErrorCode;
+
         internal ErrorResponse ErrorResponse;
 
         /// <summary>
