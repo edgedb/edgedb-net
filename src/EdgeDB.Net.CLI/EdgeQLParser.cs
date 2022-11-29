@@ -1,4 +1,4 @@
-﻿using EdgeDB.Binary.Codecs;
+using EdgeDB.Binary.Codecs;
 using EdgeDB.CLI.Utils;
 using System;
 using System.Collections.Generic;
@@ -35,7 +35,7 @@ namespace EdgeDB.CLI
         /// </returns>
         public static async Task<GenerationResult> ParseAndGenerateAsync(EdgeDBTcpClient client, string @namespace, GenerationTargetInfo targetInfo)
         {
-            var parseResult = await client.ParseAsync(targetInfo.EdgeQL!, Cardinality.Many, IOFormat.Binary, Capabilities.All, default);
+            var parseResult = await client.ParseAsync(targetInfo.EdgeQL!, Cardinality.Many, IOFormat.Binary, Capabilities.All, false, default);
 
             return GenerateCSharpFromEdgeQL(@namespace, targetInfo, parseResult);
         }
