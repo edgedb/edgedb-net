@@ -127,19 +127,20 @@ namespace EdgeDB
 
             try
             {
-                var tcs = new TaskCompletionSource();
-                token.Register(() => tcs.SetCanceled(token));
-
                 var stream = new MemoryStream();
+
+                DumpHeader header = default;
                 List<DumpBlock> blocks = new();
 
-
-                var handler = (IReceiveable msg) =>
+                await foreach(var result in client.Duplexer.DuplexAndSyncAsync(new Dump(), token))
                 {
-                    switch (msg)
+                    switch (result.Packet)
                     {
                         case ReadyForCommand:
-                            tcs.TrySetResult();
+                            result.Finish();
+                            break;
+                        case DumpHeader dumpHeader:
+                            header = dumpHeader;
                             break;
                         case DumpBlock block:
                             {
@@ -151,31 +152,9 @@ namespace EdgeDB
                                 throw new EdgeDBErrorException(error);
                             }
                     }
-
-                    return ValueTask.CompletedTask;
-                };
-
-                client.Duplexer.OnMessage += handler;
-
-                var dump = await client.Duplexer.DuplexAndSyncAsync(new Dump(), x => x.Type == ServerMessageType.DumpHeader, token: token);
-
-                if (dump is ErrorResponse err)
-                {
-                    client.Duplexer.OnMessage -= handler;
-                    throw new EdgeDBErrorException(err);
                 }
-
-                if (dump is not DumpHeader dumpHeader)
-                {
-                    client.Duplexer.OnMessage -= handler;
-                    throw new UnexpectedMessageException(ServerMessageType.DumpHeader, dump.Type);
-                }
-
-                await tcs.Task.ConfigureAwait(false);
-
-                WriteDumpDataToStream(stream, ref dumpHeader, blocks);
-
-                client.Duplexer.OnMessage -= handler;
+                
+                WriteDumpDataToStream(stream, ref header, blocks);
 
                 stream.Position = 0;
                 return stream;
@@ -220,26 +199,35 @@ namespace EdgeDB
                 throw new InvalidOperationException("Cannot restore: Database isn't empty");
 
             var packets = DumpReader.ReadDatabaseDump(stream);
-
-            var result = await client.Duplexer.DuplexAsync(x => x.Type == ServerMessageType.RestoreReady, true, token, packets.Restore).ConfigureAwait(false);
-
-            if (result is ErrorResponse err)
-                throw new EdgeDBErrorException(err);
-
-            if (result is not RestoreReady)
-                throw new UnexpectedMessageException(ServerMessageType.RestoreReady, result.Type);
-
+            
+            await foreach(var result in client.Duplexer.DuplexAsync(packets.Restore, token))
+            {
+                switch (result.Packet)
+                {
+                    case ErrorResponse err:
+                        throw new EdgeDBErrorException(err);
+                    case RestoreReady:
+                        result.Finish();
+                        break;
+                    default:
+                        throw new UnexpectedMessageException(ServerMessageType.RestoreReady, result.Packet.Type);
+                }
+            }
+            
             foreach (var block in packets.Blocks)
             {
                 await client.Duplexer.SendAsync(block, token).ConfigureAwait(false);
             }
 
-            result = await client.Duplexer.DuplexAsync(x => x.Type == ServerMessageType.CommandComplete, true, token, new RestoreEOF()).ConfigureAwait(false);
+            var restoreResult = await client.Duplexer.DuplexSingleAsync(new RestoreEOF(), token).ConfigureAwait(false);
 
-            return result is ErrorResponse error
+            if (restoreResult is null)
+                throw new UnexpectedDisconnectException();
+
+            return restoreResult is ErrorResponse error
                 ? throw new EdgeDBErrorException(error)
-                : result is not CommandComplete complete
-                ? throw new UnexpectedMessageException(ServerMessageType.CommandComplete, result.Type)
+                : restoreResult is not CommandComplete complete
+                ? throw new UnexpectedMessageException(ServerMessageType.CommandComplete, restoreResult.Type)
                 : complete.Status;
         }
         #endregion

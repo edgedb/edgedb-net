@@ -124,6 +124,24 @@ namespace EdgeDB
         }
 
         #region Type helpers
+        internal static bool TryGetTypeDeserializerInfo(Type type, [MaybeNullWhen(false)] out EdgeDBTypeDeserializeInfo info)
+        {
+            info = null;
+            
+            if (!IsValidObjectType(type))
+                return false;
+
+            if (!TypeInfo.TryGetValue(type, out var typeInfo))
+            {
+                info = TypeInfo.AddOrUpdate(type, new EdgeDBTypeDeserializeInfo(type), (_, v) => v);
+                ScanAssemblyForTypes(type.Assembly);
+            }
+            else
+                info = typeInfo;
+            
+            return info is not null;
+        }
+        
         internal static object? BuildObject(Type type, Binary.Codecs.Object codec, ref Data data)
         {
             if (!IsValidObjectType(type))
@@ -160,6 +178,10 @@ namespace EdgeDB
             // check if we know already how to build this type
             if (TypeInfo.ContainsKey(type))
                 return true;
+
+            // if its a scalar, defently don't try to use it.
+            if (ICodec.ContainsScalarCodec(type))
+                return false;
             
             return
                 type == typeof(object) || 

@@ -15,7 +15,7 @@ namespace EdgeDB.Binary.Packets
 
         public Annotation[]? Attributes { get; set; }
 
-        protected override void BuildPacket(ref PacketWriter writer, EdgeDBBinaryClient client)
+        protected override void BuildPacket(ref PacketWriter writer)
         {
             writer.Write(Attributes);
         }

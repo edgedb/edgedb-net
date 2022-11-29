@@ -47,7 +47,7 @@ namespace EdgeDB.Binary.Packets
         
         public byte[]? StateData { get; set; }
 
-        protected override void BuildPacket(ref PacketWriter writer, EdgeDBBinaryClient client)
+        protected override void BuildPacket(ref PacketWriter writer)
         {
             if (Query is null)
                 throw new ArgumentException("Command cannot be null");

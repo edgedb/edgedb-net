@@ -29,7 +29,7 @@ namespace EdgeDB
         /// <summary>
         ///     Gets or sets the client type the pool will use.
         /// </summary>
-        internal EdgeDBClientType ClientType { get; set; }
+        public EdgeDBClientType ClientType { get; set; }
 
         /// <summary>
         ///     Gets or sets the client factory to use when adding new clients to the client pool.
@@ -45,7 +45,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents different client types used in a <see cref="EdgeDBClient"/>.
     /// </summary>
-    internal enum EdgeDBClientType
+    public enum EdgeDBClientType
     {
         /// <summary>
         ///     The client pool will use <see cref="EdgeDBTcpClient"/>s

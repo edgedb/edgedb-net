@@ -15,6 +15,13 @@ namespace EdgeDB.Tests.Integration
                 SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy
             });
 
+        public static EdgeDBClient HttpEdgeDB
+            => new(new EdgeDBClientPoolConfig
+            {
+                SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy,
+                ClientType = EdgeDBClientType.Http
+            });
+
         public static CancellationToken GetTimeoutToken()
         {
             var source = new CancellationTokenSource();

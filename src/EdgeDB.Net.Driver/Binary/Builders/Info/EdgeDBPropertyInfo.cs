@@ -52,6 +52,8 @@ namespace EdgeDB
             // check if we can use the custom converter
             if (CustomConverter is not null && CustomConverter.CanConvert(Type, value.GetType()))
             {
+                CustomConverter.ValidateTargetType();
+
                 return CustomConverter.ConvertFrom(value);
             }
 
