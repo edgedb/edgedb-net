@@ -1,5 +1,6 @@
 using CommandLine;
 using EdgeDB.CLI.Arguments;
+using EdgeDB.CLI.Generator;
 using EdgeDB.CLI.Utils;
 using Newtonsoft.Json;
 using Serilog;
@@ -92,7 +93,7 @@ public class Generate : ConnectionArguments, ICommand
         for(int i = 0; i != edgeqlFiles.Length; i++)
         {
             var file = edgeqlFiles[i];
-            var info = EdgeQLParser.GetTargetInfo(file, OutputDirectory);
+            var info = CodeGenerator.GetTargetInfo(file, OutputDirectory);
 
             if (!Force && info.IsGeneratedTargetExistsAndIsUpToDate())
             {
@@ -102,7 +103,7 @@ public class Generate : ConnectionArguments, ICommand
 
             try
             {
-                var result = await EdgeQLParser.ParseAndGenerateAsync(client, GeneratedProjectName, info);
+                var result = await CodeGenerator.ParseAndGenerateAsync(client, OutputDirectory, GeneratedProjectName, info);
                 File.WriteAllText(info.TargetFilePath!, result.Code);
             }
             catch (EdgeDBErrorException error)

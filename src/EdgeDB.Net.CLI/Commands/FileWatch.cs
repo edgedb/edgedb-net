@@ -1,6 +1,8 @@
 ﻿using CommandLine;
 using EdgeDB.CLI;
 using EdgeDB.CLI.Arguments;
+using EdgeDB.CLI.Generator;
+using EdgeDB.CLI.Generator.Models;
 using EdgeDB.CLI.Utils;
 using Newtonsoft.Json;
 using Serilog;
@@ -50,7 +52,7 @@ public class FileWatch : ConnectionArguments, ICommand
     private readonly FileSystemWatcher _watcher = new();
     private readonly Dictionary<string, string> _latestGenerations = new();
     private readonly SemaphoreSlim _mutex = new(1, 1);
-    private readonly ConcurrentStack<EdgeQLParser.GenerationTargetInfo> _writeQueue = new();
+    private readonly ConcurrentStack<GenerationTargetInfo> _writeQueue = new();
     private EdgeDBTcpClient? _client;
     private TaskCompletionSource _writeDispatcher = new();
     private string? _watchDirectory;
@@ -150,7 +152,7 @@ public class FileWatch : ConnectionArguments, ICommand
     private bool IsValidFile(string path)
         => !path.Contains(Path.Combine("dbschema", "migrations"));
 
-    internal async Task GenerateAsync(EdgeQLParser.GenerationTargetInfo info)
+    internal async Task GenerateAsync(GenerationTargetInfo info)
     {
         await _mutex.WaitAsync().ConfigureAwait(false);
 
@@ -170,7 +172,7 @@ public class FileWatch : ConnectionArguments, ICommand
             try
             {
                 _logger.Debug("Parsing {@file}...", info.EdgeQLFilePath);
-                var result = await EdgeQLParser.ParseAndGenerateAsync(_client, GeneratedProjectName!, info);
+                var result = await CodeGenerator.ParseAndGenerateAsync(_client, OutputDirectory!, GeneratedProjectName!, info);
                 _logger.Debug("Completed parse of {@file} -> {@target}", info.EdgeQLFilePath, info.TargetFilePath);
                 File.WriteAllText(info.TargetFilePath!, result.Code);
                 _logger!.Information($"{(info.WasCreated ? "Created" : "Updated")} {{@info}}", info.TargetFilePath);
@@ -199,7 +201,7 @@ public class FileWatch : ConnectionArguments, ICommand
         // wait an extra second to make sure the file is fully written
         Thread.Sleep(1000);
 
-        var info = EdgeQLParser.GetTargetInfo(e.FullPath, OutputDirectory!);
+        var info = CodeGenerator.GetTargetInfo(e.FullPath, OutputDirectory!);
 
         if (info.IsGeneratedTargetExistsAndIsUpToDate())
             return;

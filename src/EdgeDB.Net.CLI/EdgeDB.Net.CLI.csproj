@@ -27,8 +27,16 @@
   <ItemGroup>
     <None Remove="Extensions\" />
     <None Remove="Serilog.Extensions.Logging" />
+    <None Remove="Generator\" />
+    <None Remove="Generator\Models\" />
+    <None Remove="Generator\Results\" />
+    <None Remove="Generator\Models\TypeManifest\" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Extensions\" />
+    <Folder Include="Generator\" />
+    <Folder Include="Generator\Models\" />
+    <Folder Include="Generator\Results\" />
+    <Folder Include="Generator\Models\TypeManifest\" />
   </ItemGroup>
 </Project>

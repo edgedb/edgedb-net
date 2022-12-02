@@ -1,4 +1,4 @@
 SELECT Person {
-	name, name
+	name, email
 }
 FILTER .email = <str>$email

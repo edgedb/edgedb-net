@@ -25,7 +25,7 @@ namespace EdgeDB.ExampleApp.Examples
         {
             var result = await client.QueryJsonAsync("select Person {name, email}");
 
-            var people = JsonConvert.DeserializeObject<Person[]>(result)!;
+            var people = JsonConvert.DeserializeObject<Person[]>(result!)!;
 
             Logger!.LogInformation("People from json: {@People}", people);
         }
