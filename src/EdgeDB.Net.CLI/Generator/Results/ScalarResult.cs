@@ -1,21 +1,32 @@
 using EdgeDB.CLI.Generator.Models;
 using System;
+using System.IO;
+
 namespace EdgeDB.CLI.Generator.Results
 {
     internal class ScalarResult : IQueryResult
     {
-        private readonly CodecTypeInfo _info;
+        public string FileName { get; }
 
-        public ScalarResult(CodecTypeInfo info)
+        public string FilePath { get; }
+
+        public string TypeName { get; set; }
+
+        public ScalarResult(string path, CodecTypeInfo info)
+            : this(path, info.TypeName!) { }
+
+        public ScalarResult(string path, string tname)
         {
-            _info = info;
+            FilePath = Path.GetFullPath(path);
+            FileName = Path.GetFileNameWithoutExtension(path);
+            TypeName = tname;
         }
 
         public void Visit(ResultVisitor visitor) { }
 
         public string ToCSharp()
         {
-            return _info.TypeName!;
+            return TypeName;
         }
     }
 }

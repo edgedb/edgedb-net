@@ -1,14 +1,23 @@
 using EdgeDB.CLI.Generator.Models;
 using System;
+using System.IO;
+
 namespace EdgeDB.CLI.Generator.Results
 {
     internal class TupleResult : IQueryResult
     {
+        public string FileName { get; }
+
+        public string FilePath { get; }
+
         private readonly IEnumerable<(string? Name, IQueryResult Value)> _elements;
 
-        public TupleResult(CodecTypeInfo info)
+        public TupleResult(string path, CodecTypeInfo info)
         {
-            _elements = info.Children!.Select(x => (x.Name, x.Build()));
+            FilePath = Path.GetFullPath(path);
+            FileName = Path.GetFileNameWithoutExtension(path);
+
+            _elements = info.Children!.Select(x => (x.Name, x.Build(path)));
         }
 
         public void Visit(ResultVisitor visitor)

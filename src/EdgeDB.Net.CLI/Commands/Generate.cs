@@ -1,6 +1,8 @@
 using CommandLine;
 using EdgeDB.CLI.Arguments;
 using EdgeDB.CLI.Generator;
+using EdgeDB.CLI.Generator.Models;
+using EdgeDB.CLI.Generator.Results;
 using EdgeDB.CLI.Utils;
 using Newtonsoft.Json;
 using Serilog;
@@ -90,6 +92,8 @@ public class Generate : ConnectionArguments, ICommand
         
         logger.Information("Generating {@FileCount} files...", edgeqlFiles.Length);
 
+        List<TransientTargetInfo> targets = new();
+
         for(int i = 0; i != edgeqlFiles.Length; i++)
         {
             var file = edgeqlFiles[i];
@@ -101,22 +105,33 @@ public class Generate : ConnectionArguments, ICommand
                 continue;
             }
 
+            var parsed = await CodeGenerator.ParseAsync(client, OutputDirectory, info);
+
+            targets.Add(new TransientTargetInfo(parsed, info));
+
+            TypeGenerator.UpdateResultInfo(info.EdgeQLFileNameWithoutExtension!, parsed.Result);
+        }
+
+        for(int i = 0; i != targets.Count; i++)
+        {
+            var target = targets[i];
+
             try
             {
-                var result = await CodeGenerator.ParseAndGenerateAsync(client, OutputDirectory, GeneratedProjectName, info);
-                File.WriteAllText(info.TargetFilePath!, result.Code);
+                var result = await CodeGenerator.GenerateAsync(OutputDirectory, GeneratedProjectName, target);
+
+                File.WriteAllText(target.Info.TargetFilePath!, result.Code);
             }
             catch (EdgeDBErrorException error)
             {
-                logger.Error("Skipping {@File}: Failed to parse - {@Message} at line {@Line} column {@Column}", 
-                    file,
-                    error.Message,
+                logger.Error(error, "Skipping {@File}: Failed to parse: at line {@Line} column {@Column}", 
+                    target.Info.EdgeQLFilePath,
                     error.ErrorResponse.Attributes.FirstOrDefault(x => x.Code == 65523).ToString() ?? "??", 
                     error.ErrorResponse.Attributes.FirstOrDefault(x => x.Code == 65524).ToString() ?? "??");
                 continue;
             }
 
-            logger.Debug("{@EdgeQL} => {@CSharp}", file, info.TargetFilePath);
+            logger.Debug("{@EdgeQL} => {@CSharp}", target.Info.EdgeQLFilePath, target.Info.TargetFilePath);
         }
 
         logger.Information("Generation complete!");

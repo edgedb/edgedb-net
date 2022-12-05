@@ -4,6 +4,10 @@ namespace EdgeDB.CLI.Generator.Results
 {
     internal class ClassResult : IQueryResult
     {
+        public string FileName { get; }
+
+        public string FilePath { get; }
+
         public string ClassName { get; set; }
 
         public string? Extending { get; set; }
@@ -14,9 +18,12 @@ namespace EdgeDB.CLI.Generator.Results
 
         public IEnumerable<string> UsedNamespaces { get; }
 
-        public ClassResult(CodecTypeInfo classInfo)
+        public ClassResult(string path, CodecTypeInfo classInfo)
         {
-            Properties = classInfo.Children!.ToDictionary(x => x.Name!, x => x.Build());
+            FilePath = Path.GetFullPath(path);
+            FileName = Path.GetFileNameWithoutExtension(path);
+
+            Properties = classInfo.Children!.ToDictionary(x => x.Name!, x => x.Build(path));
             ClassName = classInfo.Name ?? classInfo.GetUniqueTypeName();
 
             UsedNamespaces = GetNamespaces(classInfo).Distinct();

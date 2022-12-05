@@ -172,9 +172,19 @@ public class FileWatch : ConnectionArguments, ICommand
             try
             {
                 _logger.Debug("Parsing {@file}...", info.EdgeQLFilePath);
-                var result = await CodeGenerator.ParseAndGenerateAsync(_client, OutputDirectory!, GeneratedProjectName!, info);
+
+                var parsed = await CodeGenerator.ParseAsync(_client, OutputDirectory!, info);
+
+                var generationTarget = new TransientTargetInfo(parsed, info);
+
+                TypeGenerator.UpdateResultInfo(info.EdgeQLFileNameWithoutExtension!, parsed.Result);
+
+                var result = await CodeGenerator.GenerateAsync(OutputDirectory!, GeneratedProjectName!, generationTarget);
+
                 _logger.Debug("Completed parse of {@file} -> {@target}", info.EdgeQLFilePath, info.TargetFilePath);
-                File.WriteAllText(info.TargetFilePath!, result.Code);
+
+                await File.WriteAllTextAsync(info.TargetFilePath!, result.Code);
+
                 _logger!.Information($"{(info.WasCreated ? "Created" : "Updated")} {{@info}}", info.TargetFilePath);
             }
             catch (EdgeDBErrorException err)
@@ -230,6 +240,8 @@ public class FileWatch : ConnectionArguments, ICommand
         if (File.Exists(path))
             File.Delete(path);
 
+        TypeGenerator.RemoveFunctionInfo(Path.GetFileNameWithoutExtension(e.FullPath));
+
         _logger!.Information("Deleted {@file}", path);
     }
 
@@ -243,6 +255,10 @@ public class FileWatch : ConnectionArguments, ICommand
 
         if (File.Exists(oldPath))
             File.Move(oldPath, newPath);
+
+        TypeGenerator.RenameFunctionInfo(
+            Path.GetFileNameWithoutExtension(e.OldFullPath),
+            Path.GetFileNameWithoutExtension(e.FullPath));
 
         _logger!.Information("Renamed {@old} to {@new}", oldPath, newPath);
     }

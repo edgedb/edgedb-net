@@ -1,15 +1,56 @@
 using EdgeDB.CLI.Generator.Models;
+using EdgeDB.CLI.Generator.Models.TypeManifest;
 using EdgeDB.CLI.Generator.Results;
 using EdgeDB.CLI.Utils;
+using YamlDotNet.Serialization;
 using System;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace EdgeDB.CLI.Generator
 {
     internal class TypeGenerator
     {
-        public static void GenerateType(string outputDir, string @namespace, ClassResult result)
+        public static TypeManifest? TypeManifest;
+
+        private static readonly IDeserializer _yamlDeserializer;
+        private static readonly ISerializer _yamlSerializer;
+        private static readonly Dictionary<string, IQueryResult> _functionResultInfo;
+
+        static TypeGenerator()
         {
-            ApplyOverrides(result);
+            _yamlSerializer = new SerializerBuilder()
+                .WithNamingConvention(UnderscoredNamingConvention.Instance)
+                .Build();
+
+            _yamlDeserializer = new DeserializerBuilder()
+                .WithNamingConvention(UnderscoredNamingConvention.Instance)
+                .Build();
+
+            _functionResultInfo = new();
+        }
+
+        public static void RemoveFunctionInfo(string function)
+        {
+            _functionResultInfo.Remove(function);
+        }
+
+        public static void RenameFunctionInfo(string oldName, string newName)
+        {
+            if(_functionResultInfo.TryGetValue(oldName, out var result))
+            {
+                _functionResultInfo.Remove(oldName);
+                _functionResultInfo[newName] = result;
+            }
+        }
+
+        public static void UpdateResultInfo(string function, IQueryResult result)
+        {
+            _functionResultInfo[function] = result;
+        }
+
+        public static async Task GenerateTypeAsync(string outputDir, string @namespace, ClassResult result)
+        {
+            await ApplyOverridesAsync(outputDir, result);
 
             var writer = new CodeWriter();
 
@@ -58,13 +99,89 @@ namespace EdgeDB.CLI.Generator
 
             writer.AppendLine("#nullable restore");
 
-            File.WriteAllText(Path.Combine(GetTypeOutputDir(outputDir), $"{result.ClassName}.g.cs"), writer.ToString());
+            await File.WriteAllTextAsync(Path.Combine(GetTypeOutputDir(outputDir), $"{result.ClassName}.g.cs"), writer.ToString());
         }
 
-
-        private static void ApplyOverrides(ClassResult result)
+        private static async Task ApplyOverridesAsync(string dir, ClassResult result)
         {
-            // TODO
+            TypeManifest ??= await LoadTypeManifestAsync(dir);
+
+            if (!TypeManifest.TryGetDefinition(result.FileName, out var definition))
+                return; // no overrides, default generation behaviour
+
+            // apply property resolving
+            Dictionary<string, IQueryResult> targetProperies = new();
+
+            switch (definition.PropertyMode)
+            {
+                case PropertyMode.All:
+                    {
+                        targetProperies = definition.Functions.Select(x =>
+                        {
+                            if (_functionResultInfo.TryGetValue(x, out var v) && v is ClassResult cr)
+                            {
+                                return cr.Properties;
+                            }
+
+                            return null;
+                        })
+                            .Where(x => x is not null)
+                            .SelectMany(x => x!.ToArray())
+                            .DistinctBy(x => x.Key)
+                            .ToDictionary(x => x.Key, x => x.Value);
+                    }
+                    break;
+                case PropertyMode.Shared:
+                    {
+                        var temp = definition.Functions.Select(x =>
+                        {
+                            if (_functionResultInfo.TryGetValue(x, out var v) && v is ClassResult cr)
+                            {
+                                return cr.Properties;
+                            }
+
+                            return null;
+                        }).Where(x => x is not null);
+
+                        targetProperies = temp
+                            .SelectMany(x => x!.Where(y => temp.Any(z => z.Any(q => q.Key == y.Key))))
+                            .ToDictionary(x => x.Key, x => x.Value);
+
+                    }
+                    break;
+                case PropertyMode.Schema:
+                    {
+                        // TODO;
+                    }
+                    break;
+            }
+
+            // apply property type changes
+            foreach(var typeOverride in definition.TypeOverrides)
+            {
+                if(targetProperies.TryGetValue(typeOverride.Key, out var prop))
+                {
+                    targetProperies[typeOverride.Key] = new ScalarResult(prop.FilePath, typeOverride.Value);
+                }
+            }
+
+            // apply the class name
+            result.ClassName = definition.Name!;
+        }
+
+        private static async ValueTask<TypeManifest> LoadTypeManifestAsync(string dir)
+        {
+            var path = Path.Combine(dir, "TypeManifest.yaml");
+
+            if (!File.Exists(path))
+            {
+                File.WriteAllText(path, "types:");
+                return new TypeManifest();
+            }
+
+            var yaml = await File.ReadAllTextAsync(path);
+
+            return _yamlDeserializer.Deserialize<TypeManifest>(yaml);
         }
 
         private static string GetTypeOutputDir(string rootOutputDir)

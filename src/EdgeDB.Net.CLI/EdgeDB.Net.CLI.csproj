@@ -18,6 +18,7 @@
     <PackageReference Include="Serilog" Version="2.11.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="4.0.1" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="3.1.0" />
+    <PackageReference Include="YamlDotNet" Version="12.1.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,6 +32,7 @@
     <None Remove="Generator\Models\" />
     <None Remove="Generator\Results\" />
     <None Remove="Generator\Models\TypeManifest\" />
+    <None Remove="YamlDotNet" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Extensions\" />

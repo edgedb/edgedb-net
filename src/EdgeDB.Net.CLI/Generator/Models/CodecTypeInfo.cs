@@ -88,12 +88,14 @@ namespace EdgeDB.CLI.Generator.Models
             return string.Join("", path.Where(x => x is not null));
         }
 
-        public IQueryResult Build()
+        public IQueryResult Build(string path)
         {
             return Type switch
             {
-                CodecType.Object => new ClassResult(this),
-                _ => new ScalarResult(this)
+                CodecType.Object => new ClassResult(path, this),
+                CodecType.Array or CodecType.Set => new CollectionResult(path, this),
+                CodecType.Tuple => new TupleResult(path, this),
+                _ => new ScalarResult(path, this)
             };
         }
 
