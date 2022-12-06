@@ -179,7 +179,7 @@ public class FileWatch : ConnectionArguments, ICommand
 
                 TypeGenerator.UpdateResultInfo(info.EdgeQLFileNameWithoutExtension!, parsed.Result);
 
-                var result = await CodeGenerator.GenerateAsync(OutputDirectory!, GeneratedProjectName!, generationTarget);
+                var result = await CodeGenerator.GenerateAsync(_client, OutputDirectory!, GeneratedProjectName!, generationTarget);
 
                 _logger.Debug("Completed parse of {@file} -> {@target}", info.EdgeQLFilePath, info.TargetFilePath);
 

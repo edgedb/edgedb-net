@@ -120,7 +120,7 @@ public class Generate : ConnectionArguments, ICommand
 
                 try
                 {
-                    var result = await CodeGenerator.GenerateAsync(OutputDirectory, GeneratedProjectName, target);
+                    var result = await CodeGenerator.GenerateAsync(client, OutputDirectory, GeneratedProjectName, target);
 
                     foreach(var file in result.GeneratedTypeFiles)
                     {

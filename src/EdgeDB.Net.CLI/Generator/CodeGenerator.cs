@@ -120,7 +120,7 @@ namespace EdgeDB.CLI.Generator
         /// <param name="parseResult">The parse result from edgedb.</param>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public static async Task<GenerationResult> GenerateAsync(string outputDir, string @namespace, TransientTargetInfo target)
+        public static async Task<GenerationResult> GenerateAsync(EdgeDBTcpClient client, string outputDir, string @namespace, TransientTargetInfo target)
         {
             List<string> generatedTypeFiles = new();
             
@@ -129,7 +129,7 @@ namespace EdgeDB.CLI.Generator
 
             foreach (var type in visitor.GenerationTargets)
             {
-                generatedTypeFiles.Add(await TypeGenerator.GenerateTypeAsync(outputDir, @namespace, type));
+                generatedTypeFiles.Add(await TypeGenerator.GenerateTypeAsync(client, outputDir, @namespace, type));
             }
 
             // create the class writer

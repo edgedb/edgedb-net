@@ -45,9 +45,9 @@ namespace EdgeDB.CLI.Generator
             _functionResultInfo[function] = result;
         }
 
-        public static async Task<string> GenerateTypeAsync(string outputDir, string @namespace, ClassResult result)
+        public static async Task<string> GenerateTypeAsync(EdgeDBTcpClient client, string outputDir, string @namespace, ClassResult result)
         {
-            await ApplyOverridesAsync(outputDir, result);
+            await ApplyOverridesAsync(client, outputDir, result);
 
             var path = Path.Combine(GetTypeOutputDir(outputDir), $"{result.ClassName}.g.cs");
 
@@ -122,7 +122,7 @@ namespace EdgeDB.CLI.Generator
             return path;
         }
 
-        private static async Task ApplyOverridesAsync(string dir, ClassResult result)
+        private static async Task ApplyOverridesAsync(EdgeDBTcpClient client, string dir, ClassResult result)
         {
             TypeManifest ??= await LoadTypeManifestAsync(dir);
 
@@ -167,11 +167,6 @@ namespace EdgeDB.CLI.Generator
                             .SelectMany(x => x!.Where(y => temp.Any(z => z != x && z!.Any(q => q.Key == y.Key))))
                             .DistinctBy(x => x.Key)
                             .ToDictionary(x => x.Key, x => x.Value);
-                    }
-                    break;
-                case PropertyMode.Schema:
-                    {
-                        // TODO;
                     }
                     break;
             }

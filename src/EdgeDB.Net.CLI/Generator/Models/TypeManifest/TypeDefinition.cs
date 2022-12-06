@@ -20,12 +20,6 @@ namespace EdgeDB.CLI.Generator.Models.TypeManifest
         ///     All shared properties between all functions are included for this type.
         /// </summary>
         Shared,
-
-        /// <summary>
-        ///     The type name is looked up in the schema, and the properties
-        ///     defined in the schema are used.
-        /// </summary>
-        Schema
     }
 }
 
