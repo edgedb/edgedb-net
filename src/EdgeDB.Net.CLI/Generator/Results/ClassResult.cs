@@ -1,5 +1,9 @@
 using EdgeDB.CLI.Generator.Models;
+using EdgeDB.Utils;
 using System;
+using System.Security.Cryptography;
+using System.Text;
+
 namespace EdgeDB.CLI.Generator.Results
 {
     internal class ClassResult : IQueryResult
@@ -55,6 +59,17 @@ namespace EdgeDB.CLI.Generator.Results
         public string ToCSharp()
         {
             return ClassName;
+        }
+
+        public string GetClassHash()
+        {
+            var props = string.Join("; ", Properties.Select(x => $"{x.Key}:={(x.Value is ClassResult cr ? cr.GetClassHash() : x.Value.ToCSharp())}"));
+            var str = $"{ClassName}{(Extending is not null ? $" : {Extending}" : "")}{(IsAbstract ? " abstract" : "")}{{{props}}};";
+
+            using var sha = SHA256.Create();
+            var hashed = sha.ComputeHash(Encoding.UTF8.GetBytes(str));
+
+            return HexConverter.ToHex(hashed);
         }
     }
 }

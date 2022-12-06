@@ -97,7 +97,7 @@ public class Generate : ConnectionArguments, ICommand
         for(int i = 0; i != edgeqlFiles.Length; i++)
         {
             var file = edgeqlFiles[i];
-            var info = CodeGenerator.GetTargetInfo(file, OutputDirectory);
+            var info = CodeGenerator.GetTargetInfo(file, OutputDirectory, projectRoot);
 
             if (!Force && info.IsGeneratedTargetExistsAndIsUpToDate())
             {
@@ -112,27 +112,39 @@ public class Generate : ConnectionArguments, ICommand
             TypeGenerator.UpdateResultInfo(info.EdgeQLFileNameWithoutExtension!, parsed.Result);
         }
 
-        for(int i = 0; i != targets.Count; i++)
+        using (var generationHandle = CodeGenerator.GetGenerationHandle(OutputDirectory))
         {
-            var target = targets[i];
-
-            try
+            for (int i = 0; i != targets.Count; i++)
             {
-                var result = await CodeGenerator.GenerateAsync(OutputDirectory, GeneratedProjectName, target);
+                var target = targets[i];
 
-                File.WriteAllText(target.Info.TargetFilePath!, result.Code);
-            }
-            catch (EdgeDBErrorException error)
-            {
-                logger.Error(error, "Skipping {@File}: Failed to parse: at line {@Line} column {@Column}", 
-                    target.Info.EdgeQLFilePath,
-                    error.ErrorResponse.Attributes.FirstOrDefault(x => x.Code == 65523).ToString() ?? "??", 
-                    error.ErrorResponse.Attributes.FirstOrDefault(x => x.Code == 65524).ToString() ?? "??");
-                continue;
-            }
+                try
+                {
+                    var result = await CodeGenerator.GenerateAsync(OutputDirectory, GeneratedProjectName, target);
 
-            logger.Debug("{@EdgeQL} => {@CSharp}", target.Info.EdgeQLFilePath, target.Info.TargetFilePath);
+                    foreach(var file in result.GeneratedTypeFiles)
+                    {
+                        generationHandle.Track(file);
+                    }
+
+                    File.WriteAllText(target.Info.TargetFilePath!, result.Code);
+
+                    generationHandle.Track(target.Info.TargetFilePath!);
+                }
+                catch (EdgeDBErrorException error)
+                {
+                    logger.Error(error, "Skipping {@File}: Failed to parse: at line {@Line} column {@Column}",
+                        target.Info.EdgeQLFilePath,
+                        error.ErrorResponse.Attributes.FirstOrDefault(x => x.Code == 65523).ToString() ?? "??",
+                        error.ErrorResponse.Attributes.FirstOrDefault(x => x.Code == 65524).ToString() ?? "??");
+                    continue;
+                }
+
+                logger.Debug("{@EdgeQL} => {@CSharp}", target.Info.EdgeQLFilePath, target.Info.TargetFilePath);
+            }
         }
+
+        
 
         logger.Information("Generation complete!");
 

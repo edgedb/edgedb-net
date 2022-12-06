@@ -1,4 +1,4 @@
-﻿using CommandLine;
+using CommandLine;
 using EdgeDB.CLI;
 using EdgeDB.CLI.Arguments;
 using EdgeDB.CLI.Generator;
@@ -211,7 +211,7 @@ public class FileWatch : ConnectionArguments, ICommand
         // wait an extra second to make sure the file is fully written
         Thread.Sleep(1000);
 
-        var info = CodeGenerator.GetTargetInfo(e.FullPath, OutputDirectory!);
+        var info = CodeGenerator.GetTargetInfo(e.FullPath, OutputDirectory!, _watchDirectory!);
 
         if (info.IsGeneratedTargetExistsAndIsUpToDate())
             return;

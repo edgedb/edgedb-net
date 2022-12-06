@@ -30,6 +30,8 @@ namespace EdgeDB.CLI.Generator.Models
         ///     Gets a collection of parameters (edgeql arguments) for the executer function.
         /// </summary>
         public IEnumerable<string>? Parameters { get; set; }
+
+        public List<string> GeneratedTypeFiles { get; set; } = new();
     }
 }
 

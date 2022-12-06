@@ -331,6 +331,10 @@ namespace EdgeDB
                                         inCodecInfo = new(descriptor.InputTypeDescriptorId,
                                             CodecBuilder.BuildCodec(descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer));
 
+                                        trueCapabilities = descriptor.Capabilities;
+
+                                        trueCardinality = descriptor.Cardinality;
+
                                         CodecBuilder.UpdateKeyMap(cacheKey, descriptor.InputTypeDescriptorId, descriptor.OutputTypeDescriptorId);
                                     }
                                     break;

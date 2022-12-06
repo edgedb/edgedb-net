@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -40,6 +40,16 @@ namespace EdgeDB.CLI.Utils
         {
             var p = ToPascalCase(input);
             return $"{p[0].ToString().ToLower()}{p[1..]}";
+        }
+
+        public static string EscapeToSourceCode(string x)
+        {
+            return x.Replace("\"", "\\\"");
+        }
+
+        public static string EscapeToXMLComment(string x)
+        {
+            return x.Replace(">", "&gt;").Replace("<", "&lt;");
         }
     }
 }

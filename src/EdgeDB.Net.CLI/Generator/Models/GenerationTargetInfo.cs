@@ -38,6 +38,11 @@ namespace EdgeDB.CLI.Generator.Models
         public bool WasCreated { get; set; }
 
         /// <summary>
+        ///     Gets or sets the root project path.
+        /// </summary>
+        public string? RootProjectPath { get; set; }
+
+        /// <summary>
         ///     Checks if the target file exists and the header matches the hash of the edgeql.
         /// </summary>
         /// <returns></returns>

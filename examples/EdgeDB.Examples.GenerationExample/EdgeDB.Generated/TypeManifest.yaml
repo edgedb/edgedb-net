@@ -1,0 +1,8 @@
+types:
+  - name: UserModel
+    property_mode: shared
+    functions:
+      - GetUser
+      - CreateUser
+      - UpdateUser
+      - DeleteUser

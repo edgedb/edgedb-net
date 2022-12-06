@@ -4,11 +4,11 @@ namespace EdgeDB.CLI.Generator.Models
 {
     public enum CodecType
     {
+        Scalar,
         Array,
         Set,
         Object,
         Tuple,
-        Scalar
     }
 
     /// <summary>
