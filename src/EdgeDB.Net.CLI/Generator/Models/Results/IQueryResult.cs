@@ -1,6 +1,9 @@
 using System;
 namespace EdgeDB.CLI.Generator.Results
 {
+    /// <summary>
+    ///     Represents a query result returned from a query.
+    /// </summary>
     internal interface IQueryResult
     {
         /// <summary>
@@ -13,7 +16,16 @@ namespace EdgeDB.CLI.Generator.Results
         /// </summary>
         string FilePath { get; }
 
+        /// <summary>
+        ///     Visits this result and tracks the class types.
+        /// </summary>
+        /// <param name="visitor">The <see cref="ResultVisitor"/> used to visit this result.</param>
         void Visit(ResultVisitor visitor);
+
+        /// <summary>
+        ///     Converts this query result to a C# representation.
+        /// </summary>
+        /// <returns></returns>
         string ToCSharp();
     }
 }

@@ -2,12 +2,34 @@ using EdgeDB.CLI.Generator.Results;
 using System;
 namespace EdgeDB.CLI.Generator.Models
 {
+    /// <summary>
+    ///     Represents the different codec types.
+    /// </summary>
     public enum CodecType
     {
+        /// <summary>
+        ///     A scalar codec.
+        /// </summary>
         Scalar,
+
+        /// <summary>
+        ///     An array codec.
+        /// </summary>
         Array,
+
+        /// <summary>
+        ///     A set codec.
+        /// </summary>
         Set,
+
+        /// <summary>
+        ///     An object codec.
+        /// </summary>
         Object,
+
+        /// <summary>
+        ///     A tuple codec.
+        /// </summary>
         Tuple,
     }
 
@@ -88,6 +110,11 @@ namespace EdgeDB.CLI.Generator.Models
             return string.Join("", path.Where(x => x is not null));
         }
 
+        /// <summary>
+        ///     Builds this <see cref="CodecTypeInfo"/> into a <see cref="IQueryResult"/>.
+        /// </summary>
+        /// <param name="path">The path of the query file this codec info represents.</param>
+        /// <returns>A built <see cref="IQueryResult"/>.</returns>
         public IQueryResult Build(string path)
         {
             return Type switch

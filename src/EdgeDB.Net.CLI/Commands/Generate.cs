@@ -35,13 +35,7 @@ public class Generate : ConnectionArguments, ICommand
     /// </summary>
     [Option('n', "project-name", HelpText = "The name of the generated project and namespace of generated files.")]
     public string GeneratedProjectName { get; set; } = "EdgeDB.Generated";
-
-    /// <summary>
-    ///     Gets or sets whether or not to force (re)generate source files.
-    /// </summary>
-    [Option('f', "force", HelpText = "Force regeneration of files")]
-    public bool Force { get; set; }
-
+    
     /// <summary>
     ///     Gets or sets whether or not to start a watch process post-generate.
     /// </summary>
@@ -92,39 +86,27 @@ public class Generate : ConnectionArguments, ICommand
         
         logger.Information("Generating {@FileCount} files...", edgeqlFiles.Length);
 
-        List<TransientTargetInfo> targets = new();
-
-        for(int i = 0; i != edgeqlFiles.Length; i++)
-        {
-            var file = edgeqlFiles[i];
-            var info = CodeGenerator.GetTargetInfo(file, OutputDirectory, projectRoot);
-
-            if (!Force && info.IsGeneratedTargetExistsAndIsUpToDate())
-            {
-                logger.Warning("Skipping {@File}: File already generated and up-to-date.", file);
-                continue;
-            }
-
-            var parsed = await CodeGenerator.ParseAsync(client, OutputDirectory, info);
-
-            targets.Add(new TransientTargetInfo(parsed, info));
-
-            TypeGenerator.UpdateResultInfo(info.EdgeQLFileNameWithoutExtension!, parsed.Result);
-        }
-
+        
         using (var generationHandle = CodeGenerator.GetGenerationHandle(OutputDirectory))
         {
-            for (int i = 0; i != targets.Count; i++)
+            for (int i = 0; i != edgeqlFiles.Length; i++)
             {
-                var target = targets[i];
+                var file = edgeqlFiles[i];
+                var info = CodeGenerator.GetTargetInfo(file, OutputDirectory, projectRoot);
+
+                var parsed = await CodeGenerator.ParseAsync(client, OutputDirectory, info);
+
+                var target = new TransientTargetInfo(parsed, info);
+
+                TypeGenerator.UpdateResultInfo(info.EdgeQLFileNameWithoutExtension!, parsed.Result);
 
                 try
                 {
-                    var result = await CodeGenerator.GenerateAsync(client, OutputDirectory, GeneratedProjectName, target);
+                    var result = await CodeGenerator.GenerateAsync(OutputDirectory, GeneratedProjectName, target);
 
-                    foreach(var file in result.GeneratedTypeFiles)
+                    foreach (var f in result.GeneratedTypeFiles)
                     {
-                        generationHandle.Track(file);
+                        generationHandle.Track(f);
                     }
 
                     File.WriteAllText(target.Info.TargetFilePath!, result.Code);
@@ -139,13 +121,9 @@ public class Generate : ConnectionArguments, ICommand
                         error.ErrorResponse.Attributes.FirstOrDefault(x => x.Code == 65524).ToString() ?? "??");
                     continue;
                 }
-
-                logger.Debug("{@EdgeQL} => {@CSharp}", target.Info.EdgeQLFilePath, target.Info.TargetFilePath);
             }
         }
-
         
-
         logger.Information("Generation complete!");
 
         if(Watch)

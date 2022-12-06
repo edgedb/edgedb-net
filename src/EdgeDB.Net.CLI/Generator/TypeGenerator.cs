@@ -9,12 +9,29 @@ using System.Text.RegularExpressions;
 
 namespace EdgeDB.CLI.Generator
 {
+    /// <summary>
+    ///     A class responsible for generating c# types from intermediate representations.
+    /// </summary>
     internal class TypeGenerator
     {
-        public static TypeManifest? TypeManifest;
+        /// <summary>
+        ///     Gets the type manifest for the generator.
+        /// </summary>
+        public static TypeManifest? TypeManifest { get; private set; }
 
-        private static readonly Regex _genHashRegex = new(@"^\\/\\/ GENHASH:(.{64})$");
+        /// <summary>
+        ///     The regex used to match the generation hash within type files.
+        /// </summary>
+        private static readonly Regex _genHashRegex = new(@"^\/\/ GENHASH:(.{64})$");
+
+        /// <summary>
+        ///     The YAML deserializer used to deserialize the type manifest file.
+        /// </summary>
         private static readonly IDeserializer _yamlDeserializer;
+
+        /// <summary>
+        ///     A dictionary mapping function names and their corrisponding result types.
+        /// </summary>
         private static readonly Dictionary<string, IQueryResult> _functionResultInfo;
 
         static TypeGenerator()
@@ -25,12 +42,21 @@ namespace EdgeDB.CLI.Generator
 
             _functionResultInfo = new();
         }
-        
+
+        /// <summary>
+        ///     Removes a given function result info from the type generator.
+        /// </summary>
+        /// <param name="function">The function whos result to remove.</param>
         public static void RemoveFunctionInfo(string function)
         {
             _functionResultInfo.Remove(function);
         }
 
+        /// <summary>
+        ///     Renames a function result info in the type generator.
+        /// </summary>
+        /// <param name="oldName">The old (current) name of the info to rename.</param>
+        /// <param name="newName">The new name for the function result info.</param>
         public static void RenameFunctionInfo(string oldName, string newName)
         {
             if(_functionResultInfo.TryGetValue(oldName, out var result))
@@ -40,14 +66,27 @@ namespace EdgeDB.CLI.Generator
             }
         }
 
+        /// <summary>
+        ///     Updates a function result info to a newer version.
+        /// </summary>
+        /// <param name="function">The function whos result to update.</param>
+        /// <param name="result">The newer result of the function.</param>
         public static void UpdateResultInfo(string function, IQueryResult result)
         {
             _functionResultInfo[function] = result;
         }
 
-        public static async Task<string> GenerateTypeAsync(EdgeDBTcpClient client, string outputDir, string @namespace, ClassResult result)
+        /// <summary>
+        ///     Generates a single C# type from the given <see cref="ClassResult"/>. This function mutates the
+        ///     result based off of the <see cref="TypeManifest"/>.
+        /// </summary>
+        /// <param name="outputDir">The output directory where types will be placed.</param>
+        /// <param name="namespace">The namespace to use when generating the types.</param>
+        /// <param name="result">The result info to use when generating the type.</param>
+        /// <returns>The path of the generated file.</returns>
+        public static async Task<string> GenerateTypeAsync(string outputDir, string @namespace, ClassResult result)
         {
-            await ApplyOverridesAsync(client, outputDir, result);
+            await ApplyOverridesAsync(outputDir, result);
 
             var path = Path.Combine(GetTypeOutputDir(outputDir), $"{result.ClassName}.g.cs");
 
@@ -122,7 +161,13 @@ namespace EdgeDB.CLI.Generator
             return path;
         }
 
-        private static async Task ApplyOverridesAsync(EdgeDBTcpClient client, string dir, ClassResult result)
+        /// <summary>
+        ///     Applies mutations defined in the <see cref="TypeManifest"/> to a given <see cref="ClassResult"/>.
+        /// </summary>
+        /// <param name="dir">The directory that contains the type manifest.</param>
+        /// <param name="result">The class result to mutate.</param>
+        /// <returns>A task representing the asynchronous operation of mutating the class.</returns>
+        private static async Task ApplyOverridesAsync(string dir, ClassResult result)
         {
             TypeManifest ??= await LoadTypeManifestAsync(dir);
 
@@ -186,6 +231,11 @@ namespace EdgeDB.CLI.Generator
             result.ClassName = definition.Name!;
         }
 
+        /// <summary>
+        ///     Loads the type manifest from the given directory.
+        /// </summary>
+        /// <param name="dir">The directory that contains the type manifest.</param>
+        /// <returns>A ValueTask whos result is the loaded type manifest.</returns>
         private static async ValueTask<TypeManifest> LoadTypeManifestAsync(string dir)
         {
             var path = Path.Combine(dir, "TypeManifest.yaml");
@@ -201,6 +251,11 @@ namespace EdgeDB.CLI.Generator
             return _yamlDeserializer.Deserialize<TypeManifest>(yaml);
         }
 
+        /// <summary>
+        ///     Gets or creates the directory for the generated types.
+        /// </summary>
+        /// <param name="rootOutputDir">The root output directory.</param>
+        /// <returns>The directory that types will be outputed in.</returns>
         private static string GetTypeOutputDir(string rootOutputDir)
         {
             var path = Path.Combine(rootOutputDir, "Types");
