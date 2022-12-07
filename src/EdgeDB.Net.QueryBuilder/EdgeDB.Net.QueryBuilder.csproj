@@ -15,13 +15,11 @@
     <Compile Remove="Translators\Methods\Generated\**" />
     <EmbeddedResource Remove="Translators\Methods\Generated\**" />
     <None Remove="Translators\Methods\Generated\**" />
-    <None Remove="Translators\Expressions\CustomExpressions\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="stdlib\" />
-    <Folder Include="Translators\Expressions\CustomExpressions\" />
   </ItemGroup>
 </Project>

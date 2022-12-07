@@ -1,6 +1,5 @@
 ﻿using EdgeDB.Operators;
 using EdgeDB.QueryNodes;
-using EdgeDB.Translators.Expressions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -122,10 +121,6 @@ namespace EdgeDB
         /// <returns>The string form of the expression.</returns>
         public static string Translate(LambdaExpression expression, IDictionary<string, object?> queryArguments, NodeContext nodeContext, List<QueryGlobal> globals)
         {
-            var visitor = new PreTranslationExpressionVisitor();
-
-            var visitedExpression = visitor.Visit(expression);
-
             var context = new ExpressionContext(nodeContext, expression, queryArguments, globals);
             return TranslateExpression(expression.Body, context);
         }

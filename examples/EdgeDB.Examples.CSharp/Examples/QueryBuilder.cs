@@ -11,8 +11,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-using ConverterModel = EdgeDB.ExampleApp.Examples.CustomTypeConverters.UserWithSnowflakeId;
-
 namespace EdgeDB.ExampleApp.Examples
 {
     internal class QueryBuilderExample : IExample
@@ -43,10 +41,6 @@ namespace EdgeDB.ExampleApp.Examples
 
         private static async Task QueryBuilderDemo(EdgeDBClient client)
         {
-            var test = QueryBuilder
-                .Select<ConverterModel>()
-                .Filter(x => x.UserId == 123456);
-
             // Selecting a type with autogen shape
             var query = QueryBuilder.Select<Person>().Build().Prettify();
 
