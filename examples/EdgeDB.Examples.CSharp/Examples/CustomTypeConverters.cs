@@ -46,6 +46,8 @@ namespace EdgeDB.ExampleApp.Examples
                 Timestamp = DateTimeOffset.FromUnixTimeMilliseconds((long)((value >> 22) + 1420070400000)); // last 41 bits + Discord Epoch
                 Snowflake = value;
             }
+
+            public static implicit operator ulong(DiscordSnowflakeId d) => d.Snowflake;
         }
 
         public async Task ExecuteAsync(EdgeDBClient client)
