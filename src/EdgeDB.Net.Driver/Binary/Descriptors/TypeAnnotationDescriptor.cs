@@ -12,7 +12,7 @@ namespace EdgeDB.Binary
         public readonly Guid Id;
         public readonly string Annotation;
 
-        public TypeAnnotationDescriptor(DescriptorType type, Guid id, PacketReader reader)
+        public TypeAnnotationDescriptor(DescriptorType type, Guid id, ref PacketReader reader)
         {
             Type = type;
             Id = id;

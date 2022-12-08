@@ -1,4 +1,4 @@
-﻿using EdgeDB.State;
+using EdgeDB.State;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;

@@ -145,8 +145,15 @@ namespace EdgeDB
         /// <exception cref="EdgeDBErrorException">The client received an <see cref="ErrorResponse"/>.</exception>
         /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
-        internal virtual async Task<RawExecuteResult> ExecuteInternalAsync<TResult>(string query, IDictionary<string, object?>? args = null, Cardinality? cardinality = null,
-            Capabilities? capabilities = Capabilities.Modifications, IOFormat format = IOFormat.Binary, bool isRetry = false, bool implicitTypeName = false,
+        internal virtual async Task<RawExecuteResult> ExecuteInternalAsync<TResult>(
+            string query,
+            IDictionary<string, object?>? args = null,
+            Cardinality? cardinality = null,
+            Capabilities? capabilities = Capabilities.Modifications,
+            IOFormat format = IOFormat.Binary,
+            bool isRetry = false,
+            bool implicitTypeName = false,
+            bool introspectTypeInformation = false,
             CancellationToken token = default)
         {
             // if the current client is not connected, reconnect it
@@ -200,6 +207,7 @@ namespace EdgeDB
                             ImplicitLimit = _config.ImplicitLimit,
                             ImplicitTypeNames = implicitTypeName, // used for type builder
                             ImplicitTypeIds = true,  // used for type builder
+                            IntrospectTypeInformation = introspectTypeInformation,
                         }, token))
                         {
                             switch (result.Packet)
@@ -319,15 +327,15 @@ namespace EdgeDB
                 await ReconnectAsync(token).ConfigureAwait(false);
                 _semaphore.Release();
                 released = true;
-
-                return await ExecuteInternalAsync<TResult>(query, args, cardinality, capabilities, format, true, implicitTypeName, token).ConfigureAwait(false);
+                
+                return await ExecuteInternalAsync<TResult>(query, args, cardinality, capabilities, format, true, implicitTypeName, introspectTypeInformation, token).ConfigureAwait(false);
             }
             catch (EdgeDBException x) when (x.ShouldRetry && !isRetry)
             {
                 _semaphore.Release();
                 released = true;
 
-                return await ExecuteInternalAsync<TResult>(query, args, cardinality, capabilities, format, true, implicitTypeName, token).ConfigureAwait(false);
+                return await ExecuteInternalAsync<TResult>(query, args, cardinality, capabilities, format, true, implicitTypeName, introspectTypeInformation, token).ConfigureAwait(false);
             }
             catch (Exception x)
             {
@@ -379,6 +387,7 @@ namespace EdgeDB
                 Cardinality.Many,
                 capabilities,
                 implicitTypeName: implicitTypeName,
+                introspectTypeInformation: true,
                 token: token);
 
             var array = new TResult?[result.Data.Length];
@@ -508,7 +517,7 @@ namespace EdgeDB
                 case AuthenticationStatus authStatus:
                     if (authStatus.AuthStatus == AuthStatus.AuthenticationRequiredSASLMessage)
                         await StartSASLAuthenticationAsync(authStatus).ConfigureAwait(false);
-                    else
+                    else if (authStatus.AuthStatus != AuthStatus.AuthenticationOK)
                         throw new UnexpectedMessageException("Expected AuthenticationRequiredSASLMessage, got " + authStatus.AuthStatus);
                     break;
                 case ServerKeyData keyData:

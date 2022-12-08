@@ -35,6 +35,8 @@ namespace EdgeDB.Binary.Packets
 
         public bool ExplicitObjectIds { get; set; }
 
+        public bool IntrospectTypeInformation { get; set; }
+
         public IOFormat Format { get; set; }
 
         public Cardinality ExpectedCardinality { get; set; }
@@ -54,6 +56,7 @@ namespace EdgeDB.Binary.Packets
 
             writer.Write((ushort)0); // annotations
             writer.Write((ulong?)Capabilities ?? 1ul);
+
             ulong compilationFlags = 0; 
             if (ImplicitTypeIds)
                 compilationFlags |= 1 << 0;
@@ -61,6 +64,9 @@ namespace EdgeDB.Binary.Packets
                 compilationFlags |= 1 << 1;
             if (!ExplicitObjectIds)
                 compilationFlags |= 1 << 2;
+            if (IntrospectTypeInformation)
+                compilationFlags |= 1 << 3;
+            
             writer.Write(compilationFlags);
             writer.Write(ImplicitLimit);
             writer.Write((byte)Format);

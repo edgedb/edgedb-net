@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -28,6 +28,7 @@ namespace EdgeDB.Binary
                 DescriptorType.TupleTypeDescriptor => new TupleTypeDescriptor(id, ref reader),
                 DescriptorType.InputShapeDescriptor => new InputShapeDescriptor(id, ref reader),
                 DescriptorType.RangeTypeDescriptor => new RangeTypeDescriptor(id, ref reader),
+                DescriptorType.TypeIntrospectionDescriptor => new TypeIntrospectionDescriptor(id, ref reader),
                 _ => null
             };
 
@@ -37,7 +38,7 @@ namespace EdgeDB.Binary
 
                 if (rawType >= 0x80 && rawType <= 0xfe)
                 {
-                    descriptor = new TypeAnnotationDescriptor(type, id, reader);
+                    descriptor = new TypeAnnotationDescriptor(type, id, ref reader);
                 }
                 else
                     throw new InvalidDataException($"No descriptor found for type {type}");

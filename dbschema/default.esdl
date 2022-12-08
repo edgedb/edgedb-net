@@ -1,6 +1,22 @@
 module default {
   global current_user_id -> uuid;
   
+  type a extending c, d {
+    required property a -> str;
+  }
+
+  type b extending c {
+    required property b -> str;
+  }
+
+  type c {
+    required property c -> str;
+  }
+  
+  type d {
+    required property d -> str;
+  }
+
   type Movie {
     required property title -> str {
       constraint exclusive;

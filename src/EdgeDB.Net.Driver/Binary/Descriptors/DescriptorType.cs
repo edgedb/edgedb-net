@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,6 +18,7 @@ namespace EdgeDB.Binary
         EnumerationTypeDescriptor = 0x07,
         InputShapeDescriptor = 0x08,
         RangeTypeDescriptor = 0x09,
+        TypeIntrospectionDescriptor = 0xf0,
         ScalarTypeNameAnnotation = 0xff,
     }
 }
