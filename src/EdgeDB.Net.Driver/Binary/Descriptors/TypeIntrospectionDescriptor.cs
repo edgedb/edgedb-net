@@ -10,22 +10,31 @@ namespace EdgeDB.Binary
     {
         public readonly Guid Id;
 
+        public readonly ushort CodecIndex;
         public readonly string Name;
         public readonly Guid TypeId;
+        
+        public readonly ushort[] ParentIndexes;
         public readonly TypeInformation[] Ancestors;
 
         public TypeIntrospectionDescriptor(Guid id, ref PacketReader reader)
         {
             Id = id;
-
-            // skip str length
-            reader.Skip(4);
-
+            
             Name = reader.ReadString();
             TypeId = reader.ReadGuid();
 
-            var ancestorCount = reader.ReadUInt16();
+            var parentsCount = reader.ReadUInt16();
+            var parentsIndexes = new ushort[parentsCount];
 
+            for(int i = 0; i != parentsCount; i++)
+            {
+                parentsIndexes[i] = reader.ReadUInt16();
+            }
+
+            ParentIndexes = parentsIndexes;
+
+            var ancestorCount = reader.ReadUInt16();
             var ancestors = new TypeInformation[ancestorCount];
 
             for (int i = 0; i != ancestorCount; i++)
@@ -43,23 +52,22 @@ namespace EdgeDB.Binary
     {
         public readonly string Name;
         public readonly Guid Id;
-        public readonly TypeInformation[] Ancestors;
+        public readonly ushort[] ParentIndexes;
 
         public TypeInformation(ref PacketReader reader)
         {
             Name = reader.ReadString();
             Id = reader.ReadGuid();
 
-            var ancestorCount = reader.ReadUInt16();
+            var parentsCount = reader.ReadUInt16();
+            var parentsIndexes = new ushort[parentsCount];
 
-            var ancestors = new TypeInformation[ancestorCount];
-
-            for (int i = 0; i != ancestorCount; i++)
+            for (int i = 0; i != parentsCount; i++)
             {
-                ancestors[i] = new(ref reader);
+                parentsIndexes[i] = reader.ReadUInt16();
             }
 
-            Ancestors = ancestors;
+            ParentIndexes = parentsIndexes;
         }
     }
 }

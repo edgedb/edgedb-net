@@ -76,6 +76,12 @@ namespace EdgeDB.Binary
                 if (!_codecCache.TryGetValue(typeDescriptor.Id, out var codec))
                     codec = GetScalarCodec(typeDescriptor.Id);
 
+                if(typeDescriptor is TypeIntrospectionDescriptor typeAnnotation && codec is Codecs.Object obj)
+                {
+                    obj.TypeAnnotation = typeAnnotation;
+                    continue;
+                }
+
                 if (codec is not null)
                     codecs.Add(codec);
                 else

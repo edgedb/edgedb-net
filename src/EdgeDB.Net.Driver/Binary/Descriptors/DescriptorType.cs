@@ -18,7 +18,7 @@ namespace EdgeDB.Binary
         EnumerationTypeDescriptor = 0x07,
         InputShapeDescriptor = 0x08,
         RangeTypeDescriptor = 0x09,
-        TypeIntrospectionDescriptor = 0xf0,
+        TypeIntrospectionDescriptor = 0xfe,
         ScalarTypeNameAnnotation = 0xff,
     }
 }

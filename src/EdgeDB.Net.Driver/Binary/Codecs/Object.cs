@@ -13,6 +13,7 @@ namespace EdgeDB.Binary.Codecs
         private readonly string[] _propertyNames;
         private TypeDeserializerFactory? _factory;
         private EdgeDBTypeDeserializeInfo? _deserializerInfo;
+        internal TypeIntrospectionDescriptor? TypeAnnotation;
         internal Type? TargetType;
         internal bool Initialized;
         
