@@ -22,7 +22,7 @@ namespace EdgeDB.Binary.Codecs
     }
 
     internal interface ICodec<TConverter> : ICodec
-    {
+    {   
         void Serialize(ref PacketWriter writer, TConverter? value);
 
         new TConverter? Deserialize(ref PacketReader reader);

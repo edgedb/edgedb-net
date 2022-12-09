@@ -9,8 +9,7 @@ namespace EdgeDB.Binary
     internal readonly struct TypeIntrospectionDescriptor : ITypeDescriptor
     {
         public readonly Guid Id;
-
-        public readonly ushort CodecIndex;
+        
         public readonly string Name;
         public readonly Guid TypeId;
         
