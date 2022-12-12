@@ -13,22 +13,21 @@ namespace EdgeDB.Binary
         public static ITypeDescriptor GetDescriptor(ref PacketReader reader)
         {
             var type = (DescriptorType)reader.ReadByte();
-            var id = reader.ReadGuid();
 
             ITypeDescriptor? descriptor = type switch
             {
-                DescriptorType.ArrayTypeDescriptor => new ArrayTypeDescriptor(id, ref reader),
-                DescriptorType.BaseScalarTypeDescriptor => new BaseScalarTypeDescriptor(id),
-                DescriptorType.EnumerationTypeDescriptor => new EnumerationTypeDescriptor(id, ref reader),
-                DescriptorType.NamedTupleDescriptor => new NamedTupleTypeDescriptor(id, ref reader),
-                DescriptorType.ObjectShapeDescriptor => new ObjectShapeDescriptor(id, ref reader),
-                DescriptorType.ScalarTypeDescriptor => new ScalarTypeDescriptor(id, ref reader),
-                DescriptorType.ScalarTypeNameAnnotation => new ScalarTypeNameAnnotation(id, ref reader),
-                DescriptorType.SetDescriptor => new SetTypeDescriptor(id, ref reader),
-                DescriptorType.TupleTypeDescriptor => new TupleTypeDescriptor(id, ref reader),
-                DescriptorType.InputShapeDescriptor => new InputShapeDescriptor(id, ref reader),
-                DescriptorType.RangeTypeDescriptor => new RangeTypeDescriptor(id, ref reader),
-                DescriptorType.TypeIntrospectionDescriptor => new TypeIntrospectionDescriptor(id, ref reader),
+                DescriptorType.ArrayTypeDescriptor => new ArrayTypeDescriptor(reader.ReadGuid(), ref reader),
+                DescriptorType.BaseScalarTypeDescriptor => new BaseScalarTypeDescriptor(reader.ReadGuid()),
+                DescriptorType.EnumerationTypeDescriptor => new EnumerationTypeDescriptor(reader.ReadGuid(), ref reader),
+                DescriptorType.NamedTupleDescriptor => new NamedTupleTypeDescriptor(reader.ReadGuid(), ref reader),
+                DescriptorType.ObjectShapeDescriptor => new ObjectShapeDescriptor(reader.ReadGuid(), ref reader),
+                DescriptorType.ScalarTypeDescriptor => new ScalarTypeDescriptor(reader.ReadGuid(), ref reader),
+                DescriptorType.ScalarTypeNameAnnotation => new ScalarTypeNameAnnotation(reader.ReadGuid(), ref reader),
+                DescriptorType.SetDescriptor => new SetTypeDescriptor(reader.ReadGuid(), ref reader),
+                DescriptorType.TupleTypeDescriptor => new TupleTypeDescriptor(reader.ReadGuid(), ref reader),
+                DescriptorType.InputShapeDescriptor => new InputShapeDescriptor(reader.ReadGuid(), ref reader),
+                DescriptorType.RangeTypeDescriptor => new RangeTypeDescriptor(reader.ReadGuid(), ref reader),
+                DescriptorType.TypeIntrospectionDescriptor => new TypeIntrospectionDescriptor(ref reader),
                 _ => null
             };
 
@@ -38,7 +37,7 @@ namespace EdgeDB.Binary
 
                 if (rawType >= 0x80 && rawType <= 0xfe)
                 {
-                    descriptor = new TypeAnnotationDescriptor(type, id, ref reader);
+                    descriptor = new TypeAnnotationDescriptor(type, reader.ReadGuid(), ref reader);
                 }
                 else
                     throw new InvalidDataException($"No descriptor found for type {type}");

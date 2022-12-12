@@ -17,6 +17,10 @@ module default {
     required property d -> str;
   }
 
+  type e extending a {
+    required property e -> str;
+  }
+
   type Movie {
     required property title -> str {
       constraint exclusive;

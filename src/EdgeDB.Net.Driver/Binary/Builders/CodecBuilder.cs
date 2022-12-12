@@ -73,15 +73,15 @@ namespace EdgeDB.Binary
             {
                 var typeDescriptor = ITypeDescriptor.GetDescriptor(ref reader);
 
-                if (!_codecCache.TryGetValue(typeDescriptor.Id, out var codec))
-                    codec = GetScalarCodec(typeDescriptor.Id);
-
-                if(typeDescriptor is TypeIntrospectionDescriptor typeAnnotation && codec is Codecs.Object obj)
+                if (typeDescriptor is TypeIntrospectionDescriptor typeAnnotation)
                 {
-                    obj.TypeAnnotation = typeAnnotation;
+                    
                     continue;
                 }
 
+                if (!_codecCache.TryGetValue(typeDescriptor.Id, out var codec))
+                    codec = GetScalarCodec(typeDescriptor.Id);
+                
                 if (codec is not null)
                     codecs.Add(codec);
                 else
