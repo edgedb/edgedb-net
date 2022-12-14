@@ -52,8 +52,8 @@ namespace EdgeDB.CLI.Generator.Results
             FilePath = Path.GetFullPath(path);
             FileName = Path.GetFileNameWithoutExtension(path);
 
-            Properties = info.Children!.ToDictionary(x => x.Name!, x => x.Build(path));
-            ClassName = info.Name ?? info.GetUniqueTypeName();
+            Properties = info.Children!.ToDictionary(x => x.Name ?? x.GetUniqueTypeName(), x => x.Build(path));
+            ClassName = info.TypeName ?? info.GetUniqueTypeName();
 
             UsedNamespaces = GetNamespaces(info).Distinct();
         }

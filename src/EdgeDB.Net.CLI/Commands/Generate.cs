@@ -94,6 +94,12 @@ public class Generate : ConnectionArguments, ICommand
                 var file = edgeqlFiles[i];
                 var info = CodeGenerator.GetTargetInfo(file, OutputDirectory, projectRoot);
 
+                if(string.IsNullOrEmpty(info.EdgeQL))
+                {
+                    logger.Warning("Skipping {@File}: No contents", info.EdgeQLFilePath);
+                    continue;
+                }
+
                 var parsed = await CodeGenerator.ParseAsync(client, OutputDirectory, info);
 
                 var target = new TransientTargetInfo(parsed, info);

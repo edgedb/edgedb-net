@@ -263,6 +263,7 @@ namespace EdgeDB.CLI.Generator
         private static CodecTypeInfo GetTypeInfoFromCodec(ICodec codec, string? name = null, CodecTypeInfo? parent = null)
         {
             CodecTypeInfo info;
+            var pascalName = name is not null ? TextUtils.ToPascalCase(name) : null;
 
             switch (codec)
             {
@@ -271,8 +272,12 @@ namespace EdgeDB.CLI.Generator
                         info = new CodecTypeInfo
                         {
                             Type = CodecType.Object,
-                            TypeName = TextUtils.ToPascalCase(name!)
+                            TypeName = pascalName,
+                            Parent = parent
                         };
+
+                        info.TypeName ??= info.GetUniqueTypeName();
+
                         info.Children = obj.InnerCodecs
                             .Select((x, i) =>
                                 obj.PropertyNames[i] is "__tname__" or "__tid__"
@@ -288,10 +293,11 @@ namespace EdgeDB.CLI.Generator
                         info = new CodecTypeInfo
                         {
                             Type = CodecType.Set,
+                            TypeName = pascalName,
                         };
                         info.Children = new[]
                         {
-                            GetTypeInfoFromCodec(innerType, parent: info)
+                            GetTypeInfoFromCodec(innerType, name: pascalName is not null ? $"{pascalName}Element" : null, parent: info)
                         };
                     }
                     break;
