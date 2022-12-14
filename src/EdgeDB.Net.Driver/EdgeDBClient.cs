@@ -87,13 +87,13 @@ namespace EdgeDB
         private readonly EdgeDBConnection _connection;
         private readonly EdgeDBClientPoolConfig _poolConfig;
         private readonly ConcurrentDictionary<ulong, BaseEdgeDBClient> _clients; 
-        private readonly Dictionary<string, object?> _edgedbConfig;
         private readonly SemaphoreSlim _clientWaitSemaphore;
         private readonly ClientPoolHolder _poolHolder;
         private readonly object _clientsLock = new();
         private readonly Session _session;
         private readonly Func<ulong, EdgeDBConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? _clientFactory;
 
+        private Dictionary<string, object?> _edgedbConfig;
         private ConcurrentStack<BaseEdgeDBClient> _availableClients;
         private int _poolSize;
         private ulong _clientIndex;
@@ -364,6 +364,14 @@ namespace EdgeDB
                         {
                             _poolSize = client.SuggestedPoolConcurrency;
                             await _poolHolder.ResizeAsync(_poolSize).ConfigureAwait(false);
+
+                            if (
+                                _edgedbConfig is null ||
+                                (_edgedbConfig.Count != client.RawServerConfig.Count || _edgedbConfig.Except(client.RawServerConfig).Any()))
+                            {
+                                _edgedbConfig = client.RawServerConfig;
+                            }
+
                             client.OnConnect -= OnConnect;
                         }
 
@@ -390,7 +398,12 @@ namespace EdgeDB
 
                         client.WithSession(_session);
 
-                        //client.QueryExecuted += (i) => _queryExecuted.InvokeAsync(i);
+                        if (
+                            _edgedbConfig is null ||
+                            (_edgedbConfig.Count != client.RawServerConfig.Count || _edgedbConfig.Except(client.RawServerConfig).Any()))
+                        {
+                            _edgedbConfig = client.RawServerConfig;
+                        }
 
                         client.OnDisposed += (c) =>
                         {
