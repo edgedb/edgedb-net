@@ -59,7 +59,7 @@ namespace EdgeDB.CLI.Generator
         /// <returns>A tuple containing information about the query.</returns>
         public static async Task<(IQueryResult Result, Cardinality ResultCardinality, Capabilities Capabilities, IArgumentCodec Args)> ParseAsync(EdgeDBTcpClient client, string outputDir, GenerationTargetInfo targetInfo)
         {
-            var parseResult = await client.ParseAsync(targetInfo.EdgeQL!, Cardinality.Many, IOFormat.Binary, Capabilities.ReadOnly, false, default);
+            var parseResult = await client.ParseAsync(targetInfo.EdgeQL!, Cardinality.Many, IOFormat.Binary, Capabilities.All, false, default);
 
             var codecInfo = GetTypeInfoFromCodec(parseResult.OutCodec.Codec, $"{targetInfo.EdgeQLFileNameWithoutExtension}Result");
 
