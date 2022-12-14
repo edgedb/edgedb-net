@@ -98,7 +98,7 @@ namespace EdgeDB.CLI.Generator.Results
         /// <returns>A SHA256 hash, encoded as hex.</returns>
         public string GetClassHash()
         {
-            var props = string.Join("; ", Properties.Select(x => $"{x.Key}:={(x.Value is ClassResult cr ? cr.GetClassHash() : x.Value.ToCSharp())}"));
+            var props = string.Join("; ", Properties.Select(x => $"{x.Key}:={(x.Value is ClassResult cr && cr.ClassName != this.ClassName ? cr.GetClassHash() : x.Value.ToCSharp())}"));
             var str = $"{ClassName}{(Extending is not null ? $" : {Extending}" : "")}{(IsAbstract ? " abstract" : "")}{{{props}}};";
 
             using var sha = SHA256.Create();

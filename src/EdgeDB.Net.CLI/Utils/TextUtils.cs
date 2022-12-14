@@ -42,9 +42,9 @@ namespace EdgeDB.CLI.Utils
             return $"{p[0].ToString().ToLower()}{p[1..]}";
         }
 
-        public static string EscapeToSourceCode(string x)
+        public static string EscapeToSourceCode(string x, bool isExactStr = false)
         {
-            return x.Replace("\"", "\\\"");
+            return x.Replace("\"", isExactStr ? "\"\"" :"\\\"");
         }
 
         public static string EscapeToXMLComment(string x)

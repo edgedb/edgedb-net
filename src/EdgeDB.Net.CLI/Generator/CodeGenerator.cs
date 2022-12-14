@@ -158,7 +158,7 @@ namespace EdgeDB.CLI.Generator
             writer.AppendLine($"///     A string containing the query defined in <c>{relFilePath}</c>");
             writer.AppendLine("/// </summary>");
             writer.AppendLine($"public static readonly string Query =");
-            writer.Append($"@\"{target.Info.EdgeQL!.Replace("\"", "\\\"")}\";");
+            writer.Append($"@\"{TextUtils.EscapeToSourceCode(target.Info.EdgeQL, true)}\";");
             writer.AppendLine();
             writer.AppendLine();
             
