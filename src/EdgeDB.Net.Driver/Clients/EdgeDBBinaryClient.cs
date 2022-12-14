@@ -129,6 +129,33 @@ namespace EdgeDB
         }
 
         #region Commands/queries
+
+        public async Task SyncAsync(CancellationToken token = default)
+        {
+            // if the current client is not connected, reconnect it
+            if (!Duplexer.IsConnected)
+                await ReconnectAsync(token);
+
+            var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, DisconnectCancelToken).Token;
+
+            await _semaphore.WaitAsync(linkedToken).ConfigureAwait(false);
+
+            try
+            {
+                var result = await Duplexer.DuplexSingleAsync(new Sync(), linkedToken).ConfigureAwait(false);
+                var rfc = result?.ThrowIfErrorOrNot<ReadyForCommand>();
+
+                if(rfc.HasValue)
+                {
+                    UpdateTransactionState(rfc.Value.TransactionState);
+                }    
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+        }
+
         internal readonly struct RawExecuteResult
         {
             public readonly ICodec Deserializer;
