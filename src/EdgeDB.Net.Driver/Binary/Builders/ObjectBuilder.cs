@@ -34,6 +34,14 @@ namespace EdgeDB
             if (valueType.IsAssignableTo(type))
                 return value;
 
+            // check for nullable
+            if(type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
+            {
+                // if the value was null, the above IsAssignableTo check would have returned true,
+                // return a convert with the inner generic
+                return ConvertTo(type.GenericTypeArguments[0], value);
+            }
+
             // check for enums
             if(value is string str && type.IsEnum)
             {
