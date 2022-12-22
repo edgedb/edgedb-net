@@ -136,13 +136,13 @@ namespace EdgeDB
             if (!Duplexer.IsConnected)
                 await ReconnectAsync(token);
 
-            var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, DisconnectCancelToken).Token;
+            using var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(token, DisconnectCancelToken);
 
-            await _semaphore.WaitAsync(linkedToken).ConfigureAwait(false);
+            await _semaphore.WaitAsync(linkedTokenSource.Token).ConfigureAwait(false);
 
             try
             {
-                var result = await Duplexer.DuplexSingleAsync(new Sync(), linkedToken).ConfigureAwait(false);
+                var result = await Duplexer.DuplexSingleAsync(new Sync(), linkedTokenSource.Token).ConfigureAwait(false);
                 var rfc = result?.ThrowIfErrorOrNot<ReadyForCommand>();
 
                 if(rfc.HasValue)
@@ -180,11 +180,10 @@ namespace EdgeDB
             if (!Duplexer.IsConnected)
                 await ReconnectAsync(token);
 
-            var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, DisconnectCancelToken).Token;
+            using var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(token, DisconnectCancelToken);
 
             // safe to allow taskcancelledexception at this point since no data has been sent to the server.
-            // dont pass linked token as we want to check our connection state below
-            await _semaphore.WaitAsync(token).ConfigureAwait(false);
+            await _semaphore.WaitAsync(linkedTokenSource.Token).ConfigureAwait(false);
 
             await _readySource.Task;
             
@@ -227,7 +226,7 @@ namespace EdgeDB
                             ImplicitLimit = _config.ImplicitLimit,
                             ImplicitTypeNames = implicitTypeName, // used for type builder
                             ImplicitTypeIds = true,  // used for type builder
-                        }, token))
+                        }, linkedTokenSource.Token))
                         {
                             switch (result.Packet)
                             {
@@ -311,7 +310,7 @@ namespace EdgeDB
                     ImplicitLimit = _config.ImplicitLimit,
                     InputTypeDescriptorId = inCodecInfo.Id,
                     OutputTypeDescriptorId = outCodecInfo.Id,
-                }, token))
+                }, linkedTokenSource.Token))
                 {
                     switch (result.Packet)
                     {
@@ -730,7 +729,7 @@ namespace EdgeDB
             {
                 await ConnectInternalAsync(token: token);
 
-                var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _readyCancelTokenSource.Token);
+                using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _readyCancelTokenSource.Token);
 
                 token.ThrowIfCancellationRequested();
 
@@ -848,7 +847,7 @@ namespace EdgeDB
         #region Command locks
         internal async Task<IDisposable> AquireCommandLockAsync(CancellationToken token = default)
         {
-            var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(DisconnectCancelToken, token);
+            using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(DisconnectCancelToken, token);
 
             await _commandSemaphore.WaitAsync(linkedToken.Token).ConfigureAwait(false);
 
@@ -906,6 +905,7 @@ namespace EdgeDB
                 if (shouldDispose)
                 {
                     Duplexer.Dispose();
+                    _readyCancelTokenSource.Dispose();
                 }
             }
 

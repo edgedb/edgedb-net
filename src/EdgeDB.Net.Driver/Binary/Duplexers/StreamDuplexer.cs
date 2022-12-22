@@ -95,7 +95,8 @@ namespace EdgeDB.Binary
 
         public async Task<IReceiveable?> ReadNextAsync(CancellationToken token = default)
         {
-            var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectTokenSource.Token, GetTimeoutToken());
+            using var timeoutTokenSource = GetTimeoutToken();
+            using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectTokenSource.Token, timeoutTokenSource.Token);
 
             await _readLock.WaitAsync(linkedToken.Token).ConfigureAwait(false);
 
@@ -144,7 +145,7 @@ namespace EdgeDB.Binary
         
         public async ValueTask SendAsync(CancellationToken token = default, params Sendable[] packets)
         {
-            var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectTokenSource.Token);
+            using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectTokenSource.Token);
 
             if (_stream == null || !IsConnected)
                 throw new EdgeDBException("Cannot send message to a closed connection");
@@ -158,7 +159,7 @@ namespace EdgeDB.Binary
         {
             await SendAsync(token, packets).ConfigureAwait(false);
             
-            var enumerationFinishToken = new CancellationTokenSource();
+            using var enumerationFinishToken = new CancellationTokenSource();
 
             while(!enumerationFinishToken.IsCancellationRequested && !token.IsCancellationRequested)
             {
@@ -195,8 +196,10 @@ namespace EdgeDB.Binary
 
             return numRead;
         }
-        private CancellationToken GetTimeoutToken()
-            => new CancellationTokenSource(_client.MessageTimeout).Token;
+        
+        private CancellationTokenSource GetTimeoutToken()
+            => new(_client.MessageTimeout);
+
         private async ValueTask DisconnectInternalAsync()
         {
             _disconnectTokenSource?.Cancel();
@@ -205,6 +208,7 @@ namespace EdgeDB.Binary
 
         public void Dispose()
         {
+            _disconnectTokenSource.Dispose();
             _packetHeaderHandle.Dispose();
         }
     }
