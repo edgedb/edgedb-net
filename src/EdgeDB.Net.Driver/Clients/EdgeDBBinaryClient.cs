@@ -534,7 +534,7 @@ namespace EdgeDB
                 case AuthenticationStatus authStatus:
                     if (authStatus.AuthStatus == AuthStatus.AuthenticationRequiredSASLMessage)
                         await StartSASLAuthenticationAsync(authStatus).ConfigureAwait(false);
-                    else
+                    else if(authStatus.AuthStatus != AuthStatus.AuthenticationOK)
                         throw new UnexpectedMessageException("Expected AuthenticationRequiredSASLMessage, got " + authStatus.AuthStatus);
                     break;
                 case ServerKeyData keyData:
