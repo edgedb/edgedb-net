@@ -38,9 +38,12 @@ namespace EdgeDB.Binary
             inCodecInfo = null;
             outCodecInfo = null;
 
+            ICodec? inCodec;
+            ICodec? outCodec;
+
             if (_codecKeyMap.TryGetValue(hash, out var codecIds)
-                && _codecCache.TryGetValue(codecIds.InCodec, out var inCodec)
-                && _codecCache.TryGetValue(codecIds.OutCodec, out var outCodec))
+                && (_codecCache.TryGetValue(codecIds.InCodec, out inCodec) || ((inCodec = GetScalarCodec(codecIds.InCodec)) != null))
+                && (_codecCache.TryGetValue(codecIds.OutCodec, out outCodec) || ((outCodec = GetScalarCodec(codecIds.OutCodec)) != null)))
             {
                 inCodecInfo = new(codecIds.InCodec, inCodec);
                 outCodecInfo = new(codecIds.OutCodec, outCodec);
@@ -162,7 +165,7 @@ namespace EdgeDB.Binary
             { new Guid("00000000-0000-0000-0000-000000000110"), typeof(BigInt) },
             { new Guid("00000000-0000-0000-0000-000000000111"), typeof(RelativeDuration) },
             { new Guid("00000000-0000-0000-0000-000000000112"), typeof(RelativeDuration) },
-            { new Guid("00000000-0000-0000-0000-000000000130"), typeof(Memory) }
+            { new Guid("00000000-0000-0000-0000-000000000130"), typeof(DataTypes.Memory) }
 
         };
     }

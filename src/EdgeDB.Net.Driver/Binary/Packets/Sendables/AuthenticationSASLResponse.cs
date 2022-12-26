@@ -15,9 +15,9 @@ namespace EdgeDB.Binary.Packets
         public override int Size
             => BinaryUtils.SizeOfByteArray(_payload);
 
-        private readonly byte[] _payload;
+        private readonly ReadOnlyMemory<byte> _payload;
 
-        public AuthenticationSASLResponse(byte[] payload)
+        public AuthenticationSASLResponse(ReadOnlyMemory<byte> payload)
         {
             _payload = payload;
         }
@@ -29,7 +29,7 @@ namespace EdgeDB.Binary.Packets
 
         public override string ToString()
         {
-            return Encoding.UTF8.GetString(_payload);
+            return Encoding.UTF8.GetString(_payload.Span);
         }
     }
 }
