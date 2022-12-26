@@ -16,7 +16,7 @@ namespace EdgeDB.Tests.Unit
             {
                 var result = codec.Serialize(expectedValue);
 
-                Assert.IsTrue(result.SequenceEqual(expectedSerializedValue));
+                Assert.IsTrue(result.ToArray().SequenceEqual(expectedSerializedValue));
             }
             catch (NotSupportedException) { }
 

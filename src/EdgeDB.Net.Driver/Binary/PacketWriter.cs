@@ -17,14 +17,23 @@ namespace EdgeDB.Binary
     {
         public long Index
             => _trackedPointer - _basePointer;
+
+        public bool CanWrite
+            => _canWrite;
         
         internal int Size;
-        private readonly IMemoryOwner<byte>? _memoryOwner;
+        
         private readonly bool _isDynamic;
+        
         private Memory<byte> _rawBuffer;
+        private MemoryHandle _handle;
+        private IMemoryOwner<byte>? _memoryOwner;
+
         private byte* _trackedPointer;
         private byte* _basePointer;
-        private MemoryHandle _handle;
+
+        private bool _canWrite;
+
 
         public PacketWriter(int size, bool isDynamic = false)
         {
@@ -40,6 +49,7 @@ namespace EdgeDB.Binary
                 _rawBuffer = _memoryOwner.Memory;
             }
 
+            _canWrite = true;
             _handle = _rawBuffer.Pin();
             _trackedPointer = (byte*)_handle.Pointer;
             _basePointer = (byte*)_handle.Pointer;
@@ -61,12 +71,26 @@ namespace EdgeDB.Binary
             => _trackedPointer += count;
 
         public ReadOnlyMemory<byte> GetBytes()
-            => _rawBuffer[..(_isDynamic ? (int)Index : Size)];
+        {
+            var buffer = _rawBuffer[..(_isDynamic ? (int)Index : Size)];
+            Free();
+            return buffer;
+        }
         #endregion
+
+        private void ThrowIfCantWrite()
+        {
+            if (!_canWrite)
+            {
+                throw new EdgeDBException("Cannot write/modify the underlying free'd buffer");
+            }
+        }
 
         public delegate void WriteAction(ref PacketWriter writer);
         public void WriteToWithInt32Length(WriteAction action)
         {
+            ThrowIfCantWrite();
+
             var currentIndex = Index;
             Advance(sizeof(int));
             action(ref this);
@@ -79,7 +103,9 @@ namespace EdgeDB.Binary
         #region Very raw memory writing methods for unmanaged
         private void Resize(uint target)
         {
-            if(!_isDynamic)
+            ThrowIfCantWrite();
+
+            if (!_isDynamic)
                 throw new IndexOutOfRangeException("Cannot resize a non-dynamic packet writer");
 
             var newSize =
@@ -102,6 +128,8 @@ namespace EdgeDB.Binary
 
         private void WriteRaw(void* ptr, uint count)
         {
+            ThrowIfCantWrite();
+            
             if (Index + count > Size)
                 Resize(count);
 
@@ -117,6 +145,8 @@ namespace EdgeDB.Binary
         private void UnsafeWrite<T>(ref T value)
             where T : unmanaged
         {
+            ThrowIfCantWrite();
+            
             var size = sizeof(T);
             if (Index + size > Size)
                 Resize((uint)size);
@@ -175,6 +205,14 @@ namespace EdgeDB.Binary
                 Write(buffer);
         }
 
+        public void WriteArray(ReadOnlyMemory<byte> buffer)
+        {
+            Write((uint)buffer.Length);
+
+            if (buffer.Length > 0)
+                Write(ref buffer);
+        }
+        
         public void WriteArrayWithoutLength(byte[] buffer)
             => Write(buffer);
 
@@ -213,6 +251,15 @@ namespace EdgeDB.Binary
             }
         }
 
+        public void Write(ref ReadOnlyMemory<byte> memory)
+        {
+            using var pin = memory.Pin();
+
+            WriteRaw(pin.Pointer, (uint)memory.Length);
+
+            pin.Dispose();
+        }
+
         public void Write(string value)
         {
             if (value is null)
@@ -225,10 +272,39 @@ namespace EdgeDB.Binary
             }
         }
 
-        public void Dispose()
+        /// <summary>
+        ///     Unpins the raw memory, allowing the buffer to
+        ///     be managed by the GC.
+        /// </summary>
+        /// <remarks>
+        ///     After this operation, the writer can no
+        ///     longer be written to.
+        /// </remarks>
+        public void Free()
         {
             _handle.Dispose();
+            
+            _canWrite = false;
+        }
+
+        /// <summary>
+        ///     Disposes the packet writer, freeing the raw memory to be
+        ///     garbage collected.
+        /// </summary>
+        /// <remarks>
+        ///     The buffer returned from <see cref="GetBytes"/> is not safe
+        ///     to use after this method is called.
+        /// </remarks>
+        public void Dispose()
+        {
+            Free();
             _memoryOwner?.Dispose();
+
+            _trackedPointer = null;
+            _basePointer = null;
+            _memoryOwner = null;
+
+            _canWrite = false;
         }
     }
 }

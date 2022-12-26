@@ -17,9 +17,9 @@ namespace EdgeDB.Binary.Packets
             
         public string Method { get; set; }
 
-        public byte[] Payload { get; set; }
+        public ReadOnlyMemory<byte> Payload { get; set; }
 
-        public AuthenticationSASLInitialResponse(byte[] payload,string method)
+        public AuthenticationSASLInitialResponse(ReadOnlyMemory<byte> payload,string method)
         {
             Method = method;
             Payload = payload;
@@ -33,7 +33,7 @@ namespace EdgeDB.Binary.Packets
 
         public override string ToString()
         {
-            return $"{Method} {Encoding.UTF8.GetString(Payload)}";
+            return $"{Method} {Encoding.UTF8.GetString(Payload.Span)}";
         }
     }
 }
