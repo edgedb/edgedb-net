@@ -1,5 +1,7 @@
 using EdgeDB.Utils;
 using Newtonsoft.Json;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -136,6 +138,7 @@ namespace EdgeDB
         private TLSSecurityMode? _tlsSecurity;
         #endregion
 
+        #region Construct methods
         /// <summary>
         ///     Creates an <see cref="EdgeDBConnection"/> from a <see href="https://www.edgedb.com/docs/reference/dsn#dsn-specification">valid DSN</see>.
         /// </summary>
@@ -546,6 +549,22 @@ connectionDefinition:
 
             return connection ?? new();
         }
+        #endregion
+
+        #region HTTP-based connection methods
+        private string? _baseUri;
+        private string? _authUri;
+        private string? _execUri;
+
+        internal string GetBaseUri()
+            => _baseUri ??= $"https://{Hostname}:{Port}";
+
+        internal string GetAuthUri()
+            => _authUri ??= GetBaseUri() + "/auth/token";
+
+        internal string GetExecUri()
+            => _execUri ??= GetBaseUri() + $"/db/{Database}";
+        #endregion
 
         private EdgeDBConnection MergeInto(EdgeDBConnection other)
         {
@@ -557,6 +576,32 @@ connectionDefinition:
             other._port ??= _port;
             other._user ??= _user;
             return other;
+        }
+
+        internal bool ValidateServerCertificateCallback(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
+        {
+            if (TLSSecurity is TLSSecurityMode.Insecure)
+                return true;
+
+            if (TLSCertificateAuthority is not null)
+            {
+                var cert = this.GetCertificate()!;
+
+                X509Chain chain2 = new();
+                chain2.ChainPolicy.ExtraStore.Add(cert);
+                chain2.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+                chain2.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+
+                bool isValid = chain2.Build(new X509Certificate2(certificate!));
+                var chainRoot = chain2.ChainElements[^1].Certificate;
+                isValid = isValid && chainRoot.RawData.SequenceEqual(cert.RawData);
+
+                return isValid;
+            }
+            else
+            {
+                return sslPolicyErrors is SslPolicyErrors.None;
+            }
         }
 
         /// <inheritdoc/>

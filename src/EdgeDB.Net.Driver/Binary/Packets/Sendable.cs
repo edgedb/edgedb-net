@@ -12,16 +12,16 @@ namespace EdgeDB.Binary
         
         public abstract ClientMessageTypes Type { get;}
 
-        protected abstract void BuildPacket(ref PacketWriter writer, EdgeDBBinaryClient client);
+        protected abstract void BuildPacket(ref PacketWriter writer);
 
-        public void Write(ref PacketWriter writer, EdgeDBBinaryClient client)
+        public void Write(ref PacketWriter writer)
         {
             // advance 5 bytes
             var start = writer.Index;
             writer.Advance(5);
 
             // write the body of the packet
-            BuildPacket(ref writer, client);
+            BuildPacket(ref writer);
 
             // store the index after writing the body
             var eofPosition = writer.Index;

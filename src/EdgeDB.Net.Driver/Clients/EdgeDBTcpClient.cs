@@ -1,3 +1,4 @@
+using EdgeDB.Binary;
 using EdgeDB.Binary.Codecs;
 using EdgeDB.Utils;
 using Microsoft.Extensions.Logging;
@@ -15,12 +16,21 @@ namespace EdgeDB
     /// <summary>
     ///     Represents a TCP client used to interact with EdgeDB.
     /// </summary>
-    internal sealed class EdgeDBTcpClient : EdgeDBBinaryClient
+    internal sealed class EdgeDBTcpClient : EdgeDBBinaryClient, ITransactibleClient
     {
         /// <inheritdoc/>
         public override bool IsConnected
             => _tcpClient.Connected && _secureStream != null;
+        
+        /// <summary>
+        ///     Gets this clients transaction state.
+        /// </summary>
+        public TransactionState TransactionState { get; private set; }
 
+        internal override IBinaryDuplexer Duplexer
+            => _duplexer;
+
+        private readonly StreamDuplexer _duplexer;
 
         private TcpClient _tcpClient;
         private NetworkStream? _stream;
@@ -37,13 +47,22 @@ namespace EdgeDB
             : base(connection, clientConfig, clientPoolHolder, clientId)
         {
             _tcpClient = new();
+            _duplexer = new(this);
+            _duplexer.OnDisconnected += HandleDuplexerDisconnectAsync;
+
+        }
+        private async ValueTask HandleDuplexerDisconnectAsync()
+        {
+            // if we receive a disconnect from the duplexer we should call our disconnect methods to property close down our client.
+            await CloseStreamAsync().ConfigureAwait(false);
+            await OnDisconnectInternal.InvokeAsync(this);
         }
 
         protected override async ValueTask<Stream> GetStreamAsync(CancellationToken token)
         {
             _tcpClient = new TcpClient();
 
-            var timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(DisconnectCancelToken, token);
+            using var timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(DisconnectCancelToken, token);
 
             timeoutToken.CancelAfter(ConnectionTimeout);
 
@@ -72,7 +91,7 @@ namespace EdgeDB
 
             _stream = _tcpClient.GetStream();
 
-            _secureStream = new SslStream(_stream, false, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
+            _secureStream = new SslStream(_stream, false, Connection.ValidateServerCertificateCallback, null);
 
             var options = new SslClientAuthenticationOptions()
             {
@@ -91,36 +110,15 @@ namespace EdgeDB
             return _secureStream;
         }
 
-        protected override ValueTask CloseStreamAsync(CancellationToken token)
+        protected override ValueTask CloseStreamAsync(CancellationToken token = default)
         {
             _tcpClient.Close();
             return ValueTask.CompletedTask;
         }
 
-        private bool ValidateServerCertificate(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
+        protected override void UpdateTransactionState(TransactionState state)
         {
-            if (Connection.TLSSecurity is TLSSecurityMode.Insecure)
-                return true;
-
-            if (Connection.TLSCertificateAuthority is not null)
-            {
-                var cert = Connection.GetCertificate()!;
-
-                X509Chain chain2 = new();
-                chain2.ChainPolicy.ExtraStore.Add(cert);
-                chain2.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
-                chain2.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-
-                bool isValid = chain2.Build(new X509Certificate2(certificate!));
-                var chainRoot = chain2.ChainElements[^1].Certificate;
-                isValid = isValid && chainRoot.RawData.SequenceEqual(cert.RawData);
-
-                return isValid;
-            }
-            else
-            {
-                return sslPolicyErrors is SslPolicyErrors.None;
-            }
+            TransactionState = state;
         }
 
         /// <inheritdoc/>
@@ -138,5 +136,34 @@ namespace EdgeDB
 
             return shouldDispose;
         }
+
+        #region ITransactibleClient
+        /// <inheritdoc/>
+        async Task ITransactibleClient.StartTransactionAsync(Isolation isolation, bool readOnly, bool deferrable, CancellationToken token)
+        {
+            var isolationMode = isolation switch
+            {
+                Isolation.Serializable => "serializable",
+                _ => throw new EdgeDBException("Unknown isolation mode")
+            };
+
+            var readMode = readOnly ? "read only" : "read write";
+
+            var deferMode = $"{(!deferrable ? "not " : "")}deferrable";
+
+            await ExecuteInternalAsync<object>($"start transaction isolation {isolationMode}, {readMode}, {deferMode}", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
+        }
+
+        /// <inheritdoc/>
+        async Task ITransactibleClient.CommitAsync(CancellationToken token)
+            => await ExecuteInternalAsync<object>($"commit", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
+
+        /// <inheritdoc/>
+        async Task ITransactibleClient.RollbackAsync(CancellationToken token)
+            => await ExecuteInternalAsync<object>($"rollback", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
+
+        /// <inheritdoc/>
+        TransactionState ITransactibleClient.TransactionState => TransactionState;
+        #endregion
     }
 }

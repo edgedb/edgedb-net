@@ -87,12 +87,13 @@ namespace EdgeDB
         private readonly EdgeDBConnection _connection;
         private readonly EdgeDBClientPoolConfig _poolConfig;
         private readonly ConcurrentDictionary<ulong, BaseEdgeDBClient> _clients; 
-        private readonly Dictionary<string, object?> _edgedbConfig;
         private readonly SemaphoreSlim _clientWaitSemaphore;
         private readonly ClientPoolHolder _poolHolder;
         private readonly object _clientsLock = new();
         private readonly Session _session;
-        
+        private readonly Func<ulong, EdgeDBConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? _clientFactory;
+
+        private Dictionary<string, object?> _edgedbConfig;
         private ConcurrentStack<BaseEdgeDBClient> _availableClients;
         private int _poolSize;
         private ulong _clientIndex;
@@ -143,6 +144,7 @@ namespace EdgeDB
             _clientWaitSemaphore = new(1, 1);
             _poolHolder = new(_poolSize);
             _session = Session.Default;
+            _clientFactory = clientPoolConfig.ClientFactory;
         }
 
         internal EdgeDBClient(EdgeDBClient other, Session session)
@@ -362,6 +364,14 @@ namespace EdgeDB
                         {
                             _poolSize = client.SuggestedPoolConcurrency;
                             await _poolHolder.ResizeAsync(_poolSize).ConfigureAwait(false);
+
+                            if (
+                                _edgedbConfig is null ||
+                                (_edgedbConfig.Count != client.RawServerConfig.Count || _edgedbConfig.Except(client.RawServerConfig).Any()))
+                            {
+                                _edgedbConfig = client.RawServerConfig;
+                            }
+
                             client.OnConnect -= OnConnect;
                         }
 
@@ -381,53 +391,54 @@ namespace EdgeDB
 
                         return client;
                     }
-                //case EdgeDBClientType.Http:
-                //    {
-                //        var client = new EdgeDBHttpClient(_connection, _config, id);
-                //        client.WithSession(DefaultSession.Clone());
+                case EdgeDBClientType.Http:
+                    {
+                        var holder = await _poolHolder.GetPoolHandleAsync(token).ConfigureAwait(false);
+                        var client = new EdgeDBHttpClient(_connection, _poolConfig, holder, id);
 
-                //        client.QueryExecuted += (i) => _queryExecuted.InvokeAsync(i);
+                        client.WithSession(_session);
 
-                //        client.OnDisposed += (c) =>
-                //        {
-                //            _availableClients.Push(c);
-                //            c.WithSession(DefaultSession.Clone());
-                //            return ValueTask.FromResult(false);
-                //        };
+                        if (
+                            _edgedbConfig is null ||
+                            (_edgedbConfig.Count != client.RawServerConfig.Count || _edgedbConfig.Except(client.RawServerConfig).Any()))
+                        {
+                            _edgedbConfig = client.RawServerConfig;
+                        }
 
-                //        client.OnDisconnect += (c) =>
-                //        {
-                //            RemoveClient(c.ClientId);
-                //            return ValueTask.CompletedTask;
-                //        };
+                        client.OnDisposed += (c) =>
+                        {
+                            _availableClients.Push(c);
+                            c.WithSession(Session.Default);
+                            return ValueTask.FromResult(false);
+                        };
+                        
+                        _clients[id] = client;
 
-                //        _clients[id] = client;
+                        return client;
+                    }
+                case EdgeDBClientType.Custom when _clientFactory is not null:
+                    {
+                        var client = await _clientFactory(id, _connection, _poolConfig).ConfigureAwait(false)!;
 
-                //        return client;
-                //    }
-                //case EdgeDBClientType.Custom when _clientFactory is not null:
-                //    {
-                //        var client = await _clientFactory(id, _connection, _config).ConfigureAwait(false)!;
+                        client.WithSession(_session);
 
-                //        client.WithSession(DefaultSession.Clone());
+                        client.OnDisposed += (c) =>
+                        {
+                            _availableClients.Push(c);
+                            c.WithSession(Session.Default);
+                            return ValueTask.FromResult(false);
+                        };
 
-                //        client.OnDisposed += (c) =>
-                //        {
-                //            _availableClients.Push(c);
-                //            c.WithSession(DefaultSession.Clone());
-                //            return ValueTask.FromResult(false);
-                //        };
+                        client.OnDisconnect += (c) =>
+                        {
+                            RemoveClient(c.ClientId);
+                            return ValueTask.CompletedTask;
+                        };
 
-                //        client.OnDisconnect += (c) =>
-                //        {
-                //            RemoveClient(c.ClientId);
-                //            return ValueTask.CompletedTask;
-                //        };
+                        _clients[id] = client;
 
-                //        _clients[id] = client;
-
-                //        return client;
-                //    }
+                        return client;
+                    }
 
                 default:
                     throw new EdgeDBException($"No client found for type {_poolConfig.ClientType}");

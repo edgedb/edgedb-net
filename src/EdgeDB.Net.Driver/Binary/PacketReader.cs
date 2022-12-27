@@ -11,8 +11,9 @@ namespace EdgeDB.Binary
     {
         public bool Empty
             => Position >= Data.Length || Data.IsEmpty;
-        
+
         internal Span<byte> Data;
+        
         internal int Position;
         
         public PacketReader(Span<byte> bytes, int position = 0)
@@ -73,7 +74,7 @@ namespace EdgeDB.Binary
 
         public short ReadInt16()
             => UnsafeReadAs<short>();
-        #endregion
+#endregion
 
         public void Skip(int count)
         {

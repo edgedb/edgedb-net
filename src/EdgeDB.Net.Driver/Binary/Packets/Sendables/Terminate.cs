@@ -12,6 +12,6 @@ namespace EdgeDB.Binary.Packets
         public override ClientMessageTypes Type 
             => ClientMessageTypes.Terminate;
 
-        protected override void BuildPacket(ref PacketWriter writer, EdgeDBBinaryClient client) { } // no data
+        protected override void BuildPacket(ref PacketWriter writer) { } // no data
     }
 }

@@ -13,11 +13,11 @@ namespace EdgeDB.Binary.Codecs
     {
         void SerializeArguments(ref PacketWriter writer, object? value);
 
-        byte[] SerializeArguments(object? value)
+        ReadOnlyMemory<byte> SerializeArguments(object? value)
         {
             var writer = new PacketWriter();
             SerializeArguments(ref writer, value);
-            return writer.GetBytes().ToArray();
+            return writer.GetBytes();
         }
     }
 
@@ -39,11 +39,11 @@ namespace EdgeDB.Binary.Codecs
             return Deserialize(ref reader);
         }
 
-        byte[] Serialize(TConverter? value)
+        ReadOnlyMemory<byte> Serialize(TConverter? value)
         {
             var writer = new PacketWriter();
             Serialize(ref writer, value);
-            return writer.GetBytes().ToArray();
+            return writer.GetBytes();
         }
 
         // ICodec
@@ -82,11 +82,11 @@ namespace EdgeDB.Binary.Codecs
             return Deserialize(ref reader);
         }
 
-        byte[] Serialize(object? value)
+        ReadOnlyMemory<byte> Serialize(object? value)
         {
             var writer = new PacketWriter();
             Serialize(ref writer, value);
-            return writer.GetBytes().ToArray();
+            return writer.GetBytes();
         }
 
         private static readonly List<ICodec> _scalarCodecs;

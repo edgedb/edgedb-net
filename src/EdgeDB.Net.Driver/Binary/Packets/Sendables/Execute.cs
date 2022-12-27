@@ -46,15 +46,15 @@ namespace EdgeDB.Binary.Packets
 
         public Guid StateTypeDescriptorId { get; set; }
 
-        public byte[]? StateData { get; set; }
+        public ReadOnlyMemory<byte>? StateData { get; set; }
         
         public Guid InputTypeDescriptorId { get; set; }
 
         public Guid OutputTypeDescriptorId { get; set; }
 
-        public byte[]? Arguments { get; set; }
+        public ReadOnlyMemory<byte>? Arguments { get; set; }
 
-        protected override void BuildPacket(ref PacketWriter writer, EdgeDBBinaryClient client)
+        protected override void BuildPacket(ref PacketWriter writer)
         {
             if (Query is null)
                 throw new ArgumentException("Command cannot be null");
@@ -77,15 +77,18 @@ namespace EdgeDB.Binary.Packets
             writer.Write(Query);
             writer.Write(StateTypeDescriptorId);
 
-            if (StateData is null)
-                writer.Write(0);
+            if (StateData.HasValue)
+                writer.WriteArray(StateData.Value);
             else
-                writer.WriteArray(StateData);
+                writer.Write(0u);
 
             writer.Write(InputTypeDescriptorId);
             writer.Write(OutputTypeDescriptorId);
 
-            writer.WriteArray(Arguments ?? Array.Empty<byte>());
+            if (Arguments.HasValue)
+                writer.WriteArray(Arguments.Value);
+            else
+                writer.Write(0u);
         }
     }
 }

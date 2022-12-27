@@ -15,7 +15,7 @@ namespace EdgeDB.Binary.Packets
         ///     Gets the payload of this data packet
         /// </summary>
         public IReadOnlyCollection<byte> PayloadData
-            => PayloadData.ToImmutableArray();
+            => PayloadBuffer.ToImmutableArray();
 
         internal readonly byte[] PayloadBuffer;
 

@@ -2,6 +2,9 @@
 
 <p align="center">
   <a href="https://www.nuget.org/packages/EdgeDB.Net.Driver/">
+    <img src="https://img.shields.io/nuget/dt/EdgeDB.Net.Driver" alt="Downloads">
+  </a>
+  <a href="https://www.nuget.org/packages/EdgeDB.Net.Driver/">
     <img src="https://img.shields.io/nuget/vpre/EdgeDB.Net.Driver.svg?maxAge=2592000?style=plastic" alt="NuGet">
   </a>
   <a href="https://github.com/edgedb/edgedb-net/actions/workflows/tests.yml">
@@ -15,6 +18,10 @@
     EdgeDB.Net is the official .NET driver for the <a href="https://edgedb.com">EdgeDB</a> database.
   </p>
 </p>
+
+## Documentation
+
+Documentation for the dotnet driver can be found [here](https://www.edgedb.com/docs/clients/dotnet).
 
 ## Installation
 
