@@ -8,30 +8,42 @@ namespace EdgeDB.Binary
 {
     internal readonly struct TypeIntrospectionDescriptor : ITypeDescriptor
     {
+        public readonly DescriptorType Type;
         public readonly CodecTypeInformation[] CodecTypeInformation;
         public readonly TypeInformation[] AncestorTypeInformation;
 
-        public TypeIntrospectionDescriptor(ref PacketReader reader)
+        public TypeIntrospectionDescriptor(DescriptorType type, ref PacketReader reader)
         {
-            var ancestorCount = reader.ReadUInt16();
-            var ancestors = new TypeInformation[ancestorCount];
+            var ancestors = Array.Empty<TypeInformation>();
 
-            for (int i = 0; i != ancestorCount; i++)
+            if (type is DescriptorType.DetailedTypeIntrospectionDescriptor)
             {
-                ancestors[i] = new(ref reader, j => ancestors[j]);
+                var ancestorCount = reader.ReadUInt16();
+                ancestors = new TypeInformation[ancestorCount];
+
+                for (int i = 0; i != ancestorCount; i++)
+                {
+                    ancestors[i] = new(ref reader, j => ancestors[j]);
+                }
             }
 
             AncestorTypeInformation = ancestors;
-            
+
             var codecsCount = reader.ReadUInt16();
             var codecTypeInformation = new CodecTypeInformation[codecsCount];
 
             for(var i = 0; i != codecsCount; i++)
             {
-                codecTypeInformation[i] = new(ref reader, j => ancestors[j]);
+                codecTypeInformation[i] = new(
+                    ref reader,
+                    type is DescriptorType.DetailedTypeIntrospectionDescriptor
+                        ? new Func<ushort, TypeInformation>(j => ancestors[j])
+                        : null
+                );
             }
 
             CodecTypeInformation = codecTypeInformation;
+            Type = type;
         }
 
         Guid ITypeDescriptor.Id => Guid.Empty;
@@ -45,21 +57,26 @@ namespace EdgeDB.Binary
 
         public readonly TypeInformation[] Parents;
 
-        public CodecTypeInformation(ref PacketReader reader, Func<ushort, TypeInformation> getParent)
+        public CodecTypeInformation(ref PacketReader reader, Func<ushort, TypeInformation>? getParent)
         {
             CodecId = reader.ReadGuid();
             Name = reader.ReadString();
             TypeId = reader.ReadGuid();
 
-            var parentsCount = reader.ReadUInt16();
-            var parentsIndexes = new ushort[parentsCount];
-
-            for(var i = 0; i != parentsCount; i++)
+            if (getParent is not null)
             {
-                parentsIndexes[i] = reader.ReadUInt16();
-            }
+                var parentsCount = reader.ReadUInt16();
+                var parentsIndexes = new ushort[parentsCount];
 
-            Parents = parentsIndexes.Select(x => getParent(x)).ToArray();
+                for (var i = 0; i != parentsCount; i++)
+                {
+                    parentsIndexes[i] = reader.ReadUInt16();
+                }
+
+                Parents = parentsIndexes.Select(x => getParent(x)).ToArray();
+            }
+            else
+                Parents = Array.Empty<TypeInformation>();
         }
     }
 

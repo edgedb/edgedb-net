@@ -43,7 +43,7 @@ namespace EdgeDB.ExampleApp.Examples
 
         public async Task ExecuteAsync(EdgeDBClient client)
         {
-            var t = await client.QueryAsync<dynamic>("select e");
+            var t = await client.QueryAsync<dynamic>("select <default::State>\"InProgress\"");
 
             // select the abstract type from the schema.
             // Note that the type builder will 'discover' the types that inherit

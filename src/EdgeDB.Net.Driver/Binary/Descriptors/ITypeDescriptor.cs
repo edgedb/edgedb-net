@@ -22,12 +22,14 @@ namespace EdgeDB.Binary
                 DescriptorType.NamedTupleDescriptor => new NamedTupleTypeDescriptor(reader.ReadGuid(), ref reader),
                 DescriptorType.ObjectShapeDescriptor => new ObjectShapeDescriptor(reader.ReadGuid(), ref reader),
                 DescriptorType.ScalarTypeDescriptor => new ScalarTypeDescriptor(reader.ReadGuid(), ref reader),
-                DescriptorType.ScalarTypeNameAnnotation => new ScalarTypeNameAnnotation(reader.ReadGuid(), ref reader),
                 DescriptorType.SetDescriptor => new SetTypeDescriptor(reader.ReadGuid(), ref reader),
                 DescriptorType.TupleTypeDescriptor => new TupleTypeDescriptor(reader.ReadGuid(), ref reader),
                 DescriptorType.InputShapeDescriptor => new InputShapeDescriptor(reader.ReadGuid(), ref reader),
                 DescriptorType.RangeTypeDescriptor => new RangeTypeDescriptor(reader.ReadGuid(), ref reader),
-                DescriptorType.TypeIntrospectionDescriptor => new TypeIntrospectionDescriptor(ref reader),
+                DescriptorType.TypeIntrospectionDescriptor or
+                DescriptorType.DetailedTypeIntrospectionDescriptor => new TypeIntrospectionDescriptor(type, ref reader),
+                DescriptorType.ScalarTypeNameAnnotation or
+                DescriptorType.ScalarDetailedAnnotation => new ScalarTypeNameAnnotation(type, reader.ReadGuid(), ref reader),
                 _ => null
             };
 

@@ -37,6 +37,10 @@ namespace EdgeDB.Binary.Packets
 
         public bool IntrospectTypeInformation { get; set; }
 
+        public bool DetailedTypeInformation { get; set; }
+        
+        public bool DetailedScalarInformation { get; set; }
+
         public IOFormat Format { get; set; }
 
         public Cardinality ExpectedCardinality { get; set; }
@@ -66,6 +70,10 @@ namespace EdgeDB.Binary.Packets
                 compilationFlags |= 1 << 2;
             if (IntrospectTypeInformation)
                 compilationFlags |= 1 << 3;
+            if (DetailedTypeInformation)
+                compilationFlags |= 1 << 4;
+            if (DetailedScalarInformation)
+                compilationFlags |= 1 << 5;
             
             writer.Write(compilationFlags);
             writer.Write(ImplicitLimit);

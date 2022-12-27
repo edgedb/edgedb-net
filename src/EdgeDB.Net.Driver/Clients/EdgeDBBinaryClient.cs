@@ -181,6 +181,8 @@ namespace EdgeDB
             bool isRetry = false,
             bool implicitTypeName = false,
             bool introspectTypeInformation = false,
+            bool detailedTypeInformation = false,
+            bool detailedScalarInformation = false,
             CancellationToken token = default)
         {
             // if the current client is not connected, reconnect it
@@ -234,6 +236,8 @@ namespace EdgeDB
                             ImplicitTypeNames = implicitTypeName, // used for type builder
                             ImplicitTypeIds = true,  // used for type builder
                             IntrospectTypeInformation = introspectTypeInformation,
+                            DetailedTypeInformation = detailedTypeInformation,
+                            DetailedScalarInformation = detailedScalarInformation,
                         }, linkedTokenSource.Token))
                         {
                             switch (result.Packet)
@@ -382,14 +386,36 @@ namespace EdgeDB
                 _semaphore.Release();
                 released = true;
                 
-                return await ExecuteInternalAsync<TResult>(query, args, cardinality, capabilities, format, true, implicitTypeName, introspectTypeInformation, token).ConfigureAwait(false);
+                return await ExecuteInternalAsync<TResult>(
+                    query,
+                    args,
+                    cardinality,
+                    capabilities,
+                    format,
+                    true,
+                    implicitTypeName,
+                    introspectTypeInformation,
+                    detailedTypeInformation,
+                    detailedScalarInformation,
+                    token).ConfigureAwait(false);
             }
             catch (EdgeDBException x) when (x.ShouldRetry && !isRetry)
             {
                 _semaphore.Release();
                 released = true;
 
-                return await ExecuteInternalAsync<TResult>(query, args, cardinality, capabilities, format, true, implicitTypeName, introspectTypeInformation, token).ConfigureAwait(false);
+                return await ExecuteInternalAsync<TResult>(
+                    query,
+                    args,
+                    cardinality,
+                    capabilities,
+                    format,
+                    true,
+                    implicitTypeName,
+                    introspectTypeInformation,
+                    detailedTypeInformation,
+                    detailedScalarInformation,
+                    token).ConfigureAwait(false);
             }
             catch (Exception x)
             {
@@ -433,6 +459,10 @@ namespace EdgeDB
             Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
             where TResult : default
         {
+#if RELEASE
+#error Remove tests for introspection
+#endif
+
             var implicitTypeName = TypeBuilder.TryGetTypeDeserializerInfo(typeof(TResult), out var info) && info.RequiresTypeName;
 
             var result = await ExecuteInternalAsync<TResult>(
@@ -440,8 +470,10 @@ namespace EdgeDB
                 args,
                 Cardinality.Many,
                 capabilities,
-                implicitTypeName: implicitTypeName,
+                implicitTypeName: true,
                 introspectTypeInformation: true,
+                detailedTypeInformation: true,
+                detailedScalarInformation: true,
                 token: token);
 
             var array = new TResult?[result.Data.Length];
@@ -547,9 +579,9 @@ namespace EdgeDB
                 ? result.Data.Select(x => new DataTypes.Json((string?)result.Deserializer.Deserialize(x.PayloadBuffer))).ToImmutableArray()
                 : ImmutableArray<DataTypes.Json>.Empty;
         }
-        #endregion
+#endregion
 
-        #region Packet handling
+#region Packet handling
         private async ValueTask HandlePacketAsync(IReceiveable payload)
         {
             switch (payload)
@@ -598,9 +630,9 @@ namespace EdgeDB
                     break;
             }
         }
-        #endregion
+#endregion
 
-        #region SASL
+#region SASL
         private async Task StartSASLAuthenticationAsync(AuthenticationStatus authStatus)
         {
             IsIdle = false;
@@ -690,9 +722,9 @@ namespace EdgeDB
                 IsIdle = true;
             }
         }
-        #endregion
+#endregion
 
-        #region Helper functions
+#region Helper functions
         protected void TriggerReady()
         {
             _readySource.TrySetResult();
@@ -746,9 +778,9 @@ namespace EdgeDB
                 Logger.ServerSettingsParseFailed(x);
             }
         }
-        #endregion
+#endregion
 
-        #region Connect/disconnect
+#region Connect/disconnect
         /// <summary>
         ///     Connects and authenticates this client.
         /// </summary>
@@ -879,9 +911,9 @@ namespace EdgeDB
         /// <inheritdoc/>
         public override ValueTask DisconnectAsync(CancellationToken token = default)
             => Duplexer.DisconnectAsync(token);
-        #endregion
+#endregion
 
-        #region Command locks
+#region Command locks
         internal async Task<IDisposable> AquireCommandLockAsync(CancellationToken token = default)
         {
             using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(DisconnectCancelToken, token);
@@ -903,9 +935,9 @@ namespace EdgeDB
             public void Dispose()
                 => _onDispose();
         }
-        #endregion
+#endregion
 
-        #region Streams
+#region Streams
         /// <summary>
         ///     Gets a stream that the binary client can write and read from.
         /// </summary>
@@ -926,9 +958,9 @@ namespace EdgeDB
         ///     the stream.
         /// </returns>
         protected abstract ValueTask CloseStreamAsync(CancellationToken token = default);
-        #endregion
+#endregion
 
-        #region Client pool dispose
+#region Client pool dispose
         /// <remarks/> <!-- removes the remark about calling base -->
         /// <inheritdoc/>
         public override async ValueTask<bool> DisposeAsync()
@@ -948,6 +980,6 @@ namespace EdgeDB
 
             return shouldDispose;
         }
-        #endregion
+#endregion
     }
 }
