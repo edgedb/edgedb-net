@@ -6,13 +6,13 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary
 {
-    internal readonly struct TypeAnnotationDescriptor : ITypeDescriptor
+    internal readonly struct UnknownAnnotationDescriptor : ITypeDescriptor
     {
         public readonly DescriptorType Type;
         public readonly Guid Id;
         public readonly string Annotation;
 
-        public TypeAnnotationDescriptor(DescriptorType type, Guid id, ref PacketReader reader)
+        public UnknownAnnotationDescriptor(DescriptorType type, Guid id, ref PacketReader reader)
         {
             Type = type;
             Id = id;

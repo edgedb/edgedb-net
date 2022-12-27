@@ -70,15 +70,21 @@ namespace EdgeDB.Binary
             if (id == NullCodec)
                 return new NullCodec();
 
+            List<ITypeDescriptor> annotations = new();
+
             List<ICodec> codecs = new();
 
             while (!reader.Empty)
             {
                 var typeDescriptor = ITypeDescriptor.GetDescriptor(ref reader);
 
-                if (typeDescriptor is TypeIntrospectionDescriptor typeAnnotation)
+                if (typeDescriptor is TypeAnnotationDescriptor
+                    or DetailedTypeAnnotationDescriptor
+                    or ScalarAnnotationDescriptor
+                    or DetailedScalarAnnotationDescriptor
+                    or AncestorTypeAnnotationDescriptor)
                 {
-                    
+                    annotations.Add(typeDescriptor);
                     continue;
                 }
 
@@ -100,7 +106,7 @@ namespace EdgeDB.Binary
                         RangeTypeDescriptor range             => (ICodec)Activator.CreateInstance(typeof(RangeCodec<>).MakeGenericType(codecs[range.TypePos].ConverterType), codecs[range.TypePos])!,
                         ArrayTypeDescriptor array             => (ICodec)Activator.CreateInstance(typeof(Array<>).MakeGenericType(codecs[array.TypePos].ConverterType), codecs[array.TypePos])!,
                         SetTypeDescriptor set                 => (ICodec)Activator.CreateInstance(typeof(Set<>).MakeGenericType(codecs[set.TypePos].ConverterType), codecs[set.TypePos])!,
-                        _ => throw new MissingCodecException($"Could not find a type descriptor with type {typeDescriptor.Id:X2}. Please file a bug report with your query that caused this error.")
+                        _ => throw new MissingCodecException($"Could not find a type descriptor with type {typeDescriptor.Id}. Please file a bug report with your query that caused this error.")
                     };
 
                     codecs.Add(codec);
@@ -165,7 +171,7 @@ namespace EdgeDB.Binary
             { new Guid("00000000-0000-0000-0000-000000000110"), typeof(BigInt) },
             { new Guid("00000000-0000-0000-0000-000000000111"), typeof(RelativeDuration) },
             { new Guid("00000000-0000-0000-0000-000000000112"), typeof(RelativeDuration) },
-            { new Guid("00000000-0000-0000-0000-000000000130"), typeof(DataTypes.Memory) }
+            { new Guid("00000000-0000-0000-0000-000000000130"), typeof(Codecs.Memory) }
 
         };
     }
