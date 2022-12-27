@@ -1,10 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="../../EdgeDB.Net.targets" />
   <PropertyGroup>
 	  <AssemblyName>EdgeDB.Net.QueryBuilder</AssemblyName>
 	  <RootNamespace>EdgeDB</RootNamespace>
     <Description>An optional extension to the base driver that adds a query builder.</Description>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 	  <NoWarn>CS1591</NoWarn>
