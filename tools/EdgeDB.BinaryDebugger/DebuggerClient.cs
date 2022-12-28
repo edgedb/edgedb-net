@@ -47,7 +47,7 @@ namespace EdgeDB.BinaryDebugger
 
             _tcpClient = new TcpClient();
 
-            var timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(DisconnectCancelToken, token);
+            using var timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(DisconnectCancelToken, token);
 
             timeoutToken.CancelAfter(ConnectionTimeout);
 

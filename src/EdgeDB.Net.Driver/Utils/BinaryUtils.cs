@@ -13,7 +13,9 @@ namespace EdgeDB.Utils
         internal static int SizeOfString(string? str)
             => str is null ? 4 : Encoding.UTF8.GetByteCount(str) + 4;
         internal static int SizeOfByteArray(byte[]? arr)
-            => arr?.Length + 4 ?? 4;
+            => arr is null ? 4 : arr.Length + 4;
+        internal static int SizeOfByteArray(ReadOnlyMemory<byte>? arr)
+            => !arr.HasValue ? 4 : arr.Value.Length + 4;
 
         internal static int SizeOfAnnotations(Annotation[]? annotations)
             => annotations?.Sum(x => x.Size) + 2 ?? 2;
@@ -84,6 +86,7 @@ namespace EdgeDB.Utils
         internal static ReadOnlyMemory<byte> BuildPackets(Sendable[] packets)
         {
             var size = packets.Sum(x => x.GetSize());
+
             var writer = new PacketWriter(size);
 
             for (int i = 0; i != packets.Length; i++)

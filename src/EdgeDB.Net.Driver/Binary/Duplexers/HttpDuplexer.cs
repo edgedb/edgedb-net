@@ -50,7 +50,7 @@ namespace EdgeDB.Binary.Duplexers
             {
                 await SendAsync(token, packets).ConfigureAwait(false);
 
-                var enumerationFinishToken = new CancellationTokenSource();
+                using var enumerationFinishToken = new CancellationTokenSource();
 
                 while (_packetQueue.TryDequeue(out var packet) && !enumerationFinishToken.IsCancellationRequested)
                 {
