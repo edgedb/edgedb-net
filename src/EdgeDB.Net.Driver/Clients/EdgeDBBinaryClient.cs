@@ -194,11 +194,12 @@ namespace EdgeDB
 
             bool gotStateDescriptor = false;
             bool successfullyParsed = false;
-            int parseAttempts = 0;
 
             try
             {
                 var parsed = await ParseAsync(query, cardinality ?? Cardinality.Many, format, capabilities, implicitTypeName, token).ConfigureAwait(false);
+
+                var stateBuf = _stateCodec?.Serialize(parsed.State);
 
                 if (parsed.InCodec.Codec is not IArgumentCodec argumentCodec)
                     throw new MissingCodecException($"Cannot encode arguments, {parsed.InCodec.Codec} is not a registered argument codec");
@@ -216,13 +217,13 @@ namespace EdgeDB
                         ExpectedCardinality = cardinality ?? Cardinality.Many,
                         ExplicitObjectIds = _config.ExplicitObjectIds,
                         StateTypeDescriptorId = _stateDescriptorId,
-                        StateData = _stateCodec?.Serialize(serializedState),
+                        StateData = stateBuf,
                         ImplicitTypeNames = implicitTypeName, // used for type builder
                         ImplicitTypeIds = true,  // used for type builder
                         Arguments = argumentCodec.SerializeArguments(args),
                         ImplicitLimit = _config.ImplicitLimit,
-                        InputTypeDescriptorId = inCodecInfo.Id,
-                        OutputTypeDescriptorId = outCodecInfo.Id,
+                        InputTypeDescriptorId = parsed.InCodec.Id,
+                        OutputTypeDescriptorId = parsed.OutCodec.Id,
                     }, linkedTokenSource.Token))
                     {
                         switch (result.Packet)
@@ -235,7 +236,7 @@ namespace EdgeDB
                                     _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
                                     _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                                     gotStateDescriptor = true;
-                                    stateBuf = _stateCodec?.Serialize(serializedState)!;
+                                    stateBuf = _stateCodec?.Serialize(parsed.State)!;
                                 }
                                 break;
                             case ErrorResponse err when err.ErrorCode is ServerErrorCodes.StateMismatchError:
