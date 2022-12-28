@@ -37,6 +37,5 @@
   <ItemGroup>
     <Folder Include="Extensions\" />
     <Folder Include="Generator\Models\Results\" />
-    <Folder Include="Generator\Models\TypeManifest\" />
   </ItemGroup>
 </Project>

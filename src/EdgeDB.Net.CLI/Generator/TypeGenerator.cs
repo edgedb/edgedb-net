@@ -1,5 +1,4 @@
 using EdgeDB.CLI.Generator.Models;
-using EdgeDB.CLI.Generator.Models.TypeManifest;
 using EdgeDB.CLI.Generator.Results;
 using EdgeDB.CLI.Utils;
 using YamlDotNet.Serialization;
@@ -15,20 +14,10 @@ namespace EdgeDB.CLI.Generator
     internal class TypeGenerator
     {
         /// <summary>
-        ///     Gets the type manifest for the generator.
-        /// </summary>
-        public static TypeManifest? TypeManifest { get; private set; }
-
-        /// <summary>
         ///     The regex used to match the generation hash within type files.
         /// </summary>
         private static readonly Regex _genHashRegex = new(@"^\/\/ GENHASH:(.{64})$");
-
-        /// <summary>
-        ///     The YAML deserializer used to deserialize the type manifest file.
-        /// </summary>
-        private static readonly IDeserializer _yamlDeserializer;
-
+        
         /// <summary>
         ///     A dictionary mapping function names and their corrisponding result types.
         /// </summary>
@@ -36,10 +25,6 @@ namespace EdgeDB.CLI.Generator
 
         static TypeGenerator()
         {
-            _yamlDeserializer = new DeserializerBuilder()
-                .WithNamingConvention(UnderscoredNamingConvention.Instance)
-                .Build();
-
             _functionResultInfo = new();
         }
 
@@ -86,8 +71,6 @@ namespace EdgeDB.CLI.Generator
         /// <returns>The path of the generated file.</returns>
         public static async Task<string> GenerateTypeAsync(string outputDir, string @namespace, ClassResult result)
         {
-            await ApplyOverridesAsync(outputDir, result);
-
             var path = Path.Combine(GetTypeOutputDir(outputDir), $"{result.ClassName}.g.cs");
 
             var hash = result.GetClassHash();
@@ -160,97 +143,7 @@ namespace EdgeDB.CLI.Generator
 
             return path;
         }
-
-        /// <summary>
-        ///     Applies mutations defined in the <see cref="TypeManifest"/> to a given <see cref="ClassResult"/>.
-        /// </summary>
-        /// <param name="dir">The directory that contains the type manifest.</param>
-        /// <param name="result">The class result to mutate.</param>
-        /// <returns>A task representing the asynchronous operation of mutating the class.</returns>
-        private static async Task ApplyOverridesAsync(string dir, ClassResult result)
-        {
-            TypeManifest ??= await LoadTypeManifestAsync(dir);
-
-            if (!TypeManifest.TryGetDefinition(result.FileName, out var definition))
-                return; // no overrides, default generation behaviour
-
-            // apply property resolving
-            Dictionary<string, IQueryResult> targetProperies = new();
-
-            switch (definition.PropertyMode)
-            {
-                case PropertyMode.All:
-                    {
-                        targetProperies = definition.Functions.Select(x =>
-                        {
-                            if (_functionResultInfo.TryGetValue(x, out var v) && v is ClassResult cr)
-                            {
-                                return cr.Properties;
-                            }
-
-                            return null;
-                        })
-                            .Where(x => x is not null)
-                            .SelectMany(x => x!.ToArray())
-                            .DistinctBy(x => x.Key)
-                            .ToDictionary(x => x.Key, x => x.Value);
-                    }
-                    break;
-                case PropertyMode.Shared:
-                    {
-                        var temp = definition.Functions.Select(x =>
-                        {
-                            if (_functionResultInfo.TryGetValue(x, out var v) && v is ClassResult cr)
-                            {
-                                return cr.Properties;
-                            }
-
-                            return null;
-                        }).Where(x => x is not null);
-
-                        targetProperies = temp
-                            .SelectMany(x => x!.Where(y => temp.Any(z => z != x && z!.Any(q => q.Key == y.Key))))
-                            .DistinctBy(x => x.Key)
-                            .ToDictionary(x => x.Key, x => x.Value);
-                    }
-                    break;
-            }
-
-            result.Properties = targetProperies;
-
-            // apply property type changes
-            foreach (var typeOverride in definition.TypeOverrides)
-            {
-                if(targetProperies.TryGetValue(typeOverride.Key, out var prop))
-                {
-                    targetProperies[typeOverride.Key] = new ScalarResult(prop.FilePath, typeOverride.Value);
-                }
-            }
-
-            // apply the class name
-            result.ClassName = definition.Name!;
-        }
-
-        /// <summary>
-        ///     Loads the type manifest from the given directory.
-        /// </summary>
-        /// <param name="dir">The directory that contains the type manifest.</param>
-        /// <returns>A ValueTask whos result is the loaded type manifest.</returns>
-        private static async ValueTask<TypeManifest> LoadTypeManifestAsync(string dir)
-        {
-            var path = Path.Combine(dir, "TypeManifest.yaml");
-
-            if (!File.Exists(path))
-            {
-                File.WriteAllText(path, "types:");
-                return new TypeManifest();
-            }
-
-            var yaml = await File.ReadAllTextAsync(path);
-
-            return _yamlDeserializer.Deserialize<TypeManifest>(yaml);
-        }
-
+        
         /// <summary>
         ///     Gets or creates the directory for the generated types.
         /// </summary>
