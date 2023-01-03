@@ -9,8 +9,8 @@ namespace EdgeDB.Binary.Codecs
 {
     internal sealed class Object : ICodec<object>, IArgumentCodec<object>, IMultiWrappingCodec
     {
-        private readonly ICodec[] _innerCodecs;
-        private readonly string[] _propertyNames;
+        internal readonly ICodec[] InnerCodecs;
+        internal readonly string[] PropertyNames;
         private TypeDeserializerFactory? _factory;
         private EdgeDBTypeDeserializeInfo? _deserializerInfo;
         internal Type? TargetType;
@@ -18,34 +18,34 @@ namespace EdgeDB.Binary.Codecs
         
         internal Object(ObjectShapeDescriptor descriptor, List<ICodec> codecs)
         {
-            _innerCodecs = new ICodec[descriptor.Shapes.Length];
-            _propertyNames = new string[descriptor.Shapes.Length];
+            InnerCodecs = new ICodec[descriptor.Shapes.Length];
+            PropertyNames = new string[descriptor.Shapes.Length];
 
             for(int i = 0; i != descriptor.Shapes.Length; i++)
             {
                 var shape = descriptor.Shapes[i];
-                _innerCodecs[i] = codecs[shape.TypePos];
-                _propertyNames[i] = shape.Name;
+                InnerCodecs[i] = codecs[shape.TypePos];
+                PropertyNames[i] = shape.Name;
             }
         }
 
         internal Object(NamedTupleTypeDescriptor descriptor, List<ICodec> codecs)
         {
-            _innerCodecs = new ICodec[descriptor.Elements.Length];
-            _propertyNames = new string[descriptor.Elements.Length];
+            InnerCodecs = new ICodec[descriptor.Elements.Length];
+            PropertyNames = new string[descriptor.Elements.Length];
 
             for (int i = 0; i != descriptor.Elements.Length; i++)
             {
                 var shape = descriptor.Elements[i];
-                _innerCodecs[i] = codecs[shape.TypePos];
-                _propertyNames[i] = shape.Name;
+                InnerCodecs[i] = codecs[shape.TypePos];
+                PropertyNames[i] = shape.Name;
             }
         }
 
         internal Object(ICodec[] innerCodecs, string[] propertyNames)
         {
-            _innerCodecs = innerCodecs;
-            _propertyNames = propertyNames;
+            InnerCodecs = innerCodecs;
+            PropertyNames = propertyNames;
         }
 
         public void Initialize(Type target)
@@ -76,7 +76,7 @@ namespace EdgeDB.Binary.Codecs
             // so we need to pass the underlying data as a reference and wrap a new reader ontop.
             // This method ensures we're not copying the packet in memory again but the downside is
             // our 'reader' variable isn't kept up to data with the reader in the object enumerator.
-            var enumerator = new ObjectEnumerator(ref reader.Data, reader.Position, _propertyNames, _innerCodecs, _deserializerInfo);
+            var enumerator = new ObjectEnumerator(ref reader.Data, reader.Position, PropertyNames, InnerCodecs, _deserializerInfo);
             
             try
             {
@@ -103,7 +103,7 @@ namespace EdgeDB.Binary.Codecs
             object?[]? values = null;
 
             if (value is IDictionary<string, object?> dict)
-                values = _propertyNames.Select(x => dict[x]).ToArray();
+                values = PropertyNames.Select(x => dict[x]).ToArray();
             else if (value is object?[] arr)
                 value = arr;
 
@@ -117,7 +117,7 @@ namespace EdgeDB.Binary.Codecs
             for (int i = 0; i != values.Length; i++)
             {
                 var element = values[i];
-                var innerCodec = _innerCodecs[i];
+                var innerCodec = InnerCodecs[i];
 
                 // reserved
                 writer.Write(0);
@@ -138,6 +138,6 @@ namespace EdgeDB.Binary.Codecs
             }
         }
 
-        ICodec[] IMultiWrappingCodec.InnerCodecs => _innerCodecs;
+        ICodec[] IMultiWrappingCodec.InnerCodecs => InnerCodecs;
     }
 }

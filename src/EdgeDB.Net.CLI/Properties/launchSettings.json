@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "EdgeDB.Net.CLI": {
+      "commandName": "Project",
+      "commandLineArgs": "generate -o C:\\Users\\lynch\\source\\repos\\EdgeDBDiscordBot -I edgedb_discord",
+      "workingDirectory": "C:\\Users\\lynch\\source\\repos\\EdgeDBDiscordBot"
+    }
+  }
+}

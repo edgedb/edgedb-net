@@ -25,6 +25,12 @@ namespace EdgeDB
             return false;
         }
 
+        public static bool IsSubclassOfInterfaceGeneric(Type generic, Type? toCheck)
+        {
+            var interfaces = toCheck!.GetInterfaces();
+            return interfaces.Any(x => IsSubclassOfRawGeneric(generic, x));
+        }
+
         public static bool TryGetRawGeneric(Type generic, Type? toCheck, out Type? genericReference)
         {
             genericReference = null;

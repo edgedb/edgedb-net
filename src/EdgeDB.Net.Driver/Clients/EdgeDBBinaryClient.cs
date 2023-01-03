@@ -194,104 +194,15 @@ namespace EdgeDB
 
             bool gotStateDescriptor = false;
             bool successfullyParsed = false;
-            int parseAttempts = 0;
 
             try
             {
-                var cacheKey = CodecBuilder.GetCacheHashKey(query, cardinality ?? Cardinality.Many, format);
+                var parsed = await ParseAsync(query, cardinality ?? Cardinality.Many, format, capabilities, implicitTypeName, token).ConfigureAwait(false);
 
-                var serializedState = Session.Serialize();
-                var stateBuf = _stateCodec?.Serialize(serializedState)!;
-                
-                if (!CodecBuilder.TryGetCodecs(cacheKey, out var inCodecInfo, out var outCodecInfo))
-                {                    
-                    while (!successfullyParsed)
-                    {
-                        if(parseAttempts > 2)
-                        {
-                            throw error.HasValue
-                                ? new EdgeDBException($"Failed to parse query after {parseAttempts} attempts", new EdgeDBErrorException(error.Value, query))
-                                : new EdgeDBException($"Failed to parse query after {parseAttempts} attempts");
-                        }
+                var stateBuf = _stateCodec?.Serialize(parsed.State);
 
-                        await foreach (var result in Duplexer.DuplexAndSyncAsync(new Parse
-                        {
-                            Capabilities = capabilities,
-                            Query = query,
-                            Format = format,
-                            ExpectedCardinality = cardinality ?? Cardinality.Many,
-                            ExplicitObjectIds = _config.ExplicitObjectIds,
-                            StateTypeDescriptorId = _stateDescriptorId,
-                            StateData = stateBuf,
-                            ImplicitLimit = _config.ImplicitLimit,
-                            ImplicitTypeNames = implicitTypeName, // used for type builder
-                            ImplicitTypeIds = true,  // used for type builder
-                        }, linkedTokenSource.Token))
-                        {
-                            switch (result.Packet)
-                            {
-                                case ErrorResponse err when err.ErrorCode is not ServerErrorCodes.StateMismatchError:
-                                    error = err;
-                                    break;
-                                case ErrorResponse err when err.ErrorCode is ServerErrorCodes.StateMismatchError:
-                                    {
-                                        // we should have received a state descriptor at this point,
-                                        // if we have not, this is a issue with the client implementation
-                                        if (!gotStateDescriptor)
-                                        {
-                                            throw new EdgeDBException("Failed to properly encode state data, this is a bug.");
-                                        }
-
-                                        // we can safely retry by finishing this duplex and starting a
-                                        // new one with the 'while' loop.
-                                        result.Finish();
-                                    }
-                                    break;
-                                case CommandDataDescription descriptor:
-                                    {
-                                        outCodecInfo = new(descriptor.OutputTypeDescriptorId,
-                                            CodecBuilder.BuildCodec(descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer));
-
-                                        inCodecInfo = new(descriptor.InputTypeDescriptorId,
-                                            CodecBuilder.BuildCodec(descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer));
-
-                                        CodecBuilder.UpdateKeyMap(cacheKey, descriptor.InputTypeDescriptorId, descriptor.OutputTypeDescriptorId);
-                                    }
-                                    break;
-                                case StateDataDescription stateDescriptor:
-                                    {
-                                        _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
-                                        _stateDescriptorId = stateDescriptor.TypeDescriptorId;
-                                        gotStateDescriptor = true;
-                                        stateBuf = _stateCodec?.Serialize(serializedState)!;
-                                    }
-                                    break;
-                                case ReadyForCommand ready:
-                                    UpdateTransactionState(ready.TransactionState);
-                                    result.Finish();
-                                    successfullyParsed = true;
-                                    break;
-                                default:
-                                    break;
-                            }
-                        }
-                        
-                        parseAttempts++;
-                    }
-                    
-                    
-                    if (error.HasValue)
-                        throw new EdgeDBErrorException(error.Value, query);
-
-                    if (outCodecInfo is null)
-                        throw new MissingCodecException("Couldn't find a valid output codec");
-
-                    if (inCodecInfo is null)
-                        throw new MissingCodecException("Couldn't find a valid input codec");
-                }
-
-                if (inCodecInfo.Codec is not IArgumentCodec argumentCodec)
-                    throw new MissingCodecException($"Cannot encode arguments, {inCodecInfo.Codec} is not a registered argument codec");
+                if (parsed.InCodec.Codec is not IArgumentCodec argumentCodec)
+                    throw new MissingCodecException($"Cannot encode arguments, {parsed.InCodec.Codec} is not a registered argument codec");
 
                 List<Data> receivedData = new();
                 bool executeSuccess = false;
@@ -306,13 +217,13 @@ namespace EdgeDB
                         ExpectedCardinality = cardinality ?? Cardinality.Many,
                         ExplicitObjectIds = _config.ExplicitObjectIds,
                         StateTypeDescriptorId = _stateDescriptorId,
-                        StateData = _stateCodec?.Serialize(serializedState),
+                        StateData = stateBuf,
                         ImplicitTypeNames = implicitTypeName, // used for type builder
                         ImplicitTypeIds = true,  // used for type builder
                         Arguments = argumentCodec.SerializeArguments(args),
                         ImplicitLimit = _config.ImplicitLimit,
-                        InputTypeDescriptorId = inCodecInfo.Id,
-                        OutputTypeDescriptorId = outCodecInfo.Id,
+                        InputTypeDescriptorId = parsed.InCodec.Id,
+                        OutputTypeDescriptorId = parsed.OutCodec.Id,
                     }, linkedTokenSource.Token))
                     {
                         switch (result.Packet)
@@ -325,7 +236,7 @@ namespace EdgeDB
                                     _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
                                     _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                                     gotStateDescriptor = true;
-                                    stateBuf = _stateCodec?.Serialize(serializedState)!;
+                                    stateBuf = _stateCodec?.Serialize(parsed.State)!;
                                 }
                                 break;
                             case ErrorResponse err when err.ErrorCode is ServerErrorCodes.StateMismatchError:
@@ -360,7 +271,7 @@ namespace EdgeDB
 
                 execResult = new ExecuteResult(true, null, query);
 
-                return new RawExecuteResult(outCodecInfo.Codec!, receivedData);
+                return new RawExecuteResult(parsed.OutCodec.Codec!, receivedData);
             }
             catch (OperationCanceledException)
             {
@@ -403,6 +314,121 @@ namespace EdgeDB
                 IsIdle = true;
                 if(!released) _semaphore.Release();
             }
+        }
+
+        internal async ValueTask<ParseResult> ParseAsync(
+            string query,
+            Cardinality cardinality,
+            IOFormat format,
+            Capabilities? capabilities,
+            bool implicitTypeName,
+            CancellationToken token)
+        {
+            ErrorResponse? error = null;
+            Cardinality? trueCardinality = null;
+            Capabilities? trueCapabilities = null;
+
+
+            var cacheKey = CodecBuilder.GetCacheHashKey(query, cardinality, format);
+
+            var serializedState = Session.Serialize();
+
+            if (!CodecBuilder.TryGetCodecs(cacheKey, out var inCodecInfo, out var outCodecInfo))
+            {
+                var stateBuf = _stateCodec?.Serialize(serializedState)!;
+                    bool gotStateDescriptor = false;
+                    bool successfullyParsed = false;
+                    int parseAttempts = 0;
+                    
+                    while (!successfullyParsed)
+                    {
+                        if(parseAttempts > 2)
+                        {
+                            throw error.HasValue
+                                ? new EdgeDBException($"Failed to parse query after {parseAttempts} attempts", new EdgeDBErrorException(error.Value, query))
+                                : new EdgeDBException($"Failed to parse query after {parseAttempts} attempts");
+                        }
+
+                        await foreach (var result in Duplexer.DuplexAndSyncAsync(new Parse
+                        {
+                            Capabilities = capabilities,
+                            Query = query,
+                            Format = format,
+                            ExpectedCardinality = cardinality,
+                            ExplicitObjectIds = _config.ExplicitObjectIds,
+                            StateTypeDescriptorId = _stateDescriptorId,
+                            StateData = stateBuf,
+                            ImplicitLimit = _config.ImplicitLimit,
+                            ImplicitTypeNames = implicitTypeName, // used for type builder
+                            ImplicitTypeIds = true,  // used for type builder
+                        }, token))
+                        {
+                            switch (result.Packet)
+                            {
+                                case ErrorResponse err when err.ErrorCode is not ServerErrorCodes.StateMismatchError:
+                                    error = err;
+                                    break;
+                                case ErrorResponse err when err.ErrorCode is ServerErrorCodes.StateMismatchError:
+                                    {
+                                        // we should have received a state descriptor at this point,
+                                        // if we have not, this is a issue with the client implementation
+                                        if (!gotStateDescriptor)
+                                        {
+                                            throw new EdgeDBException("Failed to properly encode state data, this is a bug.");
+                                        }
+
+                                        // we can safely retry by finishing this duplex and starting a
+                                        // new one with the 'while' loop.
+                                        result.Finish();
+                                    }
+                                    break;
+                                case CommandDataDescription descriptor:
+                                    {
+                                        outCodecInfo = new(descriptor.OutputTypeDescriptorId,
+                                            CodecBuilder.BuildCodec(descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer));
+
+                                        inCodecInfo = new(descriptor.InputTypeDescriptorId,
+                                            CodecBuilder.BuildCodec(descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer));
+
+                                        trueCapabilities = descriptor.Capabilities;
+
+                                        trueCardinality = descriptor.Cardinality;
+
+                                        CodecBuilder.UpdateKeyMap(cacheKey, descriptor.InputTypeDescriptorId, descriptor.OutputTypeDescriptorId);
+                                    }
+                                    break;
+                                case StateDataDescription stateDescriptor:
+                                    {
+                                        _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                                        _stateDescriptorId = stateDescriptor.TypeDescriptorId;
+                                        gotStateDescriptor = true;
+                                        stateBuf = _stateCodec?.Serialize(serializedState)!;
+                                    }
+                                    break;
+                                case ReadyForCommand ready:
+                                    UpdateTransactionState(ready.TransactionState);
+                                    result.Finish();
+                                    successfullyParsed = true;
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        
+                        parseAttempts++;
+                    }
+
+                if (error.HasValue)
+                    throw new EdgeDBErrorException(error.Value, query);
+
+                if (outCodecInfo is null)
+                    throw new MissingCodecException("Couldn't find a valid output codec");
+
+                if (inCodecInfo is null)
+                    throw new MissingCodecException("Couldn't find a valid input codec");
+            }
+
+            return new ParseResult(inCodecInfo, outCodecInfo, serializedState, trueCardinality ?? cardinality, trueCapabilities ?? capabilities ?? Capabilities.ReadOnly);
         }
 
         /// <inheritdoc/>
@@ -751,10 +777,16 @@ namespace EdgeDB
         /// <inheritdoc/>
         public override async ValueTask ConnectAsync(CancellationToken token = default)
         {
-            await _connectSemaphone.WaitAsync(token).ConfigureAwait(false);
+            if (IsConnected)
+                return;
+
+            await _connectSemaphone.WaitAsync(token);
 
             try
             {
+                if (IsConnected)
+                    return;
+
                 await ConnectInternalAsync(token: token);
 
                 using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _readyCancelTokenSource.Token);

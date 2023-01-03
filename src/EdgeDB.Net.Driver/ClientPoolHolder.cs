@@ -66,6 +66,8 @@ namespace EdgeDB
             }
         }
 
+        public static IDisposable Empty => new PoolHandle();
+
         private class PoolHandle : IDisposable
         {
             public bool HasReleased { get; private set; }
