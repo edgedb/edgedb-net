@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -46,6 +46,16 @@ namespace EdgeDB.DataTypes
                 : serializer is not null
                     ? serializer.Deserialize<T>(new JsonTextReader(new StringReader(Value)))
                     : EdgeDBConfig.JsonSerializer.DeserializeObject<T>(Value);
+
+        /// <summary>
+        ///     Serializes an <see cref="object"/> to <see cref="Json"/> using the default
+        ///     <see cref="EdgeDBConfig.JsonSerializer"/> or <paramref name="serializer"/> if specified.
+        /// </summary>
+        /// <param name="value">The value to serialize.</param>
+        /// <param name="serializer">The optional serializer to use when serializing.</param>
+        /// <returns>The json representation of <paramref name="value"/>.</returns>
+        public static Json Serialize(object? value, JsonSerializer? serializer = null)
+            => (serializer ?? EdgeDBConfig.JsonSerializer).SerializeObject(value);
 
         public static implicit operator string?(Json j) => j.Value;
         public static implicit operator Json(string? value) => new(value);

@@ -14,6 +14,8 @@ using System.Diagnostics;
 
 namespace EdgeDB
 {
+    internal delegate void OnObjectCreated(object obj, Guid id);
+
     /// <summary>
     ///     Represents the class used to build types from edgedb query results.
     /// </summary>
@@ -35,6 +37,8 @@ namespace EdgeDB
         internal readonly static ConcurrentDictionary<Type, EdgeDBTypeDeserializeInfo> TypeInfo = new();
         internal readonly static ConcurrentDictionary<Type, IEdgeDBTypeConverter> TypeConverters = new();
         internal static readonly INamingStrategy AttributeNamingStrategy;
+        internal static event OnObjectCreated? OnObjectCreated;
+        
         private readonly static List<string> _scannedAssemblies;
 
         static TypeBuilder()
@@ -276,6 +280,11 @@ namespace EdgeDB
             }
         }
         #endregion
+
+        internal static void DispatchObjectCreate(object obj, Guid id)
+        {
+            OnObjectCreated?.Invoke(obj, id);
+        }
     }
 
     /// <summary>

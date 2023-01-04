@@ -28,6 +28,9 @@ namespace EdgeDB
         public bool IsIgnored
             => _ignore is not null;
 
+        public PropertyInfo PropertyInfo
+            => _property;
+
         private readonly EdgeDBPropertyAttribute? _propertyAttribute;
         private readonly EdgeDBTypeConverterAttribute? _typeConverterAttribute;
         private readonly EdgeDBIgnoreAttribute? _ignore;

@@ -1,11 +1,15 @@
-﻿namespace EdgeDB
+namespace EdgeDB
 {
     /// <summary>
     ///     Marks this class or struct as a valid type to use when serializing/deserializing.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Enum)]
     public class EdgeDBTypeAttribute : Attribute
     {
+        /// <summary>
+        ///     Gets or sets the module name for this type.
+        /// </summary>
+        public string? ModuleName { get; init; }
         internal readonly string? Name;
 
         /// <summary>

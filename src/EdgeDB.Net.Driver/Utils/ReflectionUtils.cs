@@ -11,6 +11,17 @@ namespace EdgeDB
 {
     internal static class ReflectionUtils
     {
+        public static object? GetValueTypeDefault(Type type)
+        {
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
+            {
+                var valueProperty = type.GetProperty("Value")!;
+                type = valueProperty.PropertyType;
+            }
+
+            return type.IsValueType ? Activator.CreateInstance(type) : null;
+        }
+        
         public static bool IsSubclassOfRawGeneric(Type generic, Type? toCheck)
         {
             while (toCheck is not null && toCheck != typeof(object))
