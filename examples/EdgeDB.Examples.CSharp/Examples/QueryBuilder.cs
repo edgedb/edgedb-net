@@ -24,7 +24,7 @@ namespace EdgeDB.ExampleApp.Examples
 
             public Person? BestFriend { get; set; }
 
-            public Person[]? Friends { get; set; }
+            public List<Person>? Friends { get; set; }
         }
 
         public async Task ExecuteAsync(EdgeDBClient client)
@@ -55,36 +55,17 @@ namespace EdgeDB.ExampleApp.Examples
                 .Prettify();
 
             // Specifying a shape
-            query = QueryBuilder.Select((ctx) => new Person
-            {
-                Email = ctx.Include<string>(),
-                Name = ctx.Include<string>(),
-                BestFriend = ctx.IncludeLink(() => new Person
-                {
-                    Email = ctx.Include<string>(),
-                })
-            }).Build().Prettify();
-
-            // Adding computed properties in our shape
-            // Note: we need to use a new instance of query builder to provide the
-            // 'LinkPerson' type as a generic, since its being used for local context
-            // in the anon type.
-            query = new QueryBuilder<Person>().Select((ctx) => new
-            {
-                Name = ctx.Include<string>(),
-                Email = ctx.Include<string>(),
-                HasBestfriend = ctx.Self.BestFriend != null
-            }).Build().Prettify();
-
+            query = QueryBuilder.Select<Person>(shape =>
+                shape.Include(x => x.BestFriend)
+            ).Build().Prettify();
+            
             // selecting things that are not types
-            query = QueryBuilder.Select(() => 
-                EdgeQL.Count(
-                    QueryBuilder.Select<Person>()
-                )
+            query = QueryBuilder.SelectExp(() => 
+                EdgeQL.Count(QueryBuilder.Select<Person>())
             ).Build().Prettify();
 
             // selecting 'free objects'
-            query = QueryBuilder.Select(ctx => new
+            query = QueryBuilder.SelectExp(ctx => new
             {
                 MyString = "This is a string",
                 MyNumber = 42,
@@ -93,38 +74,32 @@ namespace EdgeDB.ExampleApp.Examples
             }).Build().Prettify();
 
             // Backlinks
-            query = new QueryBuilder<Person>().Select(ctx => new
-            {
-                Name = ctx.Include<string>(),
-                Email = ctx.Include<string>(),
-                Friends = ctx.IncludeLink(() => new Person
+            query = QueryBuilder.Select<Person>(shape => shape
+                .IncludeMultiLink(x => x.Friends)
+                .Computeds((ctx, _) => new
                 {
-                    Name = ctx.Include<string>(),
-                    Email = ctx.Include<string>(),
-                }),
-                // The 'ReferencedFriends' will be equal to '.<best_friends[is MultiLinkPerson] { name, email }'
-                // The '[is x]' statement is only inserted when a property selector is used with the generic,
-                // you can pass in a string instead of an expression to select out a 'EdgeDBObject' type.
-                ReferencedFriends = ctx.BackLink(x => x.Friends, () => new Person
-                {
-                    Name = ctx.Include<string>(),
-                    Email = ctx.Include<string>(),
+                    // The 'ReferencedFriends' will be equal to '.<best_friends[is MultiLinkPerson] { name, email }'
+                    // The '[is x]' statement is only inserted when a property selector is used with the generic,
+                    // you can pass in a string instead of an expression to select out a 'EdgeDBObject' type.
+                    ReferencedFriends = ctx.BackLink<Person>(x => x.Friends)
                 })
-            }).Build().Prettify();
+            ).Build().Prettify();
 
             // With object variables
-            query = QueryBuilder.With(new
-            {
-                Args = EdgeQL.AsJson(new Person
+            query = QueryBuilder
+                .With(new
                 {
-                    Name = "Example",
-                    Email = "example@example.com"
+                    Args = EdgeQL.AsJson(new
+                    {
+                        Name = "Example",
+                        Email = "example@example.com"
+                    })
                 })
-            }).Select(ctx => new
-            {
-                PassedName = ctx.Variables.Args.Value.Name,
-                PassedEmail = ctx.Variables.Args.Value.Email
-            }).Build().Pretty;
+                .SelectExp(ctx => new
+                {
+                    PassedName = ctx.Variables.Args.Value.Name,
+                    PassedEmail = ctx.Variables.Args.Value.Email
+                }).Build().Prettify();
 
             // Inserting a new type
             var person = new Person

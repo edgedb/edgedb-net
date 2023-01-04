@@ -1,7 +1,9 @@
+using EdgeDB.QueryNodes.Contexts;
 using EdgeDB.Schema;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -159,10 +161,43 @@ namespace EdgeDB.QueryNodes
         /// <summary>
         ///     Gets the current operating type in the context of the query builder.
         /// </summary>
-        protected Type GetOperatingType()
+        internal Type GetOperatingType()
             => Context.CurrentType.IsAssignableTo(typeof(IJsonVariable))
                 ? Context.CurrentType.GenericTypeArguments[0]
                 : Context.CurrentType;
+
+        /// <summary>
+        ///     Translates a given lambda expression into EdgeQL.
+        /// </summary>
+        /// <remarks>
+        ///     This function tracks the translations globals and stores them in
+        ///     this nodes <see cref="ReferencedGlobals"/>.
+        /// </remarks>
+        /// <param name="expression">The expression to translate.</param>
+        /// <returns>The EdgeQL version of the expression.</returns>
+        protected string TranslateExpression(LambdaExpression expression)
+        {
+            var context = new NodeTranslationContext(this);
+            using var consumer = context.CreateContextConsumer(expression);
+            return ExpressionTranslator.Translate(expression, consumer);
+        }
+
+        /// <summary>
+        ///     Translates a given expression into EdgeQL.
+        /// </summary>
+        /// <remarks>
+        ///     This function tracks the translations globals and stores them in
+        ///     this nodes <see cref="ReferencedGlobals"/>.
+        /// </remarks>
+        /// <param name="root">The root delegate that this expression is apart of.</param>
+        /// <param name="expression">The expression to translate.</param>
+        /// <returns>The EdgeQL version of the expression.</returns>
+        protected string TranslateExpression(LambdaExpression root, Expression expression)
+        {
+            var context = new NodeTranslationContext(this);
+            using var consumer = context.CreateContextConsumer(root);
+            return ExpressionTranslator.ContextualTranslate(expression, consumer);
+        }
 
         /// <summary>
         ///     Builds the current node, returning the built form <see cref="BuiltQueryNode"/>.
@@ -174,6 +209,9 @@ namespace EdgeDB.QueryNodes
         /// <returns>A <see cref="BuiltQueryNode"/>.</returns>
         internal BuiltQueryNode Build()
             => new(Query.ToString(), Builder.QueryVariables);
+
+        internal void ReplaceSubqueryAsLiteral(string name, string query)
+            => Query.Replace(name, query);
     }
 
     /// <summary>

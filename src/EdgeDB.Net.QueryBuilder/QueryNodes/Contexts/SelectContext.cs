@@ -15,7 +15,12 @@ namespace EdgeDB.QueryNodes
         /// <summary>
         ///     Gets the shape of the select statement.
         /// </summary>
-        public LambdaExpression? Shape { get; init; }
+        public IShapeBuilder? Shape { get; init; }
+
+        /// <summary>
+        ///     Gets the expression of the select statement.
+        /// </summary>
+        public LambdaExpression? Expression { get; init; }
 
         /// <summary>
         ///     Gets or sets the name that is to be selected.
@@ -26,16 +31,8 @@ namespace EdgeDB.QueryNodes
         ///     Gets whether or not the select statement is selecting a free object.
         /// </summary>
         public bool IsFreeObject { get; init; }
-
-        public int SubShapeDepth
-        {
-            get => _subShapeDepth;
-            set => _subShapeDepth = value < 0 ? 0 : value;
-        }
-
+        
         public bool IncludeShape { get; set; } = true;
-
-        private int _subShapeDepth = 2;
 
         public SelectContext(Type currentType) : base(currentType)
         {

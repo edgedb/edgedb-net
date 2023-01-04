@@ -85,18 +85,6 @@ namespace EdgeDB.Translators.Expressions
                             // same thing as local except we dont validate anything here
                             return $".{TranslateExpression(expression.Arguments[0], context.Enter(x => x.StringWithoutQuotes = true))}";
                         }
-                    case nameof(QueryContext.Include):
-                        {
-                            // return nothing for scalar includes
-                            return null;
-                        }
-                    case nameof(QueryContext.IncludeLink) or nameof(QueryContext.IncludeMultiLink):
-                        {
-                            // parse the inner shape
-                            var shape = TranslateExpression(expression.Arguments[0], context);
-                            context.IsShape = true;
-                            return shape;
-                        }
                     case nameof(QueryContext.Raw):
                         {
                             // return the raw string as a constant expression and serialize it without quotes
@@ -195,7 +183,7 @@ namespace EdgeDB.Translators.Expressions
                             foreach (var parameter in result.Parameters)
                                 context.SetVariable(parameter.Key, parameter.Value);
 
-                        argsArray[i] = context.GetOrAddGlobal(null, new SubQuery($"({result.Query})"));
+                        argsArray[i] = context.GetOrAddGlobal(builder, new SubQuery($"({result.Query})"));
                     }
                     else
                         argsArray[i] = TranslateExpression(arg, context);

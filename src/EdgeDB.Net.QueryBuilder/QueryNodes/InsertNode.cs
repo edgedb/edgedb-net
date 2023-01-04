@@ -421,7 +421,7 @@ namespace EdgeDB.QueryNodes
 
             // if the value is an expression we can just directly translate it
             if (value is LambdaExpression expression)
-                return $"{{ {ExpressionTranslator.Translate(expression, Builder.QueryVariables, Context, Builder.QueryGlobals)} }}";
+                return $"{{ {TranslateExpression(expression)} }}";
 
             // get all properties that aren't marked with the EdgeDBIgnore attribute
             var map = EdgeDBPropertyMapInfo.Create(type);
@@ -600,7 +600,7 @@ namespace EdgeDB.QueryNodes
         /// <param name="selector">The property selector for the conflict clause.</param>
         public void UnlessConflictOn(LambdaExpression selector)
         {
-            Query.Append($" unless conflict on {ExpressionTranslator.Translate(selector, Builder.QueryVariables, Context, Builder.QueryGlobals)}");
+            Query.Append($" unless conflict on {TranslateExpression(selector)}");
         }
 
         /// <summary>

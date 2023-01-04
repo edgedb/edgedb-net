@@ -194,7 +194,7 @@ namespace EdgeDB
         /// <param name="token">A cancellation token to cancel the asynchronous insert operation.</param>
         /// <returns>The number of values deleted.</returns>
         public Task<long> DeleteWhereAsync(Expression<Func<TType, bool>> filter, CancellationToken token = default)
-            => ((ISingleCardinalityExecutable<long>)QueryBuilder.Select(() => EdgeQL.Count(QueryBuilder.Delete.Filter(filter)))).ExecuteAsync(_edgedb, token: token);
+            => ((ISingleCardinalityExecutable<long>)QueryBuilder.SelectExp(() => EdgeQL.Count(QueryBuilder.Delete.Filter(filter)))).ExecuteAsync(_edgedb, token: token);
 
         /// <summary>
         ///     Filters the current collection by a predicate.

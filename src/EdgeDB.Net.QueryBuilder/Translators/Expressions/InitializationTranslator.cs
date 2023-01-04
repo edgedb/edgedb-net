@@ -199,7 +199,7 @@ namespace EdgeDB.Translators.Expressions
             }
 
             context.IsShape = true;
-            return string.Join(", ", initializations);
+            return $"{{ {string.Join(", ", initializations)} }}";
         }
     }
 }

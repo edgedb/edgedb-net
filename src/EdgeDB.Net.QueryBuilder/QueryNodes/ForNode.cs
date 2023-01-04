@@ -65,7 +65,7 @@ namespace EdgeDB.QueryNodes
                 return null;
             }
             else
-                return ExpressionTranslator.Translate(Context.Expression!, Builder.QueryVariables, Context, Builder.QueryGlobals);
+                return TranslateExpression(Context.Expression!);
         }
 
         /// <inheritdoc/>

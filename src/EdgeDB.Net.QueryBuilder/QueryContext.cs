@@ -91,51 +91,6 @@ namespace EdgeDB
             => default!;
 
         /// <summary>
-        ///     Includes a property within a shape.
-        /// </summary>
-        /// <typeparam name="TType">The type of the property.</typeparam>
-        /// <returns>
-        ///     A mock reference to the property that this include statement is being assigned to.
-        /// </returns>
-        public TType Include<TType>()
-            => default!;
-
-        /// <summary>
-        ///     Includes a link property with a given shape.
-        /// </summary>
-        /// <typeparam name="TType">The type of the link property.</typeparam>
-        /// <param name="shape">The shape of the link property.</param>
-        /// <returns>
-        ///     A mock reference to the property that this include statement is being assigned to.
-        /// </returns>
-        public TType IncludeLink<TType>(Expression<Func<TType>> shape)
-            => default!;
-
-        /// <summary>
-        ///     Includes a multi link property with a given shape.
-        /// </summary>
-        /// <typeparam name="TType">The type of the multi link property.</typeparam>
-        /// <param name="shape">The shape of the multi link property.</param>
-        /// <returns>
-        ///     A mock reference to the property that this include statement is being assigned to.
-        /// </returns>
-        public TType[] IncludeMultiLink<TType>(Expression<Func<TType>> shape)
-            => default!;
-
-        /// <summary>
-        ///     Includes a multi link property with a given shape.
-        /// </summary>
-        /// <typeparam name="TType">The type of the multi link property.</typeparam>
-        /// <typeparam name="TCollection">A collection that should be returned instead of an array</typeparam>
-        /// <param name="shape">The shape of the multi link property.</param>
-        /// <returns>
-        ///     A mock reference to the property that this include statement is being assigned to.
-        /// </returns>
-        public TCollection IncludeMultiLink<TType, TCollection>(Expression<Func<TType>> shape)
-            where TCollection : IEnumerable<TType>
-            => default!;
-
-        /// <summary>
         ///     Adds a backlink to the current query.
         /// </summary>
         /// <param name="property">The property on which to backlink.</param>
@@ -179,7 +134,7 @@ namespace EdgeDB
         /// <returns>
         ///     A mock array of <typeparamref name="TType"/>.
         /// </returns>
-        public TType[] BackLink<TType>(Expression<Func<TType, object?>> propertySelector, Expression<Func<TType>> shape)
+        public TType[] BackLink<TType>(Expression<Func<TType, object?>> propertySelector, Action<ShapeBuilder<TType>> shape)
             => default!;
 
         /// <summary>
@@ -192,7 +147,7 @@ namespace EdgeDB
         /// <returns>
         ///     A mock collection of <typeparamref name="TType"/>.
         /// </returns>
-        public TCollection BackLink<TType, TCollection>(Expression<Func<TType, object?>> propertySelector, Expression<Func<TType>> shape)
+        public TCollection BackLink<TType, TCollection>(Expression<Func<TType, object?>> propertySelector, Action<ShapeBuilder<TType>> shape)
             where TCollection : IEnumerable<TType>
             => default!;
 

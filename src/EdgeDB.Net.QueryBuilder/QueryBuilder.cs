@@ -4,6 +4,7 @@ using EdgeDB.QueryNodes;
 using EdgeDB.Schema;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -30,18 +31,18 @@ namespace EdgeDB
         public static ISelectQuery<TType, QueryContext<TType>> Select<TType>()
             => new QueryBuilder<TType>().Select();
 
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Select(int)"/>
-        public static ISelectQuery<TType, QueryContext<TType>> Select<TType>(int subShapeDepth)
-            => new QueryBuilder<TType>().Select(subShapeDepth);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Select{TResult}(Expression{Func{TResult}})"/>
-        public static ISelectQuery<TType, QueryContext<TType>> Select<TType>(Expression<Func<TType>> selectFunc)
-            => new QueryBuilder<TType>().Select(selectFunc);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Select(Expression{Func{QueryContext, TType}})"/>
-        public static ISelectQuery<TType, QueryContext<TType>> Select<TType>(Expression<Func<QueryContext, TType?>> shape)
+        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Select{TResult}(Action{ShapeBuilder{TResult}})"/>
+        public static ISelectQuery<TType, QueryContext<TType>> Select<TType>(Action<ShapeBuilder<TType>> shape)
             => new QueryBuilder<TType>().Select(shape);
-        
+
+        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.SelectExp{TNewType}(Expression{Func{TNewType?}})"/>
+        public static ISelectQuery<TType, QueryContext<TType>> SelectExp<TType>(Expression<Func<TType?>> expression)
+            => new QueryBuilder<TType>().SelectExp(expression);
+
+        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.SelectExp{TNewType}(Expression{Func{QueryContext, TNewType?}})"/>
+        public static ISelectQuery<TType, QueryContext<TType>> SelectExp<TType>(Expression<Func<QueryContext, TType?>> expression)
+            => new QueryBuilder<TType>().SelectExp(expression);
+
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(Expression{Func{QueryContext, TType}}, bool)"/>
         public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(Expression<Func<QueryContext<TType>, TType>> value, bool returnInsertedValue)
             => new QueryBuilder<TType>().Insert(value, returnInsertedValue);
@@ -288,7 +289,7 @@ namespace EdgeDB
                 var builder = new NodeBuilder(new WithContext(typeof(TType))
                 {
                     Values = _queryGlobals,
-                }, _queryGlobals, null, _queryVariables);
+                }, _queryGlobals, nodes, _queryVariables);
                 
                 var with = new WithNode(builder)
                 {
@@ -413,54 +414,51 @@ namespace EdgeDB
             AddNode<SelectNode>(new SelectContext(typeof(TType)));
             return this;
         }
-
+        
         /// <inheritdoc/>
-        public ISelectQuery<TType, TContext> Select(int subShapeDepth)
+        public ISelectQuery<TResult, TContext> Select<TResult>(Action<ShapeBuilder<TResult>> shape)
         {
-            AddNode<SelectNode>(new SelectContext(typeof(TType)) { SubShapeDepth = subShapeDepth });
-            return this;
-        }
-
-        /// <inheritdoc/>
-        public ISelectQuery<TResult, TContext> Select<TResult>(Expression<Func<TResult>> selectFunc)
-        {
+            var shapeBuilder = new ShapeBuilder<TResult>();
+            shape(shapeBuilder);
             AddNode<SelectNode>(new SelectContext(typeof(TResult)) 
             { 
-                Shape = selectFunc,
+                Shape = shapeBuilder,
                 IsFreeObject = typeof(TResult).IsAnonymousType()
             });
             return EnterNewType<TResult>();
         }
-
-        /// <inheritdoc cref="IQueryBuilder{TType, TContext}.Select(Expression{Func{TContext, TType}})"/>
-        public ISelectQuery<TType, TContext> Select(Expression<Func<TContext, TType?>> shape)
+        
+        /// <inheritdoc cref="IQueryBuilder{TNewType, TContext}.SelectExp{TNewType}(Expression{Func{TNewType?}})"/>
+        public ISelectQuery<TNewType, TContext> SelectExp<TNewType>(Expression<Func<TNewType?>> expression)
         {
             AddNode<SelectNode>(new SelectContext(typeof(TType))
             {
-                Shape = shape,
-                IsFreeObject = typeof(TType).IsAnonymousType(),
+                Expression = expression,
+                IncludeShape = false,
+                IsFreeObject = typeof(TNewType).IsAnonymousType(),
             });
-            return this;
+            return EnterNewType<TNewType>();
         }
 
-        /// <inheritdoc cref="IQueryBuilder{TType, TContext}.Select(Expression{Func{TContext, TType}})"/>
-        public ISelectQuery<TType, TContext> Select<TBaseContext>(Expression<Func<TBaseContext, TType?>> shape)
-            where TBaseContext : QueryContext
+        /// <inheritdoc cref="IQueryBuilder{TNewType, TContext}.SelectExp{TNewType}(Expression{Func{TContext, TNewType?}})"/>
+        public ISelectQuery<TNewType, TContext> SelectExp<TNewType>(Expression<Func<TContext, TNewType?>> expression)
         {
             AddNode<SelectNode>(new SelectContext(typeof(TType))
             {
-                Shape = shape,
-                IsFreeObject = typeof(TType).IsAnonymousType(),
+                Expression = expression,
+                IncludeShape = false,
+                IsFreeObject = typeof(TNewType).IsAnonymousType(),
             });
-            return this;
+            return EnterNewType<TNewType>();
         }
 
-        /// <inheritdoc cref="IQueryBuilder{TNewType, TContext}.Select{TNewType}(Expression{Func{TContext, TNewType}})"/>
-        public ISelectQuery<TNewType, TContext> Select<TNewType>(Expression<Func<TContext, TNewType?>> shape)
+        /// <inheritdoc cref="IQueryBuilder{TNewType, TContext}.SelectExp{TNewType}(Expression{Func{TContext, TNewType?}})"/>
+        internal ISelectQuery<TNewType, TContext> SelectExp<TNewType, TInitContext>(Expression<Func<TInitContext, TNewType?>> expression)
         {
             AddNode<SelectNode>(new SelectContext(typeof(TType))
             {
-                Shape = shape,
+                Expression = expression,
+                IncludeShape = false,
                 IsFreeObject = typeof(TNewType).IsAnonymousType(),
             });
             return EnterNewType<TNewType>();
@@ -527,6 +525,7 @@ namespace EdgeDB
             => Update(updateFunc, false);
 
         /// <inheritdoc/>
+        [DebuggerHidden]
         public IDeleteQuery<TType, TContext> Delete
         {
             get

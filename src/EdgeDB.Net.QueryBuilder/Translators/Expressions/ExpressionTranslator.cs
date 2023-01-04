@@ -1,4 +1,4 @@
-﻿using EdgeDB.Operators;
+using EdgeDB.Operators;
 using EdgeDB.QueryNodes;
 using System;
 using System.Collections.Generic;
@@ -122,6 +122,20 @@ namespace EdgeDB
         public static string Translate(LambdaExpression expression, IDictionary<string, object?> queryArguments, NodeContext nodeContext, List<QueryGlobal> globals)
         {
             var context = new ExpressionContext(nodeContext, expression, queryArguments, globals);
+            return TranslateExpression(expression.Body, context);
+        }
+
+        /// <summary>
+        ///     Translates a lambda expression into the edgeql equivalent.
+        /// </summary>
+        /// <remarks>
+        ///     This function <i>can</i> add globals and query variables.
+        /// </remarks>
+        /// <param name="expression">The expression to translate.</param>
+        /// <param name="context">The translation context.</param>
+        /// <returns>The string form of the expression.</returns>
+        public static string Translate(LambdaExpression expression, ExpressionContext context)
+        {
             return TranslateExpression(expression.Body, context);
         }
 
