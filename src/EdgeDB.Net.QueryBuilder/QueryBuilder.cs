@@ -35,11 +35,25 @@ namespace EdgeDB
         public static ISelectQuery<TType, QueryContext<TType>> Select<TType>(Action<ShapeBuilder<TType>> shape)
             => new QueryBuilder<TType>().Select(shape);
 
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.SelectExp{TNewType}(Expression{Func{TNewType?}})"/>
+        /// <summary>
+        ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
+        /// </summary>
+        /// <typeparam name="TType">The resulting type of the expression.</typeparam>
+        /// <param name="expression">The expression on which to select.</param>
+        /// <returns>
+        ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
+        /// </returns>
         public static ISelectQuery<TType, QueryContext<TType>> SelectExp<TType>(Expression<Func<TType?>> expression)
             => new QueryBuilder<TType>().SelectExp(expression);
 
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.SelectExp{TNewType}(Expression{Func{QueryContext, TNewType?}})"/>
+        /// <summary>
+        ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
+        /// </summary>
+        /// <typeparam name="TType">The resulting type of the expression.</typeparam>
+        /// <param name="expression">The expression on which to select.</param>
+        /// <returns>
+        ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
+        /// </returns>
         public static ISelectQuery<TType, QueryContext<TType>> SelectExp<TType>(Expression<Func<QueryContext, TType?>> expression)
             => new QueryBuilder<TType>().SelectExp(expression);
 
@@ -427,8 +441,15 @@ namespace EdgeDB
             });
             return EnterNewType<TResult>();
         }
-        
-        /// <inheritdoc cref="IQueryBuilder{TNewType, TContext}.SelectExp{TNewType}(Expression{Func{TNewType?}})"/>
+
+        /// <summary>
+        ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
+        /// </summary>
+        /// <typeparam name="TNewType">The resulting type of the expression.</typeparam>
+        /// <param name="expression">The expression on which to select.</param>
+        /// <returns>
+        ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
+        /// </returns>
         public ISelectQuery<TNewType, TContext> SelectExp<TNewType>(Expression<Func<TNewType?>> expression)
         {
             AddNode<SelectNode>(new SelectContext(typeof(TType))
@@ -440,7 +461,14 @@ namespace EdgeDB
             return EnterNewType<TNewType>();
         }
 
-        /// <inheritdoc cref="IQueryBuilder{TNewType, TContext}.SelectExp{TNewType}(Expression{Func{TContext, TNewType?}})"/>
+        /// <summary>
+        ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
+        /// </summary>
+        /// <typeparam name="TNewType">The resulting type of the expression.</typeparam>
+        /// <param name="expression">The expression on which to select.</param>
+        /// <returns>
+        ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
+        /// </returns>
         public ISelectQuery<TNewType, TContext> SelectExp<TNewType>(Expression<Func<TContext, TNewType?>> expression)
         {
             AddNode<SelectNode>(new SelectContext(typeof(TType))
@@ -452,7 +480,6 @@ namespace EdgeDB
             return EnterNewType<TNewType>();
         }
 
-        /// <inheritdoc cref="IQueryBuilder{TNewType, TContext}.SelectExp{TNewType}(Expression{Func{TContext, TNewType?}})"/>
         internal ISelectQuery<TNewType, TContext> SelectExp<TNewType, TInitContext>(Expression<Func<TInitContext, TNewType?>> expression)
         {
             AddNode<SelectNode>(new SelectContext(typeof(TType))
