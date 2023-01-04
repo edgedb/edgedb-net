@@ -159,7 +159,7 @@ namespace EdgeDB.Binary
             { new Guid("00000000-0000-0000-0000-000000000110"), typeof(BigInt) },
             { new Guid("00000000-0000-0000-0000-000000000111"), typeof(RelativeDuration) },
             { new Guid("00000000-0000-0000-0000-000000000112"), typeof(RelativeDuration) },
-            { new Guid("00000000-0000-0000-0000-000000000130"), typeof(DataTypes.Memory) }
+            { new Guid("00000000-0000-0000-0000-000000000130"), typeof(Codecs.Memory) }
 
         };
     }

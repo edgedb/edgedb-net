@@ -4,6 +4,7 @@ using EdgeDB.Utils;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
+using System.Net.Security;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -37,6 +38,8 @@ namespace EdgeDB.Binary
         private readonly Memory<byte> _packetHeaderBuffer;
         private readonly MemoryHandle _packetHeaderHandle;
         private unsafe readonly PacketHeader* _packetHeader;
+
+        private readonly object _connectivityLock = new();
 
         private Stream? _stream;
         private CancellationTokenSource _disconnectTokenSource;
@@ -85,7 +88,7 @@ namespace EdgeDB.Binary
         {
             try
             {
-                if(IsConnected)
+                if (IsConnected)
                     await SendAsync(token, packets: new Terminate()).ConfigureAwait(false);
             }
             catch (EdgeDBException) { } // assume its because the connection is closed.
@@ -132,6 +135,12 @@ namespace EdgeDB.Binary
                 _client.Logger.MessageReceived(_client.ClientId, header.Type);
                 return PacketSerializer.DeserializePacket(header.Type, ref buffer, header.Length, _client);
             }
+            catch (EndOfStreamException)
+            {
+                // disconnect
+                await DisconnectInternalAsync();
+                return null;
+            }
             catch (Exception x) when (x is not OperationCanceledException or TaskCanceledException)
             {
                 _client.Logger.ReadException(x);
@@ -142,26 +151,34 @@ namespace EdgeDB.Binary
                 _readLock.Release();
             }
         }
-        
+
         public async ValueTask SendAsync(CancellationToken token = default, params Sendable[] packets)
         {
             using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectTokenSource.Token);
 
             if (_stream == null || !IsConnected)
-                throw new EdgeDBException("Cannot send message to a closed connection");
+            {
+                await _client.ReconnectAsync();
+            }
+
+            // check stream after reconnect
+            if(_stream is null)
+            {
+                throw new EdgeDBException("Cannot send message to a force-closed connection");
+            }
 
             await _stream.WriteAsync(BinaryUtils.BuildPackets(packets), linkedToken.Token).ConfigureAwait(false);
         }
-        
+
         public async IAsyncEnumerable<DuplexResult> DuplexAsync(
             [EnumeratorCancellation] CancellationToken token = default,
             params Sendable[] packets)
         {
             await SendAsync(token, packets).ConfigureAwait(false);
-            
+
             using var enumerationFinishToken = new CancellationTokenSource();
 
-            while(!enumerationFinishToken.IsCancellationRequested && !token.IsCancellationRequested)
+            while (!enumerationFinishToken.IsCancellationRequested && !token.IsCancellationRequested)
             {
                 var result = await ReadNextAsync(token).ConfigureAwait(false);
 
@@ -173,9 +190,13 @@ namespace EdgeDB.Binary
 
             yield break;
         }
-        
+
         private async ValueTask<int> ReadExactAsync(Memory<byte> buffer, CancellationToken token)
         {
+#if NET7_0_OR_GREATER
+            await _stream!.ReadExactlyAsync(buffer, token).ConfigureAwait(false);
+            return buffer.Length;
+#else
             var targetLength = buffer.Length;
 
             int numRead = 0;
@@ -195,6 +216,7 @@ namespace EdgeDB.Binary
             }
 
             return numRead;
+#endif
         }
         
         private CancellationTokenSource GetTimeoutToken()

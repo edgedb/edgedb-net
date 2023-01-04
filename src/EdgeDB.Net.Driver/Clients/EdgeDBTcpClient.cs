@@ -30,7 +30,12 @@ namespace EdgeDB
         internal override IBinaryDuplexer Duplexer
             => _duplexer;
 
+        // might be incomplete frame
+        internal bool DangerousIsDataAvailable
+            => _stream?.DataAvailable ?? false;
+
         private readonly StreamDuplexer _duplexer;
+        
 
         private TcpClient _tcpClient;
         private NetworkStream? _stream;
