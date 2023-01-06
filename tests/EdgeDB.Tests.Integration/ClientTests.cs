@@ -86,7 +86,7 @@ namespace EdgeDB.Tests.Integration
             await TestScalarQuery("true", true);
             await TestScalarQuery("b'bina\\x01ry'", Encoding.UTF8.GetBytes("bina\x01ry"));
             await TestScalarQuery("<datetime>'1999-03-31T15:17:00Z'", DateTimeOffset.Parse("1999-03-31T15:17:00Z"));
-            await TestScalarQuery("<cal::local_datetime>'1999-03-31T15:17:00'", DateTime.Parse("1999-03-31T15:17:00"));
+            await TestScalarQuery("<cal::local_datetime>'1999-03-31T15:17:00'", System.DateTime.Parse("1999-03-31T15:17:00"));
             await TestScalarQuery<DateOnly>("<cal::local_date>'1999-03-31'", new(1999, 3, 31));
             await TestScalarQuery<TimeSpan>("<cal::local_time>'15:17:00'", new(15,17,0));
             await TestScalarQuery("42.0n", (decimal)42.0);

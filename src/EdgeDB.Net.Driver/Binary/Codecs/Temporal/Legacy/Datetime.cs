@@ -1,6 +1,6 @@
 namespace EdgeDB.Binary.Codecs
 {
-    internal sealed class Datetime : IScalarCodec<DateTimeOffset> // std::datetime
+    internal sealed class LegacyDatetime : IScalarCodec<DateTimeOffset> // std::datetime
     {
         public static readonly DateTimeOffset EdgedbEpoc = new(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
@@ -19,18 +19,18 @@ namespace EdgeDB.Binary.Codecs
         }
     }
 
-    internal sealed class LocalDateTime : IScalarCodec<DateTime> // std::local_datetime
+    internal sealed class LegacyLocalDateTime : IScalarCodec<System.DateTime> // std::local_datetime
     {
-        public static readonly DateTime EdgedbEpoc = new(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
+        public static readonly System.DateTime EdgedbEpoc = new(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
 
-        public DateTime Deserialize(ref PacketReader reader)
+        public System.DateTime Deserialize(ref PacketReader reader)
         {
             var val = reader.ReadInt64();
 
             return EdgedbEpoc.AddTicks(val * 10);
         }
 
-        public void Serialize(ref PacketWriter writer, DateTime value)
+        public void Serialize(ref PacketWriter writer, System.DateTime value)
         {
             var v = (value - EdgedbEpoc).Ticks;
 
@@ -38,7 +38,7 @@ namespace EdgeDB.Binary.Codecs
         }
     }
 
-    internal sealed class LocalDate : IScalarCodec<DateOnly>
+    internal sealed class LegacyLocalDate : IScalarCodec<DateOnly>
     {
         public static readonly DateOnly EdgedbEpoc = new(2000, 1, 1);
 
@@ -55,7 +55,7 @@ namespace EdgeDB.Binary.Codecs
         }
     }
 
-    internal class Duration : IScalarCodec<TimeSpan>
+    internal class LegacyDuration : IScalarCodec<TimeSpan>
     {
         public TimeSpan Deserialize(ref PacketReader reader)
         {
@@ -77,7 +77,7 @@ namespace EdgeDB.Binary.Codecs
         }
     }
 
-    internal sealed class RelativeDuration : IScalarCodec<TimeSpan>
+    internal sealed class LegacyRelativeDuration : IScalarCodec<TimeSpan>
     {
         public TimeSpan Deserialize(ref PacketReader reader)
         {
@@ -90,9 +90,13 @@ namespace EdgeDB.Binary.Codecs
 
         public void Serialize(ref PacketWriter writer, TimeSpan value)
         {
+            var (microseconds, days, months) = DataTypes.TemporalCommon.ToComponents(value);
 
+            writer.Write(microseconds);
+            writer.Write(days);
+            writer.Write(months);
         }
     }
 
-    internal sealed class LocalTime : Duration { }
+    internal sealed class LegacyLocalTime : LegacyDuration { }
 }

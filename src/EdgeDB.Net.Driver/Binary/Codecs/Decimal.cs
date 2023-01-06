@@ -1,8 +1,11 @@
+using EdgeDB.Utils;
+
 namespace EdgeDB.Binary.Codecs
 {
+    // TODO: get rid of ugly strings and convert the Win32 DECIMAL to correct format
     internal sealed class Decimal : IScalarCodec<decimal>
     {
-        public const decimal NBASE = 10000;
+        public const int NBASE = 10000;
 
         public decimal Deserialize(ref PacketReader reader)
         {
@@ -53,41 +56,42 @@ namespace EdgeDB.Binary.Codecs
 
         public void Serialize(ref PacketWriter writer, decimal value)
         {
-            // TODO https://www.edgedb.com/docs/reference/protocol/dataformats#std-decimal
-            throw new NotSupportedException();
+            Span<int> span = stackalloc int[4];
+            decimal.GetBits(value, span);
 
-            //var sign = Value > 0 ? DecimalSign.POS : DecimalSign.NEG;
-            //var uval = Value;
+            var rawDscale = (span[3] >> 16) & 0x7F;
+            var rawSign = (span[3] >> 31) & 0x01;
 
-            //if (Value == 0)
-            //{
-            //    writer.Write(0u);
-            //    writer.Write((ushort)sign);
-            //    writer.Write((ushort)0);
-            //    return;
-            //}
+            var str = value.ToString();
+            var spl = str.Split(".");
 
-            //if (sign == DecimalSign.NEG)
-            //    uval = -uval;
 
-            //List<ushort> digits = new();
+            var integral = spl[0][0] == '-' ? spl[0][1..] : spl[0];
+            var frac = spl.Length > 1 ? spl[1] : string.Empty;
 
-            //while(Math.Abs(uval) != 0)
-            //{
-            //    var mod = uval % NBASE;
-            //    uval /= NBASE;
+            var sdigits =
+                integral.PadLeft((int)(Math.Ceiling(integral.Length / 4d) * 4), '0') +
+                frac.PadRight((int)(Math.Ceiling(frac.Length / 4d) * 4), '0');
 
-            //    digits.Add((ushort)mod);
-            //}
+            List<ushort> digits = new();
 
-            //writer.Write((ushort)digits.Count);
-            //writer.Write((ushort)digits.Count - 1);
-            //writer.Write((ushort)sign);
-            //writer.Write((ushort)0);
-            //for(int i = digits.Count - 1; i >= 0; i--)
-            //{
-            //    writer.Write(digits[i]);
-            //}
+            for(int i = 0, len = sdigits.Length; i < len; i+=4)
+            {
+                digits.Add(ushort.Parse(sdigits[i..(i + 4)]));
+            }
+
+            var ndigits = (ushort)digits.Count;
+            var weight = (short)(Math.Ceiling(integral.Length / 4d) - 1);
+            var sign = (ushort)(rawSign == 1 ? NumericSign.NEG : NumericSign.POS);
+            var dscale = (short)frac.Length;
+
+            writer.Write(ndigits);
+            writer.Write(weight);
+            writer.Write(sign);
+            writer.Write(dscale);
+
+            foreach (var digit in digits)
+                writer.Write(digit);
         }
     }
 }

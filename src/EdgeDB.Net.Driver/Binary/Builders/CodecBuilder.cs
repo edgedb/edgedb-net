@@ -131,36 +131,30 @@ namespace EdgeDB.Binary
             }
             return hashedValue;
         }
-
-        internal static bool IsScalarType(Type type)
-        {
-            return _defaultCodecs.Values.Contains(type);
-        }
-
+        
         private static readonly Dictionary<Guid, Type> _defaultCodecs = new()
         {
             { NullCodec, typeof(NullCodec) },
-            { new Guid("00000000-0000-0000-0000-000000000100"), typeof(UUID) },
-            { new Guid("00000000-0000-0000-0000-000000000101"), typeof(Text) },
-            { new Guid("00000000-0000-0000-0000-000000000102"), typeof(Bytes) },
-            { new Guid("00000000-0000-0000-0000-000000000103"), typeof(Integer16) },
-            { new Guid("00000000-0000-0000-0000-000000000104"), typeof(Integer32) },
-            { new Guid("00000000-0000-0000-0000-000000000105"), typeof(Integer64) },
-            { new Guid("00000000-0000-0000-0000-000000000106"), typeof(Float32) },
-            { new Guid("00000000-0000-0000-0000-000000000107"), typeof(Float64) },
-            { new Guid("00000000-0000-0000-0000-000000000108"), typeof(Binary.Codecs.Decimal) },
-            { new Guid("00000000-0000-0000-0000-000000000109"), typeof(Bool) },
-            { new Guid("00000000-0000-0000-0000-00000000010A"), typeof(Datetime) },
-            { new Guid("00000000-0000-0000-0000-00000000010B"), typeof(LocalDateTime) },
-            { new Guid("00000000-0000-0000-0000-00000000010C"), typeof(LocalDate) },
-            { new Guid("00000000-0000-0000-0000-00000000010D"), typeof(LocalTime) },
-            { new Guid("00000000-0000-0000-0000-00000000010E"), typeof(Duration) },
-            { new Guid("00000000-0000-0000-0000-00000000010F"), typeof(Json) },
-            { new Guid("00000000-0000-0000-0000-000000000110"), typeof(BigInt) },
-            { new Guid("00000000-0000-0000-0000-000000000111"), typeof(RelativeDuration) },
-            { new Guid("00000000-0000-0000-0000-000000000112"), typeof(RelativeDuration) },
+            { new Guid("00000000-0000-0000-0000-000000000100"), typeof(Codecs.UUID) },
+            { new Guid("00000000-0000-0000-0000-000000000101"), typeof(Codecs.Text) },
+            { new Guid("00000000-0000-0000-0000-000000000102"), typeof(Codecs.Bytes) },
+            { new Guid("00000000-0000-0000-0000-000000000103"), typeof(Codecs.Integer16) },
+            { new Guid("00000000-0000-0000-0000-000000000104"), typeof(Codecs.Integer32) },
+            { new Guid("00000000-0000-0000-0000-000000000105"), typeof(Codecs.Integer64) },
+            { new Guid("00000000-0000-0000-0000-000000000106"), typeof(Codecs.Float32) },
+            { new Guid("00000000-0000-0000-0000-000000000107"), typeof(Codecs.Float64) },
+            { new Guid("00000000-0000-0000-0000-000000000108"), typeof(Codecs.Decimal) },
+            { new Guid("00000000-0000-0000-0000-000000000109"), typeof(Codecs.Bool) },
+            { new Guid("00000000-0000-0000-0000-00000000010A"), typeof(Codecs.DateTime) },
+            { new Guid("00000000-0000-0000-0000-00000000010B"), typeof(Codecs.LocalDateTime) },
+            { new Guid("00000000-0000-0000-0000-00000000010C"), typeof(Codecs.LocalDate) },
+            { new Guid("00000000-0000-0000-0000-00000000010D"), typeof(Codecs.LocalTime) },
+            { new Guid("00000000-0000-0000-0000-00000000010E"), typeof(Codecs.Duration) },
+            { new Guid("00000000-0000-0000-0000-00000000010F"), typeof(Codecs.Json) },
+            { new Guid("00000000-0000-0000-0000-000000000110"), typeof(Codecs.BigInt) },
+            { new Guid("00000000-0000-0000-0000-000000000111"), typeof(Codecs.RelativeDuration) },
+            { new Guid("00000000-0000-0000-0000-000000000112"), typeof(Codecs.DateDuration) },
             { new Guid("00000000-0000-0000-0000-000000000130"), typeof(Codecs.Memory) }
-
         };
     }
 }
