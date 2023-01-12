@@ -16,10 +16,17 @@ namespace EdgeDB.DataTypes
     {
         /// <summary>
         ///     Gets the <see cref="DateTimeOffset"/> that represents the
-        ///     current <see cref="DateTime"/>.
+        ///     current <see cref="LocalDateTime"/>.
         /// </summary>
         public DateTimeOffset DateTimeOffset
             => TemporalCommon.DateTimeFromMicroseconds(Microseconds);
+
+        /// <summary>
+        ///     Gets the <see cref="SysDateTime"/> that represents the
+        ///     current <see cref="LocalDateTime"/>
+        /// </summary>
+        public SysDateTime DateTime
+            => DateTimeOffset.DateTime;
 
         public readonly long Microseconds;
 

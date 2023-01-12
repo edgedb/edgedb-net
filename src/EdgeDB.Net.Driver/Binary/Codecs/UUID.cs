@@ -1,13 +1,13 @@
 namespace EdgeDB.Binary.Codecs
 {
-    internal sealed class UUID : IScalarCodec<Guid>
+    internal sealed class UUID : BaseScalarCodec<Guid>
     {
-        public Guid Deserialize(ref PacketReader reader)
+        public override Guid Deserialize(ref PacketReader reader)
         {
             return reader.ReadGuid();
         }
 
-        public void Serialize(ref PacketWriter writer, Guid value)
+        public override void Serialize(ref PacketWriter writer, Guid value)
         {
             writer.Write(value);
         }

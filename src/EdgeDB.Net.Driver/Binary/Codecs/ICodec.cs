@@ -4,60 +4,28 @@ using System.Reflection;
 
 namespace EdgeDB.Binary.Codecs
 {
-    internal interface IArgumentCodec<TType> : IArgumentCodec, ICodec<TType>
+    internal interface ITemporalCodec : ICodec
     {
-        void SerializeArguments(ref PacketWriter writer, TType? value);
+        ICodec[] GetSystemCodecs();
+
+        ICodec GetCodecFor(Type type);
+    }
+
+    internal interface IArgumentCodec<T> : IArgumentCodec, ICodec<T>
+    {
+        void SerializeArguments(ref PacketWriter writer, T? value);
     }
 
     internal interface IArgumentCodec
     {
         void SerializeArguments(ref PacketWriter writer, object? value);
-
-        ReadOnlyMemory<byte> SerializeArguments(object? value)
-        {
-            var writer = new PacketWriter();
-            SerializeArguments(ref writer, value);
-            return writer.GetBytes();
-        }
     }
 
-    internal interface ICodec<TConverter> : ICodec
+    internal interface ICodec<T> : ICodec
     {
-        void Serialize(ref PacketWriter writer, TConverter? value);
+        void Serialize(ref PacketWriter writer, T? value);
 
-        new TConverter? Deserialize(ref PacketReader reader);
-
-        new TConverter? Deserialize(byte[] buffer)
-        {
-            var reader = new PacketReader(buffer);
-            return Deserialize(ref reader);
-        }
-        
-        new TConverter? Deserialize(Span<byte> buffer)
-        {
-            var reader = new PacketReader(buffer);
-            return Deserialize(ref reader);
-        }
-
-        ReadOnlyMemory<byte> Serialize(TConverter? value)
-        {
-            var writer = new PacketWriter();
-            Serialize(ref writer, value);
-            return writer.GetBytes();
-        }
-
-        // ICodec
-        object? ICodec.Deserialize(ref PacketReader reader) 
-            => Deserialize(ref reader);
-
-        void ICodec.Serialize(ref PacketWriter writer, object? value) 
-            => Serialize(ref writer, (TConverter?)value);
-
-        Type ICodec.ConverterType 
-            => typeof(TConverter);
-
-        bool ICodec.CanConvert(Type t)
-            => t == typeof(TConverter);
+        new T? Deserialize(ref PacketReader reader);
     }
 
     internal interface ICodec
@@ -69,56 +37,11 @@ namespace EdgeDB.Binary.Codecs
         void Serialize(ref PacketWriter writer, object? value);
 
         object? Deserialize(ref PacketReader reader);
-
-        object? Deserialize(Span<byte> buffer)
-        {
-            var reader = new PacketReader(buffer);
-            return Deserialize(ref reader);
-        }
-
-        object? Deserialize(byte[] buffer)
-        {
-            var reader = new PacketReader(buffer);
-            return Deserialize(ref reader);
-        }
-
-        ReadOnlyMemory<byte> Serialize(object? value)
-        {
-            var writer = new PacketWriter();
-            Serialize(ref writer, value);
-            return writer.GetBytes();
-        }
-
-        private static readonly List<ICodec> _scalarCodecs;
-        private static readonly ConcurrentDictionary<Type, ICodec> _scalarCodecMap;
-        static ICodec()
-        {
-            _scalarCodecs = new();
-            _scalarCodecMap = new();
-            
-            var codecs = Assembly.GetExecutingAssembly().GetTypes().Where(x => x.GetInterfaces().Any(x => x.Name == "IScalarCodec`1"));
-
-            foreach (var codec in codecs)
-            {
-                // create instance
-                var inst = (ICodec)Activator.CreateInstance(codec)!;
-
-                _scalarCodecs.Add(inst);
-                _scalarCodecMap.TryAdd(inst.ConverterType, inst);
-            }
-        }
-
-        static bool ContainsScalarCodec(Type type)
-            => _scalarCodecMap.ContainsKey(type);
-
-        static bool TryGetScalarCodec(Type type, [MaybeNullWhen(false)] out ICodec codec)
-            => _scalarCodecMap.TryGetValue(type, out codec);
-
-        static IScalarCodec<TType>? GetScalarCodec<TType>()
-            => (IScalarCodec<TType>?)_scalarCodecs.FirstOrDefault(x => x.ConverterType == typeof(TType) || x.CanConvert(typeof(TType)));
     }
 
-    internal interface IScalarCodec<TInner> : ICodec<TInner> { }
+    internal interface IScalarCodec<T> : ICodec<T>, IScalarCodec { }
+
+    internal interface IScalarCodec : ICodec { }
 
     internal interface IWrappingCodec
     {

@@ -2,9 +2,9 @@ using System.Text;
 
 namespace EdgeDB.Binary.Codecs
 {
-    internal sealed class Json : IScalarCodec<DataTypes.Json>
+    internal sealed class Json : BaseScalarCodec<DataTypes.Json>
     {
-        public DataTypes.Json Deserialize(ref PacketReader reader)
+        public override DataTypes.Json Deserialize(ref PacketReader reader)
         {
             // format (unused)
             reader.Skip(1);
@@ -14,7 +14,7 @@ namespace EdgeDB.Binary.Codecs
             return new DataTypes.Json(data);
         }
 
-        public void Serialize(ref PacketWriter writer, DataTypes.Json value)
+        public override void Serialize(ref PacketWriter writer, DataTypes.Json value)
         {
             byte[] jsonData = Encoding.UTF8.GetBytes(value.Value ?? "");
 

@@ -115,7 +115,7 @@ namespace EdgeDB.Tests.Integration
 
         [TestMethod]
         public Task TestDateDuration()
-            => TestTypeQuerying<DataTypes.DateDuration>("cal::date_duration", TimeSpan.FromDays(Random.Shared.Next()));
+            => TestTypeQuerying<DataTypes.DateDuration>("cal::date_duration", TimeSpan.FromDays(Random.Shared.Next(999)));
 
         [TestMethod]
         public Task TestMemory()

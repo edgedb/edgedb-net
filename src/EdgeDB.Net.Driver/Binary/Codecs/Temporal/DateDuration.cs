@@ -6,9 +6,19 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary.Codecs
 {
-    internal sealed class DateDuration : IScalarCodec<DataTypes.DateDuration>
+    internal sealed class DateDuration : BaseTemporalCodec<DataTypes.DateDuration>
     {
-        public DataTypes.DateDuration Deserialize(ref PacketReader reader)
+        protected override Dictionary<Type, (FromTransient From, ToTransient To)>? SystemConverters { get; }
+
+        public DateDuration()
+        {
+            SystemConverters = new()
+            {
+                { typeof(TimeSpan), (From, To) }
+            };
+        }
+
+        public override DataTypes.DateDuration Deserialize(ref PacketReader reader)
         {
             reader.Skip(sizeof(long));
             var days = reader.ReadInt32();
@@ -17,11 +27,24 @@ namespace EdgeDB.Binary.Codecs
             return new(days, months);
         }
         
-        public void Serialize(ref PacketWriter writer, DataTypes.DateDuration value)
+        public override void Serialize(ref PacketWriter writer, DataTypes.DateDuration value)
         {
             writer.Write(0L);
             writer.Write(value.Days);
             writer.Write(value.Months);
+        }
+
+        private DataTypes.DateDuration From(ref TransientTemporal transient)
+        {
+            // transient here is timespan, since our only supported sys type is timespan
+            return new DataTypes.DateDuration(transient.TimeSpan);
+        }
+
+        private TransientTemporal To(ref DataTypes.DateDuration dateDuration)
+        {
+            var timespan = dateDuration.TimeSpan;
+
+            return TransientTemporal.From(ref timespan);
         }
     }
 }

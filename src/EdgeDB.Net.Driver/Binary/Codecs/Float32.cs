@@ -1,13 +1,13 @@
 namespace EdgeDB.Binary.Codecs
 {
-    internal sealed class Float32 : IScalarCodec<float>
+    internal sealed class Float32 : BaseScalarCodec<float>
     {
-        public float Deserialize(ref PacketReader reader)
+        public override float Deserialize(ref PacketReader reader)
         {
             return reader.ReadSingle();
         }
 
-        public void Serialize(ref PacketWriter writer, float value)
+        public override void Serialize(ref PacketWriter writer, float value)
         {
             writer.Write(value);
         }

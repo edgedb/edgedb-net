@@ -124,6 +124,9 @@ namespace EdgeDB
 
             switch (codec)
             {
+                case Binary.Codecs.ITemporalCodec temporal:
+                    codec = temporal.GetCodecFor(prop.Type);
+                    break;
                 case Binary.Codecs.Object obj:
                     obj.Initialize(prop.Type);
                     break;

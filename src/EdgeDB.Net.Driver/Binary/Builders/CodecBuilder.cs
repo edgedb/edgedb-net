@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -27,6 +28,53 @@ namespace EdgeDB.Binary
         public static readonly Guid InvalidCodec = Guid.Parse("ffffffffffffffffffffffffffffffff");
         private static readonly ConcurrentDictionary<Guid, ICodec> _codecCache = new();
         private static readonly ConcurrentDictionary<ulong, (Guid InCodec, Guid OutCodec)> _codecKeyMap = new();
+
+        private static readonly List<Type> _codecs;
+        private static readonly List<ICodec> _scalarCodecs;
+        private static readonly ConcurrentDictionary<Type, ICodec> _scalarCodecMap;
+        private static readonly ConcurrentDictionary<Type, ICodec> _scalarCodecTypeMap;
+
+
+        static CodecBuilder()
+        {
+            _scalarCodecs = new();
+            _scalarCodecMap = new();
+
+            var codecs = Assembly.GetExecutingAssembly()
+                .GetTypes()
+                .Where(x => x
+                    .GetInterfaces()
+                    .Any(x => x.Name == "ICodec") && !(x.IsAbstract || x.IsInterface) && x.Name != "RuntimeTemporalCodec`1");
+
+            _codecs = new(codecs);
+
+            var scalars = new List<ICodec>(codecs
+                .Where(x => x.IsAssignableTo(typeof(IScalarCodec)))
+                .Select(x => (ICodec)Activator.CreateInstance(x)!)
+            );
+
+            foreach(var temporalCodec in scalars.Where(x => x is ITemporalCodec).Cast<ITemporalCodec>().ToArray())
+            {
+                foreach (var subCodec in temporalCodec.GetSystemCodecs())
+                    _scalarCodecs.Add(subCodec);
+            }
+
+            _scalarCodecMap = new(scalars.ToDictionary(x => x.ConverterType, x => x));
+            _scalarCodecTypeMap = new(scalars.ToDictionary(x => x.GetType(), x => x));
+            _scalarCodecs.AddRange(scalars);
+        }
+
+        public static bool ContainsScalarCodec(Type type)
+            => _scalarCodecs.Any(x => x.ConverterType == type);
+
+        public static bool TryGetScalarCodec(Type type, [MaybeNullWhen(false)] out ICodec codec)
+            => _scalarCodecMap.TryGetValue(type, out codec);
+
+        public static bool TryGetScalarCodecOfType(Type type, [MaybeNullWhen(false)] out ICodec codec)
+            => _scalarCodecTypeMap.TryGetValue(type, out codec);
+
+        public static IScalarCodec<TType>? GetScalarCodec<TType>()
+            => (IScalarCodec<TType>?)_scalarCodecs.FirstOrDefault(x => x.ConverterType == typeof(TType) || x.CanConvert(typeof(TType)));
 
         public static ulong GetCacheHashKey(string query, Cardinality cardinality, IOFormat format)
             => unchecked(CalculateKnuthHash(query) * (ulong)cardinality * (ulong)format);
@@ -110,12 +158,15 @@ namespace EdgeDB.Binary
 
         public static ICodec? GetScalarCodec(Guid typeId)
         {
-            if (_defaultCodecs.TryGetValue(typeId, out var codec))
+            if (_defaultCodecs.TryGetValue(typeId, out var codecType))
             {
-                // construct the codec
-                var builtCodec = (ICodec)Activator.CreateInstance(codec)!;
-                _codecCache[typeId] = builtCodec;
-                return builtCodec;
+                if (!TryGetScalarCodecOfType(codecType, out var codec))
+                {
+                    codec = (ICodec)Activator.CreateInstance(codecType)!;
+                }
+
+                _codecCache[typeId] = codec;
+                return codec;
             }
 
             return null;

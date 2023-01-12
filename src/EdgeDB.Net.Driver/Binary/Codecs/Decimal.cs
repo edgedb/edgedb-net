@@ -3,11 +3,11 @@ using EdgeDB.Utils;
 namespace EdgeDB.Binary.Codecs
 {
     // TODO: get rid of ugly strings and convert the Win32 DECIMAL to correct format
-    internal sealed class Decimal : IScalarCodec<decimal>
+    internal sealed class Decimal : BaseScalarCodec<decimal>
     {
         public const int NBASE = 10000;
 
-        public decimal Deserialize(ref PacketReader reader)
+        public override decimal Deserialize(ref PacketReader reader)
         {
             var numDigits = reader.ReadUInt16();
             var weight = reader.ReadInt16();
@@ -54,7 +54,7 @@ namespace EdgeDB.Binary.Codecs
             return decimal.Parse(value);
         }
 
-        public void Serialize(ref PacketWriter writer, decimal value)
+        public override void Serialize(ref PacketWriter writer, decimal value)
         {
             Span<int> span = stackalloc int[4];
             decimal.GetBits(value, span);

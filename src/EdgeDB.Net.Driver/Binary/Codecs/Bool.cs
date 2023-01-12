@@ -1,13 +1,13 @@
 namespace EdgeDB.Binary.Codecs
 {
-    internal sealed class Bool : IScalarCodec<bool>
+    internal sealed class Bool : BaseScalarCodec<bool>
     {
-        public bool Deserialize(ref PacketReader reader)
+        public override bool Deserialize(ref PacketReader reader)
         {
             return reader.ReadBoolean();
         }
 
-        public void Serialize(ref PacketWriter writer, bool value)
+        public override void Serialize(ref PacketWriter writer, bool value)
         {
             writer.Write(value);
         }

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary.Codecs
 {
-    internal sealed class SparceObject : ICodec<object>
+    internal sealed class SparceObject : BaseCodec<object>
     {
         private readonly ICodec[] _innerCodecs;
         private readonly string[] _fieldNames;
@@ -26,7 +26,7 @@ namespace EdgeDB.Binary.Codecs
             }
         }
 
-        public object? Deserialize(ref PacketReader reader)
+        public override object? Deserialize(ref PacketReader reader)
         {
             var numElements = reader.ReadInt32();
 
@@ -63,7 +63,7 @@ namespace EdgeDB.Binary.Codecs
             return data;
         }
 
-        public void Serialize(ref PacketWriter writer, object? value)
+        public override void Serialize(ref PacketWriter writer, object? value)
         {
             if (value is not IDictionary<string, object?> dict)
                 throw new InvalidOperationException($"Cannot serialize {value?.GetType() ?? Type.Missing} as a sparce object.");

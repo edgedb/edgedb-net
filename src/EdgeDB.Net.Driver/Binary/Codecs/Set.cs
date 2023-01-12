@@ -1,27 +1,27 @@
 namespace EdgeDB.Binary.Codecs
 {
-    internal sealed class Set<TInner> : ICodec<IEnumerable<TInner?>>, IWrappingCodec
+    internal sealed class Set<T> : BaseCodec<IEnumerable<T?>>, IWrappingCodec
     {
-        internal readonly ICodec<TInner> InnerCodec;
+        internal readonly ICodec<T> InnerCodec;
 
-        public Set(ICodec<TInner> innerCodec)
+        public Set(ICodec<T> innerCodec)
         {
             InnerCodec = innerCodec;
         }
 
-        public IEnumerable<TInner?>? Deserialize(ref PacketReader reader)
+        public override IEnumerable<T?>? Deserialize(ref PacketReader reader)
         {
-            if (InnerCodec is Array<TInner>)
+            if (InnerCodec is Array<T>)
                 return DecodeSetOfArrays(ref reader);
             else return DecodeSet(ref reader);
         }
 
-        public void Serialize(ref PacketWriter writer, IEnumerable<TInner?>? value)
+        public override void Serialize(ref PacketWriter writer, IEnumerable<T?>? value)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
-        private IEnumerable<TInner?>? DecodeSetOfArrays(ref PacketReader reader)
+        private IEnumerable<T?>? DecodeSetOfArrays(ref PacketReader reader)
         {
             var dimensions = reader.ReadInt32();
 
@@ -30,7 +30,7 @@ namespace EdgeDB.Binary.Codecs
 
             if(dimensions is 0)
             {
-                return Array.Empty<TInner>();
+                return Array.Empty<T>();
             }
 
             if(dimensions is not 1)
@@ -43,7 +43,7 @@ namespace EdgeDB.Binary.Codecs
 
             var numElements = upper - lower + 1;
 
-            var result = new TInner?[numElements];
+            var result = new T?[numElements];
 
             for(int i = 0; i != numElements; i++)
             {
@@ -64,7 +64,7 @@ namespace EdgeDB.Binary.Codecs
             return result;
         }
 
-        private IEnumerable<TInner?>? DecodeSet(ref PacketReader reader)
+        private IEnumerable<T?>? DecodeSet(ref PacketReader reader)
         {
             var dimensions = reader.ReadInt32();
 
@@ -73,7 +73,7 @@ namespace EdgeDB.Binary.Codecs
 
             if (dimensions is 0)
             {
-                return Array.Empty<TInner>();
+                return Array.Empty<T>();
             }
 
             if (dimensions is not 1)
@@ -86,7 +86,7 @@ namespace EdgeDB.Binary.Codecs
 
             var numElements = upper - lower + 1;
 
-            var result = new TInner?[numElements];
+            var result = new T?[numElements];
 
             for(int i = 0; i != numElements; i++)
             {

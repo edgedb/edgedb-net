@@ -7,16 +7,16 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary.Codecs
 {
-    internal sealed class RangeCodec<T> : ICodec<Range<T>>
+    internal sealed class RangeCodec<T> : BaseCodec<Range<T>>, IWrappingCodec
         where T : struct
     {
-        private ICodec<T> _innerCodec;
+        private readonly ICodec<T> _innerCodec;
         public RangeCodec(ICodec<T> innerCodec)
         {
             _innerCodec = innerCodec;
         }
 
-        public Range<T> Deserialize(ref PacketReader reader)
+        public override Range<T> Deserialize(ref PacketReader reader)
         {
             var flags = (RangeFlags)reader.ReadByte();
 
@@ -41,7 +41,7 @@ namespace EdgeDB.Binary.Codecs
             return new Range<T>(lowerBound, upperBound, (flags & RangeFlags.IncudeLowerBound) != 0, (flags & RangeFlags.IncludeUpperBound) != 0);
         }
 
-        public void Serialize(ref PacketWriter writer, Range<T> value)
+        public override void Serialize(ref PacketWriter writer, Range<T> value)
         {
             var flags = value.IsEmpty
                 ? RangeFlags.Empty
@@ -62,6 +62,8 @@ namespace EdgeDB.Binary.Codecs
                 writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => _innerCodec.Serialize(ref innerWriter, value.Upper.Value));
             }
         }
+
+        ICodec IWrappingCodec.InnerCodec => _innerCodec;
 
         [Flags]
         public enum RangeFlags : byte

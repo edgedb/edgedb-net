@@ -180,7 +180,7 @@ namespace EdgeDB
                 return true;
 
             // if its a scalar, defently don't try to use it.
-            if (ICodec.ContainsScalarCodec(type))
+            if (CodecBuilder.ContainsScalarCodec(type))
                 return false;
             
             return

@@ -2,11 +2,11 @@ using System.Numerics;
 
 namespace EdgeDB.Binary.Codecs
 {
-    internal sealed class BigInt : IScalarCodec<BigInteger>
+    internal sealed class BigInt : BaseScalarCodec<BigInteger>
     {
         public static readonly BigInteger Base = 10000;
 
-        public BigInteger Deserialize(ref PacketReader reader)
+        public override BigInteger Deserialize(ref PacketReader reader)
         {
             var numDigits = reader.ReadUInt16();
 
@@ -39,7 +39,7 @@ namespace EdgeDB.Binary.Codecs
             return BigInteger.Parse(result);
         }
 
-        public void Serialize(ref PacketWriter writer, BigInteger value)
+        public override void Serialize(ref PacketWriter writer, BigInteger value)
         {
             if(value == 0)
             {

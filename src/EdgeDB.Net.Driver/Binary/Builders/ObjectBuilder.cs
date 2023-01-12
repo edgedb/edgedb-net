@@ -17,6 +17,11 @@ namespace EdgeDB
                 return (TType?)TypeBuilder.BuildObject(typeof(TType), objectCodec, ref data);
             }
 
+            if(codec is ITemporalCodec temporal)
+            {
+                codec = temporal.GetCodecFor(typeof(TType));
+            }
+
             var value = codec.Deserialize(data.PayloadBuffer);
 
             return (TType?)ConvertTo(typeof(TType), value);

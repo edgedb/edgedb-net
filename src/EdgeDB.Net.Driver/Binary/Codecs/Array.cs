@@ -1,6 +1,6 @@
 namespace EdgeDB.Binary.Codecs
 {
-    internal sealed class Array<TInner> : ICodec<IEnumerable<TInner?>>, IWrappingCodec
+    internal sealed class Array<T> : BaseCodec<T?[]>, IWrappingCodec
     {
         public static readonly byte[] EMPTY_ARRAY = new byte[]
         {
@@ -11,14 +11,14 @@ namespace EdgeDB.Binary.Codecs
             0,0,0,1
         };
         
-        internal readonly ICodec<TInner> InnerCodec;
+        internal readonly ICodec<T> InnerCodec;
 
-        public Array(ICodec<TInner> innerCodec)
+        public Array(ICodec<T> innerCodec)
         {
             InnerCodec = innerCodec;
         }
 
-        public IEnumerable<TInner?> Deserialize(ref PacketReader reader)
+        public override T?[] Deserialize(ref PacketReader reader)
         {
             var dimensions = reader.ReadInt32();
 
@@ -27,7 +27,7 @@ namespace EdgeDB.Binary.Codecs
 
             if (dimensions is 0)
             {
-                return Array.Empty<TInner>();
+                return Array.Empty<T>();
             }
 
             if(dimensions is not 1)
@@ -40,7 +40,7 @@ namespace EdgeDB.Binary.Codecs
 
             var numElements = upper - lower + 1;
 
-            TInner?[] array = new TInner[numElements];
+            T?[] array = new T[numElements];
 
             for(int i = 0; i != numElements; i++)
             {
@@ -52,7 +52,7 @@ namespace EdgeDB.Binary.Codecs
             return array;
         }
 
-        public void Serialize(ref PacketWriter writer, IEnumerable<TInner?>? value)
+        public override void Serialize(ref PacketWriter writer, T?[]? value)
         {
             if(value is null)
             {
@@ -60,19 +60,17 @@ namespace EdgeDB.Binary.Codecs
                 return;
             }
 
-            var elements = value.ToArray(); // convert to array to prevent the reference from changing while we serialize
-
             writer.Write(1); // num dimensions
             writer.Write(0); // reserved
             writer.Write(0); // reserved
 
             // dimension (our length for upper and 1 for lower)
-            writer.Write(elements.Length); 
+            writer.Write(value.Length); 
             writer.Write(1);
             
-            for(int i = 0; i != elements.Length; i++)
+            for(int i = 0; i != value.Length; i++)
             {
-                var element = elements[i];
+                var element = value[i];
 
                 if(element is null)
                 {

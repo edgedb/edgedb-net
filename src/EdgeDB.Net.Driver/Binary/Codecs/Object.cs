@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace EdgeDB.Binary.Codecs
 {
-    internal sealed class Object : ICodec<object>, IArgumentCodec<object>, IMultiWrappingCodec
+    internal sealed class Object : BaseArgumentCodec<object>, IMultiWrappingCodec
     {
         private readonly ICodec[] _innerCodecs;
         private readonly string[] _propertyNames;
@@ -67,7 +67,7 @@ namespace EdgeDB.Binary.Codecs
             }
         }
 
-        public unsafe object? Deserialize(ref PacketReader reader)
+        public override object? Deserialize(ref PacketReader reader)
         {
             if (!Initialized || _factory is null || TargetType is null)
                 Initialize(typeof(object));
@@ -93,12 +93,7 @@ namespace EdgeDB.Binary.Codecs
             }
         }
 
-        public void Serialize(ref PacketWriter writer, object? value)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void SerializeArguments(ref PacketWriter writer, object? value)
+        public override void SerializeArguments(ref PacketWriter writer, object? value)
         {
             object?[]? values = null;
 
@@ -117,7 +112,6 @@ namespace EdgeDB.Binary.Codecs
             for (int i = 0; i != values.Length; i++)
             {
                 var element = values[i];
-                var innerCodec = _innerCodecs[i];
 
                 // reserved
                 writer.Write(0);
@@ -129,14 +123,20 @@ namespace EdgeDB.Binary.Codecs
                 }
                 else
                 {
+                    var innerCodec = _innerCodecs[i];
+
                     // special case for enums
                     if (element.GetType().IsEnum && innerCodec is Text)
                         element = element.ToString();
+                    else
+                        innerCodec = innerCodec.CorrectForType(element.GetType());
 
                     writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => innerCodec.Serialize(ref innerWriter, element));
                 }
             }
         }
+
+        public override void Serialize(ref PacketWriter writer, object? value) => throw new NotSupportedException();
 
         ICodec[] IMultiWrappingCodec.InnerCodecs => _innerCodecs;
     }
