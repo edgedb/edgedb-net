@@ -41,6 +41,62 @@ namespace EdgeDB.Tests.Integration
             }
         }
 
+        private async Task TestRangeQuerying<T>(string tname, DataTypes.Range<T> expected)
+            where T : struct
+            => await TestTypeQuerying<DataTypes.Range<T>>($"range<{tname}>", expected);
+
+        [TestMethod]
+        public Task TestRangeOfInt32()
+            => TestRangeQuerying("int32", new DataTypes.Range<int>(1, 40));
+
+        [TestMethod]
+        public Task TestRangeOfInt64()
+            => TestRangeQuerying("int64", new DataTypes.Range<long>(1, 40));
+
+        [TestMethod]
+        public Task TestRangeOfFloat32()
+            => TestRangeQuerying("float32", new DataTypes.Range<float>(1.5f, 400.5f));
+
+        [TestMethod]
+        public Task TestRangeOfFloat64()
+            => TestRangeQuerying("float64", new DataTypes.Range<double>(1.5, 400.5));
+
+        [TestMethod]
+        public Task TestRangeOfDecimal()
+            => TestRangeQuerying("decimal", new DataTypes.Range<decimal>(1.5M, 400.5M));
+
+        [TestMethod]
+        public Task TestRangeOfDateTime()
+            => TestRangeQuerying("datetime", new DataTypes.Range<DataTypes.DateTime>(DateTime.UtcNow.AddDays(-2), DateTime.UtcNow));
+
+        [TestMethod]
+        public Task TestRangeOfSystemDateTime()
+            => TestRangeQuerying("datetime", new DataTypes.Range<DateTime>(DateTime.UtcNow.AddDays(-2), DateTime.UtcNow));
+
+        [TestMethod]
+        public Task TestRangeOfSystemDateTimeOffset()
+            => TestRangeQuerying("datetime", new DataTypes.Range<DateTimeOffset>(DateTime.UtcNow.AddDays(-2), DateTime.UtcNow));
+
+        [TestMethod]
+        public Task TestRangeOfLocalDateTime()
+            => TestRangeQuerying("cal::local_datetime", new DataTypes.Range<DataTypes.LocalDateTime>(DateTime.UtcNow.AddDays(-2), DateTime.UtcNow));
+
+        [TestMethod]
+        public Task TestRangeOfSystemLocalDateTime()
+            => TestRangeQuerying("cal::local_datetime", new DataTypes.Range<DateTime>(DateTime.UtcNow.AddDays(-2), DateTime.UtcNow));
+
+        [TestMethod]
+        public Task TestRangeOfSystemLocalDateTimeOffset()
+            => TestRangeQuerying("cal::local_datetime", new DataTypes.Range<DateTimeOffset>(DateTime.UtcNow.AddDays(-2), DateTime.UtcNow));
+
+        [TestMethod]
+        public Task TestRangeOfLocalDate()
+            => TestRangeQuerying("cal::local_date", new DataTypes.Range<DataTypes.LocalDate>(DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-2)), DateOnly.FromDateTime(DateTime.UtcNow)));
+
+        [TestMethod]
+        public Task TestRangeOfSystemLocalDate()
+            => TestRangeQuerying("cal::local_date", new DataTypes.Range<DateOnly>(DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-2)), DateOnly.FromDateTime(DateTime.UtcNow)));
+
         [TestMethod]
         public Task TestUUID()
             => TestTypeQuerying("uuid", Guid.NewGuid());

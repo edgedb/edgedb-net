@@ -67,10 +67,6 @@ namespace EdgeDB.Binary.Codecs
             writer.Write((ushort)0); // reserved
             for (int i = digits.Count - 1; i >= 0; i--)
                 writer.Write(digits[i]);
-
-            //var h = HexConverter.ToHex(writer.GetBytes().ToArray());
-
-
         }
     }
 }

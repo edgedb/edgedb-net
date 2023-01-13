@@ -43,9 +43,9 @@ namespace EdgeDB.ExampleApp.Examples
 
         public async Task ExecuteAsync(EdgeDBClient client)
         {
-            var tt = await client.QuerySingleAsync<string>("select <optional int32>$arg", new Dictionary<string, object?>
+            var tt = await client.QuerySingleAsync<DataTypes.Range<DateTime>>("select <range<datetime>>$arg", new Dictionary<string, object?>
             {
-                {"arg", null }
+                {"arg", new DataTypes.Range<DateTime>(DateTime.UtcNow.AddDays(-2), DateTime.UtcNow) }
             });
             var t = await client.QueryRequiredSingleAsync<DateTime>("select <cal::local_datetime>'2018-05-07T15:01:22'");
 

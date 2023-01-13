@@ -1,7 +1,9 @@
 using EdgeDB.Binary.Codecs;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
@@ -26,7 +28,7 @@ namespace EdgeDB.Binary
     {
         public static readonly Guid NullCodec = Guid.Empty;
         public static readonly Guid InvalidCodec = Guid.Parse("ffffffffffffffffffffffffffffffff");
-        private static readonly ConcurrentDictionary<Guid, ICodec> _codecCache = new();
+        private static readonly ConcurrentDictionary<(Guid, Type), ICodec> _codecCache = new();
         private static readonly ConcurrentDictionary<ulong, (Guid InCodec, Guid OutCodec)> _codecKeyMap = new();
 
         private static readonly List<Type> _codecs;
@@ -79,7 +81,7 @@ namespace EdgeDB.Binary
         public static ulong GetCacheHashKey(string query, Cardinality cardinality, IOFormat format)
             => unchecked(CalculateKnuthHash(query) * (ulong)cardinality * (ulong)format);
         
-        public static bool TryGetCodecs(ulong hash,
+        public static bool TryGetCodecs(ulong hash, Type resultType,
             [MaybeNullWhen(false)] out CodecInfo inCodecInfo,
             [MaybeNullWhen(false)] out CodecInfo outCodecInfo)
         {
@@ -90,8 +92,8 @@ namespace EdgeDB.Binary
             ICodec? outCodec;
 
             if (_codecKeyMap.TryGetValue(hash, out var codecIds)
-                && (_codecCache.TryGetValue(codecIds.InCodec, out inCodec) || ((inCodec = GetScalarCodec(codecIds.InCodec)) != null))
-                && (_codecCache.TryGetValue(codecIds.OutCodec, out outCodec) || ((outCodec = GetScalarCodec(codecIds.OutCodec)) != null)))
+                && (_codecCache.TryGetValue((codecIds.InCodec, resultType), out inCodec) || ((inCodec = GetScalarCodec(codecIds.InCodec, resultType)) != null))
+                && (_codecCache.TryGetValue((codecIds.OutCodec, resultType), out outCodec) || ((outCodec = GetScalarCodec(codecIds.OutCodec, resultType)) != null)))
             {
                 inCodecInfo = new(codecIds.InCodec, inCodec);
                 outCodecInfo = new(codecIds.OutCodec, outCodec);
@@ -104,16 +106,16 @@ namespace EdgeDB.Binary
         public static void UpdateKeyMap(ulong hash, Guid inCodec, Guid outCodec)
             => _codecKeyMap[hash] = (inCodec, outCodec);
 
-        public static ICodec? GetCodec(Guid id)
-            => _codecCache.TryGetValue(id, out var codec) ? codec : GetScalarCodec(id);
+        public static ICodec? GetCodec(Guid id, Type resultType)
+            => _codecCache.TryGetValue((id, resultType), out var codec) ? codec : GetScalarCodec(id, resultType);
 
-        public static ICodec BuildCodec(Guid id, byte[] buff)
+        public static ICodec BuildCodec(Guid id, byte[] buff, Type resultType)
         {
             var reader = new PacketReader(buff.AsSpan());
-            return BuildCodec(id, ref reader);
+            return BuildCodec(id, ref reader, resultType);
         }
 
-        public static ICodec BuildCodec(Guid id, ref PacketReader reader)
+        public static ICodec BuildCodec(Guid id, ref PacketReader reader, Type resultType)
         {
             if (id == NullCodec)
                 return new NullCodec();
@@ -124,8 +126,8 @@ namespace EdgeDB.Binary
             {
                 var typeDescriptor = ITypeDescriptor.GetDescriptor(ref reader);
 
-                if (!_codecCache.TryGetValue(typeDescriptor.Id, out var codec))
-                    codec = GetScalarCodec(typeDescriptor.Id);
+                if (!_codecCache.TryGetValue((typeDescriptor.Id, resultType), out var codec))
+                    codec = GetScalarCodec(typeDescriptor.Id, resultType);
 
                 if (codec is not null)
                     codecs.Add(codec);
@@ -134,29 +136,33 @@ namespace EdgeDB.Binary
                     codec = typeDescriptor switch
                     {
                         EnumerationTypeDescriptor enumeration => new Text(),
-                        NamedTupleTypeDescriptor namedTuple   => new Binary.Codecs.Object(namedTuple, codecs),
-                        BaseScalarTypeDescriptor scalar       => throw new MissingCodecException($"Could not find the scalar type {scalar.Id}. Please file a bug report with your query that caused this error."),
-                        ObjectShapeDescriptor @object         => new Binary.Codecs.Object(@object, codecs),
-                        InputShapeDescriptor input            => new SparceObject(input, codecs),
-                        TupleTypeDescriptor tuple             => new Binary.Codecs.Tuple(tuple.ElementTypeDescriptorsIndex.Select(x => codecs[x]).ToArray()),
-                        RangeTypeDescriptor range             => (ICodec)Activator.CreateInstance(typeof(RangeCodec<>).MakeGenericType(codecs[range.TypePos].ConverterType), codecs[range.TypePos])!,
-                        ArrayTypeDescriptor array             => (ICodec)Activator.CreateInstance(typeof(Array<>).MakeGenericType(codecs[array.TypePos].ConverterType), codecs[array.TypePos])!,
-                        SetTypeDescriptor set                 => (ICodec)Activator.CreateInstance(typeof(Set<>).MakeGenericType(codecs[set.TypePos].ConverterType), codecs[set.TypePos])!,
-                        _ => throw new MissingCodecException($"Could not find a type descriptor with type {typeDescriptor.Id:X2}. Please file a bug report with your query that caused this error.")
+                        NamedTupleTypeDescriptor  namedTuple  => new Binary.Codecs.Object(namedTuple, codecs),
+                        BaseScalarTypeDescriptor  scalar      => throw new MissingCodecException($"Could not find the scalar type {scalar.Id}. Please file a bug report with your query that caused this error."),
+                        ObjectShapeDescriptor     @object     => new Binary.Codecs.Object(@object, codecs),
+                        InputShapeDescriptor      input       => new SparceObject(input, codecs),
+                        TupleTypeDescriptor       tuple       => new Binary.Codecs.Tuple(tuple.ElementTypeDescriptorsIndex.Select(x => codecs[x]).ToArray()),
+                        RangeTypeDescriptor       range       => new CompilableWrappingCodec(typeDescriptor.Id, codecs[range.TypePos], typeof(RangeCodec<>)), // (ICodec)Activator.CreateInstance(typeof(RangeCodec<>).MakeGenericType(codecs[range.TypePos].ConverterType), codecs[range.TypePos])!,
+                        ArrayTypeDescriptor       array       => new CompilableWrappingCodec(typeDescriptor.Id, codecs[array.TypePos], typeof(Array<>)), //(ICodec)Activator.CreateInstance(typeof(Array<>).MakeGenericType(codecs[array.TypePos].ConverterType), codecs[array.TypePos])!,
+                        SetTypeDescriptor         set         => new CompilableWrappingCodec(typeDescriptor.Id, codecs[set.TypePos], typeof(Set<>)), //(ICodec)Activator.CreateInstance(typeof(Set<>).MakeGenericType(codecs[set.TypePos].ConverterType), codecs[set.TypePos])!,
+                        _ => throw new MissingCodecException($"Could not find a type descriptor with type {typeDescriptor.Id}. Please file a bug report with your query that caused this error.")
                     };
 
                     codecs.Add(codec);
 
-                    _codecCache[typeDescriptor.Id] = codec;
+                    //_codecCache[(typeDescriptor.Id, resultType)] = codec;
                 }
             }
 
-            _codecCache[id] = codecs.Last();
+            var finalCodec = codecs.Last();
 
-            return codecs.Last();
+            var visitor = new TypeResultVisitor(resultType);
+
+            visitor.Visit(ref finalCodec);
+
+            return _codecCache[(id, resultType)] = finalCodec;
         }
 
-        public static ICodec? GetScalarCodec(Guid typeId)
+        public static ICodec? GetScalarCodec(Guid typeId, Type resultType)
         {
             if (_defaultCodecs.TryGetValue(typeId, out var codecType))
             {
@@ -165,7 +171,7 @@ namespace EdgeDB.Binary
                     codec = (ICodec)Activator.CreateInstance(codecType)!;
                 }
 
-                _codecCache[typeId] = codec;
+                _codecCache[(typeId, resultType)] = codec;
                 return codec;
             }
 

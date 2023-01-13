@@ -21,8 +21,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Remove="ContractResolvers\" />
+    <None Remove="Binary\Codecs\Visitors\" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ContractResolvers\" />
+    <Folder Include="Binary\Codecs\Visitors\" />
   </ItemGroup>
 </Project>

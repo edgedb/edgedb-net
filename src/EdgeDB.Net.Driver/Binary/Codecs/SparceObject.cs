@@ -10,19 +10,19 @@ namespace EdgeDB.Binary.Codecs
 {
     internal sealed class SparceObject : BaseCodec<object>
     {
-        private readonly ICodec[] _innerCodecs;
-        private readonly string[] _fieldNames;
+        public ICodec[] InnerCodecs;
+        public readonly string[] FieldNames;
 
         internal SparceObject(InputShapeDescriptor descriptor, List<ICodec> codecs)
         {
-            _innerCodecs = new ICodec[descriptor.Shapes.Length];
-            _fieldNames = new string[descriptor.Shapes.Length];
+            InnerCodecs = new ICodec[descriptor.Shapes.Length];
+            FieldNames = new string[descriptor.Shapes.Length];
 
             for (int i = 0; i != descriptor.Shapes.Length; i++)
             {
                 var shape = descriptor.Shapes[i];
-                _innerCodecs[i] = codecs[shape.TypePos];
-                _fieldNames[i] = shape.Name;
+                InnerCodecs[i] = codecs[shape.TypePos];
+                FieldNames[i] = shape.Name;
             }
         }
 
@@ -30,9 +30,9 @@ namespace EdgeDB.Binary.Codecs
         {
             var numElements = reader.ReadInt32();
 
-            if (_innerCodecs.Length != numElements)
+            if (InnerCodecs.Length != numElements)
             {
-                throw new ArgumentException($"codecs mismatch for tuple: expected {numElements} codecs, got {_innerCodecs.Length} codecs");
+                throw new ArgumentException($"codecs mismatch for tuple: expected {numElements} codecs, got {InnerCodecs.Length} codecs");
             }
 
             dynamic data = new ExpandoObject();
@@ -41,7 +41,7 @@ namespace EdgeDB.Binary.Codecs
             for (int i = 0; i != numElements; i++)
             {
                 var index = reader.ReadInt32();
-                var elementName = _fieldNames[index];
+                var elementName = FieldNames[index];
 
                 var length = reader.ReadInt32();
 
@@ -55,7 +55,7 @@ namespace EdgeDB.Binary.Codecs
 
                 object? value;
 
-                value = _innerCodecs[i].Deserialize(innerData);
+                value = InnerCodecs[i].Deserialize(innerData);
 
                 dataDictionary.Add(elementName, value);
             }
@@ -78,7 +78,7 @@ namespace EdgeDB.Binary.Codecs
 
             foreach(var element in dict)
             {
-                var index = Array.IndexOf(_fieldNames, element.Key);
+                var index = Array.IndexOf(FieldNames, element.Key);
 
                 if (index == -1)
                     throw new MissingCodecException($"No serializer found for field {element.Key}");
@@ -89,7 +89,7 @@ namespace EdgeDB.Binary.Codecs
                     writer.Write(-1);
                 else
                 {
-                    var codec = _innerCodecs[index];
+                    var codec = InnerCodecs[index];
                     writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => codec.Serialize(ref innerWriter, element.Value));
                 }
             }

@@ -203,7 +203,7 @@ namespace EdgeDB
                 var serializedState = Session.Serialize();
                 var stateBuf = _stateCodec?.Serialize(serializedState)!;
                 
-                if (!CodecBuilder.TryGetCodecs(cacheKey, out var inCodecInfo, out var outCodecInfo))
+                if (!CodecBuilder.TryGetCodecs(cacheKey, typeof(TResult), out var inCodecInfo, out var outCodecInfo))
                 {                    
                     while (!successfullyParsed)
                     {
@@ -250,17 +250,17 @@ namespace EdgeDB
                                 case CommandDataDescription descriptor:
                                     {
                                         outCodecInfo = new(descriptor.OutputTypeDescriptorId,
-                                            CodecBuilder.BuildCodec(descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer));
+                                            CodecBuilder.BuildCodec(descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer, typeof(TResult)));
 
                                         inCodecInfo = new(descriptor.InputTypeDescriptorId,
-                                            CodecBuilder.BuildCodec(descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer));
+                                            CodecBuilder.BuildCodec(descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer, typeof(TResult)));
 
                                         CodecBuilder.UpdateKeyMap(cacheKey, descriptor.InputTypeDescriptorId, descriptor.OutputTypeDescriptorId);
                                     }
                                     break;
                                 case StateDataDescription stateDescriptor:
                                     {
-                                        _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                                        _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer, typeof(TResult));
                                         _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                                         gotStateDescriptor = true;
                                         stateBuf = _stateCodec?.Serialize(serializedState)!;
@@ -322,7 +322,7 @@ namespace EdgeDB
                                 break;
                             case StateDataDescription stateDescriptor:
                                 {
-                                    _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                                    _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer, typeof(TResult));
                                     _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                                     gotStateDescriptor = true;
                                     stateBuf = _stateCodec?.Serialize(serializedState)!;
@@ -569,7 +569,7 @@ namespace EdgeDB
                     ServerKey = keyData.KeyBuffer;
                     break;
                 case StateDataDescription stateDescriptor:
-                    _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                    _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer, typeof(State.Session));
                     _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                     break;
                 case ParameterStatus parameterStatus:
@@ -709,12 +709,12 @@ namespace EdgeDB
                         var descriptorId = reader.ReadGuid();
                         reader.ReadBytes(length, out var typeDesc);
 
-                        var codec = CodecBuilder.GetCodec(descriptorId);
+                        var codec = CodecBuilder.GetCodec(descriptorId, typeof(void));
 
                         if (codec is null)
                         {
                             var innerReader = new PacketReader(ref typeDesc);
-                            codec = CodecBuilder.BuildCodec(descriptorId, ref innerReader);
+                            codec = CodecBuilder.BuildCodec(descriptorId, ref innerReader, typeof(void));
 
                             if (codec is null)
                                 throw new MissingCodecException("Failed to build codec for system_config");
