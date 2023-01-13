@@ -113,8 +113,10 @@ namespace EdgeDB.Binary.Codecs
                 if (sizeof(TransientTemporal) < sizeof(TSys))
                     throw new InvalidOperationException($"Transient temporal size is less than the size of {typeof(TSys)}");
 
-                var transient = Unsafe.As<TSys, TransientTemporal>(ref value);
+                // create as ref to ensure lifetime matches the 'value' arg.
+                ref var transient = ref Unsafe.As<TSys, TransientTemporal>(ref value);
 
+                // ensure passed as ref and copied on assignment.
                 var model = _from(ref transient);
 
                 // passing as a non-ref parameter creates a copy, keeping the

@@ -53,29 +53,24 @@ namespace EdgeDB.DataTypes
 
             return
 #if NET7_0_OR_GREATER
-                (long)Math.Truncate(offset.TotalMicroseconds);
+                (long)Math.Round(offset.TotalMicroseconds);
 #else
-                (long)Math.Truncate(offset.TotalMilliseconds * 1000);
+                (long)Math.Round(offset.TotalMilliseconds * 1000);
 #endif
         }
 
         public static long ToMicroseconds(TimeOnly time)
         {
-            return
-#if NET7_0_OR_GREATER
-                time.Microsecond;
-#else
-                ToMicroseconds(time.ToTimeSpan());
-#endif
+            return ToMicroseconds(time.ToTimeSpan());
         }
 
         public static long ToMicroseconds(TimeSpan timespan)
         {
             return
 #if NET7_0_OR_GREATER
-                (long)Math.Truncate(timespan.TotalMicroseconds);
+                (long)Math.Round(timespan.TotalMicroseconds);
 #else
-                (long)Math.Truncate(timespan.TotalMilliseconds * 1000);
+                (long)Math.Round(timespan.TotalMilliseconds * 1000);
 #endif
         }
 
@@ -101,7 +96,7 @@ namespace EdgeDB.DataTypes
 
         public static int ToDays(DateOnly date)
         {
-            return (int)Math.Truncate((date.ToDateTime(TimeOnly.MinValue) - EdgeDBEpocDateTime).TotalDays);
+            return (int)Math.Round((date.ToDateTime(TimeOnly.MinValue) - EdgeDBEpocDateTime).TotalDays);
         }
     }
 }

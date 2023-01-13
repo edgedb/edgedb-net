@@ -12,6 +12,12 @@ namespace EdgeDB
                 return temporal.GetCodecFor(type);
             }
 
+            if(codec is IWrappingCodec or IMultiWrappingCodec)
+            {
+                // the inner codecs type needs to be changed to 'type'.
+
+            }
+
             return codec;
         }
 

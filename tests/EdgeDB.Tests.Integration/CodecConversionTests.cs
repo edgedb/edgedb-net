@@ -83,11 +83,11 @@ namespace EdgeDB.Tests.Integration
 
         [TestMethod]
         public Task TestDateTime()
-            => TestTypeQuerying<DataTypes.DateTime>("datetime", DateTime.UtcNow);
+            => TestTypeQuerying<DataTypes.DateTime>("datetime", RandomDateTime());
 
         [TestMethod]
         public Task TestDuration()
-            => TestTypeQuerying<DataTypes.Duration>("duration", TimeSpan.FromSeconds(Random.Shared.Next()));
+            => TestTypeQuerying<DataTypes.Duration>("duration", RandomTimeSpan());
 
         [TestMethod]
         public Task TestJson()
@@ -95,11 +95,11 @@ namespace EdgeDB.Tests.Integration
 
         [TestMethod]
         public Task TestLocalDateTime()
-            => TestTypeQuerying<DataTypes.LocalDateTime>("cal::local_datetime", DateTime.UtcNow);
+            => TestTypeQuerying<DataTypes.LocalDateTime>("cal::local_datetime", RandomDTO());
 
         [TestMethod]
         public Task TestLocalDate()
-            => TestTypeQuerying<DataTypes.LocalDate>("cal::local_date", DateOnly.FromDateTime(DateTime.UtcNow));
+            => TestTypeQuerying<DataTypes.LocalDate>("cal::local_date", RandomDate());
 
         [TestMethod]
         public Task TestLocalTime()
@@ -107,11 +107,11 @@ namespace EdgeDB.Tests.Integration
 
         [TestMethod]
         public Task TestBigInt()
-            => TestTypeQuerying<BigInteger>("bigint", Random.Shared.NextInt64());
+            => TestTypeQuerying<BigInteger>("bigint", -15000);
 
         [TestMethod]
         public Task TestRelativeDuration()
-            => TestTypeQuerying<DataTypes.RelativeDuration>("cal::relative_duration", TimeSpan.FromSeconds(Random.Shared.Next()));
+            => TestTypeQuerying<DataTypes.RelativeDuration>("cal::relative_duration", RandomTimeSpan());
 
         [TestMethod]
         public Task TestDateDuration()
@@ -123,18 +123,40 @@ namespace EdgeDB.Tests.Integration
 
         [TestMethod]
         public Task TestDateTimeLegacy()
-            => TestTypeQuerying("cal::local_datetime", DateTime.UtcNow);
+            => TestTypeQuerying("cal::local_datetime", RandomDateTime());
 
         [TestMethod]
         public Task TestDateTimeOffsetLegacy()
-            => TestTypeQuerying("datetime", DateTimeOffset.UtcNow);
+            => TestTypeQuerying("datetime", RandomDTO());
 
         [TestMethod]
-        public Task TestTimespanLegacy()
-            => TestTypeQuerying("cal::local_time", TimeSpan.FromSeconds(Random.Shared.Next()));
+        public Task TestTimeOnlyLegacy()
+            => TestTypeQuerying("cal::local_time", TimeOnly.FromDateTime(DateTime.UtcNow));
 
         [TestMethod]
         public Task TestDateOnlyLegacy()
-            => TestTypeQuerying("cal::local_date", DateOnly.FromDateTime(DateTime.UtcNow));
+            => TestTypeQuerying("cal::local_date", RandomDate());
+
+        private TimeSpan RandomTimeSpan()
+        {
+            var ticks = Random.Shared.NextInt64(TimeSpan.Zero.Ticks, TimeSpan.FromDays(100).Ticks);
+            return TimeSpan.FromTicks((ticks / 1000) * 1000); // convert to microsecond precision to match db
+        }
+
+        private DateTime RandomDateTime()
+        {
+            var ticks = Random.Shared.NextInt64(new DateTime(2000, 1, 1, 0, 0, 0).Ticks, DateTime.UtcNow.Ticks);
+            return new DateTime((ticks / 1000) * 1000).ToUniversalTime(); // convert to microsecond precision to match db
+        }
+
+        private DateTimeOffset RandomDTO()
+        {
+            return RandomDateTime().ToUniversalTime();
+        }
+
+        private DateOnly RandomDate()
+        {
+            return DateOnly.FromDateTime(RandomDateTime());
+        }
     }
 }

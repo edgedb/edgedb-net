@@ -1,3 +1,4 @@
+using EdgeDB.Utils;
 using System.Numerics;
 
 namespace EdgeDB.Binary.Codecs
@@ -51,22 +52,25 @@ namespace EdgeDB.Binary.Codecs
 
             var sign = value > 0 ? NumericSign.POS : NumericSign.NEG;
             var absValue = value < 0 ? -value : value;
-            var mutableValue = value;
             List<ushort> digits = new();
             
-            while(mutableValue != 0)
+            while(absValue != 0)
             {
                 var mod = absValue % Base;
-                mutableValue /= Base;
+                absValue /= Base;
                 digits.Add((ushort)mod);
             }
 
             writer.Write((ushort)digits.Count); // ndigits
-            writer.Write((ushort)digits.Count - 1); // weight
+            writer.Write((short)(digits.Count - 1)); // weight
             writer.Write((ushort)sign); // sign
             writer.Write((ushort)0); // reserved
-            for (int i = 0; i != digits.Count; i++)
+            for (int i = digits.Count - 1; i >= 0; i--)
                 writer.Write(digits[i]);
+
+            //var h = HexConverter.ToHex(writer.GetBytes().ToArray());
+
+
         }
     }
 }

@@ -5,9 +5,9 @@ using System.Runtime.InteropServices;
 namespace EdgeDB.Binary
 {
     [StructLayout(LayoutKind.Sequential)]
-    internal unsafe readonly struct TransientTemporal
+    internal unsafe struct TransientTemporal
     {
-        public readonly ulong A;
+        public readonly long A;
         public readonly short B;
 
         public DateTime DateTime
@@ -28,10 +28,7 @@ namespace EdgeDB.Binary
         private T AsUnsafe<T>()
             where T : unmanaged
         {
-            fixed (TransientTemporal* ptr = &this)
-            {
-                return *(T*)&ptr;
-            }
+            return *(T*)Unsafe.AsPointer(ref this);
         }
 
         public static ref TransientTemporal From(ref TimeSpan ts)
