@@ -7,15 +7,13 @@ namespace EdgeDB
     {
         public static ICodec CorrectForType(this ICodec codec, Type type)
         {
-            if(codec is ITemporalCodec temporal)
+            switch (codec)
             {
-                return temporal.GetCodecFor(type);
-            }
-
-            if(codec is IWrappingCodec or IMultiWrappingCodec)
-            {
-                // the inner codecs type needs to be changed to 'type'.
-
+                case ITemporalCodec temporal:
+                    return temporal.GetCodecFor(type);
+                case CompilableWrappingCodec compilable:
+                    compilable.InnerCodec = compilable.InnerCodec.CorrectForType(type.GetGenericArguments()[0]);
+                    return compilable.Compile();
             }
 
             return codec;

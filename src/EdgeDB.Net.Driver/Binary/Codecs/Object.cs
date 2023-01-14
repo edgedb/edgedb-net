@@ -137,6 +137,11 @@ namespace EdgeDB.Binary.Codecs
             }
         }
 
+        internal void UpdateFactory(TypeDeserializerFactory factory)
+        {
+            _factory = factory;
+        }
+
         public override void Serialize(ref PacketWriter writer, object? value) => throw new NotSupportedException();
 
         ICodec[] IMultiWrappingCodec.InnerCodecs => InnerCodecs;

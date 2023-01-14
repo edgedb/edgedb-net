@@ -12,14 +12,16 @@ namespace EdgeDB
     {
         public static TType? BuildResult<TType>(ICodec codec, ref Data data)
         {
+            var visitor = new TypeResultVisitor(typeof(TType));
+
+            visitor.Visit(ref codec);
+
             if (codec is Binary.Codecs.Object objectCodec)
             {
                 return (TType?)TypeBuilder.BuildObject(typeof(TType), objectCodec, ref data);
             }
 
-            var correctedCodec = codec.CorrectForType(typeof(TType));
-
-            var value = correctedCodec.Deserialize(data.PayloadBuffer);
+            var value = codec.Deserialize(data.PayloadBuffer);
 
             return (TType?)ConvertTo(typeof(TType), value);
         }

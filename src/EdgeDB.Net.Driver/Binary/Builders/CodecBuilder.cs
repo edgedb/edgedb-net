@@ -26,6 +26,9 @@ namespace EdgeDB.Binary
 
     internal sealed class CodecBuilder
     {
+        public static ICollection<ICodec> CachedCodecs
+            => _codecCache.Values;
+
         public static readonly Guid NullCodec = Guid.Empty;
         public static readonly Guid InvalidCodec = Guid.Parse("ffffffffffffffffffffffffffffffff");
         private static readonly ConcurrentDictionary<(Guid, Type), ICodec> _codecCache = new();
@@ -153,13 +156,7 @@ namespace EdgeDB.Binary
                 }
             }
 
-            var finalCodec = codecs.Last();
-
-            var visitor = new TypeResultVisitor(resultType);
-
-            visitor.Visit(ref finalCodec);
-
-            return _codecCache[(id, resultType)] = finalCodec;
+            return _codecCache[(id, resultType)] = codecs.Last();
         }
 
         public static ICodec? GetScalarCodec(Guid typeId, Type resultType)

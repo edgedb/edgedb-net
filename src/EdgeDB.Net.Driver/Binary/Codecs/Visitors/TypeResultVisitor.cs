@@ -56,48 +56,32 @@ namespace EdgeDB.Binary.Codecs
 
                             Visit(ref innerCodec);
 
-                            if (TryMutateToContext(ref innerCodec) || innerCodec != obj.InnerCodecs[i])
-                                obj.InnerCodecs[i] = innerCodec;
-
+                            obj.InnerCodecs[i] = innerCodec;
                         }
                     }
                     break;
                 case Tuple tuple:
                     {
-                        var gn = Context.Type.GetGenericArguments();
+                        var tupleTypes = DataTypes.TransientTuple.FlattenTypes(Context.Type);
 
-                        if (gn.Length != tuple.InnerCodecs.Length)
+                        if (tupleTypes.Length != tuple.InnerCodecs.Length)
                             throw new NoTypeConverterException($"Cannot determine inner types of the tuple {Context.Type}");
 
                         for(int i = 0; i != tuple.InnerCodecs.Length; i++)
                         {
                             var innerCodec = tuple.InnerCodecs[i];
-                            var type = gn[i];
+                            var type = tupleTypes[i];
                             using var elementHandle = EnterNewContext(type);
 
                             Visit(ref innerCodec);
 
-                            if (TryMutateToContext(ref innerCodec) || innerCodec != tuple.InnerCodecs[i])
-                                tuple.InnerCodecs[i] = innerCodec;
-
+                            tuple.InnerCodecs[i] = innerCodec;
                         }
                     }
                     break;
-                case CompilableWrappingCodec compilable:
-                    {
-                        var tmp = compilable.InnerCodec;
-                        VisitCodec(ref tmp);
-                        compilable.InnerCodec = tmp;
-
-                        var result = compilable.Compile();
-
-                        Visit(ref result);
-                        TryMutateToContext(ref result);
-
-                        codec = result;
-                    }
+                default:
+                    TryMutateToContext(ref codec);
                     break;
-                
             }
         }
 
@@ -106,12 +90,18 @@ namespace EdgeDB.Binary.Codecs
             switch (codec)
             {
                 case CompilableWrappingCodec compilable:
-                    var tmp = compilable.InnerCodec;
-                    VisitCodec(ref tmp);
-                    compilable.InnerCodec = tmp;
+                    {
+                        var tmp = compilable.InnerCodec;
 
-                    codec = compilable.Compile();
-                    return true;
+                        using var innerHandle = EnterNewContext(GetWrappingType(Context.Type));
+
+                        VisitCodec(ref tmp);
+
+                        compilable.InnerCodec = tmp;
+
+                        codec = compilable.Compile();
+                        return true;
+                    }
                 case ITemporalCodec temporal:
                     codec = temporal.GetCodecFor(Context.Type);
                     return true;
@@ -127,6 +117,22 @@ namespace EdgeDB.Binary.Codecs
         {
             _frames.Push(new TypeResultFrame { Type = type, Name = name, Deserializer = deserializer });
             return new FrameHandle(_frames);
+        }
+
+        private static Type GetWrappingType(Type type)
+        {
+            if(type.GenericTypeArguments.Length == 1)
+            {
+                return type.GenericTypeArguments[0];
+            }
+
+            Type? iface = null;
+            if((iface = type.GetInterfaces().FirstOrDefault(x => x.Name == "IEnumerable`1")) is not null)
+            {
+                return iface.GenericTypeArguments[0];
+            }
+
+            throw new NotSupportedException($"Cannot find valid wrapping type on type {type}");
         }
 
         private struct TypeResultFrame
