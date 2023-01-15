@@ -20,14 +20,18 @@ namespace EdgeDB.Tests.Integration
             _client = ClientProvider.EdgeDB;
         }
 
-        private async Task TestTypeQuerying<TType>(string tname, TType expected)
+        private async Task TestTypeQuerying<TType>(string tname, TType expected, Predicate<TType>? comparer = null)
         {
             var actual = await _client.QueryRequiredSingleAsync<TType>($"select <{tname}>$value", new Dictionary<string, object?>
             {
                 {"value", expected }
             });
 
-            if (expected is byte[] bt && actual is byte[] bt2)
+            if(comparer is not null)
+            {
+                Assert.IsTrue(comparer(actual));
+            }
+            else if (expected is byte[] bt && actual is byte[] bt2)
             {
                 Assert.IsTrue(bt.SequenceEqual(bt2));
             }
@@ -41,6 +45,39 @@ namespace EdgeDB.Tests.Integration
             }
         }
 
+        #region Arrays
+        private async Task TestArrayQuerying<T>(string tname, T[] expected)
+            => await TestTypeQuerying<T[]>($"array<{tname}>", expected, v => v.SequenceEqual(expected));
+        private async Task TestArrayOfRange<T>(string tname, DataTypes.Range<T>[] expected)
+            where T : struct
+            => await TestArrayQuerying($"range<{tname}>", expected);
+
+        [TestMethod]
+        public async Task TestArrayOfScalars()
+        {
+            await TestArrayQuerying("int16", new short[] { 1, 2, 5, 9, 24 });
+            await TestArrayQuerying("int32", new int[] { 1, 2, 5, 9, 24 });
+            await TestArrayQuerying("int64", new long[] { 1, 2, 5, 9, 24 });
+
+            await TestArrayQuerying("str", new string[] { "Hello", "EdgeDB", "Dot", "Net" });
+
+            await TestArrayQuerying("bool", new bool[] { true, false, false, true });
+
+            await TestArrayQuerying("float32", new float[] { 1.1f, 2.2f, 3.141592654f, 5.5f });
+            await TestArrayQuerying("float64", new double[] { 1.1, 2.2, 3.141592654, 5.5 });
+
+            await TestArrayQuerying("decimal", new decimal[] { 1.1M, 2.2M, 3.141592654M, 5.5M });
+
+            await TestArrayQuerying("bigint", new BigInteger[] { (BigInteger)long.MaxValue, 12444, 245156 });
+        }
+
+        public async Task TestArrayOfRangeScalars()
+        {
+
+        }
+        #endregion
+
+        #region Ranges
         private async Task TestRangeQuerying<T>(string tname, DataTypes.Range<T> expected)
             where T : struct
             => await TestTypeQuerying<DataTypes.Range<T>>($"range<{tname}>", expected);
@@ -96,7 +133,9 @@ namespace EdgeDB.Tests.Integration
         [TestMethod]
         public Task TestRangeOfSystemLocalDate()
             => TestRangeQuerying("cal::local_date", new DataTypes.Range<DateOnly>(DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-2)), DateOnly.FromDateTime(DateTime.UtcNow)));
+        #endregion
 
+        #region Scalars
         [TestMethod]
         public Task TestUUID()
             => TestTypeQuerying("uuid", Guid.NewGuid());
@@ -192,7 +231,9 @@ namespace EdgeDB.Tests.Integration
         [TestMethod]
         public Task TestDateOnlyLegacy()
             => TestTypeQuerying("cal::local_date", RandomDate());
+        #endregion
 
+        #region Helpers
         private TimeSpan RandomTimeSpan()
         {
             var ticks = Random.Shared.NextInt64(TimeSpan.Zero.Ticks, TimeSpan.FromDays(100).Ticks);
@@ -214,5 +255,6 @@ namespace EdgeDB.Tests.Integration
         {
             return DateOnly.FromDateTime(RandomDateTime());
         }
+        #endregion
     }
 }

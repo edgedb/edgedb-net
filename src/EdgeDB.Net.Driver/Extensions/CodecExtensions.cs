@@ -12,7 +12,7 @@ namespace EdgeDB
                 case ITemporalCodec temporal:
                     return temporal.GetCodecFor(type);
                 case CompilableWrappingCodec compilable:
-                    compilable.InnerCodec = compilable.InnerCodec.CorrectForType(type.GetGenericArguments()[0]);
+                    compilable.InnerCodec = compilable.InnerCodec.CorrectForType(type.GetWrappingType());
                     return compilable.Compile();
             }
 
