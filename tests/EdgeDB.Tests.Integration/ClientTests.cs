@@ -176,13 +176,13 @@ namespace EdgeDB.Tests.Integration
             switch(result)
             {
                 case byte[] bt:
-                    Assert.IsTrue(bt.SequenceEqual((expected as byte[])!));
+                    Assert.IsTrue(bt.ReflectionSequenceEqual((expected as byte[])!));
                     break;
                 case long[] lg:
-                    Assert.IsTrue(lg.SequenceEqual((expected as long[])!));
+                    Assert.IsTrue(lg.ReflectionSequenceEqual((expected as long[])!));
                     break;
                 case string[] st:
-                    Assert.IsTrue(st.SequenceEqual((expected as string[])!));
+                    Assert.IsTrue(st.ReflectionSequenceEqual((expected as string[])!));
                     break;
                 default:
                     Assert.AreEqual(expected, result);

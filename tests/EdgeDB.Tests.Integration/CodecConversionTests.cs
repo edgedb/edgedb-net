@@ -1,5 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -20,7 +21,7 @@ namespace EdgeDB.Tests.Integration
             _client = ClientProvider.EdgeDB;
         }
 
-        private async Task TestTypeQuerying<TType>(string tname, TType expected, Predicate<TType>? comparer = null)
+        private async Task TestTypeQuerying<TType>(string tname, TType expected, Func<TType, TType, bool>? comparer = null)
         {
             var actual = await _client.QueryRequiredSingleAsync<TType>($"select <{tname}>$value", new Dictionary<string, object?>
             {
@@ -29,11 +30,11 @@ namespace EdgeDB.Tests.Integration
 
             if(comparer is not null)
             {
-                Assert.IsTrue(comparer(actual));
+                Assert.IsTrue(comparer(expected, actual));
             }
-            else if (expected is byte[] bt && actual is byte[] bt2)
+            else if (expected is IEnumerable a && actual is IEnumerable b)
             {
-                Assert.IsTrue(bt.SequenceEqual(bt2));
+                Assert.IsTrue(a.ReflectionSequenceEqual(b));
             }
             else if (expected is DataTypes.Json j1 && actual is DataTypes.Json j2)
             {
@@ -47,7 +48,7 @@ namespace EdgeDB.Tests.Integration
 
         #region Arrays
         private async Task TestArrayQuerying<T>(string tname, T[] expected)
-            => await TestTypeQuerying<T[]>($"array<{tname}>", expected, v => v.SequenceEqual(expected));
+            => await TestTypeQuerying($"array<{tname}>", expected);
         private async Task TestArrayOfRange<T>(string tname, DataTypes.Range<T>[] expected)
             where T : struct
             => await TestArrayQuerying($"range<{tname}>", expected);
@@ -69,18 +70,79 @@ namespace EdgeDB.Tests.Integration
             await TestArrayQuerying("decimal", new decimal[] { 1.1M, 2.2M, 3.141592654M, 5.5M });
 
             await TestArrayQuerying("bigint", new BigInteger[] { (BigInteger)long.MaxValue, 12444, 245156 });
+
+            await TestArrayQuerying("datetime", new DataTypes.DateTime[] { DateTime.Now.AddDays(-1), DateTime.Now.AddDays(-2), DateTime.Now.AddDays(-3) });
+            await TestArrayQuerying("cal::local_datetime", new DataTypes.LocalDateTime[] { DateTime.Now.AddDays(-1), DateTime.Now.AddDays(-2), DateTime.Now.AddDays(-3) });
+
+            // sys datetime types
+            await TestArrayQuerying("datetime", new DateTime[]
+            {
+                DateTime.Now.AddDays(-1).RoundToMicroseconds(),
+                DateTime.Now.AddDays(-2).RoundToMicroseconds(),
+                DateTime.Now.AddDays(-3).RoundToMicroseconds()
+            });
+            
+            await TestArrayQuerying("cal::local_datetime", new DateTime[]
+            {
+                DateTime.Now.AddDays(-1).RoundToMicroseconds(),
+                DateTime.Now.AddDays(-2).RoundToMicroseconds(),
+                DateTime.Now.AddDays(-3).RoundToMicroseconds()
+            });
+
         }
 
+        [TestMethod]
         public async Task TestArrayOfRangeScalars()
         {
+            await TestArrayOfRange("int32", new DataTypes.Range<int>[]
+            {
+                new DataTypes.Range<int>(1, 2),
+                new DataTypes.Range<int>(3, 7),
+                new DataTypes.Range<int>(8, 44),
+            });
 
+            await TestArrayOfRange("int64", new DataTypes.Range<long>[]
+            {
+                new DataTypes.Range<long>(1, 2),
+                new DataTypes.Range<long>(3, 7),
+                new DataTypes.Range<long>(8, 44),
+            });
+
+            await TestArrayOfRange("float32", new DataTypes.Range<float>[]
+            {
+                new DataTypes.Range<float>(1.4f, 2.45f),
+                new DataTypes.Range<float>(3.141f, 7.6832f),
+                new DataTypes.Range<float>(8.92f, 44.224f),
+            });
+
+            await TestArrayOfRange("float64", new DataTypes.Range<double>[]
+            {
+                new DataTypes.Range<double>(1.4d, 2.45d),
+                new DataTypes.Range<double>(3.141d, 7.6832d),
+                new DataTypes.Range<double>(8.92d, 44.224d),
+            });
+
+            await TestArrayOfRange("datetime", new DataTypes.Range<DataTypes.DateTime>[]
+            {
+                new DataTypes.Range<DataTypes.DateTime>(DateTime.Now.AddDays(-5), DateTime.Now),
+                new DataTypes.Range<DataTypes.DateTime>(DateTime.Now.AddYears(-1), DateTime.Now),
+                new DataTypes.Range<DataTypes.DateTime>(DateTime.Now.AddMinutes(-2), DateTime.Now.AddYears(4)),
+            });
+
+            // sys datetime
+            await TestArrayOfRange("datetime", new DataTypes.Range<DateTime>[]
+            {
+                new DataTypes.Range<DateTime>(DateTime.Now.AddDays(-5).RoundToMicroseconds(), DateTime.Now.RoundToMicroseconds()),
+                new DataTypes.Range<DateTime>(DateTime.Now.AddYears(-1).RoundToMicroseconds(), DateTime.Now.RoundToMicroseconds()),
+                new DataTypes.Range<DateTime>(DateTime.Now.AddMinutes(-2).RoundToMicroseconds(), DateTime.Now.AddYears(4).RoundToMicroseconds()),
+            });
         }
         #endregion
 
         #region Ranges
         private async Task TestRangeQuerying<T>(string tname, DataTypes.Range<T> expected)
             where T : struct
-            => await TestTypeQuerying<DataTypes.Range<T>>($"range<{tname}>", expected);
+            => await TestTypeQuerying($"range<{tname}>", expected);
 
         [TestMethod]
         public Task TestRangeOfInt32()
@@ -108,11 +170,11 @@ namespace EdgeDB.Tests.Integration
 
         [TestMethod]
         public Task TestRangeOfSystemDateTime()
-            => TestRangeQuerying("datetime", new DataTypes.Range<DateTime>(DateTime.UtcNow.AddDays(-2), DateTime.UtcNow));
+            => TestRangeQuerying("datetime", new DataTypes.Range<DateTime>(DateTime.Now.AddDays(-2).RoundToMicroseconds(), DateTime.Now.RoundToMicroseconds()));
 
         [TestMethod]
         public Task TestRangeOfSystemDateTimeOffset()
-            => TestRangeQuerying("datetime", new DataTypes.Range<DateTimeOffset>(DateTime.UtcNow.AddDays(-2), DateTime.UtcNow));
+            => TestRangeQuerying("datetime", new DataTypes.Range<DateTimeOffset>(DateTime.UtcNow.AddDays(-2).RoundToMicroseconds(), DateTime.UtcNow.RoundToMicroseconds()));
 
         [TestMethod]
         public Task TestRangeOfLocalDateTime()
@@ -120,11 +182,11 @@ namespace EdgeDB.Tests.Integration
 
         [TestMethod]
         public Task TestRangeOfSystemLocalDateTime()
-            => TestRangeQuerying("cal::local_datetime", new DataTypes.Range<DateTime>(DateTime.UtcNow.AddDays(-2), DateTime.UtcNow));
+            => TestRangeQuerying("cal::local_datetime", new DataTypes.Range<DateTime>(DateTime.Now.AddDays(-2).RoundToMicroseconds(), DateTime.Now.RoundToMicroseconds()));
 
         [TestMethod]
         public Task TestRangeOfSystemLocalDateTimeOffset()
-            => TestRangeQuerying("cal::local_datetime", new DataTypes.Range<DateTimeOffset>(DateTime.UtcNow.AddDays(-2), DateTime.UtcNow));
+            => TestRangeQuerying("cal::local_datetime", new DataTypes.Range<DateTimeOffset>(DateTime.UtcNow.AddDays(-2).RoundToMicroseconds(), DateTime.UtcNow.RoundToMicroseconds()));
 
         [TestMethod]
         public Task TestRangeOfLocalDate()
@@ -226,7 +288,7 @@ namespace EdgeDB.Tests.Integration
 
         [TestMethod]
         public Task TestTimeOnlyLegacy()
-            => TestTypeQuerying("cal::local_time", TimeOnly.FromDateTime(DateTime.UtcNow));
+            => TestTypeQuerying("cal::local_time", TimeOnly.FromDateTime(DateTime.UtcNow), (e, a) => CompareMicroseconds(e.ToTimeSpan(), a.ToTimeSpan()));
 
         [TestMethod]
         public Task TestDateOnlyLegacy()
@@ -234,6 +296,13 @@ namespace EdgeDB.Tests.Integration
         #endregion
 
         #region Helpers
+        private static bool CompareMicroseconds(TimeSpan a, TimeSpan b)
+        {
+            // since the system type ('a' in this case) can be in tick-presision, round
+            // as we would for standard temporals.
+            return Math.Round(a.TotalMicroseconds) == b.TotalMicroseconds;
+        }
+
         private TimeSpan RandomTimeSpan()
         {
             var ticks = Random.Shared.NextInt64(TimeSpan.Zero.Ticks, TimeSpan.FromDays(100).Ticks);
@@ -242,8 +311,8 @@ namespace EdgeDB.Tests.Integration
 
         private DateTime RandomDateTime()
         {
-            var ticks = Random.Shared.NextInt64(new DateTime(2000, 1, 1, 0, 0, 0).Ticks, DateTime.UtcNow.Ticks);
-            return new DateTime((ticks / 1000) * 1000).ToUniversalTime(); // convert to microsecond precision to match db
+            var secs = Random.Shared.NextInt64((long)(DateTime.Now - DateTime.MinValue).TotalMilliseconds);
+            return DateTime.MinValue.AddMilliseconds(secs).RoundToMicroseconds(); // convert to microsecond precision to match db
         }
 
         private DateTimeOffset RandomDTO()

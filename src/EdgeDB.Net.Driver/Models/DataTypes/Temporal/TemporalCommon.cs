@@ -9,19 +9,22 @@ namespace EdgeDB.DataTypes
 {
     internal class TemporalCommon
     {
-        public static readonly DateTimeOffset EdgeDBEpocDateTime = new(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        public static readonly DateTimeOffset EdgeDBEpocDateTimeUTC = new(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
         private const long MicrosecondsPerDay = 86400000000;
         private const long MicrosecondsPerMonth = MicrosecondsPerDay * 31;
 
-        public static DateTimeOffset DateTimeFromMicroseconds(long microseconds)
+        public static DateTimeOffset DateTimeOffsetFromMicroseconds(long microseconds, bool preserveTimezone = false)
         {
-            return
+            var time = 
 #if NET7_0_OR_GREATER
-                EdgeDBEpocDateTime.AddMicroseconds(microseconds);
+                EdgeDBEpocDateTimeUTC.AddMicroseconds(microseconds);
 #else
-                EdgeDBEpocDateTime.AddMilliseconds(microseconds / 1000d); // maintains the precision as we divide by a double
+                EdgeDBEpocDateTimeUTC.AddMilliseconds(microseconds / 1000d); // maintains the precision as we divide by a double
 #endif
+            return preserveTimezone
+                ? time.ToOffset(TimeZoneInfo.Local.GetUtcOffset(time))
+                : time;
         }
 
         public static TimeOnly TimeOnlyFromMicroseconds(long microseconds)
@@ -49,7 +52,7 @@ namespace EdgeDB.DataTypes
 
         public static long ToMicroseconds(DateTimeOffset datetime)
         {
-            var offset = datetime - EdgeDBEpocDateTime;
+            var offset = datetime - EdgeDBEpocDateTimeUTC;
 
             return
 #if NET7_0_OR_GREATER
@@ -96,7 +99,7 @@ namespace EdgeDB.DataTypes
 
         public static int ToDays(DateOnly date)
         {
-            return (int)Math.Round((date.ToDateTime(TimeOnly.MinValue) - EdgeDBEpocDateTime).TotalDays);
+            return (int)Math.Round((date.ToDateTime(TimeOnly.MinValue) - EdgeDBEpocDateTimeUTC).TotalDays);
         }
     }
 }

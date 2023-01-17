@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -31,7 +32,25 @@ namespace EdgeDB.DataTypes
             Microseconds = microseconds;
         }
 
+        /// <inheritdoc/>
+        public override bool Equals([NotNullWhen(true)] object? obj)
+        {
+            if (obj is not RelativeDuration rd)
+                return false;
+
+            return
+                Microseconds == rd.Microseconds &&
+                Days == rd.Days &&
+                Months == rd.Months;
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => base.GetHashCode();
+
         public static implicit operator TimeSpan(RelativeDuration t) => t.TimeSpan;
         public static implicit operator RelativeDuration(TimeSpan t) => new(t);
+
+        public static bool operator ==(RelativeDuration left, RelativeDuration right) => left.Equals(right);
+        public static bool operator !=(RelativeDuration left, RelativeDuration right) => !left.Equals(right);
     }
 }

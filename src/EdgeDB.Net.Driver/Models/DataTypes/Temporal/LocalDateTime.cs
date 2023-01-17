@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using SysDateTime = System.DateTime;
 using static EdgeDB.DataTypes.DateTime;
+using System.Diagnostics.CodeAnalysis;
 
 namespace EdgeDB.DataTypes
 {
@@ -19,7 +20,7 @@ namespace EdgeDB.DataTypes
         ///     current <see cref="LocalDateTime"/>.
         /// </summary>
         public DateTimeOffset DateTimeOffset
-            => TemporalCommon.DateTimeFromMicroseconds(Microseconds);
+            => TemporalCommon.DateTimeOffsetFromMicroseconds(Microseconds, true);
 
         /// <summary>
         ///     Gets the <see cref="SysDateTime"/> that represents the
@@ -54,6 +55,18 @@ namespace EdgeDB.DataTypes
             Microseconds = TemporalCommon.ToMicroseconds(datetime);
         }
 
+        /// <inheritdoc/>
+        public override bool Equals([NotNullWhen(true)] object? obj)
+        {
+            if (obj is not LocalDateTime d)
+                return false;
+
+            return d.Microseconds == Microseconds;
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => Microseconds.GetHashCode();
+
         /// <summary>
         ///     Gets a <see cref="LocalDateTime"/> object whos date and time are set to the current UTC time.
         /// </summary>
@@ -64,5 +77,8 @@ namespace EdgeDB.DataTypes
 
         public static implicit operator LocalDateTime(SysDateTime t) => new(t);
         public static implicit operator LocalDateTime(DateTimeOffset t) => new(t);
+
+        public static bool operator ==(LocalDateTime left, LocalDateTime right) => left.Equals(right);
+        public static bool operator !=(LocalDateTime left, LocalDateTime right) => !left.Equals(right);
     }
 }

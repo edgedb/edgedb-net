@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,7 +18,7 @@ namespace EdgeDB.DataTypes
         ///     current <see cref="DateTime"/>.
         /// </summary>
         public DateTimeOffset DateTimeOffset
-            => TemporalCommon.DateTimeFromMicroseconds(Microseconds);
+            => TemporalCommon.DateTimeOffsetFromMicroseconds(Microseconds, true);
 
         public readonly long Microseconds;
 
@@ -43,6 +44,19 @@ namespace EdgeDB.DataTypes
             Microseconds = TemporalCommon.ToMicroseconds(datetime);
         }
 
+        /// <inheritdoc/>
+        public override bool Equals([NotNullWhen(true)] object? obj)
+        {
+            if (obj is not DateTime dt)
+                return false;
+
+            return dt.Microseconds == Microseconds;
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+            => Microseconds.GetHashCode();
+
         /// <summary>
         ///     Gets a <see cref="DateTime"/> object whos date and time are set to the current UTC time.
         /// </summary>
@@ -53,5 +67,8 @@ namespace EdgeDB.DataTypes
 
         public static implicit operator DateTime(SysDateTime t) => new(t);
         public static implicit operator DateTime(DateTimeOffset t) => new(t);
+
+        public static bool operator ==(DateTime left, DateTime right) => left.Equals(right);
+        public static bool operator !=(DateTime left, DateTime right) => !left.Equals(right);
     }
 }
