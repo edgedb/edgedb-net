@@ -81,63 +81,6 @@ namespace EdgeDB.Tests.Integration
         }
 
         [TestMethod]
-        public async Task StandardScalarQueries()
-        {
-            await TestScalarQuery("true", true);
-            await TestScalarQuery("b'bina\\x01ry'", Encoding.UTF8.GetBytes("bina\x01ry"));
-            await TestScalarQuery("<datetime>'1999-03-31T15:17:00Z'", DateTimeOffset.Parse("1999-03-31T15:17:00Z"));
-            await TestScalarQuery("<cal::local_datetime>'1999-03-31T15:17:00'", System.DateTime.Parse("1999-03-31T15:17:00"));
-            await TestScalarQuery<DateOnly>("<cal::local_date>'1999-03-31'", new(1999, 3, 31));
-            await TestScalarQuery<TimeSpan>("<cal::local_time>'15:17:00'", new(15,17,0));
-            await TestScalarQuery("42.0n", (decimal)42.0);
-            await TestScalarQuery("3.14", 3.14f);
-            await TestScalarQuery("314e-2", 314e-2);
-            await TestScalarQuery<short>("<int16>1234", 1234);
-            await TestScalarQuery("<int32>123456", 123456);
-            await TestScalarQuery<long>("1234", 1234);
-            await TestScalarQuery("\"Hello, Tests!\"", "Hello, Tests!");
-        }
-
-        [TestMethod]
-        public async Task ArrayQueries()
-        {
-            await TestScalarQuery("[1,2,3]", new long[] { 1, 2, 3 });
-            await TestScalarQuery("[\"Hello\", \"World\"]", new string[] { "Hello", "World" });
-        }
-
-        [TestMethod]
-        public async Task TupleQueries()
-        {
-            var result = await EdgeDB.QuerySingleAsync<(long one, long two)>("select (1,2)", token: _getToken());
-            Assert.AreEqual(1, result.one);
-            Assert.AreEqual(2, result.two);
-
-            var (one, two, three, four, five, six, seven, eight, nine, ten) = await EdgeDB.QuerySingleAsync<(long one, long two, long three, long four, long five, long six, long seven, long eight, long nine, long ten)>("select (1,2,3,4,5,6,7,8,9,10)", token: _getToken());
-            Assert.AreEqual(1, one);
-            Assert.AreEqual(2, two);
-            Assert.AreEqual(3, three);
-            Assert.AreEqual(4, four);
-            Assert.AreEqual(5, five);
-            Assert.AreEqual(6, six);
-            Assert.AreEqual(7, seven);
-            Assert.AreEqual(8, eight);
-            Assert.AreEqual(9, nine);
-            Assert.AreEqual(10, ten);
-
-            var result2 = await EdgeDB.QuerySingleAsync<(long one, long two)>("select (one := 1, two := 2)", token: _getToken());
-            Assert.AreEqual(1, result2.one);
-            Assert.AreEqual(2, result2.two);
-        }
-
-        [TestMethod]
-        public async Task SetQueries()
-        {
-            var result = await EdgeDB.QueryAsync<long>("select {1,2}", token: _getToken());
-            Assert.AreEqual(1, result.First());
-            Assert.AreEqual(2, result.Last());
-        }
-
-        [TestMethod]
         public async Task DisconnectAndReconnect()
         {
             // using raw client for this one,
@@ -167,27 +110,6 @@ namespace EdgeDB.Tests.Integration
             Assert.AreEqual("test_module", client3.Module);
             Assert.AreNotEqual("test_module", client2.Module);
             Assert.AreNotEqual("test_module", EdgeDB.Module);
-        }
-
-        private async Task TestScalarQuery<TResult>(string select, TResult expected)
-        {
-            var result = await EdgeDB.QuerySingleAsync<TResult>($"select {select}", token: _getToken());
-           
-            switch(result)
-            {
-                case byte[] bt:
-                    Assert.IsTrue(bt.ReflectionSequenceEqual((expected as byte[])!));
-                    break;
-                case long[] lg:
-                    Assert.IsTrue(lg.ReflectionSequenceEqual((expected as long[])!));
-                    break;
-                case string[] st:
-                    Assert.IsTrue(st.ReflectionSequenceEqual((expected as string[])!));
-                    break;
-                default:
-                    Assert.AreEqual(expected, result);
-                    break;
-            }
         }
     }
 }

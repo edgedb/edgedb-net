@@ -86,7 +86,7 @@ namespace EdgeDB.Tests.Unit
                 0x00, 0x01, 0x13, 0x88, 0x18, 0x6a, 0x00, 0x00
             };
 
-            decimal expected = (decimal)-15000.6250000;
+            decimal expected = -15000.6250000M;
 
             TestCodec(codec, expected, data);
         }

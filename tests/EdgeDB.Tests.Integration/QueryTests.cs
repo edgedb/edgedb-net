@@ -46,6 +46,38 @@ namespace EdgeDB.Tests.Integration
             }
         }
 
+        [TestMethod]
+        public async Task TupleQueries()
+        {
+            var result = await _client.QueryRequiredSingleAsync<(long one, long two)>("select (1,2)");
+            Assert.AreEqual(1, result.one);
+            Assert.AreEqual(2, result.two);
+
+            var (one, two, three, four, five, six, seven, eight, nine, ten) = await _client.QueryRequiredSingleAsync<(long one, long two, long three, long four, long five, long six, long seven, long eight, long nine, long ten)>("select (1,2,3,4,5,6,7,8,9,10)");
+            Assert.AreEqual(1, one);
+            Assert.AreEqual(2, two);
+            Assert.AreEqual(3, three);
+            Assert.AreEqual(4, four);
+            Assert.AreEqual(5, five);
+            Assert.AreEqual(6, six);
+            Assert.AreEqual(7, seven);
+            Assert.AreEqual(8, eight);
+            Assert.AreEqual(9, nine);
+            Assert.AreEqual(10, ten);
+
+            var result2 = await _client.QueryRequiredSingleAsync<(long one, long two)>("select (one := 1, two := 2)");
+            Assert.AreEqual(1, result2.one);
+            Assert.AreEqual(2, result2.two);
+        }
+
+        [TestMethod]
+        public async Task SetQueries()
+        {
+            var result = await _client.QueryAsync<long>("select {1,2}");
+            Assert.AreEqual(1, result.First());
+            Assert.AreEqual(2, result.Last());
+        }
+
         #region Arrays
         private async Task TestArrayQuerying<T>(string tname, T[] expected)
             => await TestTypeQuerying($"array<{tname}>", expected);
@@ -317,7 +349,7 @@ namespace EdgeDB.Tests.Integration
 
         private DateTimeOffset RandomDTO()
         {
-            return RandomDateTime().ToUniversalTime();
+            return RandomDateTime().ToUniversalTime().RoundToMicroseconds();
         }
 
         private DateOnly RandomDate()
