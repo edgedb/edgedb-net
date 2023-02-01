@@ -94,7 +94,12 @@ namespace EdgeDB.Binary.Codecs
                 {
                     var codec = InnerCodecs[index];
 
-                    visitor.SetTargetType(element.Value.GetType());
+                    // ignore nested sparce object type
+                    visitor.SetTargetType(codec is SparceObjectCodec
+                        ? typeof(void)
+                        : element.Value.GetType()
+                    );
+
                     visitor.Visit(ref codec);
                     visitor.Reset();
 
