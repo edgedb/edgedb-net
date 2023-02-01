@@ -47,6 +47,22 @@ namespace EdgeDB.Tests.Integration
         }
 
         [TestMethod]
+        public async Task TestPlainObjectDeserialization()
+        {
+            var result = await _client.QueryRequiredSingleAsync<dynamic>("select { a := 1, b := 'hello', c := { d := 2, e := 'world'} }");
+
+            Assert.IsInstanceOfType(result.a, typeof(long));
+            Assert.IsInstanceOfType(result.b, typeof(string));
+            Assert.IsInstanceOfType(result.c.d, typeof(long));
+            Assert.IsInstanceOfType(result.c.e, typeof(string));
+
+            Assert.AreEqual(1, result.a);
+            Assert.AreEqual("hello", result.b);
+            Assert.AreEqual(2, result.c.d);
+            Assert.AreEqual("world", result.c.e);
+        }
+
+        [TestMethod]
         public async Task TupleQueries()
         {
             var result = await _client.QueryRequiredSingleAsync<(long one, long two)>("select (1,2)");
