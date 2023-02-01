@@ -77,7 +77,9 @@ namespace EdgeDB.Binary.Codecs
 
             writer.Write(dict.Count);
 
-            foreach(var element in dict)
+            var visitor = new TypeVisitor();
+
+            foreach (var element in dict)
             {
                 var index = Array.IndexOf(FieldNames, element.Key);
 
@@ -91,6 +93,11 @@ namespace EdgeDB.Binary.Codecs
                 else
                 {
                     var codec = InnerCodecs[index];
+
+                    visitor.SetTargetType(element.Value.GetType());
+                    visitor.Visit(ref codec);
+                    visitor.Reset();
+
                     writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => codec.Serialize(ref innerWriter, element.Value));
                 }
             }

@@ -161,7 +161,7 @@ namespace EdgeDB.Binary
 
                     codecs.Add(codec);
 
-                    if(!CodecCache.TryAdd(id, codec))
+                    if(!CodecCache.TryAdd(typeDescriptor.Id, codec))
                         client.Logger.CodecCouldntBeCached(codec, id);
                 }
             }
