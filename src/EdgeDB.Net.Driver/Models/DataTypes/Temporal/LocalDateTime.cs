@@ -11,7 +11,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace EdgeDB.DataTypes
 {
     /// <summary>
-    ///     A struct representing the <c>std::local_datetime</c> type in EdgeDB.
+    ///     A struct representing the <c>cal::local_datetime</c> type in EdgeDB.
     /// </summary>
     public readonly struct LocalDateTime
     {
