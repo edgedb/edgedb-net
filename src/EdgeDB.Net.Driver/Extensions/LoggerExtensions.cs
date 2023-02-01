@@ -1,4 +1,5 @@
 using EdgeDB.Binary;
+using EdgeDB.Binary.Codecs;
 using Microsoft.Extensions.Logging;
 
 namespace EdgeDB
@@ -19,6 +20,7 @@ namespace EdgeDB
         private static readonly Action<ILogger, ServerMessageType, int, Exception?> _didntReadTillEnd;
         private static readonly Action<ILogger, string, string,Exception?> _protocolMajorMismatch;
         private static readonly Action<ILogger, string, string,Exception?> _protocolMinorMismatch;
+        private static readonly Action<ILogger, ICodec, Guid, Exception?> _codecCouldntBeCached;
         #endregion
 
         static LoggerExtensions()
@@ -87,8 +89,16 @@ namespace EdgeDB
                 LogLevel.Warning,
                 new EventId(13, nameof(ProtocolMinorMismatch)),
                 "The server requested protocol version {ServerVersion} but the currently installed client only supports {ClientVersion}. Functionality may be limited and bugs may arise, please switch to a different client version that supports the requested protocol.");
+
+            _codecCouldntBeCached = LoggerMessage.Define<ICodec, Guid>(
+                LogLevel.Trace,
+                new EventId(14, nameof(CodecCouldntBeCached)),
+                "The codec {@Codec}:{ID} couln't be cached likely due to a race condition");
         }
-        
+
+        public static void CodecCouldntBeCached(this ILogger logger, ICodec codec, Guid id)
+            => _codecCouldntBeCached(logger, codec, id, null);
+
         public static void ProtocolMinorMismatch(this ILogger logger, string serverVersion, string clientVersion)
             => _protocolMinorMismatch(logger, serverVersion, clientVersion, null);
 

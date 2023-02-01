@@ -250,17 +250,17 @@ namespace EdgeDB
                                 case CommandDataDescription descriptor:
                                     {
                                         outCodecInfo = new(descriptor.OutputTypeDescriptorId,
-                                            CodecBuilder.BuildCodec(descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer));
+                                            CodecBuilder.BuildCodec(this, descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer));
 
                                         inCodecInfo = new(descriptor.InputTypeDescriptorId,
-                                            CodecBuilder.BuildCodec(descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer));
+                                            CodecBuilder.BuildCodec(this, descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer));
 
                                         CodecBuilder.UpdateKeyMap(cacheKey, descriptor.InputTypeDescriptorId, descriptor.OutputTypeDescriptorId);
                                     }
                                     break;
                                 case StateDataDescription stateDescriptor:
                                     {
-                                        _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                                        _stateCodec = CodecBuilder.BuildCodec(this, stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
                                         _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                                         gotStateDescriptor = true;
                                         stateBuf = _stateCodec?.Serialize(serializedState)!;
@@ -322,7 +322,7 @@ namespace EdgeDB
                                 break;
                             case StateDataDescription stateDescriptor:
                                 {
-                                    _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                                    _stateCodec = CodecBuilder.BuildCodec(this, stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
                                     _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                                     gotStateDescriptor = true;
                                     stateBuf = _stateCodec?.Serialize(serializedState)!;
@@ -569,7 +569,7 @@ namespace EdgeDB
                     ServerKey = keyData.KeyBuffer;
                     break;
                 case StateDataDescription stateDescriptor:
-                    _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                    _stateCodec = CodecBuilder.BuildCodec(this,  stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
                     _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                     break;
                 case ParameterStatus parameterStatus:
@@ -714,7 +714,7 @@ namespace EdgeDB
                         if (codec is null)
                         {
                             var innerReader = new PacketReader(ref typeDesc);
-                            codec = CodecBuilder.BuildCodec(descriptorId, ref innerReader);
+                            codec = CodecBuilder.BuildCodec(this, descriptorId, ref innerReader);
 
                             if (codec is null)
                                 throw new MissingCodecException("Failed to build codec for system_config");
