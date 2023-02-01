@@ -12,11 +12,11 @@ using System.Threading.Tasks;
 namespace EdgeDB.Tests.Integration
 {
     [TestClass]
-    public class CodecConversionTests
+    public class QueryTests
     {
         private readonly EdgeDBClient _client;
 
-        public CodecConversionTests()
+        public QueryTests()
         {
             _client = ClientProvider.EdgeDB;
         }

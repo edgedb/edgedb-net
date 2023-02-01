@@ -296,8 +296,8 @@ namespace EdgeDB
         private static void UpdateCodecsWithFactory(Type type, TypeDeserializerFactory factory)
         {
             var codecs = CodecBuilder.CachedCodecs
-                .Where(x => x is Binary.Codecs.Object obj && obj.TargetType == type)
-                .Cast<Binary.Codecs.Object>();
+                .Where(x => x is Binary.Codecs.ObjectCodec obj && obj.TargetType == type)
+                .Cast<Binary.Codecs.ObjectCodec>();
 
             foreach(var codec in codecs)
             {

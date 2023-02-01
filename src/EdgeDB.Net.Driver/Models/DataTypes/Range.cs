@@ -11,7 +11,7 @@ namespace EdgeDB.DataTypes
     ///     Represents the <see href="https://www.edgedb.com/docs/stdlib/range">Range</see> type in EdgeDB.
     /// </summary>
     /// <typeparam name="T">The inner type of the range.</typeparam>
-    public struct Range<T>
+    public readonly struct Range<T>
         where T : struct
     {
         /// <summary>

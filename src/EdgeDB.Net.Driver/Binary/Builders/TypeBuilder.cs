@@ -142,7 +142,7 @@ namespace EdgeDB
             return info is not null;
         }
         
-        internal static object? BuildObject(Type type, Binary.Codecs.Object codec, ref Data data)
+        internal static object? BuildObject(Type type, Binary.Codecs.ObjectCodec codec, ref Data data)
         {
             if (!IsValidObjectType(type))
                 throw new InvalidOperationException($"Cannot deserialize data to {type.Name}");

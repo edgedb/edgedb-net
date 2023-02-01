@@ -27,18 +27,26 @@ namespace EdgeDB.Binary
     internal sealed class CodecBuilder
     {
         public static ICollection<ICodec> CachedCodecs
-            => _codecCache.Values;
+            => CodecCache.Values;
+
+        /// <summary>
+        ///     The codec cache mapped to result types.
+        /// </summary>
+        public static readonly ConcurrentDictionary<Guid, ICodec> CodecCache = new();
+
+        /// <summary>
+        ///     The codec cached mapped to the type of codec, storing instances.
+        /// </summary>
+        public static readonly ConcurrentDictionary<Type, ICodec> CodecInstanceCache = new();
 
         public static readonly Guid NullCodec = Guid.Empty;
         public static readonly Guid InvalidCodec = Guid.Parse("ffffffffffffffffffffffffffffffff");
-        private static readonly ConcurrentDictionary<(Guid, Type), ICodec> _codecCache = new();
+
         private static readonly ConcurrentDictionary<ulong, (Guid InCodec, Guid OutCodec)> _codecKeyMap = new();
 
         private static readonly List<Type> _codecs;
         private static readonly List<ICodec> _scalarCodecs;
-        private static readonly ConcurrentDictionary<Type, ICodec> _scalarCodecMap;
-        private static readonly ConcurrentDictionary<Type, ICodec> _scalarCodecTypeMap;
-
+        private static readonly ConcurrentDictionary<Type, IScalarCodec> _scalarCodecMap;
 
         static CodecBuilder()
         {
@@ -49,34 +57,38 @@ namespace EdgeDB.Binary
                 .GetTypes()
                 .Where(x => x
                     .GetInterfaces()
-                    .Any(x => x.Name == "ICodec") && !(x.IsAbstract || x.IsInterface) && x.Name != "RuntimeTemporalCodec`1");
+                    .Any(x => x.Name == "ICodec") && !(x.IsAbstract || x.IsInterface) && x.Name != "RuntimeCodec`1" && x.Name != "RuntimeScalarCodec`1");
 
             _codecs = new(codecs);
 
-            var scalars = new List<ICodec>(codecs
-                .Where(x => x.IsAssignableTo(typeof(IScalarCodec)))
-                .Select(x => (ICodec)Activator.CreateInstance(x)!)
+            var scalars = new List<IScalarCodec>(codecs
+                .Where(x => x.IsAssignableTo(typeof(IScalarCodec)) && x.IsAssignableTo(typeof(ICacheableCodec)))
+                .Select(x => (IScalarCodec)Activator.CreateInstance(x)!)
             );
 
-            foreach(var temporalCodec in scalars.Where(x => x is ITemporalCodec).Cast<ITemporalCodec>().ToArray())
+            CodecInstanceCache = new(scalars.ToDictionary(x => x.GetType(), x => (ICodec)x));
+
+            foreach(var complexCodecs in scalars.Where(x => x is IComplexCodec).Cast<IComplexCodec>().ToArray())
             {
-                foreach (var subCodec in temporalCodec.GetSystemCodecs())
-                    _scalarCodecs.Add(subCodec);
+                complexCodecs.BuildRuntimeCodecs();
+
+                foreach(var scalarComplex in complexCodecs.RuntimeCodecs
+                    .Where(x => x is IScalarCodec)
+                    .Cast<IScalarCodec>())
+                {
+                    _scalarCodecs.Add(scalarComplex);
+                }
             }
 
             _scalarCodecMap = new(scalars.ToDictionary(x => x.ConverterType, x => x));
-            _scalarCodecTypeMap = new(scalars.ToDictionary(x => x.GetType(), x => x));
             _scalarCodecs.AddRange(scalars);
         }
 
         public static bool ContainsScalarCodec(Type type)
             => _scalarCodecs.Any(x => x.ConverterType == type);
 
-        public static bool TryGetScalarCodec(Type type, [MaybeNullWhen(false)] out ICodec codec)
+        public static bool TryGetScalarCodec(Type type, [MaybeNullWhen(false)] out IScalarCodec codec)
             => _scalarCodecMap.TryGetValue(type, out codec);
-
-        public static bool TryGetScalarCodecOfType(Type type, [MaybeNullWhen(false)] out ICodec codec)
-            => _scalarCodecTypeMap.TryGetValue(type, out codec);
 
         public static IScalarCodec<TType>? GetScalarCodec<TType>()
             => (IScalarCodec<TType>?)_scalarCodecs.FirstOrDefault(x => x.ConverterType == typeof(TType) || x.CanConvert(typeof(TType)));
@@ -84,7 +96,7 @@ namespace EdgeDB.Binary
         public static ulong GetCacheHashKey(string query, Cardinality cardinality, IOFormat format)
             => unchecked(CalculateKnuthHash(query) * (ulong)cardinality * (ulong)format);
         
-        public static bool TryGetCodecs(ulong hash, Type resultType,
+        public static bool TryGetCodecs(ulong hash,
             [MaybeNullWhen(false)] out CodecInfo inCodecInfo,
             [MaybeNullWhen(false)] out CodecInfo outCodecInfo)
         {
@@ -95,8 +107,8 @@ namespace EdgeDB.Binary
             ICodec? outCodec;
 
             if (_codecKeyMap.TryGetValue(hash, out var codecIds)
-                && (_codecCache.TryGetValue((codecIds.InCodec, resultType), out inCodec) || ((inCodec = GetScalarCodec(codecIds.InCodec, resultType)) != null))
-                && (_codecCache.TryGetValue((codecIds.OutCodec, resultType), out outCodec) || ((outCodec = GetScalarCodec(codecIds.OutCodec, resultType)) != null)))
+                && (CodecCache.TryGetValue((codecIds.InCodec), out inCodec) || ((inCodec = GetScalarCodec(codecIds.InCodec)) != null))
+                && (CodecCache.TryGetValue((codecIds.OutCodec), out outCodec) || ((outCodec = GetScalarCodec(codecIds.OutCodec)) != null)))
             {
                 inCodecInfo = new(codecIds.InCodec, inCodec);
                 outCodecInfo = new(codecIds.OutCodec, outCodec);
@@ -109,19 +121,19 @@ namespace EdgeDB.Binary
         public static void UpdateKeyMap(ulong hash, Guid inCodec, Guid outCodec)
             => _codecKeyMap[hash] = (inCodec, outCodec);
 
-        public static ICodec? GetCodec(Guid id, Type resultType)
-            => _codecCache.TryGetValue((id, resultType), out var codec) ? codec : GetScalarCodec(id, resultType);
+        public static ICodec? GetCodec(Guid id)
+            => CodecCache.TryGetValue(id, out var codec) ? codec : GetScalarCodec(id);
 
-        public static ICodec BuildCodec(Guid id, byte[] buff, Type resultType)
+        public static ICodec BuildCodec(Guid id, byte[] buff)
         {
             var reader = new PacketReader(buff.AsSpan());
-            return BuildCodec(id, ref reader, resultType);
+            return BuildCodec(id, ref reader);
         }
 
-        public static ICodec BuildCodec(Guid id, ref PacketReader reader, Type resultType)
+        public static ICodec BuildCodec(Guid id, ref PacketReader reader)
         {
             if (id == NullCodec)
-                return new NullCodec();
+                return GetOrCreateCodec<NullCodec>();
 
             List<ICodec> codecs = new();
 
@@ -129,8 +141,8 @@ namespace EdgeDB.Binary
             {
                 var typeDescriptor = ITypeDescriptor.GetDescriptor(ref reader);
 
-                if (!_codecCache.TryGetValue((typeDescriptor.Id, resultType), out var codec))
-                    codec = GetScalarCodec(typeDescriptor.Id, resultType);
+                if (!CodecCache.TryGetValue(typeDescriptor.Id, out var codec))
+                    codec = GetScalarCodec(typeDescriptor.Id);
 
                 if (codec is not null)
                     codecs.Add(codec);
@@ -138,42 +150,43 @@ namespace EdgeDB.Binary
                 {
                     codec = typeDescriptor switch
                     {
-                        EnumerationTypeDescriptor enumeration => new Text(),
-                        NamedTupleTypeDescriptor  namedTuple  => new Binary.Codecs.Object(namedTuple, codecs),
+                        EnumerationTypeDescriptor enumeration => GetOrCreateCodec<TextCodec>(),
+                        NamedTupleTypeDescriptor  namedTuple  => new Binary.Codecs.ObjectCodec(namedTuple, codecs),
                         BaseScalarTypeDescriptor  scalar      => throw new MissingCodecException($"Could not find the scalar type {scalar.Id}. Please file a bug report with your query that caused this error."),
-                        ObjectShapeDescriptor     @object     => new Binary.Codecs.Object(@object, codecs),
-                        InputShapeDescriptor      input       => new SparceObject(input, codecs),
-                        TupleTypeDescriptor       tuple       => new Binary.Codecs.Tuple(tuple.ElementTypeDescriptorsIndex.Select(x => codecs[x]).ToArray()),
+                        ObjectShapeDescriptor     @object     => new Binary.Codecs.ObjectCodec(@object, codecs),
+                        InputShapeDescriptor      input       => new SparceObjectCodec(input, codecs),
+                        TupleTypeDescriptor       tuple       => new Binary.Codecs.TupleCodec(tuple.ElementTypeDescriptorsIndex.Select(x => codecs[x]).ToArray()),
                         RangeTypeDescriptor       range       => new CompilableWrappingCodec(typeDescriptor.Id, codecs[range.TypePos], typeof(RangeCodec<>)), // (ICodec)Activator.CreateInstance(typeof(RangeCodec<>).MakeGenericType(codecs[range.TypePos].ConverterType), codecs[range.TypePos])!,
-                        ArrayTypeDescriptor       array       => new CompilableWrappingCodec(typeDescriptor.Id, codecs[array.TypePos], typeof(Array<>)), //(ICodec)Activator.CreateInstance(typeof(Array<>).MakeGenericType(codecs[array.TypePos].ConverterType), codecs[array.TypePos])!,
-                        SetTypeDescriptor         set         => new CompilableWrappingCodec(typeDescriptor.Id, codecs[set.TypePos], typeof(Set<>)), //(ICodec)Activator.CreateInstance(typeof(Set<>).MakeGenericType(codecs[set.TypePos].ConverterType), codecs[set.TypePos])!,
+                        ArrayTypeDescriptor       array       => new CompilableWrappingCodec(typeDescriptor.Id, codecs[array.TypePos], typeof(ArrayCodec<>)), //(ICodec)Activator.CreateInstance(typeof(Array<>).MakeGenericType(codecs[array.TypePos].ConverterType), codecs[array.TypePos])!,
+                        SetTypeDescriptor         set         => new CompilableWrappingCodec(typeDescriptor.Id, codecs[set.TypePos], typeof(SetCodec<>)), //(ICodec)Activator.CreateInstance(typeof(Set<>).MakeGenericType(codecs[set.TypePos].ConverterType), codecs[set.TypePos])!,
                         _ => throw new MissingCodecException($"Could not find a type descriptor with type {typeDescriptor.Id}. Please file a bug report with your query that caused this error.")
                     };
 
                     codecs.Add(codec);
 
-                    //_codecCache[(typeDescriptor.Id, resultType)] = codec;
+                    //CodecCache[typeDescriptor.Id] = codec;
                 }
             }
 
-            return _codecCache[(id, resultType)] = codecs.Last();
+            return CodecCache[id] = codecs.Last();
         }
 
-        public static ICodec? GetScalarCodec(Guid typeId, Type resultType)
+        public static ICodec? GetScalarCodec(Guid typeId)
         {
             if (_defaultCodecs.TryGetValue(typeId, out var codecType))
             {
-                if (!TryGetScalarCodecOfType(codecType, out var codec))
-                {
-                    codec = (ICodec)Activator.CreateInstance(codecType)!;
-                }
+                var codec = CodecInstanceCache.GetOrAdd(codecType, t => (ICodec)Activator.CreateInstance(t)!);
 
-                _codecCache[(typeId, resultType)] = codec;
+                CodecCache[typeId] = codec;
                 return codec;
             }
 
             return null;
         }
+
+        private static ICodec GetOrCreateCodec<T>()
+            where T : ICodec, new()
+            => CodecInstanceCache.GetOrAdd(typeof(T), _ => new T());
 
         private static ulong CalculateKnuthHash(string content)
         {
@@ -189,26 +202,26 @@ namespace EdgeDB.Binary
         private static readonly Dictionary<Guid, Type> _defaultCodecs = new()
         {
             { NullCodec, typeof(NullCodec) },
-            { new Guid("00000000-0000-0000-0000-000000000100"), typeof(Codecs.UUID) },
-            { new Guid("00000000-0000-0000-0000-000000000101"), typeof(Codecs.Text) },
-            { new Guid("00000000-0000-0000-0000-000000000102"), typeof(Codecs.Bytes) },
-            { new Guid("00000000-0000-0000-0000-000000000103"), typeof(Codecs.Integer16) },
-            { new Guid("00000000-0000-0000-0000-000000000104"), typeof(Codecs.Integer32) },
-            { new Guid("00000000-0000-0000-0000-000000000105"), typeof(Codecs.Integer64) },
-            { new Guid("00000000-0000-0000-0000-000000000106"), typeof(Codecs.Float32) },
-            { new Guid("00000000-0000-0000-0000-000000000107"), typeof(Codecs.Float64) },
-            { new Guid("00000000-0000-0000-0000-000000000108"), typeof(Codecs.Decimal) },
-            { new Guid("00000000-0000-0000-0000-000000000109"), typeof(Codecs.Bool) },
-            { new Guid("00000000-0000-0000-0000-00000000010A"), typeof(Codecs.DateTime) },
-            { new Guid("00000000-0000-0000-0000-00000000010B"), typeof(Codecs.LocalDateTime) },
-            { new Guid("00000000-0000-0000-0000-00000000010C"), typeof(Codecs.LocalDate) },
-            { new Guid("00000000-0000-0000-0000-00000000010D"), typeof(Codecs.LocalTime) },
-            { new Guid("00000000-0000-0000-0000-00000000010E"), typeof(Codecs.Duration) },
-            { new Guid("00000000-0000-0000-0000-00000000010F"), typeof(Codecs.Json) },
-            { new Guid("00000000-0000-0000-0000-000000000110"), typeof(Codecs.BigInt) },
-            { new Guid("00000000-0000-0000-0000-000000000111"), typeof(Codecs.RelativeDuration) },
-            { new Guid("00000000-0000-0000-0000-000000000112"), typeof(Codecs.DateDuration) },
-            { new Guid("00000000-0000-0000-0000-000000000130"), typeof(Codecs.Memory) }
+            { new Guid("00000000-0000-0000-0000-000000000100"), typeof(Codecs.UUIDCodec) },
+            { new Guid("00000000-0000-0000-0000-000000000101"), typeof(Codecs.TextCodec) },
+            { new Guid("00000000-0000-0000-0000-000000000102"), typeof(Codecs.BytesCodec) },
+            { new Guid("00000000-0000-0000-0000-000000000103"), typeof(Codecs.Integer16Codec) },
+            { new Guid("00000000-0000-0000-0000-000000000104"), typeof(Codecs.Integer32Codec) },
+            { new Guid("00000000-0000-0000-0000-000000000105"), typeof(Codecs.Integer64Codec) },
+            { new Guid("00000000-0000-0000-0000-000000000106"), typeof(Codecs.Float32Codec) },
+            { new Guid("00000000-0000-0000-0000-000000000107"), typeof(Codecs.Float64Codec) },
+            { new Guid("00000000-0000-0000-0000-000000000108"), typeof(Codecs.DecimalCodec) },
+            { new Guid("00000000-0000-0000-0000-000000000109"), typeof(Codecs.BoolCodec) },
+            { new Guid("00000000-0000-0000-0000-00000000010A"), typeof(Codecs.DateTimeCodec) },
+            { new Guid("00000000-0000-0000-0000-00000000010B"), typeof(Codecs.LocalDateTimeCodec) },
+            { new Guid("00000000-0000-0000-0000-00000000010C"), typeof(Codecs.LocalDateCodec) },
+            { new Guid("00000000-0000-0000-0000-00000000010D"), typeof(Codecs.LocalTimeCodec) },
+            { new Guid("00000000-0000-0000-0000-00000000010E"), typeof(Codecs.DurationCodec) },
+            { new Guid("00000000-0000-0000-0000-00000000010F"), typeof(Codecs.JsonCodec) },
+            { new Guid("00000000-0000-0000-0000-000000000110"), typeof(Codecs.BigIntCodec) },
+            { new Guid("00000000-0000-0000-0000-000000000111"), typeof(Codecs.RelativeDurationCodec) },
+            { new Guid("00000000-0000-0000-0000-000000000112"), typeof(Codecs.DateDurationCodec) },
+            { new Guid("00000000-0000-0000-0000-000000000130"), typeof(Codecs.MemoryCodec) }
         };
     }
 }

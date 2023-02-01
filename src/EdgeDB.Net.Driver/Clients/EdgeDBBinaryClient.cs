@@ -172,7 +172,7 @@ namespace EdgeDB
         /// <exception cref="EdgeDBErrorException">The client received an <see cref="ErrorResponse"/>.</exception>
         /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
-        internal virtual async Task<RawExecuteResult> ExecuteInternalAsync<TResult>(string query, IDictionary<string, object?>? args = null, Cardinality? cardinality = null,
+        internal virtual async Task<RawExecuteResult> ExecuteInternalAsync(string query, IDictionary<string, object?>? args = null, Cardinality? cardinality = null,
             Capabilities? capabilities = Capabilities.Modifications, IOFormat format = IOFormat.Binary, bool isRetry = false, bool implicitTypeName = false,
             CancellationToken token = default)
         {
@@ -203,7 +203,7 @@ namespace EdgeDB
                 var serializedState = Session.Serialize();
                 var stateBuf = _stateCodec?.Serialize(serializedState)!;
                 
-                if (!CodecBuilder.TryGetCodecs(cacheKey, typeof(TResult), out var inCodecInfo, out var outCodecInfo))
+                if (!CodecBuilder.TryGetCodecs(cacheKey, out var inCodecInfo, out var outCodecInfo))
                 {                    
                     while (!successfullyParsed)
                     {
@@ -250,17 +250,17 @@ namespace EdgeDB
                                 case CommandDataDescription descriptor:
                                     {
                                         outCodecInfo = new(descriptor.OutputTypeDescriptorId,
-                                            CodecBuilder.BuildCodec(descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer, typeof(TResult)));
+                                            CodecBuilder.BuildCodec(descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer));
 
                                         inCodecInfo = new(descriptor.InputTypeDescriptorId,
-                                            CodecBuilder.BuildCodec(descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer, typeof(TResult)));
+                                            CodecBuilder.BuildCodec(descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer));
 
                                         CodecBuilder.UpdateKeyMap(cacheKey, descriptor.InputTypeDescriptorId, descriptor.OutputTypeDescriptorId);
                                     }
                                     break;
                                 case StateDataDescription stateDescriptor:
                                     {
-                                        _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer, typeof(TResult));
+                                        _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
                                         _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                                         gotStateDescriptor = true;
                                         stateBuf = _stateCodec?.Serialize(serializedState)!;
@@ -322,7 +322,7 @@ namespace EdgeDB
                                 break;
                             case StateDataDescription stateDescriptor:
                                 {
-                                    _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer, typeof(TResult));
+                                    _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
                                     _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                                     gotStateDescriptor = true;
                                     stateBuf = _stateCodec?.Serialize(serializedState)!;
@@ -374,14 +374,14 @@ namespace EdgeDB
                 _semaphore.Release();
                 released = true;
 
-                return await ExecuteInternalAsync<TResult>(query, args, cardinality, capabilities, format, true, implicitTypeName, token).ConfigureAwait(false);
+                return await ExecuteInternalAsync(query, args, cardinality, capabilities, format, true, implicitTypeName, token).ConfigureAwait(false);
             }
             catch (EdgeDBException x) when (x.ShouldRetry && !isRetry)
             {
                 _semaphore.Release();
                 released = true;
 
-                return await ExecuteInternalAsync<TResult>(query, args, cardinality, capabilities, format, true, implicitTypeName, token).ConfigureAwait(false);
+                return await ExecuteInternalAsync(query, args, cardinality, capabilities, format, true, implicitTypeName, token).ConfigureAwait(false);
             }
             catch (Exception x)
             {
@@ -412,7 +412,7 @@ namespace EdgeDB
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         public override async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null,
             Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
-            => await ExecuteInternalAsync<object>(query, args, Cardinality.Many, capabilities, token: token).ConfigureAwait(false);
+            => await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, token: token).ConfigureAwait(false);
 
         /// <inheritdoc/>
         /// <exception cref="EdgeDBException">A general error occored.</exception>
@@ -427,7 +427,7 @@ namespace EdgeDB
         {
             var implicitTypeName = TypeBuilder.TryGetTypeDeserializerInfo(typeof(TResult), out var info) && info.RequiresTypeName;
 
-            var result = await ExecuteInternalAsync<TResult>(
+            var result = await ExecuteInternalAsync(
                 query,
                 args,
                 Cardinality.Many,
@@ -460,7 +460,7 @@ namespace EdgeDB
         {
             var implicitTypeName = TypeBuilder.TryGetTypeDeserializerInfo(typeof(TResult), out var info) && info.RequiresTypeName;
             
-            var result = await ExecuteInternalAsync<TResult>(
+            var result = await ExecuteInternalAsync(
                 query,
                 args,
                 Cardinality.AtMostOne,
@@ -492,7 +492,7 @@ namespace EdgeDB
         {
             var implicitTypeName = TypeBuilder.TryGetTypeDeserializerInfo(typeof(TResult), out var info) && info.RequiresTypeName;
             
-            var result = await ExecuteInternalAsync<TResult>(
+            var result = await ExecuteInternalAsync(
                 query,
                 args,
                 Cardinality.AtMostOne,
@@ -518,7 +518,7 @@ namespace EdgeDB
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         public override async Task<DataTypes.Json> QueryJsonAsync(string query, IDictionary<string, object?>? args = null, Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
-            var result = await ExecuteInternalAsync<object>(query, args, Cardinality.Many, capabilities, IOFormat.Json, token: token);
+            var result = await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, IOFormat.Json, token: token);
             
             return result.Data.Length == 1
                 ? (string)result.Deserializer.Deserialize(result.Data[0].PayloadBuffer)!
@@ -532,7 +532,7 @@ namespace EdgeDB
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         public override async Task<IReadOnlyCollection<DataTypes.Json>> QueryJsonElementsAsync(string query, IDictionary<string, object?>? args = null, Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
-            var result = await ExecuteInternalAsync<object>(query, args, Cardinality.Many, capabilities, IOFormat.JsonElements, token: token);
+            var result = await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, IOFormat.JsonElements, token: token);
 
             return result.Data.Any()
                 ? result.Data.Select(x => new DataTypes.Json((string?)result.Deserializer.Deserialize(x.PayloadBuffer))).ToImmutableArray()
@@ -569,7 +569,7 @@ namespace EdgeDB
                     ServerKey = keyData.KeyBuffer;
                     break;
                 case StateDataDescription stateDescriptor:
-                    _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer, typeof(State.Session));
+                    _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
                     _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                     break;
                 case ParameterStatus parameterStatus:
@@ -709,12 +709,12 @@ namespace EdgeDB
                         var descriptorId = reader.ReadGuid();
                         reader.ReadBytes(length, out var typeDesc);
 
-                        var codec = CodecBuilder.GetCodec(descriptorId, typeof(void));
+                        var codec = CodecBuilder.GetCodec(descriptorId);
 
                         if (codec is null)
                         {
                             var innerReader = new PacketReader(ref typeDesc);
-                            codec = CodecBuilder.BuildCodec(descriptorId, ref innerReader, typeof(void));
+                            codec = CodecBuilder.BuildCodec(descriptorId, ref innerReader);
 
                             if (codec is null)
                                 throw new MissingCodecException("Failed to build codec for system_config");

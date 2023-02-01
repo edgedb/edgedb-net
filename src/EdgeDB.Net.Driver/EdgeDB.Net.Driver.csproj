@@ -24,7 +24,7 @@
     <None Remove="Binary\Codecs\Visitors\" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Binary\Codecs\Impl\Runtime\" />
     <Folder Include="ContractResolvers\" />
-    <Folder Include="Binary\Codecs\Visitors\" />
   </ItemGroup>
 </Project>

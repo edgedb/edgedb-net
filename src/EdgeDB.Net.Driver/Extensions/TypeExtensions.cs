@@ -27,9 +27,16 @@ namespace EdgeDB
                 return type.GetElementType()!;
             }
 
-            if(type.GetGenericTypeDefinition() == typeof(DataTypes.Range<>))
+            if (type == typeof(Range))
+                return typeof(int);
+
+            if (type.IsGenericType)
             {
-                return type.GenericTypeArguments[0];
+                var genDef = type.GetGenericTypeDefinition();
+                if (genDef == typeof(DataTypes.Range<>))
+                {
+                    return type.GenericTypeArguments[0];
+                }
             }
 
             Type? iface = null;

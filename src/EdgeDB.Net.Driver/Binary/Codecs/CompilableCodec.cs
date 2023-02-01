@@ -4,7 +4,7 @@ namespace EdgeDB.Binary.Codecs
     internal sealed class CompilableWrappingCodec
         : ICodec
     {
-        public ICodec InnerCodec { get; set; }
+        public ICodec InnerCodec { get; }
 
         private readonly Guid _id;
         private readonly Type _rootCodecType;
@@ -16,12 +16,24 @@ namespace EdgeDB.Binary.Codecs
             _rootCodecType = rootCodecType;
         }
 
-        public ICodec Compile()
+        // to avoid state changes to this compilable, pass in the inner codec post-walk.
+        public ICodec Compile(ICodec? innerCodec = null)
         {
-            var genType = _rootCodecType.MakeGenericType(InnerCodec.ConverterType);
+            innerCodec ??= InnerCodec;
 
-            // TODO: cache the codec built here
-            return (ICodec)Activator.CreateInstance(genType, InnerCodec)!;
+            var genType = _rootCodecType.MakeGenericType(innerCodec.ConverterType);
+
+            return CodecBuilder.CodecInstanceCache.GetOrAdd(genType, (k) =>
+            {
+                var codec = (ICodec)Activator.CreateInstance(k, innerCodec)!;
+
+                if(codec is IComplexCodec complex)
+                {
+                    complex.BuildRuntimeCodecs();
+                }
+
+                return codec;
+            }); 
         }
 
         Type ICodec.ConverterType => throw new NotSupportedException();

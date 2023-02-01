@@ -5,20 +5,6 @@ namespace EdgeDB
 {
     internal static class CodecExtensions
     {
-        public static ICodec CorrectForType(this ICodec codec, Type type)
-        {
-            switch (codec)
-            {
-                case ITemporalCodec temporal:
-                    return temporal.GetCodecFor(type);
-                case CompilableWrappingCodec compilable:
-                    compilable.InnerCodec = compilable.InnerCodec.CorrectForType(type.GetWrappingType());
-                    return compilable.Compile();
-            }
-
-            return codec;
-        }
-
         #region ICodec
         public static object? Deserialize(this ICodec codec, Span<byte> buffer)
         {
