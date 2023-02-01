@@ -57,6 +57,5 @@ select {
             TimeOnly lt,
             TimeSpan rdur,
             TimeSpan ddur);
-
     }
 }
