@@ -1,3 +1,12 @@
+
+/* Unmerged change from project 'EdgeDB.Net.QueryBuilder (net6.0)'
+Before:
+using EdgeDB.Schema;
+After:
+using EdgeDB;
+using EdgeDB.Builders;
+using EdgeDB.Schema;
+*/
 using EdgeDB.Schema;
 using Newtonsoft.Json.Linq;
 using System;
@@ -8,7 +17,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB
+namespace EdgeDB.Builders
 {
     internal delegate string SelectShapeExpressionTranslatorCallback(ShapeElementExpression expression);
 
@@ -52,18 +61,12 @@ namespace EdgeDB
 
         public string Compile(SelectShapeExpressionTranslatorCallback translator)
         {
-            if(ElementValue.HasValue)
-            {
+            if (ElementValue.HasValue)
                 return $"{Name} := {translator(ElementValue.Value)}";
-            }
             else if (ElementShape is not null)
-            {
                 return $"{Name}: {ElementShape.Compile(translator)}";
-            }
             else
-            {
                 return Name;
-            }
         }
     }
 
@@ -91,36 +94,30 @@ namespace EdgeDB
         public BaseShapeBuilder(Type type)
         {
             SelectedType = type;
-            
+
             LinkProperties = new();
             SelectedProperties = new();
 
             var allProps = type.GetEdgeDBTargetProperties();
 
             foreach (var prop in allProps)
-            {
                 if (EdgeDBTypeUtils.IsLink(prop.PropertyType, out var isMulti, out _))
-                {
                     LinkProperties.Add(prop.GetEdgeDBPropertyName(), (prop, isMulti));
-                }
                 else
-                {
                     SelectedProperties.Add(prop.GetEdgeDBPropertyName(), new(prop));
-                }
-            }
         }
 
-        internal static Dictionary<MemberInfo, ShapeElementExpression> GetComputeds(Type selectedType, LambdaExpression expression)
+        internal static Dictionary<MemberInfo, ShapeElementExpression> FlattenAnonymousExpression(Type selectedType, LambdaExpression expression)
         {
             // new expression
             if (expression.Body is not NewExpression init || !init.Type.IsAnonymousType() || init.Members is null)
                 throw new InvalidOperationException($"Expected anonymous object initializer, but got {expression.Body}");
 
             var realProps = selectedType.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            
+
             Dictionary<MemberInfo, ShapeElementExpression> dict = new();
 
-            for (int i = 0; i != init.Arguments.Count; i++)
+            for (var i = 0; i != init.Arguments.Count; i++)
             {
                 var argExpression = init.Arguments[i];
                 var member = init.Members[i];
@@ -164,7 +161,7 @@ namespace EdgeDB
         public ShapeBuilder()
             : base(typeof(T))
         { }
-        
+
         public ShapeBuilder<T> IncludeMultiLink<TIncluded>(Expression<Func<T, IEnumerable<TIncluded?>?>> selector)
             => IncludeInternal<TIncluded>(selector);
 
@@ -178,7 +175,7 @@ namespace EdgeDB
 
         public ShapeBuilder<T> Include<TIncluded>(Expression<Func<T, TIncluded?>> selector, Action<ShapeBuilder<TIncluded>> shape)
             => IncludeInternal(selector, shape, errorOnMultiLink: true);
-        
+
         public ShapeBuilder<T> Exclude<TExcluded>(Expression<Func<T, TExcluded>> selector)
         {
             var member = GetSelectedProperty(selector);
@@ -190,30 +187,33 @@ namespace EdgeDB
 
         public ShapeBuilder<T> Computeds<TAnon>(Expression<Func<T, TAnon>> computedsSelector)
         {
-            var computeds = GetComputeds(SelectedType, computedsSelector);
+            var computeds = FlattenAnonymousExpression(SelectedType, computedsSelector);
 
-            foreach(var computed in computeds)
-            {
+            foreach (var computed in computeds)
                 SelectedProperties[computed.Key.GetEdgeDBPropertyName()] = new(computed.Key, computed.Value);
-            }
 
             return this;
         }
 
         public ShapeBuilder<T> Computeds<TAnon>(Expression<Func<QueryContext<T>, T, TAnon>> computedsSelector)
         {
-            var computeds = GetComputeds(SelectedType, computedsSelector);
+            var computeds = FlattenAnonymousExpression(SelectedType, computedsSelector);
 
             foreach (var computed in computeds)
-            {
                 SelectedProperties[computed.Key.GetEdgeDBPropertyName()] = new(computed.Key, computed.Value);
-            }
 
             return this;
         }
 
         public ShapeBuilder<T> Explicitly<TAnon>(Expression<Func<T, TAnon>> explicitSelector)
         {
+            var members = FlattenAnonymousExpression(SelectedType, explicitSelector);
+
+            SelectedProperties.Clear();
+
+            foreach (var member in members)
+                SelectedProperties[member.Key.GetEdgeDBPropertyName()] = new(member.Key, member.Value);
+
             return this;
         }
 
@@ -221,15 +221,13 @@ namespace EdgeDB
         {
             var member = GetSelectedProperty(selector);
 
-            if(errorOnMultiLink && LinkProperties.TryGetValue(member.GetEdgeDBPropertyName(), out var info) && info.Item2)
-            {
+            if (errorOnMultiLink && LinkProperties.TryGetValue(member.GetEdgeDBPropertyName(), out var info) && info.Item2)
                 throw new InvalidOperationException("Use IncludeMultiLink for multi-link properties");
-            }
 
             if (LinkProperties.ContainsKey(member.GetEdgeDBPropertyName()))
             {
                 var builder = new ShapeBuilder<TIncluded>();
-                if(shape is not null)
+                if (shape is not null)
                     shape(builder);
                 SelectedProperties.TryAdd(member.GetEdgeDBPropertyName(), new(member, builder.GetShape()));
             }

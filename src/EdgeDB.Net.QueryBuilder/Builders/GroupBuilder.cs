@@ -1,11 +1,20 @@
-﻿using System;
+﻿
+/* Unmerged change from project 'EdgeDB.Net.QueryBuilder (net6.0)'
+Before:
+using System;
+After:
+using EdgeDB;
+using EdgeDB.Builders;
+using System;
+*/
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB
+namespace EdgeDB.Builders
 {
     public abstract class BaseGroupBuilder
     {

@@ -1,4 +1,5 @@
-﻿using EdgeDB.Interfaces.Queries;
+﻿using EdgeDB.Builders;
+using EdgeDB.Interfaces.Queries;
 using System;
 using System.Collections.Generic;
 using System.Linq;
