@@ -9,39 +9,65 @@ using SysDateTime = System.DateTime;
 namespace EdgeDB.DataTypes
 {
     /// <summary>
-    ///     A struct representing the <c>std::datetime</c> type in EdgeDB.
+    ///     A struct representing a timezone-aware moment in time.
     /// </summary>
     public readonly struct DateTime
     {
         /// <summary>
-        ///     Gets the <see cref="DateTimeOffset"/> that represents the
-        ///     current <see cref="DateTime"/>.
+        ///     Gets a <see cref="DateTimeOffset"/> that represents this <see cref="DateTime"/>.
         /// </summary>
         public DateTimeOffset DateTimeOffset
-            => TemporalCommon.DateTimeOffsetFromMicroseconds(Microseconds, true);
+            => TemporalCommon.DateTimeOffsetFromMicroseconds(_microseconds, true);
 
-        public readonly long Microseconds;
+        /// <summary>
+        ///     Gets a <see cref="System.DateTime"/> that represents this <see cref="DateTime"/>.
+        /// </summary>
+        public SysDateTime SystemDateTime
+            => DateTimeOffset.DateTime;
 
+        /// <summary>
+        ///     Gets the microsecond component of this <see cref="DateTime"/>; representing the amount
+        ///     of microseconds since January 1st 2000, 00:00.
+        /// </summary>
+        public long Microseconds
+            => _microseconds;
+
+        private readonly long _microseconds;
+
+        /// <summary>
+        ///     Constructs a new <see cref="DateTime"/>.
+        /// </summary>
+        /// <param name="microseconds">The amount of microseconds since January 1st 2000, 00:00 UTC</param>
         internal DateTime(long microseconds)
         {
-            Microseconds = microseconds;
+            _microseconds = microseconds;
         }
 
         /// <summary>
-        ///     Creates a new <see cref="DateTime"/>.
+        ///     Constructs a new <see cref="DateTime"/>.
         /// </summary>
-        /// <param name="datetime">The value of the date time.</param>
+        /// <param name="datetime">
+        ///     The <see cref="SysDateTime"/> to use to construct this <see cref="DateTime"/>.
+        /// </param>
+        /// <remarks>
+        ///     The supplied <see cref="SysDateTime"/> will be rounded to the nearest microsecond.
+        /// </remarks>
         public DateTime(SysDateTime datetime)
             : this((DateTimeOffset)datetime)
         { }
 
         /// <summary>
-        ///     Creates a new <see cref="DateTime"/>.
+        ///     Constructs a new <see cref="DateTime"/>.
         /// </summary>
-        /// <param name="datetime">The value of the date time.</param>
+        /// <param name="datetime">
+        ///     The <see cref="System.DateTimeOffset"/> to use to construct this <see cref="DateTime"/>
+        /// </param>
+        /// <remarks>
+        ///     The supplied <see cref="System.DateTimeOffset"/> will be rounded to the nearest microsecond.
+        /// </remarks>
         public DateTime(DateTimeOffset datetime)
         {
-            Microseconds = TemporalCommon.ToMicroseconds(datetime);
+            _microseconds = TemporalCommon.ToMicroseconds(datetime);
         }
 
         /// <inheritdoc/>
@@ -50,12 +76,12 @@ namespace EdgeDB.DataTypes
             if (obj is not DateTime dt)
                 return false;
 
-            return dt.Microseconds == Microseconds;
+            return dt._microseconds == _microseconds;
         }
 
         /// <inheritdoc/>
         public override int GetHashCode()
-            => Microseconds.GetHashCode();
+            => _microseconds.GetHashCode();
 
         /// <summary>
         ///     Gets a <see cref="DateTime"/> object whos date and time are set to the current UTC time.

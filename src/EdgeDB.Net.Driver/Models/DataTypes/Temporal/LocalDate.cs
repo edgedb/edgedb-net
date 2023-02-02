@@ -7,23 +7,42 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.DataTypes
 {
+    /// <summary>
+    ///     A struct representing a date without a timezone.
+    /// </summary>
     public readonly struct LocalDate
     {
+        /// <summary>
+        ///     Gets a <see cref="System.DateOnly"/> that represents the current <see cref="LocalDate"/>.
+        /// </summary>
         public DateOnly DateOnly
-            => DateOnly.FromDateTime(TemporalCommon.EdgeDBEpocDateTimeUTC.AddDays(Days).DateTime);
+            => DateOnly.FromDateTime(TemporalCommon.EdgeDBEpocDateTimeUTC.AddDays(_days).DateTime);
 
-        public readonly int Days;
+        /// <summary>
+        ///     Gets the days component of this <see cref="LocalDate"/>; representing the number of
+        ///     days since January 1st 2000.
+        /// </summary>
+        public int Days
+            => _days;
 
-        internal LocalDate(int days)
+        private readonly int _days;
+
+        /// <summary>
+        ///     Constructs a new <see cref="LocalDate"/>.
+        /// </summary>
+        /// <param name="days">The number of days since January 1st 2000.</param>
+        public LocalDate(int days)
         {
-            Days = days;
+            _days = days;
         }
 
+        /// <summary>
+        ///     Constructs a new <see cref="LocalDate"/>
+        /// </summary>
+        /// <param name="date">The <see cref="System.DateOnly"/> used to construct this <see cref="LocalDate"/>.</param>
         public LocalDate(DateOnly date)
             : this(TemporalCommon.ToDays(date))
-        {
-            
-        }
+        { }
         
         /// <inheritdoc/>
         public override bool Equals([NotNullWhen(true)] object? obj)
@@ -31,11 +50,11 @@ namespace EdgeDB.DataTypes
             if (obj is not LocalDate d)
                 return false;
 
-            return d.Days == Days;
+            return d._days == _days;
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode() => Days.GetHashCode();
+        public override int GetHashCode() => _days.GetHashCode();
 
 
         public static implicit operator DateOnly(LocalDate t) => t.DateOnly;
