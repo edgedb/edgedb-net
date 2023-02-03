@@ -48,6 +48,8 @@ namespace EdgeDB.ExampleApp.Examples
             // our C# abstract type.
             var result = await client.QueryAsync<AbstractThing>("select AbstractThing { name }");
 
+            await Task.Delay(120000);
+
             // select only 'Thing' types
             var things = result.Where(x => x is Thing);
 

@@ -133,13 +133,30 @@ namespace EdgeDB.Binary
                 }
 
                 _client.Logger.MessageReceived(_client.ClientId, header.Type);
-                return PacketSerializer.DeserializePacket(header.Type, ref buffer, header.Length, _client);
+
+                var packet = PacketSerializer.DeserializePacket(header.Type, ref buffer, header.Length, _client);
+
+                // check for idle timeout
+                if(packet is ErrorResponse err && err.ErrorCode == ServerErrorCodes.IdleSessionTimeoutError)
+                {
+                    // all connection state needs to be reset for the client here.
+                    _client.Logger.IdleDisconnect();
+
+                    await DisconnectInternalAsync();
+                    throw new EdgeDBErrorException(err);
+                }
+
+                return packet;
             }
             catch (EndOfStreamException)
             {
                 // disconnect
                 await DisconnectInternalAsync();
                 return null;
+            }
+            catch(EdgeDBErrorException)
+            {
+                throw;
             }
             catch (Exception x) when (x is not OperationCanceledException or TaskCanceledException)
             {
@@ -154,18 +171,18 @@ namespace EdgeDB.Binary
 
         public async ValueTask SendAsync(CancellationToken token = default, params Sendable[] packets)
         {
-            using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectTokenSource.Token);
-
             if (_stream == null || !IsConnected)
             {
-                await _client.ReconnectAsync();
+                await _client.ReconnectAsync(); //don't pass token here, it may be cancelled due to the disconnect token.
             }
 
             // check stream after reconnect
-            if(_stream is null)
+            if (_stream is null)
             {
                 throw new EdgeDBException("Cannot send message to a force-closed connection");
             }
+
+            using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectTokenSource.Token);
 
             await _stream.WriteAsync(BinaryUtils.BuildPackets(packets), linkedToken.Token).ConfigureAwait(false);
         }
