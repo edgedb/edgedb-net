@@ -1,4 +1,5 @@
 using EdgeDB.Binary;
+using EdgeDB.Binary.Codecs;
 using Microsoft.Extensions.Logging;
 
 namespace EdgeDB
@@ -101,5 +102,11 @@ namespace EdgeDB
             LogLevel.Trace,
             "Client reconnecting, read disconnect request.")]
         public static partial void IdleDisconnect(this ILogger logger);
+
+        [LoggerMessage(
+            15,
+            LogLevel.Trace,
+            "The codec {Codec}:{ID} couln't be cached likely due to a race condition")]
+        public static partial void CodecCouldntBeCached(this ILogger logger, ICodec codec, Guid id);
     }
 }
