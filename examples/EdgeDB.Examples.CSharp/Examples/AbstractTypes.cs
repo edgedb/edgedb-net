@@ -1,4 +1,4 @@
-﻿using EdgeDB.State;
+using EdgeDB.State;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -47,6 +47,8 @@ namespace EdgeDB.ExampleApp.Examples
             // Note that the type builder will 'discover' the types that inherit
             // our C# abstract type.
             var result = await client.QueryAsync<AbstractThing>("select AbstractThing { name }");
+
+            await Task.Delay(120000);
 
             // select only 'Thing' types
             var things = result.Where(x => x is Thing);
