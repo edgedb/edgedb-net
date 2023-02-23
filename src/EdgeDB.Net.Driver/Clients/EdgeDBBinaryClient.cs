@@ -412,7 +412,7 @@ namespace EdgeDB
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         public override async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null,
             Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
-            => await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, token: token).ConfigureAwait(false);
+            => await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, IOFormat.None, token: token).ConfigureAwait(false);
 
         /// <inheritdoc/>
         /// <exception cref="EdgeDBException">A general error occored.</exception>
