@@ -98,9 +98,16 @@ namespace EdgeDB.Binary
             { typeof(DataTypes.Json), "json" },
             { typeof(Guid), "uuid" },
             { typeof(byte[]), "bytes" },
-            { typeof(DateTime), "local_datetime" },
+            { typeof(System.DateTime), "local_datetime" },
             { typeof(DateTimeOffset), "datetime" },
             { typeof(TimeSpan), "duration" },
+            { typeof(DataTypes.DateDuration), "date_duration" },
+            { typeof(DataTypes.DateTime), "datetime" },
+            { typeof(DataTypes.Duration), "duration" },
+            { typeof(DataTypes.LocalDate), "local_date"},
+            { typeof(DataTypes.LocalDateTime), "local_datetime" },
+            { typeof(DataTypes.LocalTime), "local_time" },
+            { typeof(DataTypes.RelativeDuration), "relative_duration" },
         };
     }
 }

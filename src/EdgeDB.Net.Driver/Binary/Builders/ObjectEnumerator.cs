@@ -124,10 +124,13 @@ namespace EdgeDB
 
             switch (codec)
             {
-                case Binary.Codecs.Object obj:
+                case Binary.Codecs.IComplexCodec temporal:
+                    codec = temporal.GetCodecFor(prop.Type);
+                    break;
+                case Binary.Codecs.ObjectCodec obj:
                     obj.Initialize(prop.Type);
                     break;
-                case Binary.Codecs.Tuple tpl:
+                case Binary.Codecs.TupleCodec tpl:
                     {
                         var gn = prop.Type.GetGenericArguments();
 
@@ -141,7 +144,7 @@ namespace EdgeDB
                     }
                     break;
                 case IWrappingCodec singleWrap
-                        when singleWrap.InnerCodec is Binary.Codecs.Object obj &&
+                        when singleWrap.InnerCodec is Binary.Codecs.ObjectCodec obj &&
                         !obj.Initialized:
                     var iface = prop.Type.GetInterfaces().FirstOrDefault(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IEnumerable<>));
 

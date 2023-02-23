@@ -18,7 +18,7 @@ namespace EdgeDB.Utils
 
         static Scram()
         {
-            _stringCodec = ICodec.GetScalarCodec<string>()!;
+            _stringCodec = CodecBuilder.GetScalarCodec<string>()!;
         }
 
         public Scram(byte[]? clientNonce = null)

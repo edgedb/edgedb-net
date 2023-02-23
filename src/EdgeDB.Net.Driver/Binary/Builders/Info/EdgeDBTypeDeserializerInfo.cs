@@ -1,3 +1,4 @@
+using EdgeDB.Binary;
 using EdgeDB.DataTypes;
 using System;
 using System.Collections.Generic;
@@ -47,6 +48,9 @@ namespace EdgeDB
                 _ctorInfo = ctorInfo;
 
             _factory = CreateDefaultFactory();
+
+            UpdateCodecsWithFactory(type, _factory);
+
             EdgeDBTypeName = _type.GetCustomAttribute<EdgeDBTypeAttribute>()?.Name ?? _type.Name;
 
             _typeActivator = CreateActivator();
@@ -68,6 +72,7 @@ namespace EdgeDB
 
             _typeActivator = CreateActivator();
             _factory = factory;
+            UpdateCodecsWithFactory(type, _factory);
         }
 
         private ObjectActivator? CreateActivator()
@@ -93,6 +98,7 @@ namespace EdgeDB
         public void UpdateFactory(TypeDeserializerFactory factory)
         {
             _factory = factory;
+            UpdateCodecsWithFactory(_type, _factory);
         }
 
         private TypeDeserializerFactory CreateDefaultFactory()
@@ -285,6 +291,18 @@ namespace EdgeDB
                 throw new InvalidOperationException($"No empty constructor found on type {_type}");
 
             return _typeActivator();
+        }
+
+        private static void UpdateCodecsWithFactory(Type type, TypeDeserializerFactory factory)
+        {
+            var codecs = CodecBuilder.CachedCodecs
+                .Where(x => x is Binary.Codecs.ObjectCodec obj && obj.TargetType == type)
+                .Cast<Binary.Codecs.ObjectCodec>();
+
+            foreach(var codec in codecs)
+            {
+                codec.UpdateFactory(factory);
+            }   
         }
 
         public object? Deserialize(ref ObjectEnumerator enumerator)
