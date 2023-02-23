@@ -33,8 +33,9 @@ namespace EdgeDB.Binary.Codecs
 
             var old = _frames.Count == 0 ? typeof(void) : Context.Type;
 
-            _frames.Push(new() { Type = type, Deserializer = deserializer });
             _logger.CodecVisitorStackTransition(Depth, old, type);
+
+            _frames.Push(new() { Type = type, Deserializer = deserializer });
         }
 
         public void Reset()
@@ -148,9 +149,10 @@ namespace EdgeDB.Binary.Codecs
         {
             var old = _frames.Count == 0 ? typeof(void) : Context.Type;
 
+            _logger.CodecVisitorStackTransition(Depth, old, type);
+
             _frames.Push(new TypeResultFrame { Type = type, Name = name, Deserializer = deserializer });
 
-            _logger.CodecVisitorStackTransition(Depth, old, type);
 
             return new FrameHandle(_logger, Depth, _frames);
         }
@@ -178,7 +180,7 @@ namespace EdgeDB.Binary.Codecs
 
             public void Dispose()
             {
-                _logger.CodecVisitorFramePopped(_depth, _stack.Pop().Type);
+                _logger.CodecVisitorFramePopped(_depth == string.Empty ? string.Empty : $"{_depth[..^2]} ", _stack.Pop().Type);
             }
         }
     }
