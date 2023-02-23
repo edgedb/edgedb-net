@@ -116,6 +116,11 @@ namespace EdgeDB.Binary.Codecs
             }
         }
 
+        public override string ToString()
+        {
+            return $"RangeCodec<{_innerCodec}>";
+        }
+
         ICodec IWrappingCodec.InnerCodec
         {
             get => _innerCodec;

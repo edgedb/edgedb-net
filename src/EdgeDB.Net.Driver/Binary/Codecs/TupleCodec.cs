@@ -54,6 +54,11 @@ namespace EdgeDB.Binary.Codecs
             throw new NotSupportedException("Tuples cannot be passed in query arguments");
         }
 
+        public override string ToString()
+        {
+            return $"TupleCodec<{string.Join(", ", this.InnerCodecs.Select(x => x.ToString()))}>";
+        }
+
         ICodec[] IMultiWrappingCodec.InnerCodecs
         {
             get => InnerCodecs;

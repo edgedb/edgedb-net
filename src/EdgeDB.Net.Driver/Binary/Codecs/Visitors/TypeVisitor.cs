@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Logging;
 using System;
+using System.Security.Cryptography;
 using System.Xml.Linq;
 
 namespace EdgeDB.Binary.Codecs
@@ -9,10 +11,15 @@ namespace EdgeDB.Binary.Codecs
             => _frames.Peek();
 
         private readonly Stack<TypeResultFrame> _frames;
+        private readonly ILogger _logger;
 
-        public TypeVisitor()
+        private string Depth
+            => "".PadRight(_frames.Count, '>') + (_frames.Count > 0 ? " " : "");
+
+        public TypeVisitor(ILogger logger)
         {
             _frames = new();
+            _logger = logger;
         }
 
         public void SetTargetType(Type type)
@@ -24,7 +31,10 @@ namespace EdgeDB.Binary.Codecs
                 _ = TypeBuilder.IsValidObjectType(type) && TypeBuilder.TryGetTypeDeserializerInfo(type, out deserializer);
             }
 
+            var old = _frames.Count == 0 ? typeof(void) : Context.Type;
+
             _frames.Push(new() { Type = type, Deserializer = deserializer });
+            _logger.CodecVisitorStackTransition(Depth, old, type);
         }
 
         public void Reset()
@@ -34,6 +44,8 @@ namespace EdgeDB.Binary.Codecs
         {
             if (Context.Type == typeof(void))
                 return;
+
+            _logger.CodecVisitorNewCodec(Depth, codec);
 
             switch (codec)
             {
@@ -59,6 +71,8 @@ namespace EdgeDB.Binary.Codecs
 
                             Visit(ref innerCodec);
 
+                            _logger.CodecVisitorMutatedCodec(Depth, obj.InnerCodecs[i], innerCodec);
+
                             obj.InnerCodecs[i] = innerCodec;
                         }
                     }
@@ -78,6 +92,8 @@ namespace EdgeDB.Binary.Codecs
 
                             Visit(ref innerCodec);
 
+                            _logger.CodecVisitorMutatedCodec(Depth, tuple.InnerCodecs[i], innerCodec);
+
                             tuple.InnerCodecs[i] = innerCodec;
                         }
                     }
@@ -92,8 +108,12 @@ namespace EdgeDB.Binary.Codecs
                             VisitCodec(ref tmp);
 
                             codec = compilable.Compile(tmp);
+
+                            _logger.CodecVisitorCompiledCodec(Depth, compilable, codec, Context.Type);
                         }
 
+                        _logger.CodecVisitorMutatedCodec(Depth, tmp, codec);
+                        
                         // visit the compiled codec
                         Visit(ref codec);
                     }
@@ -101,6 +121,7 @@ namespace EdgeDB.Binary.Codecs
                 case IComplexCodec complex:
                     {
                         codec = complex.GetCodecFor(Context.Type);
+                        _logger.CodecVisitorComplexCodecFlattened(Depth, complex, codec, Context.Type);
                     }
                     break;
                 case IRuntimeCodec runtime:
@@ -113,6 +134,8 @@ namespace EdgeDB.Binary.Codecs
                         // ask the broker of the runtime codec for
                         // the correct one.
                         codec = runtime.Broker.GetCodecFor(Context.Type);
+
+                        _logger.CodecVisitorRuntimeCodecBroker(Depth, runtime, runtime.Broker, codec, Context.Type);
                     }
                     break;
             }
@@ -123,8 +146,13 @@ namespace EdgeDB.Binary.Codecs
             string? name = null,
             EdgeDBTypeDeserializeInfo? deserializer = null)
         {
+            var old = _frames.Count == 0 ? typeof(void) : Context.Type;
+
             _frames.Push(new TypeResultFrame { Type = type, Name = name, Deserializer = deserializer });
-            return new FrameHandle(_frames);
+
+            _logger.CodecVisitorStackTransition(Depth, old, type);
+
+            return new FrameHandle(_logger, Depth, _frames);
         }
 
         private struct TypeResultFrame
@@ -137,15 +165,20 @@ namespace EdgeDB.Binary.Codecs
         private readonly struct FrameHandle : IDisposable
         {
             private readonly Stack<TypeResultFrame> _stack;
+            private readonly ILogger _logger;
+            private readonly string _depth;
 
-            public FrameHandle(Stack<TypeResultFrame> stack)
+
+            public FrameHandle(ILogger logger, string depth, Stack<TypeResultFrame> stack)
             {
+                _depth = depth;
+                _logger = logger;
                 _stack = stack;
             }
 
             public void Dispose()
             {
-                _stack.Pop();
+                _logger.CodecVisitorFramePopped(_depth, _stack.Pop().Type);
             }
         }
     }

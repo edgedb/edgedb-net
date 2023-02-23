@@ -1,4 +1,5 @@
 using EdgeDB.Binary;
+using Microsoft.Extensions.Logging;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
@@ -13,13 +14,16 @@ namespace EdgeDB.Binary.Codecs
         public ICodec[] InnerCodecs;
         public readonly string[] PropertyNames;
 
-        private TypeDeserializerFactory? _factory;
         public EdgeDBTypeDeserializeInfo? DeserializerInfo;
         internal Type? TargetType;
         internal bool Initialized;
-        
-        internal ObjectCodec(ObjectShapeDescriptor descriptor, List<ICodec> codecs)
+
+        private TypeDeserializerFactory? _factory;
+        private readonly ILogger _logger;
+
+        internal ObjectCodec(ILogger logger, ObjectShapeDescriptor descriptor, List<ICodec> codecs)
         {
+            _logger = logger;
             InnerCodecs = new ICodec[descriptor.Shapes.Length];
             PropertyNames = new string[descriptor.Shapes.Length];
 
@@ -31,8 +35,9 @@ namespace EdgeDB.Binary.Codecs
             }
         }
 
-        internal ObjectCodec(NamedTupleTypeDescriptor descriptor, List<ICodec> codecs)
+        internal ObjectCodec(ILogger logger, NamedTupleTypeDescriptor descriptor, List<ICodec> codecs)
         {
+            _logger = logger;
             InnerCodecs = new ICodec[descriptor.Elements.Length];
             PropertyNames = new string[descriptor.Elements.Length];
 
@@ -44,8 +49,9 @@ namespace EdgeDB.Binary.Codecs
             }
         }
 
-        internal ObjectCodec(ICodec[] innerCodecs, string[] propertyNames)
+        internal ObjectCodec(ILogger logger, ICodec[] innerCodecs, string[] propertyNames)
         {
+            _logger = logger;
             InnerCodecs = innerCodecs;
             PropertyNames = propertyNames;
         }
@@ -111,7 +117,7 @@ namespace EdgeDB.Binary.Codecs
 
             writer.Write(values.Length);
 
-            var visitor = new TypeVisitor();
+            var visitor = new TypeVisitor(_logger);
 
             for (int i = 0; i != values.Length; i++)
             {
@@ -126,7 +132,7 @@ namespace EdgeDB.Binary.Codecs
                     writer.Write(-1);
                 }
                 else
-                {
+                { 
                     var innerCodec = InnerCodecs[i];
 
                     // special case for enums
@@ -151,6 +157,11 @@ namespace EdgeDB.Binary.Codecs
         }
 
         public override void Serialize(ref PacketWriter writer, object? value) => throw new NotSupportedException();
+
+        public override string ToString()
+        {
+            return $"ObjectCodec<{string.Join(", ", InnerCodecs.Zip(PropertyNames).Select(x => $"[{x.Second}: {x.First}]"))}>";
+        }
 
         ICodec[] IMultiWrappingCodec.InnerCodecs
         {

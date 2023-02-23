@@ -136,7 +136,11 @@ namespace EdgeDB.Binary
 
             while (!reader.Empty)
             {
+                var start = reader.Position;
                 var typeDescriptor = ITypeDescriptor.GetDescriptor(ref reader);
+                var end = reader.Position;
+
+                client.Logger.TraceTypeDescriptor(typeDescriptor, typeDescriptor.Id, end - start, $"{end}/{reader.Data.Length}".PadRight(reader.Data.Length.ToString().Length *2 + 2));
 
                 if (!CodecCache.TryGetValue(typeDescriptor.Id, out var codec))
                     codec = GetScalarCodec(typeDescriptor.Id);
@@ -148,9 +152,9 @@ namespace EdgeDB.Binary
                     codec = typeDescriptor switch
                     {
                         EnumerationTypeDescriptor enumeration => GetOrCreateCodec<TextCodec>(),
-                        NamedTupleTypeDescriptor  namedTuple  => new ObjectCodec(namedTuple, codecs),
-                        ObjectShapeDescriptor     @object     => new ObjectCodec(@object, codecs),
-                        InputShapeDescriptor      input       => new SparceObjectCodec(input, codecs),
+                        NamedTupleTypeDescriptor  namedTuple  => new ObjectCodec(client.Logger, namedTuple, codecs),
+                        ObjectShapeDescriptor     @object     => new ObjectCodec(client.Logger, @object, codecs),
+                        InputShapeDescriptor      input       => new SparceObjectCodec(client.Logger, input, codecs),
                         TupleTypeDescriptor       tuple       => new TupleCodec(tuple.ElementTypeDescriptorsIndex.Select(x => codecs[x]).ToArray()),
                         RangeTypeDescriptor       range       => new CompilableWrappingCodec(typeDescriptor.Id, codecs[range.TypePos], typeof(RangeCodec<>)), // (ICodec)Activator.CreateInstance(typeof(RangeCodec<>).MakeGenericType(codecs[range.TypePos].ConverterType), codecs[range.TypePos])!,
                         ArrayTypeDescriptor       array       => new CompilableWrappingCodec(typeDescriptor.Id, codecs[array.TypePos], typeof(ArrayCodec<>)), //(ICodec)Activator.CreateInstance(typeof(Array<>).MakeGenericType(codecs[array.TypePos].ConverterType), codecs[array.TypePos])!,
@@ -168,8 +172,7 @@ namespace EdgeDB.Binary
 
             var finalCodec = codecs.Last();
 
-            if (!CodecCache.TryAdd(id, finalCodec))
-                client.Logger.CodecCouldntBeCached(finalCodec, id);
+            client.Logger.TraceCodecBuilderResult(finalCodec, codecs.Count, CodecCache.Count);
 
             return finalCodec;
         }

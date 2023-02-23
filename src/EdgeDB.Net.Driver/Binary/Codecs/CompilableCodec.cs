@@ -36,6 +36,11 @@ namespace EdgeDB.Binary.Codecs
             }); 
         }
 
+        public override string ToString()
+        {
+            return $"[{_id}] CompilableWrappingCodec{{{_rootCodecType.Name}<{InnerCodec}>}}";
+        }
+
         Type ICodec.ConverterType => throw new NotSupportedException();
         bool ICodec.CanConvert(Type t) => throw new NotSupportedException();
         void ICodec.Serialize(ref PacketWriter writer, object? value) => throw new NotSupportedException();

@@ -439,7 +439,7 @@ namespace EdgeDB
 
             for(int i = 0; i != result.Data.Length; i++)
             {
-                var obj = ObjectBuilder.BuildResult<TResult>(result.Deserializer, ref result.Data[i]);
+                var obj = ObjectBuilder.BuildResult<TResult>(Logger, result.Deserializer, ref result.Data[i]);
                 array[i] = obj;
             }
 
@@ -475,7 +475,7 @@ namespace EdgeDB
 
             return queryResult.PayloadBuffer is null
                 ? default
-                : ObjectBuilder.BuildResult<TResult>(result.Deserializer, ref result.Data[0]);
+                : ObjectBuilder.BuildResult<TResult>(Logger, result.Deserializer, ref result.Data[0]);
         }
 
         /// <inheritdoc/>
@@ -507,7 +507,7 @@ namespace EdgeDB
             
             return queryResult.PayloadBuffer is null
                 ? throw new MissingRequiredException()
-                : ObjectBuilder.BuildResult<TResult>(result.Deserializer, ref result.Data[0])!;
+                : ObjectBuilder.BuildResult<TResult>(Logger, result.Deserializer, ref result.Data[0])!;
         }
 
         /// <inheritdoc/>

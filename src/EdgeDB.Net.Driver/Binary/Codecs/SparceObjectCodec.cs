@@ -1,4 +1,5 @@
 using EdgeDB.Binary;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
@@ -14,8 +15,12 @@ namespace EdgeDB.Binary.Codecs
         public ICodec[] InnerCodecs;
         public readonly string[] FieldNames;
 
-        internal SparceObjectCodec(InputShapeDescriptor descriptor, List<ICodec> codecs)
+        private readonly ILogger _logger;
+
+        internal SparceObjectCodec(ILogger logger, InputShapeDescriptor descriptor, List<ICodec> codecs)
         {
+            _logger = logger;
+
             InnerCodecs = new ICodec[descriptor.Shapes.Length];
             FieldNames = new string[descriptor.Shapes.Length];
 
@@ -77,7 +82,7 @@ namespace EdgeDB.Binary.Codecs
 
             writer.Write(dict.Count);
 
-            var visitor = new TypeVisitor();
+            var visitor = new TypeVisitor(_logger);
 
             foreach (var element in dict)
             {
@@ -106,6 +111,11 @@ namespace EdgeDB.Binary.Codecs
                     writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => codec.Serialize(ref innerWriter, element.Value));
                 }
             }
+        }
+
+        public override string ToString()
+        {
+            return $"SparseObjectCodec<{string.Join(", ", InnerCodecs.Zip(FieldNames).Select(x => $"[{x.Second}: {x.First}]"))}>";
         }
     }
 }
