@@ -62,7 +62,10 @@ The .NET driver maps the following EdgeDB types to the corresponding:
 | :eql:func:`range`                  | ``EdgeDB.DataTypes.Range<T>`` \*\* |
 +------------------------------------+------------------------------------+
 
-\* .NET system date/time types will be implicitly converted to the corresponding 
+\* These types are only available in >=1.0.5, previous versions use the 
+.NET system date/time types. 
+
+.NET system date/time types will be implicitly converted to the corresponding 
 ``DataTypes.*`` type, and vice versa. It is important to note that the precision 
 of EdgeDB types is microseconds, while .NETs are nanoseconds. This means that 
 when converting from EdgeDB to .NET, the precision will be lost. When converting 
@@ -72,4 +75,5 @@ to ensure the precision is not lost.
 
 \*\* The ``System.Range`` type will be implicitly converted to ``range<int32>``. 
 Note: since the .NET ``Range`` type only supports ``int32`` values, using any 
-other EdgeDB range type that isn't ``int32`` will not work.
+other EdgeDB range type that isn't ``int32`` will not work. This is only 
+available in >=1.0.5
