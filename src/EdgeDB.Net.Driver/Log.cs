@@ -23,9 +23,9 @@ namespace EdgeDB
         [LoggerMessage(
             3,
             LogLevel.Debug,
-            "Client {ClientId}: {MessageType}"
+            "S->C: Client {ClientId}: {MessageType} len: {Length}"
         )]
-        public static partial void MessageReceived(this ILogger logger, ulong clientId, ServerMessageType messageType);
+        public static partial void MessageReceived(this ILogger logger, ulong clientId, ServerMessageType messageType, int length);
 
         [LoggerMessage(
             4,
@@ -169,5 +169,24 @@ namespace EdgeDB
             LogLevel.Debug,
             "Skipping codec visitor for {ExternalType} on codec {Codec}: it's already been visited for that type")]
         public static partial void SkippingCodecVisiting(this ILogger logger, Type externalType, ICodec codec);
+
+        [LoggerMessage(
+            26,
+            LogLevel.Debug,
+            "C->S: Client {ClientId}: {MessageType} len: {Length}")]
+        public static partial void MessageSent(this ILogger logger, ulong clientId, ClientMessageTypes messageType, int length);
+
+
+        [LoggerMessage(
+            27,
+            LogLevel.Warning,
+            "A message read consumed {Percent}% of the EdgeDBConfig.MessageTimeout duration of {Timeout}ms. Consider increasing the message timeout if your queries take long to compute")]
+        public static partial void MessageTimeoutDeltaWarning(this ILogger logger, int percent, int timeout);
+
+        [LoggerMessage(
+            28,
+            LogLevel.Error,
+            "A message read exceeded the EdgeDBConfig.MessageTimeout of {Timeout}ms by {Percent}%. Hint: try increasing the message timeout to accommodate your queries")]
+        public static partial void MessageTimeoutDeltaError(this ILogger logger, int percent, int timeout);
     }
 }

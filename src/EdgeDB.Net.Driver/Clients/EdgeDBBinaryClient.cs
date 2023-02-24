@@ -362,11 +362,17 @@ namespace EdgeDB
 
                 return new RawExecuteResult(outCodecInfo.Codec!, receivedData);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ce)
             {
+                // only throw if it was the timeout token that caused the operation to cancel
+                bool wasTimedOut = !token.IsCancellationRequested && !Duplexer.DisconnectToken.IsCancellationRequested;
+
                 // disconnect
                 await DisconnectAsync(default);
-                throw;
+
+                if (wasTimedOut)
+                    throw new QueryTimeoutException(_config.MessageTimeout, query, ce);
+                else throw;
             }
             catch (EdgeDBException x) when (x.ShouldReconnect && !isRetry)
             {

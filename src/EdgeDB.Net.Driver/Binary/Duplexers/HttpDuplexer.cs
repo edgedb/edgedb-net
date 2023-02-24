@@ -111,6 +111,15 @@ namespace EdgeDB.Binary.Duplexers
 
                 var result = await _client.HttpClient.SendAsync(message, token).ConfigureAwait(false);
 
+                // only perform second iteration if debug log enabled.
+                if (_client.Logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Debug))
+                {
+                    foreach (var packet in packets)
+                    {
+                        _client.Logger.MessageSent(_client.ClientId, packet.Type, packet.Size);
+                    }
+                }
+
                 result.EnsureSuccessStatusCode();
 
                 if (result.Content.Headers.ContentType is null || result.Content.Headers.ContentType.MediaType != HTTP_BINARY_CONTENT_TYPE)
@@ -161,7 +170,7 @@ namespace EdgeDB.Binary.Duplexers
 
                 _packetQueue.Enqueue(packet);
 
-                _client.Logger.MessageReceived(_client.ClientId, header.Type);
+                _client.Logger.MessageReceived(_client.ClientId, header.Type, buffer.Length);
             }
 
             _packetReadTCS.TrySetResult();

@@ -4,6 +4,7 @@ using EdgeDB.Utils;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net.Security;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -132,7 +133,7 @@ namespace EdgeDB.Binary
                     return null;
                 }
 
-                _client.Logger.MessageReceived(_client.ClientId, header.Type);
+                _client.Logger.MessageReceived(_client.ClientId, header.Type, buffer.Length);
 
                 var packet = PacketSerializer.DeserializePacket(header.Type, ref buffer, header.Length, _client);
 
@@ -185,6 +186,15 @@ namespace EdgeDB.Binary
             using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectTokenSource.Token);
 
             await _stream.WriteAsync(BinaryUtils.BuildPackets(packets), linkedToken.Token).ConfigureAwait(false);
+
+            // only perform second iteration if debug log enabled.
+            if(_client.Logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Debug))
+            {
+                foreach(var packet in packets)
+                {
+                    _client.Logger.MessageSent(_client.ClientId, packet.Type, packet.Size);
+                }
+            }
         }
 
         public async IAsyncEnumerable<DuplexResult> DuplexAsync(
@@ -210,30 +220,49 @@ namespace EdgeDB.Binary
 
         private async ValueTask<int> ReadExactAsync(Memory<byte> buffer, CancellationToken token)
         {
-#if NET7_0_OR_GREATER
-            await _stream!.ReadExactlyAsync(buffer, token).ConfigureAwait(false);
-            return buffer.Length;
-#else
-            var targetLength = buffer.Length;
+            var sw = Stopwatch.StartNew();
 
-            int numRead = 0;
-
-            while (numRead < targetLength)
+            try
             {
-                var buff = numRead == 0
-                    ? buffer
-                    : buffer[numRead..];
+#if NET7_0_OR_GREATER
+                await _stream!.ReadExactlyAsync(buffer, token).ConfigureAwait(false);
+                return buffer.Length;
+#else
+                var targetLength = buffer.Length;
 
-                var read = await _stream!.ReadAsync(buff, token);
+                int numRead = 0;
 
-                if (read == 0) // disconnected
-                    return 0;
+                while (numRead < targetLength)
+                {
+                    var buff = numRead == 0
+                        ? buffer
+                        : buffer[numRead..];
 
-                numRead += read;
+                    var read = await _stream!.ReadAsync(buff, token);
+
+                    if (read == 0) // disconnected
+                        return 0;
+
+                    numRead += read;
+                }
+
+                return numRead;
+#endif
+            }
+            finally
+            {
+                sw.Stop();
+
+                var delta = sw.ElapsedMilliseconds / _client.MessageTimeout.TotalMilliseconds;
+                if (delta >= 0.75)
+                {
+                    if (delta < 1)
+                        _client.Logger.MessageTimeoutDeltaWarning((int)(delta * 100), (int)_client.MessageTimeout.TotalMilliseconds);
+                    else
+                        _client.Logger.MessageTimeoutDeltaError((int)(delta * 100), (int)_client.MessageTimeout.TotalMilliseconds);
+                }
             }
 
-            return numRead;
-#endif
         }
         
         private CancellationTokenSource GetTimeoutToken()
