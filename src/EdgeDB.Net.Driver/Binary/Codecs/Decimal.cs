@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace EdgeDB.Binary.Codecs
 {
     internal sealed class Decimal : IScalarCodec<decimal>
@@ -37,7 +39,7 @@ namespace EdgeDB.Binary.Codecs
 
             if (displayScale > 0)
             {
-                value += ".";
+                value += CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator;
                 var end = value.Length + displayScale;
                 for (int i = 0; i < displayScale; d++, i += 4)
                 {
