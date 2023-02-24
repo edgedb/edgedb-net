@@ -49,6 +49,7 @@ namespace EdgeDB
                 try
                 {
                     await func().ConfigureAwait(false);
+                    return;
                 }
                 catch (EdgeDBException x) when (x.ShouldRetry)
                 {
