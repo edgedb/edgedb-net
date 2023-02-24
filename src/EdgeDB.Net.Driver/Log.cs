@@ -188,5 +188,11 @@ namespace EdgeDB
             LogLevel.Error,
             "A message read exceeded the EdgeDBConfig.MessageTimeout of {Timeout}ms by {Percent}%. Hint: try increasing the message timeout to accommodate your queries")]
         public static partial void MessageTimeoutDeltaError(this ILogger logger, int percent, int timeout);
+
+        [LoggerMessage(
+            29,
+            LogLevel.Trace,
+            "Codec {Id} added to cache with description {Codec}")]
+        public static partial void CodecAddedToCache(this ILogger logger, Guid id, ICodec codec);
     }
 }
