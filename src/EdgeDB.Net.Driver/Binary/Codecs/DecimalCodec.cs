@@ -1,4 +1,5 @@
 using EdgeDB.Utils;
+using System.Globalization;
 
 namespace EdgeDB.Binary.Codecs
 {
@@ -41,7 +42,7 @@ namespace EdgeDB.Binary.Codecs
 
             if (displayScale > 0)
             {
-                value += ".";
+                value += CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator;
                 var end = value.Length + displayScale;
                 for (int i = 0; i < displayScale; d++, i += 4)
                 {
@@ -64,7 +65,7 @@ namespace EdgeDB.Binary.Codecs
             var rawSign = (span[3] >> 31) & 0x01;
 
             var str = value.ToString();
-            var spl = str.Split(".");
+            var spl = str.Split(CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator);
 
 
             var integral = spl[0][0] == '-' ? spl[0][1..] : spl[0];
