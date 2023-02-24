@@ -1,6 +1,7 @@
 namespace EdgeDB.Binary.Codecs
 {
-    internal sealed class NullCodec : ICodec, IArgumentCodec
+    internal sealed class NullCodec
+        : ICodec, IArgumentCodec, ICacheableCodec
     {
         public Type ConverterType => typeof(object);
 

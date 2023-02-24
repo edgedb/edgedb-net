@@ -5,14 +5,44 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
 
 namespace EdgeDB
 {
     internal sealed class ObjectBuilder
     {
-        public static TType? BuildResult<TType>(ICodec codec, ref Data data)
+        private static readonly Dictionary<int, Guid> _codecVisitorStateTable = new();
+        private static readonly object _visitorLock = new object();
+
+        public static TType? BuildResult<TType>(ILogger logger, ICodec codec, ref Data data)
         {
-            if (codec is Binary.Codecs.Object objectCodec)
+            // TO INVESTIGATE: since a codec can only be "visited" or "mutated" for
+            // one type at a time, we have to ensure that the codec is ready to deserialize
+            // TType, we can store the states of the codecs here for building result
+            // to achieve this.
+            bool wasSkipped = false;
+            lock(_visitorLock)
+            {
+                wasSkipped = _codecVisitorStateTable.TryGetValue(codec.GetHashCode(), out var typeId) && typeId == typeof(TType).GUID;
+                if (!wasSkipped)
+                {
+                    var visitor = new TypeVisitor(logger);
+
+                    visitor.SetTargetType(typeof(TType));
+
+                    visitor.Visit(ref codec);
+
+                    _codecVisitorStateTable[codec.GetHashCode()] = typeof(TType).GUID;
+                }
+            }
+
+            if(wasSkipped)
+            {
+                logger.SkippingCodecVisiting(typeof(TType), codec);
+            }
+            
+
+            if (codec is ObjectCodec objectCodec)
             {
                 return (TType?)TypeBuilder.BuildObject(typeof(TType), objectCodec, ref data);
             }

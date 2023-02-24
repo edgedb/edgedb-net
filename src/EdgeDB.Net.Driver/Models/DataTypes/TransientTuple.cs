@@ -104,8 +104,8 @@ namespace EdgeDB.DataTypes
 
                 return builder(types, values);
             }
-            return builder(_types[offset..], _values[offset..]);
 
+            return builder(_types[offset..], _values[offset..]);
         }
 
         /// <summary>
@@ -140,6 +140,33 @@ namespace EdgeDB.DataTypes
             }
 
             return new TransientTuple(types, values);
+        }
+
+        public static Type[] FlattenTypes(Type tuple)
+        {
+            if (!tuple.IsAssignableTo(typeof(ITuple)))
+                throw new InvalidOperationException($"The type {tuple} is not a tuple!");
+
+            var cTuple = tuple;
+
+            List<Type> tupleTypes = new();
+
+            while(true)
+            {
+                if(
+                    cTuple.GenericTypeArguments.Length == 8 &&
+                    cTuple.GenericTypeArguments[7].IsAssignableTo(typeof(ITuple)))
+                {
+                    // full tuple
+                    tupleTypes.AddRange(cTuple.GenericTypeArguments[..7]);
+                    cTuple = cTuple.GenericTypeArguments[7];
+                }
+                else
+                {
+                    tupleTypes.AddRange(cTuple.GenericTypeArguments);
+                    return tupleTypes.ToArray();
+                }
+            }
         }
     }
 }

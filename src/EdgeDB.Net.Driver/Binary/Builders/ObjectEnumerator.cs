@@ -98,61 +98,9 @@ namespace EdgeDB
             name = _names[_pos];
             var codec = Codecs[_pos];
 
-
-            // check initialization
-            InitializeCodec(name, codec);
-
             value = codec.Deserialize(ref innerReader);
             _pos++;
             return true;
-        }
-
-        private void InitializeCodec(string? name, ICodec codec, EdgeDBPropertyInfo? prop = null)
-        {
-            if (_deserializerInfo is null)
-                return;
-
-            if (!(codec is IWrappingCodec or IMultiWrappingCodec))
-                return;
-
-            if (prop is null && name is not null)
-                if (!_deserializerInfo.PropertyMap.TryGetValue(name, out prop))
-                    return;
-
-            if (prop is null)
-                return;
-
-            switch (codec)
-            {
-                case Binary.Codecs.Object obj:
-                    obj.Initialize(prop.Type);
-                    break;
-                case Binary.Codecs.Tuple tpl:
-                    {
-                        var gn = prop.Type.GetGenericArguments();
-
-                        if (gn.Length != tpl.InnerCodecs.Length)
-                            throw new NoTypeConverterException($"Cannot determine inner types of the tuple {prop.Type} for property {name ?? prop.PropertyName}");
-
-                        for (int i = 0; i != tpl.InnerCodecs.Length; i++)
-                        {
-                            InitializeCodec($"{name}[{i}]", tpl.InnerCodecs[i], prop);
-                        }
-                    }
-                    break;
-                case IWrappingCodec singleWrap
-                        when singleWrap.InnerCodec is Binary.Codecs.Object obj &&
-                        !obj.Initialized:
-                    var iface = prop.Type.GetInterfaces().FirstOrDefault(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IEnumerable<>));
-
-                    if (iface is not null)
-                    {
-                        obj.Initialize(iface.GetGenericArguments()[0]);
-                    }
-                    else
-                        throw new NoTypeConverterException($"Cannot determine inner type from {prop.Type}: Is it assignable to IEnumerable<T>?");
-                    break;
-            }
         }
     }
 }

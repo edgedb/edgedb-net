@@ -1,3 +1,4 @@
+using EdgeDB.Binary;
 using EdgeDB.Binary.Codecs;
 using System;
 using System.Collections.Generic;
@@ -84,7 +85,7 @@ namespace EdgeDB.TypeConverters
 
         internal void ValidateTargetType()
         {
-            if (!ICodec.ContainsScalarCodec(Target))
+            if (!CodecBuilder.ContainsScalarCodec(Target))
                 throw new MissingCodecException($"Cannot use {Target.Name} as a target type because it is not a scalar type.");
         }
     }

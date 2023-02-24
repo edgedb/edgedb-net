@@ -156,16 +156,16 @@ namespace EdgeDB
 
             var deferMode = $"{(!deferrable ? "not " : "")}deferrable";
 
-            await ExecuteInternalAsync<object>($"start transaction isolation {isolationMode}, {readMode}, {deferMode}", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
+            await ExecuteInternalAsync($"start transaction isolation {isolationMode}, {readMode}, {deferMode}", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         async Task ITransactibleClient.CommitAsync(CancellationToken token)
-            => await ExecuteInternalAsync<object>($"commit", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
+            => await ExecuteInternalAsync($"commit", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
 
         /// <inheritdoc/>
         async Task ITransactibleClient.RollbackAsync(CancellationToken token)
-            => await ExecuteInternalAsync<object>($"rollback", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
+            => await ExecuteInternalAsync($"rollback", capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
 
         /// <inheritdoc/>
         TransactionState ITransactibleClient.TransactionState => TransactionState;

@@ -19,5 +19,33 @@ namespace EdgeDB
 
         public static bool IsFSharpValueOption(this Type type)
             => IsFSharpType(type) && type.Name == "FSharpValueOption`1";
+
+        public static Type GetWrappingType(this Type type)
+        {
+            if (type.IsArray)
+            {
+                return type.GetElementType()!;
+            }
+
+            if (type == typeof(Range))
+                return typeof(int);
+
+            if (type.IsGenericType)
+            {
+                var genDef = type.GetGenericTypeDefinition();
+                if (genDef == typeof(DataTypes.Range<>))
+                {
+                    return type.GenericTypeArguments[0];
+                }
+            }
+
+            Type? iface = null;
+            if((iface = type.GetInterfaces().FirstOrDefault(x => x.Name == "IEnumerable`1")) is not null)
+            {
+                return iface.GenericTypeArguments[0];
+            }
+
+            throw new NotSupportedException($"Cannot find inner type of {type}");
+        }
     }
 }
