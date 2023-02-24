@@ -107,7 +107,7 @@ namespace EdgeDB
         /// <summary>
         ///     Gets or sets the max amount of miliseconds a client will wait for an expected message.
         /// </summary>
-        public uint MessageTimeout { get; set; } = 5000;
+        public uint MessageTimeout { get; set; } = 15000;
 
         /// <summary>
         ///     Gets or sets whether or not to always return object ids.
