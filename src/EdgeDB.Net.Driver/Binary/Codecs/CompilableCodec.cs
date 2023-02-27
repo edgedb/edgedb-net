@@ -36,6 +36,11 @@ namespace EdgeDB.Binary.Codecs
             }); 
         }
 
+        public Type GetInnerType()
+            => InnerCodec is CompilableWrappingCodec compilable
+            ? compilable.GetInnerType()
+            : InnerCodec.ConverterType;
+
         public override string ToString()
         {
             return $"[{_id}] CompilableWrappingCodec{{{_rootCodecType.Name}<{InnerCodec}>}}";

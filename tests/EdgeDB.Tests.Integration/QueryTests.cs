@@ -343,6 +343,24 @@ namespace EdgeDB.Tests.Integration
             => TestTypeQuerying("cal::local_date", RandomDate());
         #endregion
 
+        #region Typeless queries
+
+        [TestMethod]
+        public async Task TestTypelessQuery()
+        {
+            var result = await _client.QueryRequiredSingleAsync<dynamic>("select { a := 1, b := \"Foo\", c := { ca := \"Bar\", cb := <uuid>\"4a0e4b46-b6b1-11ed-95ac-b35bb41e8bbc\" }, d := {1,2,3} }");
+
+            Assert.AreEqual(1L, result.a);
+            Assert.AreEqual("Foo", result.b);
+            Assert.IsNotNull(result.c);
+            Assert.AreEqual("Bar", result.c.ca);
+            Assert.AreEqual(Guid.Parse("4a0e4b46-b6b1-11ed-95ac-b35bb41e8bbc"), result.c.cb);
+            Assert.AreEqual(3, result.d.Length);
+            Assert.IsTrue(Enumerable.SequenceEqual(result.d, new long[] {1,2,3}));
+        }
+
+        #endregion
+
         #region Helpers
         private static bool CompareMicroseconds(TimeSpan a, TimeSpan b)
         {

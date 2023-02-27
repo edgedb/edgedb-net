@@ -64,11 +64,16 @@ namespace EdgeDB.Binary.Codecs
                             var name = obj.PropertyNames[i];
 
                             // use the defined type, if not found, use the codecs type
+                            // if the inner is compilable, use its inner type and set the real
+                            // flag, since compileable visits only care about the inner type rather
+                            // than a concrete root.
                             var propType = Context.Deserializer!.PropertyMap.TryGetValue(name, out var propInfo)
                                 ? propInfo.Type
-                                : innerCodec.ConverterType;
+                                : innerCodec is CompilableWrappingCodec compilable
+                                    ? compilable.GetInnerType()
+                                    : innerCodec.ConverterType;
 
-                            using var propHandle = EnterNewContext(propType, name);
+                            using var propHandle = EnterNewContext(propType, name, innerRealType: innerCodec is CompilableWrappingCodec);
 
                             Visit(ref innerCodec);
 
@@ -104,7 +109,7 @@ namespace EdgeDB.Binary.Codecs
                         // visit the inner codec
                         var tmp = compilable.InnerCodec;
 
-                        using (var innerHandle = EnterNewContext(Context.Type.GetWrappingType()))
+                        using (var innerHandle = EnterNewContext(Context.InnerRealType ? Context.Type : Context.Type.GetWrappingType()))
                         {
                             VisitCodec(ref tmp);
 
@@ -145,13 +150,14 @@ namespace EdgeDB.Binary.Codecs
         private IDisposable EnterNewContext(
             Type type,
             string? name = null,
-            EdgeDBTypeDeserializeInfo? deserializer = null)
+            EdgeDBTypeDeserializeInfo? deserializer = null,
+            bool innerRealType = false)
         {
             var old = _frames.Count == 0 ? typeof(void) : Context.Type;
 
             _logger.CodecVisitorStackTransition(Depth, old, type);
 
-            _frames.Push(new TypeResultFrame { Type = type, Name = name, Deserializer = deserializer });
+            _frames.Push(new TypeResultFrame { Type = type, Name = name, Deserializer = deserializer, InnerRealType = innerRealType });
 
 
             return new FrameHandle(_logger, Depth, _frames);
@@ -162,6 +168,7 @@ namespace EdgeDB.Binary.Codecs
             public readonly Type Type { get; init; }
             public string? Name { get; set; }
             public EdgeDBTypeDeserializeInfo? Deserializer { get; set; }
+            public bool InnerRealType { get; set; }
         }
 
         private readonly struct FrameHandle : IDisposable
