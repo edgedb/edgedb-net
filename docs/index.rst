@@ -146,7 +146,7 @@ names and values within each result.
 
     type Person = { Name: string; Age: int }
 
-    let result = // Person List
+    let result = // Person list
       client.QueryAsync<Person>("SELECT Person { Name, Age }")
       |> Async.AwaitTask
       |> Async.RunSynchronously
