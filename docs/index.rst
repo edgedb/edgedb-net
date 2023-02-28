@@ -69,9 +69,9 @@ After you have an instance running, you may now create an ``EdgeDBClient``:
 
   .. code-tab:: fsharp
 
-    open EdgeDB.Net;
+    open EdgeDB
     
-    let client = new EdgeDBClient();
+    let client = EdgeDBClient()
 
 ``EdgeDBClient`` will automatically attempt to resolve your project's instance.
 In most circumstances, you won't need to specify any connection parameters.
@@ -94,9 +94,12 @@ with the ``QuerySingleAsync<T>`` method and printing its result:
     
   .. code-tab:: fsharp
   
-    let! result = client.QuerySingleAsync<string>("SELECT \"Hello, World!\"")
+    let result = 
+      client.QuerySingleAsync<string>("SELECT \"Hello, World!\"")
+      |> Async.AwaitTask
+      |> Async.RunSynchronously
     
-    print result
+    printfn $"{result}"
 
 .. note:: 
 
@@ -141,12 +144,13 @@ names and values within each result.
 
   .. code-tab:: fsharp
 
-    type Person = {
-      Name: string;
-      Age: int;
-    }
+    type Person = { Name: string; Age: int }
 
-    let! result = client.QueryAsync<Person>("SELECT Person { Name, Age }")
+    let result = // Person List
+      client.QueryAsync<Person>("SELECT Person { Name, Age }")
+      |> Async.AwaitTask
+      |> Async.RunSynchronously
+      |> List.ofSeq
 
 .. note::
 
