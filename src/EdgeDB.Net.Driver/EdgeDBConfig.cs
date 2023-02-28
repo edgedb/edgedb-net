@@ -1,5 +1,4 @@
 using EdgeDB.Binary;
-using EdgeDB.ContractResolvers;
 using EdgeDB.State;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -74,15 +73,6 @@ namespace EdgeDB
     /// </summary>
     public class EdgeDBConfig
     {
-        /// <summary>
-        ///     Gets the <see cref="JsonSerializer"/> capable of serializing/deserializing edgedb types.
-        /// </summary>
-        public static readonly JsonSerializer JsonSerializer = new JsonSerializer()
-        {
-            ContractResolver = new EdgeDBContractResolver(),
-            NullValueHandling = NullValueHandling.Ignore,
-        };
-
         /// <summary>
         ///     Gets or sets the logger used for logging messages from the driver.
         /// </summary>

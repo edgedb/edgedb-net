@@ -31,7 +31,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Examples.ExampleTODO
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "EdgeDB.Examples.FSharp", "examples\EdgeDB.Examples.FSharp\EdgeDB.Examples.FSharp.fsproj", "{F25AA805-163F-46B4-942E-B1A5EBE8383C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EdgeDB.DocGenerator", "tools\EdgeDB.DocGenerator\EdgeDB.DocGenerator.csproj", "{776EAE34-5A30-45B0-9277-C399CC2ABA53}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.DocGenerator", "tools\EdgeDB.DocGenerator\EdgeDB.DocGenerator.csproj", "{776EAE34-5A30-45B0-9277-C399CC2ABA53}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Json", "Json", "{DE731169-B902-4A02-8369-AA17177FBB80}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EdgeDB.Net.Json.NewtonsoftJson", "src/JsonConverters/EdgeDB.Net.Json.NewtonsoftJson\EdgeDB.Net.Json.NewtonsoftJson.csproj", "{475F5AB6-8BC2-4748-8353-90DEBF59A172}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -83,6 +87,10 @@ Global
 		{776EAE34-5A30-45B0-9277-C399CC2ABA53}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{776EAE34-5A30-45B0-9277-C399CC2ABA53}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{776EAE34-5A30-45B0-9277-C399CC2ABA53}.Release|Any CPU.Build.0 = Release|Any CPU
+		{475F5AB6-8BC2-4748-8353-90DEBF59A172}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{475F5AB6-8BC2-4748-8353-90DEBF59A172}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{475F5AB6-8BC2-4748-8353-90DEBF59A172}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{475F5AB6-8BC2-4748-8353-90DEBF59A172}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -99,6 +107,8 @@ Global
 		{E38429C6-53A5-4311-8189-1F78238666DC} = {6FC214F5-C912-4D99-91B1-3E9F52A4E11B}
 		{F25AA805-163F-46B4-942E-B1A5EBE8383C} = {6FC214F5-C912-4D99-91B1-3E9F52A4E11B}
 		{776EAE34-5A30-45B0-9277-C399CC2ABA53} = {67ED9EF0-7828-44C0-8CB0-DEBD69EC94CA}
+		{DE731169-B902-4A02-8369-AA17177FBB80} = {025AAADF-16AF-4367-9C3D-9E60EDED832F}
+		{475F5AB6-8BC2-4748-8353-90DEBF59A172} = {DE731169-B902-4A02-8369-AA17177FBB80}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4E90C94F-D693-4411-82F3-2051DE1BE052}
