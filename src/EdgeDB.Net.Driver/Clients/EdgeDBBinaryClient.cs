@@ -83,6 +83,9 @@ namespace EdgeDB
         internal readonly TimeSpan MessageTimeout;
         internal readonly TimeSpan ConnectionTimeout;
         internal readonly EdgeDBConnection Connection;
+
+        internal EdgeDBConfig ClientConfig
+            => _config;
         
         protected CancellationToken DisconnectCancelToken
             => Duplexer.DisconnectToken;
@@ -92,6 +95,7 @@ namespace EdgeDB
 
         private ICodec? _stateCodec;
         private Guid _stateDescriptorId;
+
         private TaskCompletionSource _readySource;
         private CancellationTokenSource _readyCancelTokenSource;
         private readonly SemaphoreSlim _semaphore;
@@ -200,9 +204,8 @@ namespace EdgeDB
             {
                 var cacheKey = CodecBuilder.GetCacheHashKey(query, cardinality ?? Cardinality.Many, format);
 
-                var serializedState = Session.Serialize();
-                var stateBuf = _stateCodec?.Serialize(serializedState)!;
-                
+                var stateBuf = SerializeState();
+
                 if (!CodecBuilder.TryGetCodecs(cacheKey, out var inCodecInfo, out var outCodecInfo))
                 {                    
                     while (!successfullyParsed)
@@ -263,7 +266,7 @@ namespace EdgeDB
                                         _stateCodec = CodecBuilder.BuildCodec(this, stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
                                         _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                                         gotStateDescriptor = true;
-                                        stateBuf = _stateCodec?.Serialize(serializedState)!;
+                                        stateBuf = SerializeState();
                                     }
                                     break;
                                 case ReadyForCommand ready:
@@ -293,6 +296,18 @@ namespace EdgeDB
                 if (inCodecInfo.Codec is not IArgumentCodec argumentCodec)
                     throw new MissingCodecException($"Cannot encode arguments, {inCodecInfo.Codec} is not a registered argument codec");
 
+                // walk argument codec
+                if(args is not null)
+                {
+                    var visitor = new InputCodecVisitor(this, args);
+
+                    var argCodec = inCodecInfo.Codec;
+
+                    visitor.Visit(ref argCodec);
+
+                    argumentCodec = (IArgumentCodec)argCodec;
+                }
+
                 List<Data> receivedData = new();
                 bool executeSuccess = false;
 
@@ -306,7 +321,7 @@ namespace EdgeDB
                         ExpectedCardinality = cardinality ?? Cardinality.Many,
                         ExplicitObjectIds = _config.ExplicitObjectIds,
                         StateTypeDescriptorId = _stateDescriptorId,
-                        StateData = _stateCodec?.Serialize(serializedState),
+                        StateData = stateBuf,
                         ImplicitTypeNames = implicitTypeName, // used for type builder
                         ImplicitTypeIds = true,  // used for type builder
                         Arguments = argumentCodec.SerializeArguments(args),
@@ -325,7 +340,7 @@ namespace EdgeDB
                                     _stateCodec = CodecBuilder.BuildCodec(this, stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
                                     _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                                     gotStateDescriptor = true;
-                                    stateBuf = _stateCodec?.Serialize(serializedState)!;
+                                    stateBuf = SerializeState();
                                 }
                                 break;
                             case ErrorResponse err when err.ErrorCode is ServerErrorCodes.StateMismatchError:
@@ -445,7 +460,7 @@ namespace EdgeDB
 
             for(int i = 0; i != result.Data.Length; i++)
             {
-                var obj = ObjectBuilder.BuildResult<TResult>(Logger, result.Deserializer, ref result.Data[i]);
+                var obj = ObjectBuilder.BuildResult<TResult>(this, result.Deserializer, ref result.Data[i]);
                 array[i] = obj;
             }
 
@@ -481,7 +496,7 @@ namespace EdgeDB
 
             return queryResult.PayloadBuffer is null
                 ? default
-                : ObjectBuilder.BuildResult<TResult>(Logger, result.Deserializer, ref result.Data[0]);
+                : ObjectBuilder.BuildResult<TResult>(this, result.Deserializer, ref result.Data[0]);
         }
 
         /// <inheritdoc/>
@@ -513,7 +528,7 @@ namespace EdgeDB
             
             return queryResult.PayloadBuffer is null
                 ? throw new MissingRequiredException()
-                : ObjectBuilder.BuildResult<TResult>(Logger, result.Deserializer, ref result.Data[0])!;
+                : ObjectBuilder.BuildResult<TResult>(this, result.Deserializer, ref result.Data[0])!;
         }
 
         /// <inheritdoc/>
@@ -742,6 +757,24 @@ namespace EdgeDB
             {
                 Logger.ServerSettingsParseFailed(x);
             }
+        }
+
+        private ReadOnlyMemory<byte>? SerializeState()
+        {
+            // TODO: version check this, prevent the state codec
+            // from being walked again if the state data hasn't
+            // been updated.
+
+            if (_stateCodec is null)
+                return null;
+
+            var data = Session.Serialize();
+
+            var visitor = new InputCodecVisitor(this, data);
+
+            visitor.Visit(ref _stateCodec);
+
+            return _stateCodec.Serialize(data);
         }
         #endregion
 

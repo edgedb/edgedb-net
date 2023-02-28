@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 namespace EdgeDB.Binary.Codecs
 {
     internal sealed class ObjectCodec
-        : BaseArgumentCodec<object>, IMultiWrappingCodec, ICacheableCodec
+        : BaseArgumentCodec<object>, IMultiWrappingCodec, ICacheableCodec, IObjectCodec
     {
         public ICodec[] InnerCodecs;
         public readonly string[] PropertyNames;
@@ -117,8 +117,6 @@ namespace EdgeDB.Binary.Codecs
 
             writer.Write(values.Length);
 
-            var visitor = new TypeVisitor(_logger);
-
             for (int i = 0; i != values.Length; i++)
             {
                 var element = values[i];
@@ -138,13 +136,7 @@ namespace EdgeDB.Binary.Codecs
                     // special case for enums
                     if (element.GetType().IsEnum && innerCodec is TextCodec)
                         element = element.ToString();
-                    else
-                    {
-                        visitor.SetTargetType(element.GetType());
-                        visitor.Visit(ref innerCodec);
-                        visitor.Reset();
-                    }
-                        
+
 
                     writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => innerCodec.Serialize(ref innerWriter, element));
                 }
@@ -171,5 +163,9 @@ namespace EdgeDB.Binary.Codecs
                 InnerCodecs = value;
             }
         }
+
+        string[] IObjectCodec.PropertyNames => PropertyNames;
+
+        ICodec[] IObjectCodec.PropertyCodecs => InnerCodecs;
     }
 }

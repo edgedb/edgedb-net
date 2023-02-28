@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace EdgeDB.Binary.Codecs
 {
     internal sealed class SparceObjectCodec
-        : BaseCodec<object>, ICacheableCodec
+        : BaseCodec<object>, ICacheableCodec, IObjectCodec
     {
         public ICodec[] InnerCodecs;
         public readonly string[] FieldNames;
@@ -82,8 +82,6 @@ namespace EdgeDB.Binary.Codecs
 
             writer.Write(dict.Count);
 
-            var visitor = new TypeVisitor(_logger);
-
             foreach (var element in dict)
             {
                 var index = Array.IndexOf(FieldNames, element.Key);
@@ -99,15 +97,6 @@ namespace EdgeDB.Binary.Codecs
                 {
                     var codec = InnerCodecs[index];
 
-                    // ignore nested sparce object type
-                    visitor.SetTargetType(codec is SparceObjectCodec
-                        ? typeof(void)
-                        : element.Value.GetType()
-                    );
-
-                    visitor.Visit(ref codec);
-                    visitor.Reset();
-
                     writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => codec.Serialize(ref innerWriter, element.Value));
                 }
             }
@@ -117,5 +106,9 @@ namespace EdgeDB.Binary.Codecs
         {
             return $"SparseObjectCodec<{string.Join(", ", InnerCodecs.Zip(FieldNames).Select(x => $"[{x.Second}: {x.First}]"))}>";
         }
+
+        string[] IObjectCodec.PropertyNames => FieldNames;
+
+        ICodec[] IObjectCodec.PropertyCodecs => InnerCodecs;
     }
 }

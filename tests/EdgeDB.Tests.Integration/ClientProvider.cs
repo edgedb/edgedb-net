@@ -22,6 +22,13 @@ namespace EdgeDB.Tests.Integration
                 ClientType = EdgeDBClientType.Http
             });
 
+        public static EdgeDBClient ConfigureClient(Action<EdgeDBClientPoolConfig> conf)
+        {
+            var config = new EdgeDBClientPoolConfig();
+            conf(config);
+            return new EdgeDBClient(config);
+        }
+
         public static CancellationToken GetTimeoutToken()
         {
             var source = new CancellationTokenSource();

@@ -345,8 +345,29 @@ namespace EdgeDB.Tests.Integration
 
         #region Typeless queries
 
+        private Task TestTypelessQuery<T>(string toSelect, T expected)
+            => TestTypelessQuery<T>(_client, toSelect, expected);
+
+        private async Task TestTypelessQuery<T>(EdgeDBClient client, string toSelect, T expected)
+        {
+            var result = await client.QueryRequiredSingleAsync<object>($"select {toSelect}");
+
+            Assert.IsInstanceOfType(result, typeof(T));
+            Assert.AreEqual(expected, result);
+        }
+
+        private Task TestTypelessQuery<T>(string toSelect, Predicate<T> predicate)
+            => TestTypelessQuery<T>(_client, toSelect, predicate);
+        private async Task TestTypelessQuery<T>(EdgeDBClient client, string toSelect, Predicate<T> predicate)
+        {
+            var result = await client.QueryRequiredSingleAsync<object>($"select {toSelect}");
+
+            Assert.IsInstanceOfType(result, typeof(T));
+            Assert.IsTrue(predicate((T)result));
+        }
+
         [TestMethod]
-        public async Task TestTypelessQuery()
+        public async Task TestTypelessFreeObjectQuery()
         {
             var result = await _client.QueryRequiredSingleAsync<dynamic>("select { a := 1, b := \"Foo\", c := { ca := \"Bar\", cb := <uuid>\"4a0e4b46-b6b1-11ed-95ac-b35bb41e8bbc\" }, d := {1,2,3} }");
 
@@ -357,6 +378,116 @@ namespace EdgeDB.Tests.Integration
             Assert.AreEqual(Guid.Parse("4a0e4b46-b6b1-11ed-95ac-b35bb41e8bbc"), result.c.cb);
             Assert.AreEqual(3, result.d.Length);
             Assert.IsTrue(Enumerable.SequenceEqual(result.d, new long[] {1,2,3}));
+        }
+
+        [TestMethod]
+        public async Task TestTypelesBasicQueries()
+        {
+            await TestTypelessQuery("1", 1L);
+            await TestTypelessQuery("'FooBar'", "FooBar");
+        }
+
+        [TestMethod]
+        public async Task TestTypelessTemporalQueries()
+        {
+            // model types
+            var client = ClientProvider.ConfigureClient(c => c.PreferSystemTemporalTypes = false);
+
+            await TestTypelessQuery<DataTypes.DateTime>(
+                client, "<datetime>'2018-05-07T15:01:22+00'",
+                new DataTypes.DateTime(DateTime.Parse("2018-05-07T15:01:22+00"))
+            );
+
+            await TestTypelessQuery<DataTypes.Duration>(
+                client, "<duration>'48 hours 45 minutes'",
+                new DataTypes.Duration(new TimeSpan(48, 45, 0))
+            );
+
+            await TestTypelessQuery<DataTypes.LocalDateTime>(
+                client, "<cal::local_datetime>'2018-05-07T15:01:22.306916'",
+                new DataTypes.LocalDateTime(DateTime.Parse("2018-05-07T15:01:22.306916").ToLocalTime())
+            );
+
+            await TestTypelessQuery<DataTypes.LocalDate>(
+                client, "<cal::local_date>'2018-05-07'",
+                new DataTypes.LocalDate(DateOnly.Parse("2018-05-07"))
+            );
+
+            await TestTypelessQuery<DataTypes.LocalTime>(
+                client, "<cal::local_time>'15:01:22.306916'",
+                new DataTypes.LocalTime(TimeOnly.Parse("15:01:22.306916"))
+            );
+
+            await TestTypelessQuery<DataTypes.RelativeDuration>(
+                client, "<cal::relative_duration>'1 year'",
+                new DataTypes.RelativeDuration(months: 12)
+            );
+
+            await TestTypelessQuery<DataTypes.DateDuration>(
+                 client, "<cal::date_duration>'5 days'",
+                 new DataTypes.DateDuration(TimeSpan.FromDays(5))
+            );
+
+            // system types
+            client = ClientProvider.ConfigureClient(c => c.PreferSystemTemporalTypes = true);
+
+            await TestTypelessQuery<DateTimeOffset>(
+                client, "<datetime>'2018-05-07T15:01:22+00'",
+                DateTimeOffset.Parse("2018-05-07T15:01:22+00")
+            );
+
+            await TestTypelessQuery<TimeSpan>(
+                client, "<duration>'48 hours 45 minutes'",
+                new TimeSpan(48, 45, 0)
+            );
+
+            await TestTypelessQuery<DateTime>(
+                client, "<cal::local_datetime>'2018-05-07T15:01:22.306916'",
+                DateTime.Parse("2018-05-07T15:01:22.306916").ToLocalTime()
+            );
+
+            await TestTypelessQuery<DateOnly>(
+                client, "<cal::local_date>'2018-05-07'",
+                DateOnly.Parse("2018-05-07")
+            );
+
+            await TestTypelessQuery<TimeOnly>(
+                client, "<cal::local_time>'15:01:22.306916'",
+                TimeOnly.Parse("15:01:22.306916")
+            );
+
+            await TestTypelessQuery<TimeSpan>(
+                client, "<cal::relative_duration>'1 day'",
+                TimeSpan.FromDays(1)
+            );
+
+            await TestTypelessQuery<TimeSpan>(
+                 client, "<cal::date_duration>'5 days'",
+                 TimeSpan.FromDays(5)
+            );
+        }
+
+        [TestMethod]
+        public async Task TestTypelessArrayQuery()
+        {
+            await TestTypelessQuery<long[]>("[1,2,3]", v => v.SequenceEqual(new long[] { 1, 2, 3 }));
+            await TestTypelessQuery<string[]>("['Foo', 'Bar', 'Baz']", v => v.SequenceEqual(new string[] { "Foo", "Bar", "Baz" }));
+        }
+
+        [TestMethod]
+        public async Task TestTypelessSetOfArrayAndRange()
+        {
+            var longResult = (await _client.QueryAsync<long[]>("select {[1,2], [3,4]}")).ToArray();
+
+            Assert.AreEqual(2, longResult.Length);
+            Assert.IsTrue(longResult[0]!.SequenceEqual(new long[] { 1, 2 }));
+            Assert.IsTrue(longResult[1]!.SequenceEqual(new long[] { 3, 4 }));
+
+            var strResult = (await _client.QueryAsync<string[]>("select {['Foo'], ['Bar', 'Baz']}")).ToArray();
+
+            Assert.AreEqual(2, strResult.Length);
+            Assert.IsTrue(strResult[0]!.SequenceEqual(new string[] { "Foo" }));
+            Assert.IsTrue(strResult[1]!.SequenceEqual(new string[] { "Bar", "Baz" }));
         }
 
         #endregion

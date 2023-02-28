@@ -43,6 +43,8 @@ namespace EdgeDB.ExampleApp.Examples
 
         public async Task ExecuteAsync(EdgeDBClient client)
         {
+            var test = await client.QueryRequiredSingleAsync<object>("select datetime_current()");
+
             // select the abstract type from the schema.
             // Note that the type builder will 'discover' the types that inherit
             // our C# abstract type.
