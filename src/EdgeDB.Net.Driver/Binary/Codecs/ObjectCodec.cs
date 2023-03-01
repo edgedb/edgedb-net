@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 namespace EdgeDB.Binary.Codecs
 {
     internal sealed class ObjectCodec
-        : BaseArgumentCodec<object>, IMultiWrappingCodec, ICacheableCodec, IObjectCodec
+        : BaseArgumentCodec<object>, IMultiWrappingCodec, ICacheableCodec
     {
         public ICodec[] InnerCodecs;
         public readonly string[] PropertyNames;
@@ -173,9 +173,5 @@ namespace EdgeDB.Binary.Codecs
                 InnerCodecs = value;
             }
         }
-
-        string[] IObjectCodec.PropertyNames => PropertyNames;
-
-        ICodec[] IObjectCodec.PropertyCodecs => InnerCodecs;
     }
 }
