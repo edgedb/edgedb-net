@@ -32,10 +32,11 @@ to the clients constructor:
 
   .. code-tab:: fsharp
 
-    let config = new EdgeDBClientPoolConfig()
-    config.ConnectionTimeout <- 5000u
+    let config = EdgeDBClientPoolConfig(
+      ConnectionTimeout = 5000u
+    )
 
-    let client = new EdgeDBClient(config)
+    let client = EdgeDBClient(config)
 
 +-----------------------+--------------------------+---------------------------------------------------------------------------------------------------+
 | Property              | Type                     | Description                                                                                       |
