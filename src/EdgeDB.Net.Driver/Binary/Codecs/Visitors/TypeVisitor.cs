@@ -185,6 +185,11 @@ namespace EdgeDB.Binary.Codecs
                     _ => throw new NotSupportedException($"Cannot find a valid .NET system temporal type for the codec {temporal}")
                 };
             }
+            else if (codec.GetType().IsGenericType && codec.GetType().GetGenericTypeDefinition() == typeof(RangeCodec<>))
+            {
+                // always prefer the default converter for range
+                return codec.ConverterType;
+            }
 
             // return out the current context type if we haven't
             // defined a way to change it.

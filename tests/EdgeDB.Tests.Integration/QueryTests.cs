@@ -490,6 +490,12 @@ namespace EdgeDB.Tests.Integration
             Assert.IsTrue(strResult[1]!.SequenceEqual(new string[] { "Bar", "Baz" }));
         }
 
+        [TestMethod]
+        public async Task TestTypelessRange()
+        {
+            await TestTypelessQuery<DataTypes.Range<long>>("range(1,10)", v => v.Lower == 1 && v.Upper == 10); 
+        }
+
         #endregion
 
         #region Helpers
