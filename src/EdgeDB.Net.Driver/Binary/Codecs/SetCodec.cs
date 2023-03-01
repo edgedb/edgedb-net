@@ -10,19 +10,19 @@ namespace EdgeDB.Binary.Codecs
             InnerCodec = innerCodec;
         }
 
-        public override IEnumerable<T?>? Deserialize(ref PacketReader reader)
+        public override IEnumerable<T?>? Deserialize(ref PacketReader reader, CodecContext context)
         {
             if (InnerCodec is ArrayCodec<T>)
-                return DecodeSetOfArrays(ref reader);
-            else return DecodeSet(ref reader);
+                return DecodeSetOfArrays(ref reader, context);
+            else return DecodeSet(ref reader, context);
         }
 
-        public override void Serialize(ref PacketWriter writer, IEnumerable<T?>? value)
+        public override void Serialize(ref PacketWriter writer, IEnumerable<T?>? value, CodecContext context)
         {
             throw new NotSupportedException();
         }
 
-        private IEnumerable<T?>? DecodeSetOfArrays(ref PacketReader reader)
+        private IEnumerable<T?>? DecodeSetOfArrays(ref PacketReader reader, CodecContext context)
         {
             var dimensions = reader.ReadInt32();
 
@@ -59,13 +59,13 @@ namespace EdgeDB.Binary.Codecs
 
                 reader.Skip(4); // skip reserved
 
-                result[i] = InnerCodec.Deserialize(ref reader);
+                result[i] = InnerCodec.Deserialize(ref reader, context);
             }
 
             return result;
         }
 
-        private IEnumerable<T?>? DecodeSet(ref PacketReader reader)
+        private IEnumerable<T?>? DecodeSet(ref PacketReader reader, CodecContext context)
         {
             var dimensions = reader.ReadInt32();
 
@@ -96,7 +96,7 @@ namespace EdgeDB.Binary.Codecs
                 if (elementLength is -1)
                     result[i] = default;
                 else
-                    result[i] = InnerCodec.Deserialize(ref reader);
+                    result[i] = InnerCodec.Deserialize(ref reader, context);
             }
 
             return result;

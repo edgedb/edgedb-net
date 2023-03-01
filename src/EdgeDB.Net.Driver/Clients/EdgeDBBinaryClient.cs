@@ -75,6 +75,9 @@ namespace EdgeDB
         
         internal abstract IBinaryDuplexer Duplexer { get; }
 
+        internal CodecContext CodecContext
+            => _codecContext;
+
         internal byte[] ServerKey;
         internal int SuggestedPoolConcurrency;
         internal Dictionary<string, object?> RawServerConfig = new();
@@ -102,6 +105,7 @@ namespace EdgeDB
         private readonly SemaphoreSlim _commandSemaphore;
         private readonly SemaphoreSlim _connectSemaphone;
         private readonly EdgeDBConfig _config;
+        private readonly CodecContext _codecContext;
         private uint _currentRetries;
 
         /// <summary>
@@ -130,6 +134,7 @@ namespace EdgeDB
             _connectSemaphone = new(1, 1);
             _readySource = new();
             _readyCancelTokenSource = new();
+            _codecContext = new(this);
         }
 
         #region Commands/queries
@@ -296,18 +301,6 @@ namespace EdgeDB
                 if (inCodecInfo.Codec is not IArgumentCodec argumentCodec)
                     throw new MissingCodecException($"Cannot encode arguments, {inCodecInfo.Codec} is not a registered argument codec");
 
-                // walk argument codec
-                if(args is not null)
-                {
-                    var visitor = new InputCodecVisitor(this, args);
-
-                    var argCodec = inCodecInfo.Codec;
-
-                    visitor.Visit(ref argCodec);
-
-                    argumentCodec = (IArgumentCodec)argCodec;
-                }
-
                 List<Data> receivedData = new();
                 bool executeSuccess = false;
 
@@ -324,7 +317,7 @@ namespace EdgeDB
                         StateData = stateBuf,
                         ImplicitTypeNames = implicitTypeName, // used for type builder
                         ImplicitTypeIds = true,  // used for type builder
-                        Arguments = argumentCodec.SerializeArguments(args),
+                        Arguments = argumentCodec.SerializeArguments(this, args),
                         ImplicitLimit = _config.ImplicitLimit,
                         InputTypeDescriptorId = inCodecInfo.Id,
                         OutputTypeDescriptorId = outCodecInfo.Id,
@@ -542,7 +535,7 @@ namespace EdgeDB
             var result = await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, IOFormat.Json, token: token);
             
             return result.Data.Length == 1
-                ? (string)result.Deserializer.Deserialize(result.Data[0].PayloadBuffer)!
+                ? (string)result.Deserializer.Deserialize(this, result.Data[0].PayloadBuffer)!
                 : "[]";
         }
 
@@ -556,7 +549,7 @@ namespace EdgeDB
             var result = await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, IOFormat.JsonElements, token: token);
 
             return result.Data.Any()
-                ? result.Data.Select(x => new DataTypes.Json((string?)result.Deserializer.Deserialize(x.PayloadBuffer))).ToImmutableArray()
+                ? result.Data.Select(x => new DataTypes.Json((string?)result.Deserializer.Deserialize(this, x.PayloadBuffer))).ToImmutableArray()
                 : ImmutableArray<DataTypes.Json>.Empty;
         }
         #endregion
@@ -628,7 +621,7 @@ namespace EdgeDB
                     throw new ProtocolViolationException("The only supported method is SCRAM-SHA-256");
                 }
 
-                var initialMsg = scram.BuildInitialMessagePacket(Connection.Username!, method);
+                var initialMsg = scram.BuildInitialMessagePacket(this, Connection.Username!, method);
                 byte[] expectedSig = Array.Empty<byte>();
 
                 await foreach(var result in Duplexer.DuplexAsync(initialMsg))
@@ -641,7 +634,7 @@ namespace EdgeDB
                                 {
                                     case AuthStatus.AuthenticationSASLContinue:
                                         {
-                                            var (msg, sig) = scram.BuildFinalMessagePacket(in authResult, Connection.Password!);
+                                            var (msg, sig) = scram.BuildFinalMessagePacket(this, in authResult, Connection.Password!);
                                             expectedSig = sig;
 
                                             await Duplexer.SendAsync(packets: msg).ConfigureAwait(false);
@@ -649,7 +642,7 @@ namespace EdgeDB
                                         break;
                                     case AuthStatus.AuthenticationSASLFinal:
                                         {
-                                            var key = Scram.ParseServerFinalMessage(authResult);
+                                            var key = Scram.ParseServerFinalMessage(this, in authResult);
 
                                             if (!key.SequenceEqual(expectedSig))
                                             {
@@ -744,7 +737,7 @@ namespace EdgeDB
                         // disard length
                         reader.Skip(4);
 
-                        var obj = codec.Deserialize(ref reader)!;
+                        var obj = codec.Deserialize(ref reader, _codecContext)!;
 
                         RawServerConfig = ((ExpandoObject)obj).ToDictionary(x => x.Key, x => x.Value);
                         break;
@@ -770,11 +763,7 @@ namespace EdgeDB
 
             var data = Session.Serialize();
 
-            var visitor = new InputCodecVisitor(this, data);
-
-            visitor.Visit(ref _stateCodec);
-
-            return _stateCodec.Serialize(data);
+            return _stateCodec.Serialize(this, data);
         }
         #endregion
 

@@ -48,10 +48,10 @@ namespace EdgeDB
 
             if (codec is ObjectCodec objectCodec)
             {
-                return (TType?)TypeBuilder.BuildObject(typeof(TType), objectCodec, ref data);
+                return (TType?)TypeBuilder.BuildObject(client, typeof(TType), objectCodec, ref data);
             }
 
-            var value = codec.Deserialize(data.PayloadBuffer);
+            var value = codec.Deserialize(client, data.PayloadBuffer);
 
             return (TType?)ConvertTo(typeof(TType), value);
         }

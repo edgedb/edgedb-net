@@ -19,11 +19,9 @@ namespace EdgeDB.Binary.Codecs
         internal bool Initialized;
 
         private TypeDeserializerFactory? _factory;
-        private readonly ILogger _logger;
 
-        internal ObjectCodec(ILogger logger, ObjectShapeDescriptor descriptor, List<ICodec> codecs)
+        internal ObjectCodec(ObjectShapeDescriptor descriptor, List<ICodec> codecs)
         {
-            _logger = logger;
             InnerCodecs = new ICodec[descriptor.Shapes.Length];
             PropertyNames = new string[descriptor.Shapes.Length];
 
@@ -35,9 +33,8 @@ namespace EdgeDB.Binary.Codecs
             }
         }
 
-        internal ObjectCodec(ILogger logger, NamedTupleTypeDescriptor descriptor, List<ICodec> codecs)
+        internal ObjectCodec(NamedTupleTypeDescriptor descriptor, List<ICodec> codecs)
         {
-            _logger = logger;
             InnerCodecs = new ICodec[descriptor.Elements.Length];
             PropertyNames = new string[descriptor.Elements.Length];
 
@@ -49,9 +46,8 @@ namespace EdgeDB.Binary.Codecs
             }
         }
 
-        internal ObjectCodec(ILogger logger, ICodec[] innerCodecs, string[] propertyNames)
+        internal ObjectCodec(ICodec[] innerCodecs, string[] propertyNames)
         {
-            _logger = logger;
             InnerCodecs = innerCodecs;
             PropertyNames = propertyNames;
         }
@@ -75,7 +71,7 @@ namespace EdgeDB.Binary.Codecs
             }
         }
 
-        public override object? Deserialize(ref PacketReader reader)
+        public override object? Deserialize(ref PacketReader reader, CodecContext context)
         {
             if (!Initialized || _factory is null || TargetType is null)
                 Initialize(typeof(object));
@@ -84,7 +80,13 @@ namespace EdgeDB.Binary.Codecs
             // so we need to pass the underlying data as a reference and wrap a new reader ontop.
             // This method ensures we're not copying the packet in memory again but the downside is
             // our 'reader' variable isn't kept up to data with the reader in the object enumerator.
-            var enumerator = new ObjectEnumerator(ref reader.Data, reader.Position, PropertyNames, InnerCodecs, DeserializerInfo);
+            var enumerator = new ObjectEnumerator(
+                ref reader.Data,
+                reader.Position,
+                PropertyNames,
+                InnerCodecs,
+                DeserializerInfo,
+                context);
             
             try
             {
@@ -101,7 +103,7 @@ namespace EdgeDB.Binary.Codecs
             }
         }
 
-        public override void SerializeArguments(ref PacketWriter writer, object? value)
+        public override void SerializeArguments(ref PacketWriter writer, object? value, CodecContext context)
         {
             object?[]? values = null;
 
@@ -116,6 +118,9 @@ namespace EdgeDB.Binary.Codecs
             }
 
             writer.Write(values.Length);
+
+            // TODO: maybe cache the visited codecs based on the 'value'.
+            var visitor = context.CreateTypeVisitor();
 
             for (int i = 0; i != values.Length; i++)
             {
@@ -136,9 +141,14 @@ namespace EdgeDB.Binary.Codecs
                     // special case for enums
                     if (element.GetType().IsEnum && innerCodec is TextCodec)
                         element = element.ToString();
+                    else
+                    {
+                        visitor.SetTargetType(element.GetType());
+                        visitor.Visit(ref innerCodec);
+                        visitor.Reset();
+                    }
 
-
-                    writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => innerCodec.Serialize(ref innerWriter, element));
+                    writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => innerCodec.Serialize(ref innerWriter, element, context));
                 }
             }
         }
@@ -148,7 +158,7 @@ namespace EdgeDB.Binary.Codecs
             _factory = factory;
         }
 
-        public override void Serialize(ref PacketWriter writer, object? value) => throw new NotSupportedException();
+        public override void Serialize(ref PacketWriter writer, object? value, CodecContext context) => throw new NotSupportedException();
 
         public override string ToString()
         {

@@ -8,7 +8,7 @@ namespace EdgeDB.Binary.Codecs
     {
         public static readonly BigInteger Base = 10000;
 
-        public override BigInteger Deserialize(ref PacketReader reader)
+        public override BigInteger Deserialize(ref PacketReader reader, CodecContext context)
         {
             var numDigits = reader.ReadUInt16();
 
@@ -41,7 +41,7 @@ namespace EdgeDB.Binary.Codecs
             return BigInteger.Parse(result);
         }
 
-        public override void Serialize(ref PacketWriter writer, BigInteger value)
+        public override void Serialize(ref PacketWriter writer, BigInteger value, CodecContext context)
         {
             if(value == 0)
             {

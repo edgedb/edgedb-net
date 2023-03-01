@@ -23,6 +23,7 @@ namespace EdgeDB
         private readonly EdgeDBTypeDeserializeInfo? _deserializerInfo;
         private readonly string[] _names;
         private readonly int _numElements;
+        private readonly CodecContext _context;
         private int _pos;
 
         internal ObjectEnumerator(
@@ -30,13 +31,15 @@ namespace EdgeDB
             int position,
             string[] names,
             ICodec[] codecs,
-            EdgeDBTypeDeserializeInfo? deserializerInfo)
+            EdgeDBTypeDeserializeInfo? deserializerInfo,
+            CodecContext context)
         {
             Reader = new PacketReader(ref data, position);
             Codecs = codecs;
             _names = names;
             _pos = 0;
             _deserializerInfo = deserializerInfo;
+            _context = context;
 
             _numElements = Reader.ReadInt32();
         }
@@ -98,7 +101,7 @@ namespace EdgeDB
             name = _names[_pos];
             var codec = Codecs[_pos];
 
-            value = codec.Deserialize(ref innerReader);
+            value = codec.Deserialize(ref innerReader, _context);
             _pos++;
             return true;
         }

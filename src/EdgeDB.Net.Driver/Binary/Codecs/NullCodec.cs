@@ -10,13 +10,13 @@ namespace EdgeDB.Binary.Codecs
             return true;
         }
 
-        public object? Deserialize(ref PacketReader reader) { return null; }
+        public object? Deserialize(ref PacketReader reader, CodecContext context) { return null; }
 
-        public void Serialize(ref PacketWriter writer, object? value)
+        public void Serialize(ref PacketWriter writer, object? value, CodecContext context)
         {
             writer.Write(0);
         }
 
-        public void SerializeArguments(ref PacketWriter writer, object? value) { }
+        public void SerializeArguments(ref PacketWriter writer, object? value, CodecContext context) { }
     }
 }

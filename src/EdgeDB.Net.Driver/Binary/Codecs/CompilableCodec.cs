@@ -48,8 +48,8 @@ namespace EdgeDB.Binary.Codecs
 
         Type ICodec.ConverterType => throw new NotSupportedException();
         bool ICodec.CanConvert(Type t) => throw new NotSupportedException();
-        void ICodec.Serialize(ref PacketWriter writer, object? value) => throw new NotSupportedException();
-        object? ICodec.Deserialize(ref PacketReader reader) => throw new NotSupportedException();
+        void ICodec.Serialize(ref PacketWriter writer, object? value, CodecContext context) => throw new NotSupportedException();
+        object? ICodec.Deserialize(ref PacketReader reader, CodecContext context) => throw new NotSupportedException();
     }
 }
 
