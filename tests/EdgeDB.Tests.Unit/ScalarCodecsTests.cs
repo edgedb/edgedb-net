@@ -9,13 +9,15 @@ namespace EdgeDB.Tests.Unit
     [TestClass]
     public class ScalarCodecsTests
     {
+        private static readonly EdgeDBBinaryClient _client = new EdgeDBTcpClient(new(), new(), null!);
+
         internal static void TestCodec<TType>(IScalarCodec<TType>? codec, TType expectedValue, byte[] expectedSerializedValue)
         {
             Assert.IsNotNull(codec);
 
             try
             {
-                var result = codec.Serialize(expectedValue);
+                var result = codec.Serialize(_client, expectedValue);
 
                 Assert.IsTrue(result.ToArray().SequenceEqual(expectedSerializedValue));
             }
@@ -23,7 +25,7 @@ namespace EdgeDB.Tests.Unit
 
             try
             {
-                var deserialziedResult = codec.Deserialize(expectedSerializedValue);
+                var deserialziedResult = codec.Deserialize(_client, expectedSerializedValue);
 
                 if (deserialziedResult is byte[] arr && expectedValue is byte[] arr2)
                     Assert.IsTrue(arr.SequenceEqual(arr2));
