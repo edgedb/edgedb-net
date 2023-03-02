@@ -12,14 +12,16 @@ namespace EdgeDB.Binary.Codecs
 
         private readonly Stack<TypeResultFrame> _frames;
         private readonly ILogger _logger;
+        private readonly EdgeDBBinaryClient _client;
 
         private string Depth
             => "".PadRight(_frames.Count, '>') + (_frames.Count > 0 ? " " : "");
 
-        public TypeVisitor(ILogger logger)
+        public TypeVisitor(EdgeDBBinaryClient client)
         {
             _frames = new();
-            _logger = logger;
+            _logger = client.Logger;
+            _client = client;
         }
 
         public void SetTargetType(Type type)
@@ -43,6 +45,9 @@ namespace EdgeDB.Binary.Codecs
 
         protected override void VisitCodec(ref ICodec codec)
         {
+            // TODO: if dynamic or object was passed in, return the default type
+            // from the complex OR based on config.
+
             if (Context.Type == typeof(void))
                 return;
 
@@ -109,7 +114,11 @@ namespace EdgeDB.Binary.Codecs
                         // visit the inner codec
                         var tmp = compilable.InnerCodec;
 
-                        using (var innerHandle = EnterNewContext(Context.InnerRealType ? Context.Type : Context.Type.GetWrappingType()))
+                        var innerType = Context.InnerRealType || Context.IsDynamicResult
+                            ? Context.Type
+                            : Context.Type.GetWrappingType();
+
+                        using (var innerHandle = EnterNewContext(innerType))
                         {
                             VisitCodec(ref tmp);
 
@@ -126,7 +135,7 @@ namespace EdgeDB.Binary.Codecs
                     break;
                 case IComplexCodec complex:
                     {
-                        codec = complex.GetCodecFor(Context.Type);
+                        codec = complex.GetCodecFor(GetContextualTypeForComplexCodec(complex));
                         _logger.CodecVisitorComplexCodecFlattened(Depth, complex, codec, Context.Type);
                     }
                     break;
@@ -139,12 +148,52 @@ namespace EdgeDB.Binary.Codecs
 
                         // ask the broker of the runtime codec for
                         // the correct one.
-                        codec = runtime.Broker.GetCodecFor(Context.Type);
+                        codec = runtime.Broker.GetCodecFor(GetContextualTypeForComplexCodec(runtime.Broker));
 
                         _logger.CodecVisitorRuntimeCodecBroker(Depth, runtime, runtime.Broker, codec, Context.Type);
                     }
                     break;
             }
+        }
+
+        private Type GetContextualTypeForComplexCodec(IComplexCodec codec)
+        {
+            // if theres a concrete type def supplied by the
+            // user, return their requested type.
+            if (!Context.IsDynamicResult)
+                return Context.Type;
+
+            if(codec is ITemporalCodec temporal)
+            {
+                // check if we should default to the model type or a system type
+                if(!_client.ClientConfig.PreferSystemTemporalTypes)
+                {
+                    // use model type
+                    return temporal.ModelType;
+                }
+
+                // use a supported system type
+                return temporal switch
+                {
+                    DateDurationCodec => typeof(TimeSpan),
+                    DateTimeCodec => typeof(DateTimeOffset),
+                    DurationCodec => typeof(TimeSpan),
+                    LocalDateCodec => typeof(DateOnly),
+                    LocalDateTimeCodec => typeof(DateTime),
+                    LocalTimeCodec => typeof(TimeOnly),
+                    RelativeDurationCodec => typeof(TimeSpan),
+                    _ => throw new NotSupportedException($"Cannot find a valid .NET system temporal type for the codec {temporal}")
+                };
+            }
+            else if (codec.GetType().IsGenericType && codec.GetType().GetGenericTypeDefinition() == typeof(RangeCodec<>))
+            {
+                // always prefer the default converter for range
+                return codec.ConverterType;
+            }
+
+            // return out the current context type if we haven't
+            // defined a way to change it.
+            return Context.Type;
         }
 
         private IDisposable EnterNewContext(
@@ -165,6 +214,9 @@ namespace EdgeDB.Binary.Codecs
 
         private struct TypeResultFrame
         {
+            public bool IsDynamicResult
+                => Type == typeof(object);
+
             public readonly Type Type { get; init; }
             public string? Name { get; set; }
             public EdgeDBTypeDeserializeInfo? Deserializer { get; set; }

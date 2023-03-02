@@ -9,7 +9,7 @@ namespace EdgeDB.Binary.Codecs
     {
         public const int NBASE = 10000;
 
-        public override decimal Deserialize(ref PacketReader reader)
+        public override decimal Deserialize(ref PacketReader reader, CodecContext context)
         {
             var numDigits = reader.ReadUInt16();
             var weight = reader.ReadInt16();
@@ -56,7 +56,7 @@ namespace EdgeDB.Binary.Codecs
             return decimal.Parse(value);
         }
 
-        public override void Serialize(ref PacketWriter writer, decimal value)
+        public override void Serialize(ref PacketWriter writer, decimal value, CodecContext context)
         {
             Span<int> span = stackalloc int[4];
             decimal.GetBits(value, span);

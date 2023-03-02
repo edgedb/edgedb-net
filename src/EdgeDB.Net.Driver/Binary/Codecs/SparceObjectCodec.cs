@@ -15,12 +15,8 @@ namespace EdgeDB.Binary.Codecs
         public ICodec[] InnerCodecs;
         public readonly string[] FieldNames;
 
-        private readonly ILogger _logger;
-
-        internal SparceObjectCodec(ILogger logger, InputShapeDescriptor descriptor, List<ICodec> codecs)
+        internal SparceObjectCodec(InputShapeDescriptor descriptor, List<ICodec> codecs)
         {
-            _logger = logger;
-
             InnerCodecs = new ICodec[descriptor.Shapes.Length];
             FieldNames = new string[descriptor.Shapes.Length];
 
@@ -32,7 +28,7 @@ namespace EdgeDB.Binary.Codecs
             }
         }
 
-        public override object? Deserialize(ref PacketReader reader)
+        public override object? Deserialize(ref PacketReader reader, CodecContext context)
         {
             var numElements = reader.ReadInt32();
 
@@ -61,7 +57,7 @@ namespace EdgeDB.Binary.Codecs
 
                 object? value;
 
-                value = InnerCodecs[i].Deserialize(innerData);
+                value = InnerCodecs[i].Deserialize(context, innerData);
 
                 dataDictionary.Add(elementName, value);
             }
@@ -69,7 +65,7 @@ namespace EdgeDB.Binary.Codecs
             return data;
         }
 
-        public override void Serialize(ref PacketWriter writer, object? value)
+        public override void Serialize(ref PacketWriter writer, object? value, CodecContext context)
         {
             if (value is not IDictionary<string, object?> dict)
                 throw new InvalidOperationException($"Cannot serialize {value?.GetType() ?? Type.Missing} as a sparce object.");
@@ -82,7 +78,7 @@ namespace EdgeDB.Binary.Codecs
 
             writer.Write(dict.Count);
 
-            var visitor = new TypeVisitor(_logger);
+            var visitor = context.CreateTypeVisitor();
 
             foreach (var element in dict)
             {
@@ -99,7 +95,8 @@ namespace EdgeDB.Binary.Codecs
                 {
                     var codec = InnerCodecs[index];
 
-                    // ignore nested sparce object type
+                    // ignore nested sparce object codecs, they will be walked
+                    // in their serialize method.
                     visitor.SetTargetType(codec is SparceObjectCodec
                         ? typeof(void)
                         : element.Value.GetType()
@@ -108,7 +105,7 @@ namespace EdgeDB.Binary.Codecs
                     visitor.Visit(ref codec);
                     visitor.Reset();
 
-                    writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => codec.Serialize(ref innerWriter, element.Value));
+                    writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => codec.Serialize(ref innerWriter, element.Value, context));
                 }
             }
         }

@@ -19,7 +19,7 @@ namespace EdgeDB.Binary.Codecs
             InnerCodec = innerCodec;
         }
 
-        public override T?[] Deserialize(ref PacketReader reader)
+        public override T?[] Deserialize(ref PacketReader reader, CodecContext context)
         {
             var dimensions = reader.ReadInt32();
 
@@ -47,13 +47,13 @@ namespace EdgeDB.Binary.Codecs
             {
                 var elementLength = reader.ReadInt32();
                 reader.ReadBytes(elementLength, out var innerData);
-                array[i] = InnerCodec.Deserialize(innerData);
+                array[i] = InnerCodec.Deserialize(context, innerData);
             }
 
             return array;
         }
 
-        public override void Serialize(ref PacketWriter writer, T?[]? value)
+        public override void Serialize(ref PacketWriter writer, T?[]? value, CodecContext context)
         {
             if(value is null)
             {
@@ -79,7 +79,7 @@ namespace EdgeDB.Binary.Codecs
                 }
                 else
                 {
-                    writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => InnerCodec.Serialize(ref innerWriter, element));
+                    writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => InnerCodec.Serialize(ref innerWriter, element, context));
                 }
             }
         }

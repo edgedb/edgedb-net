@@ -19,14 +19,14 @@ namespace EdgeDB.Binary.Codecs
             };
         }
 
-        public override DataTypes.DateTime Deserialize(ref PacketReader reader)
+        public override DataTypes.DateTime Deserialize(ref PacketReader reader, CodecContext context)
         {
             var microseconds = reader.ReadInt64();
 
             return new(microseconds);
         }
 
-        public override void Serialize(ref PacketWriter writer, DataTypes.DateTime value)
+        public override void Serialize(ref PacketWriter writer, DataTypes.DateTime value, CodecContext context)
         {
             writer.Write(value.Microseconds);
         }

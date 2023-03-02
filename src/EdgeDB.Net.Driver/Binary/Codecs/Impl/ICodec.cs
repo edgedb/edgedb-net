@@ -8,9 +8,9 @@ namespace EdgeDB.Binary.Codecs
 {
     internal interface ICodec<T> : ICodec
     {
-        void Serialize(ref PacketWriter writer, T? value);
+        void Serialize(ref PacketWriter writer, T? value, CodecContext context);
 
-        new T? Deserialize(ref PacketReader reader);
+        new T? Deserialize(ref PacketReader reader, CodecContext context);
     }
 
     internal interface ICodec
@@ -19,8 +19,8 @@ namespace EdgeDB.Binary.Codecs
 
         Type ConverterType { get; }
 
-        void Serialize(ref PacketWriter writer, object? value);
+        void Serialize(ref PacketWriter writer, object? value, CodecContext context);
 
-        object? Deserialize(ref PacketReader reader);
+        object? Deserialize(ref PacketReader reader, CodecContext context);
     }
 }

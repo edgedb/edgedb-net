@@ -18,14 +18,14 @@ namespace EdgeDB.Binary.Codecs
             };
         }
 
-        public override DataTypes.LocalDate Deserialize(ref PacketReader reader)
+        public override DataTypes.LocalDate Deserialize(ref PacketReader reader, CodecContext context)
         {
             var days = reader.ReadInt32();
 
             return new DataTypes.LocalDate(days);
         }
 
-        public override void Serialize(ref PacketWriter writer, DataTypes.LocalDate value)
+        public override void Serialize(ref PacketWriter writer, DataTypes.LocalDate value, CodecContext context)
         {
             writer.Write(value.Days);
         }

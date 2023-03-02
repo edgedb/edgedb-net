@@ -18,7 +18,7 @@ namespace EdgeDB.Binary.Codecs
             };
         }
 
-        public override DataTypes.Duration Deserialize(ref PacketReader reader)
+        public override DataTypes.Duration Deserialize(ref PacketReader reader, CodecContext context)
         {
             var microseconds = reader.ReadInt64();
 
@@ -28,7 +28,7 @@ namespace EdgeDB.Binary.Codecs
             return new(microseconds);
         }
 
-        public override void Serialize(ref PacketWriter writer, DataTypes.Duration value)
+        public override void Serialize(ref PacketWriter writer, DataTypes.Duration value, CodecContext context)
         {
             writer.Write(value.Microseconds);
             writer.Write(0); // days

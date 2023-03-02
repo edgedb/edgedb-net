@@ -36,12 +36,12 @@ namespace EdgeDB.Binary.Codecs
                 _to = to;
             }
 
-            public override unsafe TIntermediate Deserialize(ref PacketReader reader)
+            public override unsafe TIntermediate Deserialize(ref PacketReader reader, CodecContext context)
             {
                 if (sizeof(TTransient) < sizeof(TIntermediate))
                     throw new InvalidOperationException($"Transient size is less than the size of {typeof(TIntermediate)}");
 
-                var model = _codec.Deserialize(ref reader);
+                var model = _codec.Deserialize(ref reader, context);
 
                 var transient = _to(ref model);
 
@@ -50,7 +50,7 @@ namespace EdgeDB.Binary.Codecs
                 return Unsafe.As<TTransient, TIntermediate>(ref transient);
             }
 
-            public override unsafe void Serialize(ref PacketWriter writer, TIntermediate value)
+            public override unsafe void Serialize(ref PacketWriter writer, TIntermediate value, CodecContext context)
             {
                 if (sizeof(TTransient) < sizeof(TIntermediate))
                     throw new InvalidOperationException($"Transient size is less than the size of {typeof(TIntermediate)}");
@@ -63,7 +63,7 @@ namespace EdgeDB.Binary.Codecs
 
                 // passing as a non-ref parameter creates a copy, keeping the
                 // transient safe from gc.
-                _codec.Serialize(ref writer, model);
+                _codec.Serialize(ref writer, model, context);
             }
 
             IComplexCodec IRuntimeCodec.Broker

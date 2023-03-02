@@ -14,7 +14,7 @@ namespace EdgeDB.Binary.Codecs
             InnerCodecs = innerCodecs;
         }
         
-        public override TransientTuple Deserialize(ref PacketReader reader)
+        public override TransientTuple Deserialize(ref PacketReader reader, CodecContext context)
         {
             var numElements = reader.ReadInt32();
 
@@ -43,13 +43,13 @@ namespace EdgeDB.Binary.Codecs
                 reader.ReadBytes(length, out var data);
 
                 var innerReader = new PacketReader(data);
-                values[i] = InnerCodecs[i].Deserialize(ref innerReader);
+                values[i] = InnerCodecs[i].Deserialize(ref innerReader, context);
             }
 
             return new TransientTuple(InnerCodecs.Select(x => x.ConverterType).ToArray(), values);
         }
 
-        public override void Serialize(ref PacketWriter writer, TransientTuple value)
+        public override void Serialize(ref PacketWriter writer, TransientTuple value, CodecContext context)
         {
             throw new NotSupportedException("Tuples cannot be passed in query arguments");
         }

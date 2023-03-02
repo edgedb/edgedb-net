@@ -75,6 +75,9 @@ namespace EdgeDB
         
         internal abstract IBinaryDuplexer Duplexer { get; }
 
+        internal CodecContext CodecContext
+            => _codecContext;
+
         internal byte[] ServerKey;
         internal int SuggestedPoolConcurrency;
         internal Dictionary<string, object?> RawServerConfig = new();
@@ -83,6 +86,9 @@ namespace EdgeDB
         internal readonly TimeSpan MessageTimeout;
         internal readonly TimeSpan ConnectionTimeout;
         internal readonly EdgeDBConnection Connection;
+
+        internal EdgeDBConfig ClientConfig
+            => _config;
         
         protected CancellationToken DisconnectCancelToken
             => Duplexer.DisconnectToken;
@@ -92,12 +98,14 @@ namespace EdgeDB
 
         private ICodec? _stateCodec;
         private Guid _stateDescriptorId;
+
         private TaskCompletionSource _readySource;
         private CancellationTokenSource _readyCancelTokenSource;
         private readonly SemaphoreSlim _semaphore;
         private readonly SemaphoreSlim _commandSemaphore;
         private readonly SemaphoreSlim _connectSemaphone;
         private readonly EdgeDBConfig _config;
+        private readonly CodecContext _codecContext;
         private uint _currentRetries;
 
         /// <summary>
@@ -126,6 +134,7 @@ namespace EdgeDB
             _connectSemaphone = new(1, 1);
             _readySource = new();
             _readyCancelTokenSource = new();
+            _codecContext = new(this);
         }
 
         #region Commands/queries
@@ -200,9 +209,8 @@ namespace EdgeDB
             {
                 var cacheKey = CodecBuilder.GetCacheHashKey(query, cardinality ?? Cardinality.Many, format);
 
-                var serializedState = Session.Serialize();
-                var stateBuf = _stateCodec?.Serialize(serializedState)!;
-                
+                var stateBuf = SerializeState();
+
                 if (!CodecBuilder.TryGetCodecs(cacheKey, out var inCodecInfo, out var outCodecInfo))
                 {                    
                     while (!successfullyParsed)
@@ -263,7 +271,7 @@ namespace EdgeDB
                                         _stateCodec = CodecBuilder.BuildCodec(this, stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
                                         _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                                         gotStateDescriptor = true;
-                                        stateBuf = _stateCodec?.Serialize(serializedState)!;
+                                        stateBuf = SerializeState();
                                     }
                                     break;
                                 case ReadyForCommand ready:
@@ -306,10 +314,10 @@ namespace EdgeDB
                         ExpectedCardinality = cardinality ?? Cardinality.Many,
                         ExplicitObjectIds = _config.ExplicitObjectIds,
                         StateTypeDescriptorId = _stateDescriptorId,
-                        StateData = _stateCodec?.Serialize(serializedState),
+                        StateData = stateBuf,
                         ImplicitTypeNames = implicitTypeName, // used for type builder
                         ImplicitTypeIds = true,  // used for type builder
-                        Arguments = argumentCodec.SerializeArguments(args),
+                        Arguments = argumentCodec.SerializeArguments(this, args),
                         ImplicitLimit = _config.ImplicitLimit,
                         InputTypeDescriptorId = inCodecInfo.Id,
                         OutputTypeDescriptorId = outCodecInfo.Id,
@@ -325,7 +333,7 @@ namespace EdgeDB
                                     _stateCodec = CodecBuilder.BuildCodec(this, stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
                                     _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                                     gotStateDescriptor = true;
-                                    stateBuf = _stateCodec?.Serialize(serializedState)!;
+                                    stateBuf = SerializeState();
                                 }
                                 break;
                             case ErrorResponse err when err.ErrorCode is ServerErrorCodes.StateMismatchError:
@@ -445,7 +453,7 @@ namespace EdgeDB
 
             for(int i = 0; i != result.Data.Length; i++)
             {
-                var obj = ObjectBuilder.BuildResult<TResult>(Logger, result.Deserializer, ref result.Data[i]);
+                var obj = ObjectBuilder.BuildResult<TResult>(this, result.Deserializer, ref result.Data[i]);
                 array[i] = obj;
             }
 
@@ -481,7 +489,7 @@ namespace EdgeDB
 
             return queryResult.PayloadBuffer is null
                 ? default
-                : ObjectBuilder.BuildResult<TResult>(Logger, result.Deserializer, ref result.Data[0]);
+                : ObjectBuilder.BuildResult<TResult>(this, result.Deserializer, ref result.Data[0]);
         }
 
         /// <inheritdoc/>
@@ -513,7 +521,7 @@ namespace EdgeDB
             
             return queryResult.PayloadBuffer is null
                 ? throw new MissingRequiredException()
-                : ObjectBuilder.BuildResult<TResult>(Logger, result.Deserializer, ref result.Data[0])!;
+                : ObjectBuilder.BuildResult<TResult>(this, result.Deserializer, ref result.Data[0])!;
         }
 
         /// <inheritdoc/>
@@ -527,7 +535,7 @@ namespace EdgeDB
             var result = await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, IOFormat.Json, token: token);
             
             return result.Data.Length == 1
-                ? (string)result.Deserializer.Deserialize(result.Data[0].PayloadBuffer)!
+                ? (string)result.Deserializer.Deserialize(this, result.Data[0].PayloadBuffer)!
                 : "[]";
         }
 
@@ -541,7 +549,7 @@ namespace EdgeDB
             var result = await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, IOFormat.JsonElements, token: token);
 
             return result.Data.Any()
-                ? result.Data.Select(x => new DataTypes.Json((string?)result.Deserializer.Deserialize(x.PayloadBuffer))).ToImmutableArray()
+                ? result.Data.Select(x => new DataTypes.Json((string?)result.Deserializer.Deserialize(this, x.PayloadBuffer))).ToImmutableArray()
                 : ImmutableArray<DataTypes.Json>.Empty;
         }
         #endregion
@@ -613,7 +621,7 @@ namespace EdgeDB
                     throw new ProtocolViolationException("The only supported method is SCRAM-SHA-256");
                 }
 
-                var initialMsg = scram.BuildInitialMessagePacket(Connection.Username!, method);
+                var initialMsg = scram.BuildInitialMessagePacket(this, Connection.Username!, method);
                 byte[] expectedSig = Array.Empty<byte>();
 
                 await foreach(var result in Duplexer.DuplexAsync(initialMsg))
@@ -626,7 +634,7 @@ namespace EdgeDB
                                 {
                                     case AuthStatus.AuthenticationSASLContinue:
                                         {
-                                            var (msg, sig) = scram.BuildFinalMessagePacket(in authResult, Connection.Password!);
+                                            var (msg, sig) = scram.BuildFinalMessagePacket(this, in authResult, Connection.Password!);
                                             expectedSig = sig;
 
                                             await Duplexer.SendAsync(packets: msg).ConfigureAwait(false);
@@ -634,7 +642,7 @@ namespace EdgeDB
                                         break;
                                     case AuthStatus.AuthenticationSASLFinal:
                                         {
-                                            var key = Scram.ParseServerFinalMessage(authResult);
+                                            var key = Scram.ParseServerFinalMessage(this, in authResult);
 
                                             if (!key.SequenceEqual(expectedSig))
                                             {
@@ -729,7 +737,7 @@ namespace EdgeDB
                         // disard length
                         reader.Skip(4);
 
-                        var obj = codec.Deserialize(ref reader)!;
+                        var obj = codec.Deserialize(ref reader, _codecContext)!;
 
                         RawServerConfig = ((ExpandoObject)obj).ToDictionary(x => x.Key, x => x.Value);
                         break;
@@ -742,6 +750,20 @@ namespace EdgeDB
             {
                 Logger.ServerSettingsParseFailed(x);
             }
+        }
+
+        private ReadOnlyMemory<byte>? SerializeState()
+        {
+            // TODO: version check this, prevent the state codec
+            // from being walked again if the state data hasn't
+            // been updated.
+
+            if (_stateCodec is null)
+                return null;
+
+            var data = Session.Serialize();
+
+            return _stateCodec.Serialize(this, data);
         }
         #endregion
 

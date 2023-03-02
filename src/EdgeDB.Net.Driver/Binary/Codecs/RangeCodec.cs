@@ -69,7 +69,7 @@ namespace EdgeDB.Binary.Codecs
                 throw new NotSupportedException("EdgeDB.DataTypes.Range<T> must be of int32 to implicitly convert to/from System.Range");
         }
 
-        public override Range<T> Deserialize(ref PacketReader reader)
+        public override Range<T> Deserialize(ref PacketReader reader, CodecContext context)
         {
             var flags = (RangeFlags)reader.ReadByte();
 
@@ -82,19 +82,19 @@ namespace EdgeDB.Binary.Codecs
             if ((flags & RangeFlags.InfiniteLowerBound) == 0)
             {
                 reader.Skip(4);
-                lowerBound = _innerCodec.Deserialize(ref reader);
+                lowerBound = _innerCodec.Deserialize(ref reader, context);
             }
 
             if ((flags & RangeFlags.IncludeUpperBound) == 0)
             {
                 reader.Skip(4);
-                upperBound = _innerCodec.Deserialize(ref reader);
+                upperBound = _innerCodec.Deserialize(ref reader, context);
             }
 
             return new Range<T>(lowerBound, upperBound, (flags & RangeFlags.IncudeLowerBound) != 0, (flags & RangeFlags.IncludeUpperBound) != 0);
         }
 
-        public override void Serialize(ref PacketWriter writer, Range<T> value)
+        public override void Serialize(ref PacketWriter writer, Range<T> value, CodecContext context)
         {
             var flags = value.IsEmpty
                 ? RangeFlags.Empty
@@ -107,12 +107,12 @@ namespace EdgeDB.Binary.Codecs
 
             if (value.Lower.HasValue)
             {
-                writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => _innerCodec.Serialize(ref innerWriter, value.Lower.Value));
+                writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => _innerCodec.Serialize(ref innerWriter, value.Lower.Value, context));
             }
 
             if (value.Upper.HasValue)
             {
-                writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => _innerCodec.Serialize(ref innerWriter, value.Upper.Value));
+                writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => _innerCodec.Serialize(ref innerWriter, value.Upper.Value, context));
             }
         }
 

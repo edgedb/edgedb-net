@@ -18,7 +18,7 @@ namespace EdgeDB.Binary.Codecs
             };
         }
 
-        public override DataTypes.DateDuration Deserialize(ref PacketReader reader)
+        public override DataTypes.DateDuration Deserialize(ref PacketReader reader, CodecContext context)
         {
             reader.Skip(sizeof(long));
             var days = reader.ReadInt32();
@@ -27,7 +27,7 @@ namespace EdgeDB.Binary.Codecs
             return new(days, months);
         }
         
-        public override void Serialize(ref PacketWriter writer, DataTypes.DateDuration value)
+        public override void Serialize(ref PacketWriter writer, DataTypes.DateDuration value, CodecContext context)
         {
             writer.Write(0L);
             writer.Write(value.Days);

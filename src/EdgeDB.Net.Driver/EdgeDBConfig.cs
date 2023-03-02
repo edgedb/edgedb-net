@@ -134,5 +134,27 @@ namespace EdgeDB
             get => TypeBuilder.SchemaNamingStrategy;
             set => TypeBuilder.SchemaNamingStrategy = value;
         }
+
+        /// <summary>
+        ///     Gets or sets whether or not to prefer using .NETs system temporal types
+        ///     when deserializing EdgeDB's temporal types using non-concrete query result
+        ///     definitions.
+        /// </summary>
+        /// <remarks>
+        ///     This setting does not override property-defined types, for example:
+        ///     <code>
+        ///     public class ExampleModel
+        ///     {
+        ///         public EdgeDB.DataTypes.DateTime EDBDateTime { get; set; }
+        ///     }
+        ///     </code>
+        ///     would be deserialized as <see cref="EdgeDB.DataTypes.DateTime"/> regardless of this option.
+        ///     Where this option does apply is when using <see langword="dynamic"/> or <see langword="object"/>
+        ///     as the generic in one of the Query* methods, e.g.:
+        ///     <code>
+        ///     var result = client.QueryAsync&lt;object&gt;(...);
+        ///     </code>
+        /// </remarks>
+        public bool PreferSystemTemporalTypes { get; set; }
     }
 }

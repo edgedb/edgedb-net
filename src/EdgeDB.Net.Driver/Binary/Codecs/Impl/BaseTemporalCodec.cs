@@ -8,9 +8,11 @@ using System.Threading.Tasks;
 namespace EdgeDB.Binary.Codecs
 {
     internal abstract class BaseTemporalCodec<T>
-        : BaseComplexScalarCodec<T, TransientTemporal>
+        : BaseComplexScalarCodec<T, TransientTemporal>, ITemporalCodec
         where T : unmanaged
     {
-        
+        Type ITemporalCodec.ModelType => typeof(T);
+
+        IEnumerable<Type> ITemporalCodec.SystemTypes => Converters is null ? Array.Empty<Type>() : Converters.Keys;
     }
 }
