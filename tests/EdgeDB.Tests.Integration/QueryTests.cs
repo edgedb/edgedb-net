@@ -498,6 +498,65 @@ namespace EdgeDB.Tests.Integration
 
         #endregion
 
+        #region Object types
+
+        public class A
+        {
+            public B? PropA { get; set; }
+            public List<string>? ListOfString { get; set; }
+            public string[]? ArrayOfString { get; set; }
+
+            public class B
+            {
+                public string? PropB { get; set; }
+            }
+        }
+
+        [TestMethod]
+        public async Task TestNestedObjectQuery()
+        {
+            var result = await _client.QuerySingleAsync<A>("select { prop_a := { prop_b := \"foo\"} }");
+
+            Assert.IsNotNull(result);
+            Assert.IsNotNull(result.PropA);
+            Assert.AreEqual("foo", result.PropA.PropB);
+        }
+
+        [TestMethod]
+        public async Task TestNestedCollectionQuery()
+        {
+            var arrArrResult = await _client.QuerySingleAsync<A>("select { array_of_string := ['foo', 'bar', 'baz'] }");
+
+            Assert.IsNotNull(arrArrResult);
+            Assert.IsNotNull(arrArrResult.ArrayOfString);
+            Assert.AreEqual(3, arrArrResult.ArrayOfString.Length);
+            Assert.IsTrue(arrArrResult.ArrayOfString.SequenceEqual(new string[] { "foo", "bar", "baz" }));
+
+
+            var listArrResult = await _client.QuerySingleAsync<A>("select { list_of_string := ['foo', 'bar', 'baz'] }");
+
+            Assert.IsNotNull(listArrResult);
+            Assert.IsNotNull(listArrResult.ListOfString);
+            Assert.AreEqual(3, listArrResult.ListOfString.Count);
+            Assert.IsTrue(listArrResult.ListOfString.SequenceEqual(new string[] { "foo", "bar", "baz" }));
+
+            var arrSetResult = await _client.QuerySingleAsync<A>("select { array_of_string := {'foo', 'bar', 'baz'} }");
+
+            Assert.IsNotNull(arrSetResult);
+            Assert.IsNotNull(arrSetResult.ArrayOfString);
+            Assert.AreEqual(3, arrSetResult.ArrayOfString.Length);
+            Assert.IsTrue(arrSetResult.ArrayOfString.SequenceEqual(new string[] { "foo", "bar", "baz" }));
+
+            var listSetResult = await _client.QuerySingleAsync<A>("select { list_of_string := {'foo', 'bar', 'baz'} }");
+
+            Assert.IsNotNull(listSetResult);
+            Assert.IsNotNull(listSetResult.ListOfString);
+            Assert.AreEqual(3, listSetResult.ListOfString.Count);
+            Assert.IsTrue(listSetResult.ListOfString.SequenceEqual(new string[] { "foo", "bar", "baz" }));
+        }
+
+        #endregion
+
         #region Helpers
         private static bool CompareMicroseconds(TimeSpan a, TimeSpan b)
         {

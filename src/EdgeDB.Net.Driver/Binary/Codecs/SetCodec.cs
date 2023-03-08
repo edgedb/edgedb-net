@@ -96,7 +96,11 @@ namespace EdgeDB.Binary.Codecs
                 if (elementLength is -1)
                     result[i] = default;
                 else
+                {
+                    reader.Limit = elementLength; // set limit of the read to the element size
                     result[i] = InnerCodec.Deserialize(ref reader, context);
+                    reader.Limit = -1; // reset the limit
+                }
             }
 
             return result;

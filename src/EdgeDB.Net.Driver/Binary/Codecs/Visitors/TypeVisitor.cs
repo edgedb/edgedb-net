@@ -72,13 +72,15 @@ namespace EdgeDB.Binary.Codecs
                             // if the inner is compilable, use its inner type and set the real
                             // flag, since compileable visits only care about the inner type rather
                             // than a concrete root.
-                            var propType = Context.Deserializer!.PropertyMap.TryGetValue(name, out var propInfo)
-                                ? propInfo.Type
+                            var hasPropInfo = Context.Deserializer!.PropertyMap.TryGetValue(name, out var propInfo);
+
+                            var propType = hasPropInfo
+                                ? propInfo!.Type
                                 : innerCodec is CompilableWrappingCodec compilable
                                     ? compilable.GetInnerType()
                                     : innerCodec.ConverterType;
 
-                            using var propHandle = EnterNewContext(propType, name, innerRealType: innerCodec is CompilableWrappingCodec);
+                            using var propHandle = EnterNewContext(propType, name, innerRealType: !hasPropInfo && innerCodec is CompilableWrappingCodec);
 
                             Visit(ref innerCodec);
 
