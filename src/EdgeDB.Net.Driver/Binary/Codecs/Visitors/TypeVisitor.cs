@@ -124,7 +124,7 @@ namespace EdgeDB.Binary.Codecs
                         {
                             VisitCodec(ref tmp);
 
-                            codec = compilable.Compile(tmp);
+                            codec = compilable.Compile(Context.Type, tmp);
 
                             _logger.CodecVisitorCompiledCodec(Depth, compilable, codec, Context.Type);
                         }
