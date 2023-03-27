@@ -39,6 +39,8 @@ namespace EdgeDB.Binary
         /// </summary>
         public static readonly ConcurrentDictionary<Type, ICodec> CodecInstanceCache = new();
 
+        public static readonly ConcurrentDictionary<int, ICodec> CompiledCodecCache = new();
+
         public static readonly Guid NullCodec = Guid.Empty;
         public static readonly Guid InvalidCodec = Guid.Parse("ffffffffffffffffffffffffffffffff");
 

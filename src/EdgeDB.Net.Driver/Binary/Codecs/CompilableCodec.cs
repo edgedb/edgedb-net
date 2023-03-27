@@ -1,4 +1,5 @@
 using System;
+
 namespace EdgeDB.Binary.Codecs
 {
     internal sealed class CompilableWrappingCodec
@@ -17,15 +18,17 @@ namespace EdgeDB.Binary.Codecs
         }
 
         // to avoid state changes to this compilable, pass in the inner codec post-walk.
-        public ICodec Compile(ICodec? innerCodec = null)
+        public ICodec Compile(Type type, ICodec? innerCodec = null)
         {
             innerCodec ??= InnerCodec;
 
             var genType = _rootCodecType.MakeGenericType(innerCodec.ConverterType);
 
-            return CodecBuilder.CodecInstanceCache.GetOrAdd(genType, (k) =>
+            var cacheKey = HashCode.Combine(type, genType);
+
+            return CodecBuilder.CompiledCodecCache.GetOrAdd(cacheKey, (k) =>
             {
-                var codec = (ICodec)Activator.CreateInstance(k, innerCodec)!;
+                var codec = (ICodec)Activator.CreateInstance(genType, innerCodec)!;
 
                 if(codec is IComplexCodec complex)
                 {
