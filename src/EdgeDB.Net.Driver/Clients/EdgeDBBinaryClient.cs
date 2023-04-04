@@ -800,6 +800,9 @@ namespace EdgeDB
                     if (message is ReadyForCommand)
                         break;
 
+                    if(message is ErrorResponse err)
+                        throw new EdgeDBErrorException(err);
+
                     await HandlePacketAsync(message).ConfigureAwait(false);
                 }
 
