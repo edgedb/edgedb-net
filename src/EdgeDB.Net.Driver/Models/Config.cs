@@ -59,7 +59,7 @@ namespace EdgeDB.State
             var dict = new Dictionary<string, object?>();
 
             if(IdleTransationTimeout.HasValue)
-                dict["idle_transaction_timeout"] = new DataTypes.Duration(IdleTransationTimeout.Value);
+                dict["session_idle_transaction_timeout"] = new DataTypes.Duration(IdleTransationTimeout.Value);
 
             if (QueryExecutionTimeout.HasValue)
                 dict["query_execution_timeout"] = new DataTypes.Duration(QueryExecutionTimeout.Value);
