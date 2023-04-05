@@ -79,7 +79,7 @@ namespace EdgeDB
             => _codecContext;
 
         internal byte[] ServerKey;
-        internal int SuggestedPoolConcurrency;
+        internal int? SuggestedPoolConcurrency;
         internal Dictionary<string, object?> RawServerConfig = new();
         
         internal readonly ILogger Logger;
@@ -711,10 +711,11 @@ namespace EdgeDB
                 {
                     case "suggested_pool_concurrency":
                         var str = Encoding.UTF8.GetString(status.ValueBuffer);
-                        if (!int.TryParse(str, out SuggestedPoolConcurrency))
+                        if (!int.TryParse(str, out var suggestedPoolConcurrency))
                         {
                             throw new FormatException("suggested_pool_concurrency type didn't match the expected type of int");
                         }
+                        SuggestedPoolConcurrency = suggestedPoolConcurrency;
                         break;
 
                     case "system_config":

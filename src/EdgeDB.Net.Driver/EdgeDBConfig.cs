@@ -17,7 +17,7 @@ namespace EdgeDB
         /// </summary>
         public int DefaultPoolSize
         {
-            get => _poolSize;
+            get => _poolSize ?? 50;
             set
             {
                 if (value <= 0)
@@ -39,7 +39,10 @@ namespace EdgeDB
         /// </remarks>
         internal Func<ulong, EdgeDBConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? ClientFactory { get; set; }
 
-        private int _poolSize = 50;
+        internal bool HasCustomPoolSize
+            => _poolSize.HasValue;
+
+        private int? _poolSize;
     }
 
     /// <summary>
