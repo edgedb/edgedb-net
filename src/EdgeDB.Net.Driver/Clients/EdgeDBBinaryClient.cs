@@ -789,7 +789,7 @@ namespace EdgeDB
                     {
                         await HandlePacketAsync(message).ConfigureAwait(false);
                     }
-                    catch(Exception x)
+                    catch(EdgeDBErrorException x) when (x.ShouldReconnect)
                     {
                         if (_config.RetryMode is ConnectionRetryMode.AlwaysRetry)
                         {
