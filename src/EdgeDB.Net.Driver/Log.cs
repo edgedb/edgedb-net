@@ -39,14 +39,14 @@ namespace EdgeDB
             LogLevel.Warning,
             "Attempting to reconnect {Current}/{Max}"
         )]
-        public static partial void AttemptToReconnect(this ILogger logger, uint current, uint max);
+        public static partial void AttemptToReconnect(this ILogger logger, uint current, uint max, Exception? exception = null);
 
         [LoggerMessage(
             6,
             LogLevel.Error,
             "Max number of connection retries reached ({Max})"
         )]
-        public static partial void MaxConnectionRetries(this ILogger logger, uint max);
+        public static partial void MaxConnectionRetries(this ILogger logger, uint max, Exception? exception = null);
 
         [LoggerMessage(
             7,

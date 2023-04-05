@@ -666,30 +666,6 @@ namespace EdgeDB
                     }
                 }
             }
-            catch(EdgeDBException x) when (x.ShouldReconnect)
-            {
-                await ReconnectAsync().ConfigureAwait(false);
-                throw;
-            }
-            catch (Exception x)
-            {
-                if (_config.RetryMode is ConnectionRetryMode.AlwaysRetry)
-                {
-                    if (_currentRetries < _config.MaxConnectionRetries)
-                    {
-                        _currentRetries++;
-                        Logger.AttemptToReconnect(_currentRetries, _config.MaxConnectionRetries);
-                        await ReconnectAsync();
-                    }
-                    else
-                        Logger.MaxConnectionRetries(_config.MaxConnectionRetries);
-                }
-                else
-                {
-                    Logger.AuthenticationFailed(x);
-                    throw;
-                }
-            }
             finally
             {
                 IsIdle = true;
@@ -782,6 +758,11 @@ namespace EdgeDB
         {
             await _connectSemaphone.WaitAsync(token).ConfigureAwait(false);
 
+            if (IsConnected)
+                return;
+
+            var released = false;
+
             try
             {
                 await ConnectInternalAsync(token: token);
@@ -799,9 +780,46 @@ namespace EdgeDB
                         throw new UnexpectedDisconnectException();
 
                     if (message is ReadyForCommand)
+                    {
+                        // reset connection attempts
+                        _currentRetries = 0;
                         break;
+                    }
 
-                    await HandlePacketAsync(message).ConfigureAwait(false);
+                    try
+                    {
+                        await HandlePacketAsync(message).ConfigureAwait(false);
+                    }
+                    catch(EdgeDBErrorException x) when (x.ShouldReconnect)
+                    {
+                        if (_config.RetryMode is ConnectionRetryMode.AlwaysRetry)
+                        {
+                            if (_currentRetries < _config.MaxConnectionRetries)
+                            {
+                                _currentRetries++;
+
+                                Logger.AttemptToReconnect(_currentRetries, _config.MaxConnectionRetries, x);
+
+                                // do not forward the linked token in this method to the new
+                                // reconnection, only supply the external token. We also don't
+                                // want to call 'ReconnectAsync' since we queue up a disconnect
+                                // and connect request, if this method was called externally
+                                // while we handle the error, it would be next in line to attempt
+                                // to connect, if that external call completes we would then disconnect
+                                // and connect after a successful connection attempt which wouldn't be ideal.
+                                await DisconnectAsync(token);
+
+                                _connectSemaphone.Release();
+
+                                await ConnectAsync(token);
+                                return;
+                            }
+                            else
+                                Logger.MaxConnectionRetries(_config.MaxConnectionRetries, x);
+                        }
+
+                        throw;
+                    }
                 }
 
                 _readySource.SetResult();
@@ -811,7 +829,8 @@ namespace EdgeDB
             }
             finally
             {
-                _connectSemaphone.Release();
+                if(!released)
+                    _connectSemaphone.Release();
             }
         }
 
