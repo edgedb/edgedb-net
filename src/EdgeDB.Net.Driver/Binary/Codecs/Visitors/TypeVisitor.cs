@@ -1,5 +1,7 @@
+using EdgeDB.DataTypes;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Xml.Linq;
 
@@ -92,15 +94,21 @@ namespace EdgeDB.Binary.Codecs
                     break;
                 case TupleCodec tuple:
                     {
-                        var tupleTypes = DataTypes.TransientTuple.FlattenTypes(Context.Type);
+                        var tupleTypes = Context.Type.IsAssignableTo(typeof(ITuple)) && Context.Type != typeof(TransientTuple)
+                            ? DataTypes.TransientTuple.FlattenTypes(Context.Type)
+                            : null;
 
-                        if (tupleTypes.Length != tuple.InnerCodecs.Length)
+                        if (tupleTypes is not null && tupleTypes.Length != tuple.InnerCodecs.Length)
                             throw new NoTypeConverterException($"Cannot determine inner types of the tuple {Context.Type}");
+
+                        var type = typeof(object);
 
                         for (int i = 0; i != tuple.InnerCodecs.Length; i++)
                         {
+                            if (tupleTypes != null)
+                                type = tupleTypes[i];
+
                             var innerCodec = tuple.InnerCodecs[i];
-                            var type = tupleTypes[i];
                             using var elementHandle = EnterNewContext(type);
 
                             Visit(ref innerCodec);
@@ -120,7 +128,7 @@ namespace EdgeDB.Binary.Codecs
                             ? Context.Type
                             : Context.Type.GetWrappingType();
 
-                        using (var innerHandle = EnterNewContext(innerType))
+                        using (var innerHandle = EnterNewContext(innerType, innerRealType: tmp is CompilableWrappingCodec))
                         {
                             VisitCodec(ref tmp);
 
@@ -162,7 +170,7 @@ namespace EdgeDB.Binary.Codecs
         {
             // if theres a concrete type def supplied by the
             // user, return their requested type.
-            if (!Context.IsDynamicResult)
+            if (!Context.IsDynamicResult && !Context.InnerRealType)
                 return Context.Type;
 
             if(codec is ITemporalCodec temporal)
@@ -181,7 +189,7 @@ namespace EdgeDB.Binary.Codecs
                     DateTimeCodec => typeof(DateTimeOffset),
                     DurationCodec => typeof(TimeSpan),
                     LocalDateCodec => typeof(DateOnly),
-                    LocalDateTimeCodec => typeof(DateTime),
+                    LocalDateTimeCodec => typeof(System.DateTime),
                     LocalTimeCodec => typeof(TimeOnly),
                     RelativeDurationCodec => typeof(TimeSpan),
                     _ => throw new NotSupportedException($"Cannot find a valid .NET system temporal type for the codec {temporal}")
