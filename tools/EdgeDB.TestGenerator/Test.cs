@@ -1,4 +1,5 @@
 using EdgeDB.Binary;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,9 +16,12 @@ namespace EdgeDB.TestGenerator
         public Capabilities ActualCapabilities { get; set; }
         public Cardinality ActualCardinality { get; set; }
 
+        [JsonIgnore]
         public List<ITypeDescriptor>? Descriptors { get; set; }
 
         public object? Result { get; set; }
+
+        [JsonIgnore]
         public List<string>? BinaryResult { get; set; }
 
         public class QueryArgs

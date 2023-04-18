@@ -15,7 +15,7 @@ var client = new EdgeDBClient(new EdgeDBClientPoolConfig
 {
     ClientType = EdgeDBClientType.Custom,
     ClientFactory = (i, con, conf) => ValueTask.FromResult((BaseEdgeDBClient)new TestGeneratorClient(con, conf, null!, i)),
-    PreferSystemTemporalTypes = false,
+    PreferSystemTemporalTypes = true,
     DefaultPoolSize = 100,
     ConnectionTimeout = 30000,
     MessageTimeout = 30000
@@ -33,7 +33,14 @@ foreach(var generator in generators)
 {
     AnsiConsole.Write(new Rule($"{generator.GetType().Name}"));
     var group = await generator.GenerateAsync(client);
+    if (!tests.Contains(group))
+        tests.Add(group);
+}
 
+AnsiConsole.Write(new Rule("Finishing up"));
+
+foreach(var group in tests)
+{
     await AnsiConsole.Status()
         .Spinner(Spinner.Known.Hearts)
         .StartAsync("Encoding to json...", async ctx =>
@@ -51,7 +58,7 @@ foreach(var generator in generators)
             using var writer = new StreamWriter(fs);
             using var jsonWriter = new JsonTextWriter(writer);
 
-            var serializer = new JsonSerializer();
+            var serializer = EdgeDBConfig.JsonSerializer;
             serializer.Serialize(jsonWriter, group);
 
             ctx.Status("Writing to disc...");

@@ -1,4 +1,5 @@
 using System;
+using EdgeDB.DataTypes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -35,7 +36,7 @@ namespace EdgeDB.ContractResolvers
             var type = value.GetType();
             var props = type.GetProperties().ToDictionary(x => x.Name, x => x);
             
-            var isEmpty = (bool)props["Empty"]!.GetValue(value)!;
+            var isEmpty = (bool)props[nameof(Range<int>.IsEmpty)]!.GetValue(value)!;
 
             if (isEmpty)
             {
@@ -47,10 +48,10 @@ namespace EdgeDB.ContractResolvers
                 return;
             }
 
-            var lower = props["Lower"].GetValue(value);
-            var upper = props["Upper"].GetValue(value);
-            var incLower = props["IncludeLower"].GetValue(value)!;
-            var incUpper = props["IncludeUpper"].GetValue(value)!;
+            var lower = props[nameof(Range<int>.Lower)].GetValue(value);
+            var upper = props[nameof(Range<int>.Upper)].GetValue(value);
+            var incLower = props[nameof(Range<int>.IncludeLower)].GetValue(value)!;
+            var incUpper = props[nameof(Range<int>.IncludeUpper)].GetValue(value)!;
 
             // write our properties.
             var obj = new JObject();

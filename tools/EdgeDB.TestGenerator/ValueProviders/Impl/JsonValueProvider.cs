@@ -16,7 +16,7 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
         public Json GetRandom(GenerationRuleSet rules)
         {
             // TODO: use value providers to generate scalar-based json objects
-            return new Json(JsonConvert.SerializeObject(GetRandom<ObjectValueProvider>(SmallJsonBlob).Value));
+            return new Json(JsonConvert.SerializeObject(ValueGenerator.GenerateRandom(SmallJsonBlob).Value));
         }
 
         public string ToEdgeQLFormat(Json value) => $"std::to_json('{value.Value}')";

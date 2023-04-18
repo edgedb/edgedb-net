@@ -31,13 +31,14 @@ namespace EdgeDB.TestGenerator
                 { typeof(StringValueProvider),           15..15 }
             };
 
-            public Range DefaultRange { get; set; } = ..10;
+            public Range DefaultRange { get; set; } = 1..10;
             public Dictionary<Type, Range> ProviderCollectionSizes { get; set; } = new(DefaultProviderRanges);
             public List<Type> RootExclude { get; set; } = new();
             public int MaxDepth { get; set; } = 10;
             public List<Type> Excluded { get; set; } = new();
             public Dictionary<Type, List<Type>> ExcludedChildren { get; set; } = new();
             public bool RollChildProviders { get; set; } = false;
+            public bool ApplyRangeRulesToSetGeneration { get; set; } = false;
 
             public override string ToString()
             {
@@ -67,7 +68,8 @@ namespace EdgeDB.TestGenerator
                     } 
                 }
 
-                sb.Append($"Default Range: [cyan]{DefaultRange}[/]");
+                sb.AppendLine($"Default Range: [cyan]{DefaultRange}[/]");
+                sb.Append($"Apply range-rule to sets: [cyan]{ApplyRangeRulesToSetGeneration}[/]");
 
                 return sb.ToString();
             }
@@ -75,6 +77,9 @@ namespace EdgeDB.TestGenerator
             public Range GetRange<T>()
                 where T : IValueProvider
                 => ProviderCollectionSizes.TryGetValue(typeof(T), out var v) ? v : DefaultRange;
+
+            public Range GetRange(Type type)
+                => ProviderCollectionSizes.TryGetValue(type, out var v) ? v : DefaultRange;
         }
 
         public class GenerationResult
@@ -105,7 +110,9 @@ namespace EdgeDB.TestGenerator
 
         public static GenerationRuleSet SmallJsonBlob = new()
         {
+            ApplyRangeRulesToSetGeneration = true,
             MaxDepth = 2,
+            DefaultRange = 1..2,
             Excluded = new List<Type>
             {
                 typeof(JsonValueProvider)
@@ -222,9 +229,23 @@ namespace EdgeDB.TestGenerator
                 allowedChildren = allowedChildren.Except(targetExcluded);
             }
 
-            if(!allowedChildren.Any())
+            var childrenCount = allowedChildren.Count();
+
+            if(childrenCount == 0)
             {
                 throw new ArgumentException($"The defined rules restricts the type {target} to contain no children");
+            }
+
+            if(rules.ApplyRangeRulesToSetGeneration)
+            {
+                var range = rules.GetRange(target);
+
+                var count = Random.Shared.Next(range);
+
+                if(count < childrenCount && count > 0)
+                {
+                    allowedChildren = allowedChildren.OrderRandomly().Take(count);
+                }
             }
 
             if(rules.RollChildProviders)

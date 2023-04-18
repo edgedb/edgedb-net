@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using EdgeDB.DataTypes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
@@ -7,6 +8,20 @@ namespace EdgeDB.ContractResolvers
 {
     internal sealed class EdgeDBContractResolver : DefaultContractResolver
     {
+        protected override JsonContract CreateContract(Type objectType)
+        {
+            var contract = base.CreateContract(objectType);
+
+            var converter = GetConverter(objectType);
+
+            if(converter is not null)
+            {
+                contract.Converter = converter;
+            }
+
+            return contract;
+        }
+
         protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
         {
             var property = base.CreateProperty(member, memberSerialization);
@@ -16,7 +31,7 @@ namespace EdgeDB.ContractResolvers
 
             if (member is PropertyInfo propInfo)
             {
-                var converter = GetConverter(property, propInfo, propInfo.PropertyType, 0);
+                var converter = GetConverter(propInfo.PropertyType);
                 if (converter is not null)
                 {
                     property.Converter = converter;
@@ -24,14 +39,21 @@ namespace EdgeDB.ContractResolvers
             }
             else
                 throw new InvalidOperationException($"{member.DeclaringType?.FullName ?? "Unknown"}.{member.Name} is not a property.");
+
             return property;
         }
 
-        private static JsonConverter? GetConverter(JsonProperty property, PropertyInfo propInfo, Type type, int depth)
+        private static JsonConverter? GetConverter(Type type)
         {
             // range type
             if (ReflectionUtils.IsSubclassOfRawGeneric(typeof(DataTypes.Range<>), type))
                 return RangeConverter.Instance;
+
+            if (type == typeof(TransientTuple))
+                return TransientTupleConverter.Instance;
+
+            if (type == typeof(Json))
+                return JsonDatatypeConverter.Instance;
 
             return null;
         }

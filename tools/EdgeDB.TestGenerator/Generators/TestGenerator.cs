@@ -51,17 +51,17 @@ namespace EdgeDB.TestGenerator.Generators
 
                     foreach (var provider in set)
                     {
+                        ctx.Status($"Generating value ({i}/{set.Count}) - nodes: {totalNodes}");
+
+                        var value = provider.AsResult(rules);
+                        totalNodes += CountSetNodes(value.Provider);
+
+                        ctx.Status($"Generating tests ({i}/{set.Count}) - nodes: {totalNodes}");
+
+                        var def = GetQuery(value);
+
                         try
                         {
-                            ctx.Status($"Generating value ({i}/{set.Count}) - nodes: {totalNodes}");
-
-                            var value = provider.AsResult(rules);
-                            totalNodes += CountSetNodes(value.Provider);
-
-                            ctx.Status($"Generating tests ({i}/{set.Count}) - nodes: {totalNodes}");
-
-                            var def = GetQuery(value);
-
                             var test = await GenerateTestManifestAsync(client, def.Query, def.Cardinality, def.Args, def.Capabilities);
 
                             test.Name = GetTestName(value);
@@ -71,6 +71,10 @@ namespace EdgeDB.TestGenerator.Generators
                         catch (Exception x)
                         {
                             AnsiConsole.WriteException(x);
+                            if(x is EdgeDBErrorException err && err.Query is not null)
+                            {
+                                AnsiConsole.Markup($"Query:\n{EdgeQLFormatter.PrettifyAndColor(err.Query)}");
+                            }
                         }
 
                         i++;

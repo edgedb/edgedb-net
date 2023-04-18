@@ -15,7 +15,10 @@ namespace EdgeDB.DataTypes
         /// <summary>
         ///     Gets or sets the raw json value.
         /// </summary>
-        public readonly string? Value;
+        public string? Value
+            => _value;
+
+        private readonly string? _value;
 
         /// <summary>
         ///     Creates a new json type with a provided value.
@@ -23,7 +26,7 @@ namespace EdgeDB.DataTypes
         /// <param name="value">The raw json value of this json object.</param>
         public Json(string? value)
         {
-            Value = value;
+            _value = value;
         }
 
         /// <summary>

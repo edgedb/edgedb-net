@@ -60,6 +60,16 @@ namespace EdgeDB.DataTypes
             _types = types;
         }
 
+        internal TransientTuple(object?[] values)
+        {
+            _values = values;
+            _types = new Type[values.Length];
+            for(int i = 0; i != values.Length; i++)
+            {
+                _types[i] = _values[i]?.GetType() ?? typeof(object);
+            }
+        }
+
         /// <summary>
         ///     Converts this tuple to a <see cref="ValueTuple"/> with the specific arity.
         /// </summary>

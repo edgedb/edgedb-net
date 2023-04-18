@@ -38,5 +38,10 @@ namespace EdgeDB.TestGenerator
                 yield return collection.Skip(i).Concat(collection.Take(i));
             }
         }
+
+        public static IEnumerable<T> OrderRandomly<T>(this IEnumerable<T> enumerator)
+        {
+            return enumerator.OrderBy((_) => _rand.Next());
+        }
     }
 }
