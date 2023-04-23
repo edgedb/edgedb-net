@@ -16,7 +16,7 @@ namespace EdgeDB.TestGenerator.Generators
             }, Cardinality.One);
 
         protected override TestGroup GetTestGroup()
-            => base.ArgumentTestGroup;
+            => TestGenerator.ArgumentTestGroup;
 
         protected override string GetTestName(ValueGenerator.GenerationResult result)
             => $"Argument of type {result.EdgeDBTypeName}";

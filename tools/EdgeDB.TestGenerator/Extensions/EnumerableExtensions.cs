@@ -8,40 +8,46 @@ namespace EdgeDB.TestGenerator
 {
     internal static class EnumerableExtensions
     {
-        private static readonly Random _rand = new();
-
-        public static T Random<T>(this IEnumerable<T> t)
+        public static T Random<T>(this IEnumerable<T> t, Random? rand = null)
         {
+            rand ??= System.Random.Shared;
+
             var arr = t.ToArray();
 
-            var i = _rand.Next(arr.Length);
+            var i = rand.Next(arr.Length);
 
             return arr[i];
         }
 
-        public static IEnumerable<T> RandomSequence<T>(this IEnumerable<T> t)
+        public static IEnumerable<T> RandomSequence<T>(this IEnumerable<T> t, Random? rand = null)
         {
-            var c = t.Where(_ => _rand.Next() % 2 == 0).OrderBy(x => _rand.Next()).ToArray();
+            rand ??= System.Random.Shared;
+            var c = t.Where(_ => rand.Next() % 2 == 0).OrderBy(x => rand.Next()).ToArray();
             return c.Length == 0 ? RandomSequence(t) : c;
         }
 
         public static IEnumerable<IEnumerable<T>> Roll<T>(this IEnumerable<T> collection)
         {
-            for(int i = 0; i != collection.Count(); i++)
+            var col = new List<IEnumerable<T>>();
+
+            for (int i = 0; i != collection.Count(); i++)
             {
                 if (i == 0)
                 {
-                    yield return collection;
+                    col.Add(collection);
                     continue;
                 }
 
-                yield return collection.Skip(i).Concat(collection.Take(i));
+                col.Add(collection.Skip(i).Concat(collection.Take(i)));
             }
+
+            return col;
         }
 
-        public static IEnumerable<T> OrderRandomly<T>(this IEnumerable<T> enumerator)
+        public static IEnumerable<T> OrderRandomly<T>(this IEnumerable<T> enumerator, Random? rand = null)
         {
-            return enumerator.OrderBy((_) => _rand.Next());
+            rand ??= System.Random.Shared;
+            return enumerator.OrderBy((_) => rand.Next());
         }
     }
 }

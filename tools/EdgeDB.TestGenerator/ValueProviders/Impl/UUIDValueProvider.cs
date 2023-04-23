@@ -11,7 +11,14 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
     {
         public string EdgeDBName => "std::uuid";
 
-        public Guid GetRandom(GenerationRuleSet rules) => Guid.NewGuid();
+        public unsafe Guid GetRandom(GenerationRuleSet rules)
+        {
+            Guid id;
+
+            rules.Random.NextBytes(new Span<byte>(&id, sizeof(Guid)));
+
+            return id;
+        }
         public string ToEdgeQLFormat(Guid value) => $"<uuid>'{value}'";
         public override string ToString() => EdgeDBName;
     }

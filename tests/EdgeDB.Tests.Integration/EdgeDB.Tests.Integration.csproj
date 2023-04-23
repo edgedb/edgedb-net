@@ -12,10 +12,17 @@
     <PackageReference Include="MSTest.TestAdapter" Version="2.2.10" />
     <PackageReference Include="MSTest.TestFramework" Version="2.2.10" />
     <PackageReference Include="coverlet.collector" Version="3.1.0" />
+    <PackageReference Include="FluentAssertions" Version="6.10.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="SharedTests\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="SharedTests\" />
+  </ItemGroup>
 </Project>

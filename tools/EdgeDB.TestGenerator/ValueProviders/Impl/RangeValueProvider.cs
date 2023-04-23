@@ -10,7 +10,7 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
 {
     internal class RangeValueProvider : IWrappingValueProvider
     {
-        public IEnumerable<IValueProvider>? Children { get => new IValueProvider[] { _child! }; set => _child = value!.First(); }
+        public IValueProvider[]? Children { get => new IValueProvider[] { _child! }; set => _child = value!.First(); }
 
         private IValueProvider? _child;
 

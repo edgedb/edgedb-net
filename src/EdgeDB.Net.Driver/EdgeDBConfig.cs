@@ -159,5 +159,10 @@ namespace EdgeDB
         ///     </code>
         /// </remarks>
         public bool PreferSystemTemporalTypes { get; set; }
+
+        /// <summary>
+        ///     Gets or sets whether or not to include type ids in results.
+        /// </summary>
+        public bool ImplicitTypeIds { get; internal set; }
     }
 }

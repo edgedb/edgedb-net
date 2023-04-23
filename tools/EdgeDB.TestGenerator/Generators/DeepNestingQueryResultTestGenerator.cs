@@ -12,7 +12,7 @@ namespace EdgeDB.TestGenerator.Generators
            => new($"select {result.ToEdgeQLFormat()}");
 
         protected override TestGroup GetTestGroup()
-            => base.QueryTestGroup;
+            => TestGenerator.DeepNestingTestGroup;
 
         protected override string GetTestName(ValueGenerator.GenerationResult result)
             => $"Deep nesting query result of type {result.EdgeDBTypeName}";

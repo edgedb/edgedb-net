@@ -51,12 +51,12 @@ namespace EdgeDB.TestGenerator.ValueProviders
                     "(\\d)", d => new string(new char[] { chars[int.Parse(d.Groups[1].Value)] })
                 );
             }
-        } 
+        }
     }
 
     interface IWrappingValueProvider : IValueProvider
     {
-        IEnumerable<IValueProvider>? Children { get; set; }
+        IValueProvider[]? Children { get; set; }
 
         public string FormatAsGeneric()
         {

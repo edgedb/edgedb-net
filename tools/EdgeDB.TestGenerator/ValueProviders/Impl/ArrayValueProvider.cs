@@ -9,21 +9,23 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
 {
     internal class ArrayValueProvider : IWrappingValueProvider
     {
-        private static readonly Random _random = new Random();
-
         public string EdgeDBName => "array";
 
-        public IEnumerable<IValueProvider>? Children
+        public IValueProvider[]? Children
         {
             get => new IValueProvider[] { _child! };
-            set => _child = value!.First();
+            set => _child = value![0];
         }
 
         private IValueProvider? _child;
 
+        private readonly Dictionary<object, IValueProvider> _providerMap = new();
+
         public object GetRandom(GenerationRuleSet rules)
         {
-            var sz = _random.Next(rules.GetRange<ArrayValueProvider>());
+            var ts = _child!.ToString();
+
+            var sz = rules.Random.Next(rules.GetRange<ArrayValueProvider>());
             var t = _child!.GetRandom(rules).GetType();
 
             var arr = Array.CreateInstance(t, sz);
@@ -31,8 +33,25 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
             for(int i = 0; i != sz; i++)
             {
                 var v = _child!.GetRandom(rules);
-                arr.SetValue(v, i);
+
+                if(v.GetType() != t)
+                {
+                    var ts2 = _child.ToString();
+                    var x = ts == ts2;
+                    Console.WriteLine($"T1: {ts} T2: {ts2}, x {x}");
+                }
+
+                try
+                {
+                    arr.SetValue(v, i);
+                }
+                catch(Exception x)
+                {
+                    Console.WriteLine($"Child type {t}: v: {v}", x);
+                }
             }
+
+            _providerMap[arr] = _child;
 
             return arr;
         }
@@ -43,7 +62,10 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
             if (value is not Array arr)
                 throw new ArgumentException("value is not an array");
 
-            return $"[{string.Join(", ", arr.Cast<object>().Select(x => _child!.ToEdgeQLFormat(x)))}]";
+            if (!_providerMap.TryGetValue(value, out var provider))
+                throw new InvalidOperationException("Cannot determine provider used for the given value");
+
+            return $"[{string.Join(", ", arr.Cast<object>().Select(x => provider.ToEdgeQLFormat(x)))}]";
         }
     }
 }

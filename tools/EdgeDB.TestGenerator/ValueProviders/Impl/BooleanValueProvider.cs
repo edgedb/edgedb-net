@@ -9,11 +9,9 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
 {
     internal class BooleanValueProvider : IValueProvider<bool>
     {
-        private static readonly Random _random = new Random();
-
         public string EdgeDBName => "std::bool";
 
-        public bool GetRandom(GenerationRuleSet rules) => _random.Next() % 2 == 0;
+        public bool GetRandom(GenerationRuleSet rules) => rules.Random.Next() % 2 == 0;
 
         public string ToEdgeQLFormat(bool value) => value.ToString().ToLower();
     }

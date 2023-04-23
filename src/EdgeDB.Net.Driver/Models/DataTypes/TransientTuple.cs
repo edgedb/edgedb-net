@@ -23,12 +23,18 @@ namespace EdgeDB.DataTypes
         ///     Gets the values within this tuple, following the arity order of the tuple.
         /// </summary>
         public IReadOnlyCollection<object?> Values
-            => _types.ToImmutableArray();
+            => _values.ToImmutableArray();
 
         private readonly Type[] _types;
         private readonly object?[] _values;
 
         private delegate ITuple TupleBuilder(Type[] types, object?[] values);
+
+        internal static bool IsValueTupleType(Type type)
+            => _valueTupleTypeMap.Contains(type);
+
+        internal static bool IsReferenceTupleType(Type type)
+            => _referenceTupleTypeMap.Contains(type);
 
         private static readonly Type[] _valueTupleTypeMap = new[]
         {

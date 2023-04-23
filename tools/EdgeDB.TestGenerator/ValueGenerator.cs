@@ -3,11 +3,13 @@ using EdgeDB.TestGenerator.ValueProviders.Impl;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
+using YamlDotNet.Serialization;
 
 namespace EdgeDB.TestGenerator
 {
@@ -15,6 +17,15 @@ namespace EdgeDB.TestGenerator
     {
         public class GenerationRuleSet
         {
+            [YamlMember(Alias = "ranges")]
+            public Dictionary<string, Range>? YamlRanges { get; set; }
+            [YamlMember(Alias = "root_excluded")]
+            public List<string>? YamlRootExcluded { get; set; }
+            [YamlMember(Alias = "excluded")]
+            public List<string>? YamlExcluded { get; set; }
+            [YamlMember(Alias = "nested_excluded")]
+            public Dictionary<string, List<string>>? YamlNestedExcluded { get; set; }
+
             public static Dictionary<Type, Range> DefaultProviderRanges = new Dictionary<Type, Range>
             {
                 { typeof(ArrayValueProvider),             5..20 },
@@ -31,14 +42,92 @@ namespace EdgeDB.TestGenerator
                 { typeof(StringValueProvider),           15..15 }
             };
 
+            [YamlMember(Alias = "name")]
+            public string? Name { get; set; }
+
+            [YamlMember(Alias = "default_range")]
             public Range DefaultRange { get; set; } = 1..10;
-            public Dictionary<Type, Range> ProviderCollectionSizes { get; set; } = new(DefaultProviderRanges);
-            public List<Type> RootExclude { get; set; } = new();
-            public int MaxDepth { get; set; } = 10;
+
+            [YamlIgnore]
+            public Dictionary<Type, Range> ProviderRanges { get; set; } = new(DefaultProviderRanges);
+
+            [YamlIgnore]
+            public List<Type> RootExcluded { get; set; } = new();
+
+            [YamlMember(Alias = "max_depth")]
+            public int MaxDepth { get; set; } = 3;
+
+            [YamlIgnore]
             public List<Type> Excluded { get; set; } = new();
+
+            [YamlIgnore]
             public Dictionary<Type, List<Type>> ExcludedChildren { get; set; } = new();
+
+            [YamlMember(Alias = "roll_nested")]
             public bool RollChildProviders { get; set; } = false;
+
+            [YamlMember(Alias = "apply_range_to_sets")]
             public bool ApplyRangeRulesToSetGeneration { get; set; } = false;
+
+            [YamlMember(Alias = "seed")]
+            public int Seed { get; set; }
+
+            [YamlIgnore]
+            public Random Random { get; set; }
+
+            public GenerationRuleSet()
+            {
+                Random = new Random(Seed);
+            }
+
+            public Random RefreshRandom() => Random = new Random(Seed);
+
+            public void PopulateFromYaml()
+            {
+                if(YamlRanges is not null && YamlRanges.Any())
+                {
+                    ProviderRanges = YamlRanges.Select(x =>
+                        ValueGenerator.TryGetValueGenerator(x.Key, out var type)
+                            ? (type, x.Value)
+                            : throw new KeyNotFoundException($"Unable to find value provider for the given name '{x.Key}'")
+                    ).ToDictionary(x => x.type, x => x.Value);
+                }
+
+                if(YamlRootExcluded is not null && YamlRootExcluded.Any())
+                {
+                    RootExcluded = YamlRootExcluded.Select(x =>
+                        ValueGenerator.TryGetValueGenerator(x, out var type)
+                            ? type
+                            : throw new KeyNotFoundException($"Unable to find value provider for the given name '{x}'")
+                    ).ToList();
+                }
+
+                if(YamlExcluded is not null && YamlExcluded.Any())
+                {
+                    Excluded = YamlExcluded.Select(x =>
+                        ValueGenerator.TryGetValueGenerator(x, out var type)
+                            ? type
+                            : throw new KeyNotFoundException($"Unable to find value provider for the given name '{x}'")
+                    ).ToList();
+                }
+
+                if(YamlNestedExcluded is not null && YamlNestedExcluded.Any())
+                {
+                    ExcludedChildren = YamlNestedExcluded.Select(x =>
+                    {
+                        if (!ValueGenerator.TryGetValueGenerator(x.Key, out var type))
+                            throw new KeyNotFoundException($"Unable to find value provider for the given name '{x}'");
+
+                        var values = x.Value.Select(x =>
+                            ValueGenerator.TryGetValueGenerator(x, out var type)
+                                ? type
+                                : throw new KeyNotFoundException($"Unable to find value provider for the given name '{x}'")
+                        ).ToList();
+
+                        return new KeyValuePair<Type, List<Type>>(type, values);
+                    }).ToDictionary(x => x.Key, x => x.Value);
+                }
+            }
 
             public override string ToString()
             {
@@ -46,15 +135,15 @@ namespace EdgeDB.TestGenerator
 
                 sb.AppendLine($"MaxDepth: [blue]{MaxDepth}[/]");
                 sb.AppendLine($"Rolling Children: [cyan]{RollChildProviders}[/]");
-                sb.AppendLine($"Excluded: [silver][[\n  [/]{string.Join("[grey],[/]\n  ", Excluded.Select(x => $"[green]{x.Name}[/]"))}[silver]\n]][/]");
-                sb.AppendLine($"Root Excluded: [silver][[\n  [/]{string.Join("[grey],[/]\n  ", RootExclude.Select(x => $"[green]{x.Name}[/]"))}[silver]\n]][/]");
+                sb.AppendLine($"Excluded: {(Excluded.Any() ? $"[silver][[\n  [/]{string.Join("[grey],[/]\n  ", Excluded.Select(x => $"[green]{x.Name}[/]"))}[silver]\n]][/]" : "[[]]")}");
+                sb.AppendLine($"Root Excluded: {(RootExcluded.Any() ? $"[silver][[\n  [/]{string.Join("[grey],[/]\n  ", RootExcluded.Select(x => $"[green]{x.Name}[/]"))}[silver]\n]][/]" : "")}");
 
                 if (ExcludedChildren.Any())
                 {
                     sb.AppendLine("Excluded Children:");
                     foreach(var c in ExcludedChildren)
                     {
-                        sb.AppendLine($"[silver] -[/] [green]{c.Key.Name}[/]: [silver][[[/]\n     {string.Join("[silver],[/]\n      ", c.Value.Select(x => $"[green]{x.Name}[/]"))}[silver]\n   ]][/]");
+                        sb.AppendLine($"[silver] -[/] [green]{c.Key.Name}[/]: [silver][[[/]\n     {string.Join("[silver],[/]\n     ", c.Value.Select(x => $"[green]{x.Name}[/]"))}[silver]\n   ]][/]");
                     } 
                 }
 
@@ -76,10 +165,13 @@ namespace EdgeDB.TestGenerator
 
             public Range GetRange<T>()
                 where T : IValueProvider
-                => ProviderCollectionSizes.TryGetValue(typeof(T), out var v) ? v : DefaultRange;
+                => ProviderRanges.TryGetValue(typeof(T), out var v) ? v : DefaultRange;
 
             public Range GetRange(Type type)
-                => ProviderCollectionSizes.TryGetValue(type, out var v) ? v : DefaultRange;
+                => ProviderRanges.TryGetValue(type, out var v) ? v : DefaultRange;
+
+            public GenerationRuleSet Clone()
+                => (GenerationRuleSet)MemberwiseClone();
         }
 
         public class GenerationResult
@@ -90,7 +182,6 @@ namespace EdgeDB.TestGenerator
 
             public string ToEdgeQLFormat()
                 => Provider.ToEdgeQLFormat(Value);
-
         }
 
         #region Defined rulesets
@@ -105,7 +196,8 @@ namespace EdgeDB.TestGenerator
             ExcludedChildren = new Dictionary<Type, List<Type>>
             {
                 {typeof(ArrayValueProvider), new List<Type>() { typeof(ArrayValueProvider)} }
-            }
+            },
+            RollChildProviders = true
         };
 
         public static GenerationRuleSet SmallJsonBlob = new()
@@ -124,13 +216,30 @@ namespace EdgeDB.TestGenerator
             MaxDepth = 2,
             ExcludedChildren = new Dictionary<Type, List<Type>>()
             {
-                { typeof(ArrayValueProvider), new List<Type> { typeof(ArrayValueProvider) } }
-            }
+                {
+                    typeof(ArrayValueProvider), new List<Type>
+                    {
+                        typeof(ArrayValueProvider),
+                        typeof(SetValueProvider),    // shape union doesn't survive in arrays
+                        typeof(ObjectValueProvider), // shape union doesn't survive in arrays
+                    }
+                },
+                {
+                    typeof(SetValueProvider), new List<Type>
+                    {
+                        // since this generates a free object, shapes don't survive the 
+                        // union within sets.
+                        typeof(ObjectValueProvider),
+                    }
+                }
+            },
+            RollChildProviders = true,
+            ApplyRangeRulesToSetGeneration = true,
         };
 
         public static GenerationRuleSet DeepQueryResultNesting = new()
         {
-            MaxDepth = 3,
+            MaxDepth = 5,
             Excluded = new List<Type>
             {
                 typeof(JsonValueProvider),
@@ -151,18 +260,24 @@ namespace EdgeDB.TestGenerator
                 typeof(RelativeDurationValueProvider),
                 typeof(UUIDValueProvider)
             },
-            RootExclude = new List<Type>
+            RootExcluded = new List<Type>
             {
                 typeof(StringValueProvider),
                 typeof(Int64ValueProvider)
             },
             ExcludedChildren = new Dictionary<Type, List<Type>>()
             {
-                { typeof(ArrayValueProvider), new List<Type> { typeof(ArrayValueProvider) } }
+                {
+                    typeof(ArrayValueProvider), new List<Type>
+                    {
+                        typeof(ArrayValueProvider),
+                        typeof(SetValueProvider) // union doesn't survive in arrays
+                    }
+                }
             },
             RollChildProviders = false,
             DefaultRange = 2..2,
-            ProviderCollectionSizes = new()
+            ProviderRanges = new()
             {
                 {typeof(StringValueProvider), 15..15 }
             }
@@ -171,13 +286,16 @@ namespace EdgeDB.TestGenerator
         #endregion
 
         private static readonly Dictionary<Type, List<Type>> _compatableWrappingTypes;
-        private static readonly List<Type> _valueGenerators;
+        public static readonly List<Type> ValueGenerators;
+        public static readonly Dictionary<string, Type> ValueGeneratorsMap;
 
         static ValueGenerator()
         {
-            _valueGenerators = Assembly.GetExecutingAssembly().GetTypes()
+            ValueGenerators = Assembly.GetExecutingAssembly().GetTypes()
                 .Where(x => x.IsAssignableTo(typeof(IValueProvider)) && !x.IsInterface)
                 .ToList();
+
+            ValueGeneratorsMap = ValueGenerators.Select(x => ((IValueProvider)Activator.CreateInstance(x)!)).ToDictionary(x => x.EdgeDBName, x => x.GetType());
 
             _compatableWrappingTypes = new Dictionary<Type, List<Type>>()
             {
@@ -195,25 +313,42 @@ namespace EdgeDB.TestGenerator
             };
         }
 
+        public static bool TryGetValueGenerator(string name, [MaybeNullWhen(false)] out Type type)
+        {
+            if (ValueGeneratorsMap.TryGetValue(name, out type))
+                return true;
+
+            type = ValueGeneratorsMap.FirstOrDefault(x => x.Key.Contains("::") ? x.Key.Split("::")[1] == name : x.Key == name).Value;
+
+            return type != null;
+        }
+
         #region Set generation
 
         public static List<IValueProvider> GenerateCompleteSet(GenerationRuleSet? rules = null)
         {
             rules ??= new GenerationRuleSet();
 
-            var allowed = _valueGenerators.Except(rules.Excluded).Except(rules.RootExclude);
+            var allowed = ValueGenerators.Except(rules.Excluded).Except(rules.RootExcluded);
 
             var result = new List<IValueProvider>();
 
-            foreach(var allowedProvider in allowed)
+            var depth = rules.MaxDepth;
+            for(int i = 0; i != depth; i++)
             {
-                if (allowedProvider.IsAssignableTo(typeof(IWrappingValueProvider)))
+                var cloned = rules.Clone();
+                cloned.MaxDepth = i;
+
+                foreach (var allowedProvider in allowed)
                 {
-                    result.AddRange(GenerateNestedSetProviders(allowedProvider, rules));
-                }
-                else
-                {
-                    result.Add((IValueProvider)Activator.CreateInstance(allowedProvider)!);
+                    if (allowedProvider.IsAssignableTo(typeof(IWrappingValueProvider)))
+                    {
+                        result.AddRange(GenerateNestedSetProviders(allowedProvider, cloned));
+                    }
+                    else
+                    {
+                        result.Add((IValueProvider)Activator.CreateInstance(allowedProvider)!);
+                    }
                 }
             }
 
@@ -244,7 +379,7 @@ namespace EdgeDB.TestGenerator
 
                 if(count < childrenCount && count > 0)
                 {
-                    allowedChildren = allowedChildren.OrderRandomly().Take(count);
+                    allowedChildren = allowedChildren.OrderRandomly(rules.Random).Take(count).ToArray();
                 }
             }
 
@@ -275,7 +410,7 @@ namespace EdgeDB.TestGenerator
                         }
 
                         var inst = (IWrappingValueProvider)Activator.CreateInstance(target)!;
-                        inst.Children = initChildren;
+                        inst.Children = initChildren.ToArray();
 
                         return inst;
                     })
@@ -297,7 +432,7 @@ namespace EdgeDB.TestGenerator
                 }
 
                 return new IValueProvider[] { (IValueProvider)Activator.CreateInstance(x)! };
-            });
+            }).ToArray();
 
             return new IValueProvider[] { inst };
         }
@@ -331,7 +466,7 @@ namespace EdgeDB.TestGenerator
 
         private static IValueProvider GetRandom(GenerationRuleSet rules)
         {
-            var provider = _valueGenerators.Except(rules.Excluded).Random();
+            var provider = ValueGenerators.Except(rules.Excluded).Random();
 
             return provider.IsAssignableTo(typeof(IWrappingValueProvider))
                 ? InitializeWrappingProvider(provider, rules)
@@ -343,7 +478,7 @@ namespace EdgeDB.TestGenerator
         {
             var allowedChildren = _compatableWrappingTypes.TryGetValue(wrapping, out var value)
                 ? value.Except(rules.Excluded)
-                : _valueGenerators.Except(rules.Excluded);
+                : ValueGenerators.Except(rules.Excluded);
 
             if (rules.ExcludedChildren.TryGetValue(wrapping, out var exChildren))
                 allowedChildren = allowedChildren.Except(exChildren);
@@ -353,7 +488,7 @@ namespace EdgeDB.TestGenerator
                 allowedChildren = allowedChildren.Where(x => !x.IsAssignableTo(typeof(IWrappingValueProvider)));
             }
 
-            allowedChildren = allowedChildren.RandomSequence();
+            allowedChildren = allowedChildren.RandomSequence(rules.Random);
 
             if (!allowedChildren.Any())
             {
@@ -366,7 +501,7 @@ namespace EdgeDB.TestGenerator
             inst.Children = allowedChildren.Select(x => x.IsAssignableTo(typeof(IWrappingValueProvider))
                 ? InitializeWrappingProvider(x, rules, depth + 1)
                 : (IValueProvider)Activator.CreateInstance(x)!
-            );
+            ).ToArray();
 
             return inst;
         }
@@ -376,7 +511,7 @@ namespace EdgeDB.TestGenerator
         {
             return _compatableWrappingTypes.TryGetValue(target, out var value)
                 ? value.Except(rules.Excluded)
-                : _valueGenerators.Except(rules.Excluded);
+                : ValueGenerators.Except(rules.Excluded);
         }
 
         public static GenerationResult AsResult(this IValueProvider provider, GenerationRuleSet rules)

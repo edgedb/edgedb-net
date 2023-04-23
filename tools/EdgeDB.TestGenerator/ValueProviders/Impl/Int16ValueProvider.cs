@@ -9,11 +9,9 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
 {
     internal class Int16ValueProvider : IValueProvider<short>
     {
-        private static readonly Random _random = new Random();
-
         public string EdgeDBName => "std::int16";
 
-        public short GetRandom(GenerationRuleSet rules) => (short)_random.Next(rules.GetRange<Int16ValueProvider>());
+        public short GetRandom(GenerationRuleSet rules) => (short)rules.Random.Next(rules.GetRange<Int16ValueProvider>());
         public string ToEdgeQLFormat(short value) => $"<int16>{value}";
         public override string ToString() => EdgeDBName;
     }

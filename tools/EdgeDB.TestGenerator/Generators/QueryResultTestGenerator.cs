@@ -13,7 +13,7 @@ namespace EdgeDB.TestGenerator.Generators
             => new($"select {result.ToEdgeQLFormat()}");
 
         protected override TestGroup GetTestGroup()
-            => base.QueryTestGroup;
+            => TestGenerator.QueryTestGroup;
 
         protected override string GetTestName(ValueGenerator.GenerationResult result)
             => $"Query result of type {result.EdgeDBTypeName}";

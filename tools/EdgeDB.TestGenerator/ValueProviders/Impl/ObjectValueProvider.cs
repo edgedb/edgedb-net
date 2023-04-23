@@ -13,16 +13,23 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
         private static readonly StringValueProvider _nameProvider = new();
         public string EdgeDBName => "object";
 
-        public IEnumerable<IValueProvider>? Children { get; set; }
+        public IValueProvider[]? Children { get; set; }
+
+        private readonly Dictionary<object, Dictionary<string, IValueProvider>> _childMap = new();
 
         public object GetRandom(GenerationRuleSet rules)
         {
+            var providerMap = new Dictionary<string, IValueProvider>();
             var data = new Dictionary<string, object>();
 
-            foreach(var child in Children!)
+            foreach (var child in Children!)
             {
-                data.TryAdd($"{IValueProvider.GetSmallHash(child)}_{_nameProvider.GetRandom(rules)}", child.GetRandom(rules));
+                var key = $"{IValueProvider.GetSmallHash(child)}_{_nameProvider.GetRandom(rules)}";
+                data.TryAdd(key, child.GetRandom(rules));
+                providerMap.TryAdd(key, child);
             }
+
+            _childMap[data] = providerMap;
 
             return data;
         }
@@ -32,9 +39,27 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
             if (value is not Dictionary<string, object> dict)
                 throw new ArgumentException("value is not a dictionary");
 
-            var mapped = dict.Select(x => (Provider: Children!.First(y => x.Key.StartsWith(IValueProvider.GetSmallHash(y))), KVP: x));
+            var mapped = new List<string>();
 
-            return $"{{ {string.Join(", ", mapped.Select(x => $"{x.KVP.Key.Split("_")[1]} := {x.Provider.ToEdgeQLFormat(x.KVP.Value)}"))} }}";
+            if (!_childMap.TryGetValue(dict, out var providerMap))
+                throw new InvalidOperationException("No provider map found that details the enumerated children of the given value");
+
+            foreach (var kvp in dict)
+            {
+                if (!providerMap.TryGetValue(kvp.Key, out var provider))
+                    throw new InvalidCastException($"Cannot find provider for the given key {kvp.Key}");
+
+                mapped.Add($"{kvp.Key.Split("_")[1]} := {provider.ToEdgeQLFormat(kvp.Value)}");
+            }
+
+            var result = $"{{ {string.Join(", ", mapped)} }}";
+
+            if (result == "{  }")
+            {
+
+            }
+
+            return result;
         }
 
         public override string ToString() => ((IWrappingValueProvider)this).FormatAsGeneric();

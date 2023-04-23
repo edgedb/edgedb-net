@@ -13,14 +13,16 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
     {
         public string EdgeDBName => "tuple";
 
-        public IEnumerable<IValueProvider>? Children { get; set; }
+        public IValueProvider[]? Children { get; set; }
+
+        private readonly Dictionary<object, List<IValueProvider>> _childMap = new();
 
         public object GetRandom(GenerationRuleSet rules)
         {
-            var children = Children!.ToArray();
+            var children = Children!.ToList();
 
-            var tArr = new Type[children.Length];
-            var vArr = new object[children.Length];
+            var tArr = new Type[children.Count];
+            var vArr = new object[children.Count];
 
             for(int i = 0; i != tArr.Length; i++)
             {
@@ -28,10 +30,13 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
                 tArr[i] = vArr[i].GetType();
             }
 
+            var transient = new TransientTuple(tArr, vArr);
 
-            var t = new TransientTuple(tArr, vArr);
+            var value = transient.ToValueTuple();
 
-            return t.ToValueTuple();
+            _childMap[value] = children;
+
+            return value;
         }
 
         public string ToEdgeQLFormat(object value)
@@ -39,13 +44,14 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
             if (value is not ITuple tuple)
                 throw new ArgumentException("value is not a tuple");
 
+            if (!_childMap.TryGetValue(value, out var providers))
+                throw new InvalidOperationException("Cannot determine providers used for the provided value");
+
             var elements = new string[tuple.Length];
 
-            int i = 0;
-            foreach(var child in Children!)
+            for(int i = 0; i != elements.Length; i++)
             {
-                elements[i] = child.ToEdgeQLFormat(tuple[i]!);
-                i++;
+                elements[i] = providers[i].ToEdgeQLFormat(tuple[i]!);
             }
 
             return $"({string.Join(", ", elements)})";

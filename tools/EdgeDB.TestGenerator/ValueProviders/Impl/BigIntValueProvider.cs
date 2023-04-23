@@ -10,15 +10,13 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
 {
     internal class BigIntValueProvider : IValueProvider<BigInteger>
     {
-        private static readonly Random _random = new Random();
-
         public string EdgeDBName => "std::bigint";
 
         public BigInteger GetRandom(GenerationRuleSet rules)
         {
-            var data = new byte[_random.Next(rules.GetRange<BigIntValueProvider>())];
+            var data = new byte[rules.Random.Next(rules.GetRange<BigIntValueProvider>())];
 
-            _random.NextBytes(data);
+            rules.Random.NextBytes(data);
 
             return new BigInteger(data);
         }

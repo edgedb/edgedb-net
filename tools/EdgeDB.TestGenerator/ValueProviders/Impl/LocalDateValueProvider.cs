@@ -12,7 +12,7 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
     {
         public string EdgeDBName => "cal::local_date";
 
-        public DateOnly GetRandom(GenerationRuleSet rules) => DateOnly.FromDateTime(RandomDateTime.Next());
+        public DateOnly GetRandom(GenerationRuleSet rules) => DateOnly.FromDateTime(RandomDateTime.Next(rules.Random));
         public string ToEdgeQLFormat(DateOnly value) => $"<cal::local_date>'{value:yyyy-MM-dd}'";
         public override string ToString() => EdgeDBName;
     }

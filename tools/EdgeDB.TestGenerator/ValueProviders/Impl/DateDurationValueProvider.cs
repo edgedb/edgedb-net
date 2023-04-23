@@ -9,17 +9,15 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
 {
     internal class DateDurationValueProvider : IValueProvider<TimeSpan>
     {
-        private static readonly Random _random = new Random();
-
         public string EdgeDBName => "cal::date_duration";
 
         public TimeSpan GetRandom(GenerationRuleSet rules)
         {
-            var r = _random.NextDouble();
+            var r = rules.Random.NextDouble();
 
-            r *= Math.Pow(10, _random.Next(rules.GetRange<DateDurationValueProvider>()));
+            r *= Math.Pow(10, rules.Random.Next(rules.GetRange<DateDurationValueProvider>()));
 
-            if (_random.Next() % 2 == 0)
+            if (rules.Random.Next() % 2 == 0)
                 r *= -1;
 
             return TimeSpan.FromMilliseconds(r);

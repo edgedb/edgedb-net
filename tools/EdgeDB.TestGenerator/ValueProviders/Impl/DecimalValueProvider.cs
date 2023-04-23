@@ -9,12 +9,10 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
 {
     internal class DecimalValueProvider : IValueProvider<decimal>
     {
-        private static readonly Random _random = new Random();
-
         public string EdgeDBName => "std::decimal";
 
-        public decimal GetRandom(GenerationRuleSet rules) => (decimal)_random.NextDouble() * _random.Next(rules.GetRange<DecimalValueProvider>());
-        public string ToEdgeQLFormat(decimal value) => $"{value}n";
+        public decimal GetRandom(GenerationRuleSet rules) => (decimal)rules.Random.NextDouble() * rules.Random.Next(rules.GetRange<DecimalValueProvider>());
+        public string ToEdgeQLFormat(decimal value) => $"<std::decimal>{value}n";
         public override string ToString() => EdgeDBName;
     }
 }

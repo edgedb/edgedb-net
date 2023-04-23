@@ -9,9 +9,14 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
 {
     internal class SetValueProvider : IWrappingValueProvider
     {
-        private static readonly Random _random = new Random();
-
-        public IEnumerable<IValueProvider>? Children { get => new IValueProvider[] { _child! }; set => _child = value!.First(); }
+        public IValueProvider[]? Children
+        {
+            get => new IValueProvider[] { _child! };
+            set
+            {
+                _child = value!.First();
+            }
+        }
 
         private IValueProvider? _child;
 
@@ -19,7 +24,7 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
 
         public object GetRandom(GenerationRuleSet rules)
         {
-            var sz = _random.Next(rules.GetRange<SetValueProvider>());
+            var sz = rules.Random.Next(rules.GetRange<SetValueProvider>());
 
             List<object> set = new List<object>();
 
@@ -38,7 +43,14 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
             if (value is not List<object> list)
                 throw new ArgumentException("value is not a list");
 
-            return $"{{ {string.Join(", ", list.Select(x => _child!.ToEdgeQLFormat(x)))} }}";
+            var result = $"{{ {string.Join(", ", list.Select(x => _child!.ToEdgeQLFormat(x)))} }}";
+
+            if(result == "{  }")
+            {
+
+            }
+
+            return result;
         }
     }
 }

@@ -15,10 +15,13 @@ namespace EdgeDB.TestGenerator.Generators
 {
     internal abstract class TestGenerator
     {
-        protected TestGroup ArgumentTestGroup
+        protected static TestGroup ArgumentTestGroup
             => new() { Name = "V2 Argument Tests", ProtocolVersion = "1.0", FileName = "v2_arguments.json" };
 
-        protected TestGroup QueryTestGroup
+        protected static TestGroup DeepNestingTestGroup
+            => new() { Name = "V2 Nested Query Result", ProtocolVersion = "1.0", FileName = "v2_deep_nested.json" };
+
+        protected static TestGroup QueryTestGroup
             => new() { Name = "V2 Query Results", ProtocolVersion = "1.0", FileName = "v2_queryresults.json" };
 
         protected record QueryDefinition(
@@ -38,25 +41,55 @@ namespace EdgeDB.TestGenerator.Generators
             var rules = GetTestSetRules();
 
             await AnsiConsole.Status()
+                .Spinner(Spinner.Known.BouncingBar)
                 .StartAsync("Generating providers...", async ctx =>
                 {
                     AnsiConsole.MarkupLine(rules.ToString());
 
-                    var set = ValueGenerator.GenerateCompleteSet(rules);
+                    int i = 0;
+                    int f = 0;
+
+                    List<IValueProvider> set;
+                    try
+                    {
+                        set = ValueGenerator.GenerateCompleteSet(rules);
+                    }
+                    catch(Exception x)
+                    {
+                        f++;
+                        AnsiConsole.MarkupLine("Failed to generate provider set based off of the given rules");
+                        AnsiConsole.WriteException(x);
+                        return;
+                    }
+
                     int totalNodes = set.Count;
 
                     AnsiConsole.MarkupLine($"Generated [green]{set.Count}[/] root nodes");
 
-                    int i = 0;
 
                     foreach (var provider in set)
                     {
-                        ctx.Status($"Generating value ({i}/{set.Count}) - nodes: {totalNodes}");
+                        ctx.Status($"Generating value ([green]{i}[/]/[red]{f}[/]/[white]{set.Count}[/]) - nodes: [cyan]{totalNodes}[/]");
 
-                        var value = provider.AsResult(rules);
-                        totalNodes += CountSetNodes(value.Provider);
+                        ValueGenerator.GenerationResult value;
 
-                        ctx.Status($"Generating tests ({i}/{set.Count}) - nodes: {totalNodes}");
+                        try
+                        {
+                            value = provider.AsResult(rules);
+                        }
+                        catch(Exception x)
+                        {
+                            f++;
+                            AnsiConsole.WriteException(x);
+                            continue;
+                        }
+
+                        var c = CountSetNodes(value.Provider);
+                        var complexity = EstimateComplexity(value.Provider, rules);
+
+                        totalNodes += c;
+
+                        ctx.Status($"Generating tests ([green]{i}[/]/[red]{f}[/]/[white]{set.Count}[/]) - test complexity: [yellow]{complexity:N0}[/] - test nodes [yellow]{c}[/] - nodes: [cyan]{totalNodes}[/]");
 
                         var def = GetQuery(value);
 
@@ -64,23 +97,43 @@ namespace EdgeDB.TestGenerator.Generators
                         {
                             var test = await GenerateTestManifestAsync(client, def.Query, def.Cardinality, def.Args, def.Capabilities);
 
+                            int resultNodeCount = 0;
+
+                            Action update = () =>
+                            {
+                                ctx.Status($"Formatting result ([green]{i}[/]/[red]{f}[/]/[white]{set.Count}[/]) - result nodes [cyan]{resultNodeCount:N0}[/] - test complexity: [yellow]{complexity:N0}[/] - test nodes [yellow]{c}[/] - nodes: [cyan]{totalNodes}[/]");
+                                Interlocked.Increment(ref resultNodeCount);
+                            };
+
+                            update();
+
+                            test.Result = def.Cardinality is Cardinality.Many && provider.EdgeDBName != "set"
+                                ? await Task.WhenAll(((IEnumerable<object>)test.Result!).AsParallel().Select(x => ValueFormatter.FormatAsync(x!, value.Value, update, provider)))
+                                : await ValueFormatter.FormatAsync(test.Result!, value.Value, update, provider);
+
                             test.Name = GetTestName(value);
 
-                            group.Tests.Add(test);
+                            if(!group.Tests.Any(x => x.Name == test.Name))
+                                group.Tests.Add(test);
+
+                            i++;
                         }
                         catch (Exception x)
                         {
                             AnsiConsole.WriteException(x);
-                            if(x is EdgeDBErrorException err && err.Query is not null)
-                            {
-                                AnsiConsole.Markup($"Query:\n{EdgeQLFormatter.PrettifyAndColor(err.Query)}");
-                            }
-                        }
+                            AnsiConsole.WriteLine($"Query type: {value.EdgeDBTypeName}");
+                            AnsiConsole.MarkupLine(EdgeQLFormatter.PrettifyAndColor(def.Query));
 
-                        i++;
+                            Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory, "fails"));
+                            File.WriteAllText(
+                                Path.Combine(Environment.CurrentDirectory, "fails", $"fail_{i}{f}.edgeql"),
+                                $"{x}\n\n{def.Query}\n\n{EdgeQLFormatter.ShittyPrettify(def.Query)}\n\n{GenerateTree(provider)}");
+
+                            f++;
+                        }
                     }
 
-                    AnsiConsole.MarkupLine($"Generated [green]{set.Count}[/] tests. Discovered {totalNodes} different value nodes");
+                    AnsiConsole.MarkupLine($"Generated [green]{set.Count}[/] tests, [red]{f}[/] failed. Discovered {totalNodes} different value nodes");
                 });
 
             return group;
@@ -89,6 +142,67 @@ namespace EdgeDB.TestGenerator.Generators
         private int CountSetNodes(IValueProvider provider)
         {
             return 1 + (provider is IWrappingValueProvider wrapping ? wrapping.Children!.Sum(x => CountSetNodes(x)) : 0);
+        }
+
+        private long EstimateComplexity(IValueProvider provider, ValueGenerator.GenerationRuleSet rules)
+        {
+            var nodeCount = CountSetNodes(provider);
+
+            return nodeCount + FlattenProviders(provider)
+                .Select(x => x is IWrappingValueProvider wrapper
+                    ? rules.GetRange(wrapper.GetType()).End.Value * wrapper.Children!.Select(x => EstimateComplexity(x, rules)).Sum()
+                    : 1
+                ).Sum();
+        }
+
+        private static string GenerateTree(IValueProvider provider)
+        {
+            var tree = new Tree(provider.EdgeDBName);
+
+            void addNode(TreeNode parent, IValueProvider node)
+            {
+                var treeNode = parent.AddNode(node.EdgeDBName);
+
+                if (node is IWrappingValueProvider wrapping)
+                {
+                    foreach (var child in wrapping.Children!)
+                    {
+                        addNode(treeNode, child);
+                    }
+                }
+            };
+
+            if(provider is IWrappingValueProvider wrapping)
+            {
+                foreach(var child in wrapping.Children!)
+                {
+                    var node = tree.AddNode(child.EdgeDBName);
+
+                    if(child is IWrappingValueProvider childWrapping)
+                    {
+                        foreach(var child2 in childWrapping.Children!)
+                        {
+                            addNode(node, child2);
+                        }
+                    }
+                }
+            }
+
+            return string.Join("\n", tree.GetSegments(AnsiConsole.Console).Select(x => x.Text));
+        }
+
+        private IEnumerable<IValueProvider> FlattenProviders(IValueProvider provider)
+        {
+            if(provider is IWrappingValueProvider wrapping)
+            {
+                foreach(var child in wrapping.Children!)
+                {
+                    foreach (var subProvider in FlattenProviders(child))
+                        yield return subProvider;
+                }
+            }
+
+            yield return provider;
         }
 
         private async Task<Test> GenerateTestManifestAsync(

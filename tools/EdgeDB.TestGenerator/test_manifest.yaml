@@ -1,0 +1,82 @@
+# -- Template --
+# name: str                         | name of the test
+# max_depth: int                    | max depth of the query
+# ranges: [ str:range ]             | random generation min/max for each type
+# default_range: range              | random generation min/max for all types without a specific range
+# root_excluded: [ str ]            | excluded types for the root of the query
+# excluded: [ str ]                 | excluded types for the query
+# nested_excluded: [ str: [ str ] ] | excluded nested types within a type
+# roll_nested: bool                 | roll nested type order (log(n))
+# apply_range_to_sets: bool         | apply range rule to set generation: limits the number of sub-types within a type based off of the range
+# seed: int                         | seed for random generation   
+#
+# -- Default Values --
+#
+# name: null
+# max_depth: 3
+# ranges: 
+#  - array:            5..20         | number of elements
+#  - bigint:           4..15         | magnitude in bytes
+#  - bytes:           10..20         | num of bytes
+#  - date_duration:     ..15         | power of (0.0..1.0) milliseconds: f(x) = rand(0,1)^range_rand(x)
+#  - decimal:           ..100        | power of (0.0..1.0): f(x) = rand(0,1)^range_rand(x)
+#  - duration:          ..500        | number of days 
+#  - float32:           ..100        | power of (0.0..1.0): f(x) = rand(0,1)^range_rand(x)
+#  - float64:           ..100        | power of (0.0..1.0): f(x) = rand(0,1)^range_rand(x)
+#  - int16:             ..32767      | random value within range
+#  - int32:             ..2147483647 | random value within range
+#  - relative_duration: ..100        | number of days
+#  - str:             15..15         | number of characters
+# default_range: 1..10
+# root_excluded: []
+# excluded: []
+# nested_excluded: []
+# roll_nested: false
+# apply_range_to_sets: false
+# seed: 0
+
+- name: V2 Arguments
+  excluded:
+    - set
+    - object
+    - tuple
+    - namedtuple
+  nested_excluded:
+    - array: [ array ]
+  roll_nested: false
+
+- name: Query Results 
+  max_depth: 2
+  nested_excluded:
+    - array: [ array, set ] # shape union doesn't survive in arrays
+    - set: [ object ] # shape union doesn't survive in arrays
+  roll_nested: true
+  apply_range_to_sets: true
+
+- name: Deep Query Nesting
+  max_depth: 5
+  exclude:
+    - json
+    - bigint
+    - boolean
+    - bytes
+    - date_duration
+    - datetime
+    - decimal
+    - duration
+    - float32
+    - float64
+    - int16
+    - int32
+    - local_datetime
+    - local_date
+    - relative_duration
+    - uuid
+  root_excluded:
+    - str
+    - int64
+  nested_exclude:
+    - array: [ array, set ] # shape union doesn't survive in arrays
+  default_range: 2..2
+  ranges: 
+    - str: 15..15

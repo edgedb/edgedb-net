@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using EdgeDB.DataTypes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -49,7 +50,7 @@ namespace EdgeDB.ContractResolvers
             if (ReflectionUtils.IsSubclassOfRawGeneric(typeof(DataTypes.Range<>), type))
                 return RangeConverter.Instance;
 
-            if (type == typeof(TransientTuple))
+            if (type.IsAssignableTo(typeof(ITuple)))
                 return TransientTupleConverter.Instance;
 
             if (type == typeof(Json))

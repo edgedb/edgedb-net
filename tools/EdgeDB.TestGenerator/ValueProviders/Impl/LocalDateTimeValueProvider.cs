@@ -12,7 +12,7 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
     {
         public string EdgeDBName => "cal::local_datetime";
 
-        public DateTimeOffset GetRandom(GenerationRuleSet rules) => (DateTimeOffset)RandomDateTime.Next();
+        public DateTimeOffset GetRandom(GenerationRuleSet rules) => (DateTimeOffset)RandomDateTime.Next(rules.Random);
         public string ToEdgeQLFormat(DateTimeOffset value) => $"<cal::local_datetime>'{value.DateTime:O}'";
         public override string ToString() => EdgeDBName;
     }
