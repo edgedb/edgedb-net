@@ -17,7 +17,7 @@ namespace EdgeDB.TestGenerator.Generators
         protected override string GetTestName(ValueGenerator.GenerationResult result)
             => $"Deep nesting query result of type {result.EdgeDBTypeName}";
 
-        protected override ValueGenerator.GenerationRuleSet GetTestSetRules()
+        protected override GenerationRuleSet GetTestSetRules()
             => ValueGenerator.DeepQueryResultNesting;
     }
 }

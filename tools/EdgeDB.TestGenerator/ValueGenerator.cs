@@ -7,173 +7,12 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata.Ecma335;
-using System.Text;
 using System.Threading.Tasks;
-using YamlDotNet.Serialization;
 
 namespace EdgeDB.TestGenerator
 {
     internal static class ValueGenerator
     {
-        public class GenerationRuleSet
-        {
-            [YamlMember(Alias = "ranges")]
-            public Dictionary<string, Range>? YamlRanges { get; set; }
-            [YamlMember(Alias = "root_excluded")]
-            public List<string>? YamlRootExcluded { get; set; }
-            [YamlMember(Alias = "excluded")]
-            public List<string>? YamlExcluded { get; set; }
-            [YamlMember(Alias = "nested_excluded")]
-            public Dictionary<string, List<string>>? YamlNestedExcluded { get; set; }
-
-            public static Dictionary<Type, Range> DefaultProviderRanges = new Dictionary<Type, Range>
-            {
-                { typeof(ArrayValueProvider),             5..20 },
-                { typeof(BigIntValueProvider),            4..15 },
-                { typeof(BytesValueProvider),            10..20 },
-                { typeof(DateDurationValueProvider),       ..15 },
-                { typeof(DecimalValueProvider),            ..100 },
-                { typeof(DurationValueProvider),           ..500 },
-                { typeof(Float32ValueProvider),            ..100 },
-                { typeof(Float64ValueProvider),            ..100 },
-                { typeof(Int16ValueProvider),              ..short.MaxValue },
-                { typeof(Int32ValueProvider),              ..int.MaxValue },
-                { typeof(RelativeDurationValueProvider),   ..100 },
-                { typeof(StringValueProvider),           15..15 }
-            };
-
-            [YamlMember(Alias = "name")]
-            public string? Name { get; set; }
-
-            [YamlMember(Alias = "default_range")]
-            public Range DefaultRange { get; set; } = 1..10;
-
-            [YamlIgnore]
-            public Dictionary<Type, Range> ProviderRanges { get; set; } = new(DefaultProviderRanges);
-
-            [YamlIgnore]
-            public List<Type> RootExcluded { get; set; } = new();
-
-            [YamlMember(Alias = "max_depth")]
-            public int MaxDepth { get; set; } = 3;
-
-            [YamlIgnore]
-            public List<Type> Excluded { get; set; } = new();
-
-            [YamlIgnore]
-            public Dictionary<Type, List<Type>> ExcludedChildren { get; set; } = new();
-
-            [YamlMember(Alias = "roll_nested")]
-            public bool RollChildProviders { get; set; } = false;
-
-            [YamlMember(Alias = "apply_range_to_sets")]
-            public bool ApplyRangeRulesToSetGeneration { get; set; } = false;
-
-            [YamlMember(Alias = "seed")]
-            public int Seed { get; set; }
-
-            [YamlIgnore]
-            public Random Random { get; set; }
-
-            public GenerationRuleSet()
-            {
-                Random = new Random(Seed);
-            }
-
-            public Random RefreshRandom() => Random = new Random(Seed);
-
-            public void PopulateFromYaml()
-            {
-                if(YamlRanges is not null && YamlRanges.Any())
-                {
-                    ProviderRanges = YamlRanges.Select(x =>
-                        ValueGenerator.TryGetValueGenerator(x.Key, out var type)
-                            ? (type, x.Value)
-                            : throw new KeyNotFoundException($"Unable to find value provider for the given name '{x.Key}'")
-                    ).ToDictionary(x => x.type, x => x.Value);
-                }
-
-                if(YamlRootExcluded is not null && YamlRootExcluded.Any())
-                {
-                    RootExcluded = YamlRootExcluded.Select(x =>
-                        ValueGenerator.TryGetValueGenerator(x, out var type)
-                            ? type
-                            : throw new KeyNotFoundException($"Unable to find value provider for the given name '{x}'")
-                    ).ToList();
-                }
-
-                if(YamlExcluded is not null && YamlExcluded.Any())
-                {
-                    Excluded = YamlExcluded.Select(x =>
-                        ValueGenerator.TryGetValueGenerator(x, out var type)
-                            ? type
-                            : throw new KeyNotFoundException($"Unable to find value provider for the given name '{x}'")
-                    ).ToList();
-                }
-
-                if(YamlNestedExcluded is not null && YamlNestedExcluded.Any())
-                {
-                    ExcludedChildren = YamlNestedExcluded.Select(x =>
-                    {
-                        if (!ValueGenerator.TryGetValueGenerator(x.Key, out var type))
-                            throw new KeyNotFoundException($"Unable to find value provider for the given name '{x}'");
-
-                        var values = x.Value.Select(x =>
-                            ValueGenerator.TryGetValueGenerator(x, out var type)
-                                ? type
-                                : throw new KeyNotFoundException($"Unable to find value provider for the given name '{x}'")
-                        ).ToList();
-
-                        return new KeyValuePair<Type, List<Type>>(type, values);
-                    }).ToDictionary(x => x.Key, x => x.Value);
-                }
-            }
-
-            public override string ToString()
-            {
-                var sb = new StringBuilder();
-
-                sb.AppendLine($"MaxDepth: [blue]{MaxDepth}[/]");
-                sb.AppendLine($"Rolling Children: [cyan]{RollChildProviders}[/]");
-                sb.AppendLine($"Excluded: {(Excluded.Any() ? $"[silver][[\n  [/]{string.Join("[grey],[/]\n  ", Excluded.Select(x => $"[green]{x.Name}[/]"))}[silver]\n]][/]" : "[[]]")}");
-                sb.AppendLine($"Root Excluded: {(RootExcluded.Any() ? $"[silver][[\n  [/]{string.Join("[grey],[/]\n  ", RootExcluded.Select(x => $"[green]{x.Name}[/]"))}[silver]\n]][/]" : "")}");
-
-                if (ExcludedChildren.Any())
-                {
-                    sb.AppendLine("Excluded Children:");
-                    foreach(var c in ExcludedChildren)
-                    {
-                        sb.AppendLine($"[silver] -[/] [green]{c.Key.Name}[/]: [silver][[[/]\n     {string.Join("[silver],[/]\n     ", c.Value.Select(x => $"[green]{x.Name}[/]"))}[silver]\n   ]][/]");
-                    } 
-                }
-
-                if (DefaultProviderRanges.Any())
-                {
-                    sb.AppendLine("Range Overrides:");
-
-                    foreach(var range in DefaultProviderRanges)
-                    {
-                        sb.AppendLine($"[silver] -[/] [green]{range.Key.Name}[/]: [cyan]{range.Value}[/]");
-                    } 
-                }
-
-                sb.AppendLine($"Default Range: [cyan]{DefaultRange}[/]");
-                sb.Append($"Apply range-rule to sets: [cyan]{ApplyRangeRulesToSetGeneration}[/]");
-
-                return sb.ToString();
-            }
-
-            public Range GetRange<T>()
-                where T : IValueProvider
-                => ProviderRanges.TryGetValue(typeof(T), out var v) ? v : DefaultRange;
-
-            public Range GetRange(Type type)
-                => ProviderRanges.TryGetValue(type, out var v) ? v : DefaultRange;
-
-            public GenerationRuleSet Clone()
-                => (GenerationRuleSet)MemberwiseClone();
-        }
-
         public class GenerationResult
         {
             public required object Value { get; init; }
@@ -181,7 +20,20 @@ namespace EdgeDB.TestGenerator
             public required IValueProvider Provider { get; init; }
 
             public string ToEdgeQLFormat()
-                => Provider.ToEdgeQLFormat(Value);
+                => _edgeqlFormat ??= Provider.ToEdgeQLFormat(Value);
+
+            private string? _edgeqlFormat;
+
+            public object FormatVariableIdentifier(VariableIdentifier identifier)
+            {
+                return identifier switch
+                {
+                    VariableIdentifier.EdgeDBTypeName => EdgeDBTypeName,
+                    VariableIdentifier.EdgeQLValue => ToEdgeQLFormat(),
+                    VariableIdentifier.Value => Value,
+                    _ => throw new FormatException($"Unsupported identifier '{identifier}'")
+                };
+            }
         }
 
         #region Defined rulesets
@@ -239,7 +91,7 @@ namespace EdgeDB.TestGenerator
 
         public static GenerationRuleSet DeepQueryResultNesting = new()
         {
-            MaxDepth = 5,
+            MaxDepth = 1,
             Excluded = new List<Type>
             {
                 typeof(JsonValueProvider),

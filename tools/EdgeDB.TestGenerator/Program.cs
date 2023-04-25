@@ -11,7 +11,9 @@ using EdgeDB.TestGenerator.ValueProviders.Impl;
 using Newtonsoft.Json;
 using Spectre.Console;
 using System.Reflection;
+using YamlDotNet.Core;
 using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 const string TestManifestFile = "test_manifest.yaml";
 
@@ -29,6 +31,11 @@ var client = new EdgeDBClient(new EdgeDBClientPoolConfig
 
 AnsiConsole.Write(new FigletText("Test Generator").Centered().Color(Color.Blue));
 
+var generators = Assembly.GetExecutingAssembly().GetTypes()
+    .Where(x => x.IsAssignableTo(typeof(TestGenerator)) && !x.IsAbstract && x != typeof(ConfigurableTestGenerator))
+    .Select(x => (TestGenerator)Activator.CreateInstance(x)!)
+    .ToList();
+
 var manifestPath = Path.Combine(Environment.CurrentDirectory, TestManifestFile);
 
 if(!File.Exists(manifestPath))
@@ -38,17 +45,25 @@ if(!File.Exists(manifestPath))
 }
 
 var deserializer = new DeserializerBuilder()
+    .WithNamingConvention(UnderscoredNamingConvention.Instance)
+    .WithNodeDeserializer(new RangeDeserializer())
     .Build();
 
-var manifest = deserializer.Deserialize<ValueGenerator.GenerationRuleSet[]>(File.ReadAllText(manifestPath));
+var content = File.ReadAllText(manifestPath);
 
+var configuration = deserializer.Deserialize<GenerationConfiguration>(content);
 
+foreach(var ruleset in configuration.RuleSets)
+{
+    if (!configuration.TryGetGroup(ruleset, out var group))
+        throw new ConfigurationException($"No group found with the id '{ruleset.GroupId}'");
+
+    var generator = new ConfigurableTestGenerator(group, ruleset);
+
+    //generators.Add(generator);
+}
 
 var tests = new List<TestGroup>();
-
-var generators = Assembly.GetExecutingAssembly().GetTypes()
-    .Where(x => x.IsAssignableTo(typeof(TestGenerator)) && !x.IsAbstract)
-    .Select(x => (TestGenerator)Activator.CreateInstance(x)!);
 
 foreach(var generator in generators)
 {
@@ -94,3 +109,23 @@ foreach(var group in tests)
 }
 
 AnsiConsole.MarkupLine("Test generation [green]complete![/]");
+
+// range deserializer for YAML
+class RangeDeserializer : INodeDeserializer
+{
+    public bool Deserialize(IParser reader, Type expectedType, Func<IParser, Type, object?> nestedObjectDeserializer, out object? value)
+    {
+        value = null;
+
+        if (expectedType != typeof(Range))
+            return false;
+
+        var scalar = reader.Consume<YamlDotNet.Core.Events.Scalar>();
+
+        var spl = scalar.Value.Split("..");
+
+        value = new Range(int.Parse(spl[0]), int.Parse(spl[1]));
+
+        return true;
+    }
+}

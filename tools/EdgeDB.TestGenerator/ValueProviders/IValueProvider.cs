@@ -12,7 +12,7 @@ using static EdgeDB.TestGenerator.ValueGenerator;
 
 namespace EdgeDB.TestGenerator.ValueProviders
 {
-    interface IValueProvider<T> : IValueProvider
+    public interface IValueProvider<T> : IValueProvider
     {
         new T GetRandom(GenerationRuleSet rules);
         string ToEdgeQLFormat(T value);
@@ -25,7 +25,7 @@ namespace EdgeDB.TestGenerator.ValueProviders
         object IValueProvider.GetRandom(GenerationRuleSet rules) => GetRandom(rules)!;
     }
 
-    interface IValueProvider
+    public interface IValueProvider
     {
         string EdgeDBName { get; }
         object GetRandom(GenerationRuleSet rules);

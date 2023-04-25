@@ -21,7 +21,7 @@ namespace EdgeDB.TestGenerator.Generators
         protected override string GetTestName(ValueGenerator.GenerationResult result)
             => $"Argument of type {result.EdgeDBTypeName}";
 
-        protected override ValueGenerator.GenerationRuleSet GetTestSetRules()
+        protected override GenerationRuleSet GetTestSetRules()
             => ValueGenerator.V2ArugmentRuleSet;
     }
 }

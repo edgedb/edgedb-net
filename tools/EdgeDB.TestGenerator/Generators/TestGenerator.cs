@@ -6,6 +6,7 @@ using EdgeDB.TestGenerator.ValueProviders;
 using EdgeDB.Utils;
 using Spectre.Console;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,6 +16,8 @@ namespace EdgeDB.TestGenerator.Generators
 {
     internal abstract class TestGenerator
     {
+        private static ConcurrentDictionary<string, TestGroup> _testGroups = new();
+
         protected static TestGroup ArgumentTestGroup
             => new() { Name = "V2 Argument Tests", ProtocolVersion = "1.0", FileName = "v2_arguments.json" };
 
@@ -30,10 +33,19 @@ namespace EdgeDB.TestGenerator.Generators
         );
 
         protected abstract TestGroup GetTestGroup();
-        protected abstract ValueGenerator.GenerationRuleSet GetTestSetRules();
+        protected abstract GenerationRuleSet GetTestSetRules();
         protected abstract string GetTestName(ValueGenerator.GenerationResult result);
-
         protected abstract QueryDefinition GetQuery(ValueGenerator.GenerationResult result);
+
+        protected TestGroup GetOrAddTestGroup(GroupDefinition groupDefinition)
+        {
+            return _testGroups.GetOrAdd(groupDefinition.Id!, _ => new TestGroup()
+            {
+                FileName = groupDefinition.Id,
+                Name = groupDefinition.Name,
+                ProtocolVersion = groupDefinition.Protocol
+            });
+        }
 
         public async Task<TestGroup> GenerateAsync(EdgeDBClient client)
         {
@@ -144,7 +156,7 @@ namespace EdgeDB.TestGenerator.Generators
             return 1 + (provider is IWrappingValueProvider wrapping ? wrapping.Children!.Sum(x => CountSetNodes(x)) : 0);
         }
 
-        private long EstimateComplexity(IValueProvider provider, ValueGenerator.GenerationRuleSet rules)
+        private long EstimateComplexity(IValueProvider provider, GenerationRuleSet rules)
         {
             var nodeCount = CountSetNodes(provider);
 

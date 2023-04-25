@@ -18,7 +18,7 @@ namespace EdgeDB.TestGenerator.Generators
         protected override string GetTestName(ValueGenerator.GenerationResult result)
             => $"Query result of type {result.EdgeDBTypeName}";
 
-        protected override ValueGenerator.GenerationRuleSet GetTestSetRules()
+        protected override GenerationRuleSet GetTestSetRules()
             => ValueGenerator.QueryResultRuleSet;
     }
 }
