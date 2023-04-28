@@ -10,6 +10,7 @@ namespace EdgeDB.TestGenerator
             return ColorSchemaOrQuery(ShittyPrettify(query));
         }
 
+        // regarding the name: this method is *ugly* & the impl is slow and shouldn't really be used
         public static string ShittyPrettify(string query)
         {
             var result = Regex.Replace(query, @"(\[|\]|{|\(|\)|}|,)", m =>
@@ -162,6 +163,9 @@ namespace EdgeDB.TestGenerator
 
             return coloredSchema;
         }
+
+        public static bool IsUnallowed(string str)
+            => ReservedKeywords.Contains(str) || BoolLiterals.Contains(str);
 
         private static string[] ReservedKeywords = new string[]
         {

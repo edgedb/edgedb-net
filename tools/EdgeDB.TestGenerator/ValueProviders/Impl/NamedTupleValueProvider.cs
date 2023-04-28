@@ -9,21 +9,26 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
 {
     internal class NamedTupleValueProvider : IWrappingValueProvider
     {
-        private static readonly StringValueProvider _nameProvider = new();
+        protected virtual Func<int, GenerationRuleSet, string>? NameProvider { get;}
+
         public string EdgeDBName => "namedtuple";
 
         public IValueProvider[]? Children { get; set; }
 
         private readonly Dictionary<object, Dictionary<string, IValueProvider>> _childMap = new();
 
+        private StringValueProvider? _strProvider;
+
         public object GetRandom(GenerationRuleSet rules)
         {
+            var nameProvider = NameProvider ?? ((_, rules) => (_strProvider ??= new()).GetRandom(rules)); 
+
             var providerMap = new Dictionary<string, IValueProvider>();
             var data = new Dictionary<string, object>();
 
             foreach (var child in Children!)
             {
-                var key = $"{IValueProvider.GetSmallHash(child)}_{_nameProvider.GetRandom(rules)}";
+                var key = $"{IValueProvider.GetSmallHash(child)}_{nameProvider(child.GetHashCode(), rules)}";
                 data.TryAdd(key, child.GetRandom(rules));
                 providerMap.TryAdd(key, child);
             }
@@ -56,5 +61,13 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
             return result;
         }
         public override string ToString() => ((IWrappingValueProvider)this).FormatAsGeneric();
+    }
+
+    internal class IdenticalNamedTupleValueProvider : NamedTupleValueProvider, IIdenticallyNamedProvider
+    {
+        protected override Func<int, GenerationRuleSet, string>? NameProvider
+            => _factory.GetOrGenerate;
+
+        private readonly CachedNameFactory _factory = new();
     }
 }

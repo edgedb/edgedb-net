@@ -14,5 +14,7 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
         public bool GetRandom(GenerationRuleSet rules) => rules.Random.Next() % 2 == 0;
 
         public string ToEdgeQLFormat(bool value) => value.ToString().ToLower();
+
+        public override string ToString() => EdgeDBName;
     }
 }

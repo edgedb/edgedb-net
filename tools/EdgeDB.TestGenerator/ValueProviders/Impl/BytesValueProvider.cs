@@ -9,7 +9,7 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
 {
     internal class BytesValueProvider : IValueProvider<byte[]>
     {
-        private static string _chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+        private static readonly string _chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 
         public string EdgeDBName => "std::bytes";
 

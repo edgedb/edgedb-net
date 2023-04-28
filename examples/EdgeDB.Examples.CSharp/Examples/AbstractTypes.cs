@@ -43,6 +43,20 @@ namespace EdgeDB.ExampleApp.Examples
 
         public async Task ExecuteAsync(EdgeDBClient client)
         {
+            var r = await client
+                .WithConfig(x => x.DDLPolicy = DDLPolicy.AlwaysAllow)
+                .WithGlobals(new Dictionary<string, object?>
+                {
+                    { "abc", ("abc", 123L) }
+                })
+                .TransactionAsync(async tx =>
+                {
+                    await tx.ExecuteAsync("create global abc -> tuple<str, int64>");
+                    var result = tx.QueryAsync<object>("select global abc");
+                    await tx.RollbackAsync();
+                    return result;
+                });
+
             // select the abstract type from the schema.
             // Note that the type builder will 'discover' the types that inherit
             // our C# abstract type.

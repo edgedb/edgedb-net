@@ -5,27 +5,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using YamlDotNet.Serialization;
 
 namespace EdgeDB.TestGenerator
 {
     internal class Test
     {
         public string? Name { get; set; }
-        public QueryArgs? Query { get; set; }
-
-        public Capabilities ActualCapabilities { get; set; }
-        public Cardinality ActualCardinality { get; set; }
-
-        [JsonIgnore]
-        public List<ITypeDescriptor>? Descriptors { get; set; }
+        public List<QueryArgs> Queries { get; set; } = new();
 
         public object? Result { get; set; }
 
-        [JsonIgnore]
-        public List<string>? BinaryResult { get; set; }
-
         public class QueryArgs
         {
+            public string? Name { get; set; }
             public Cardinality Cardinality { get; set; }
             public string? Value { get; set; }
             public List<QueryArgument>? Arguments { get; set; }
@@ -35,9 +28,11 @@ namespace EdgeDB.TestGenerator
             {
                 public string? Name { get; set; }
                 public string? EdgeDBTypeName { get; set; }
-                public Guid? Id { get; set; }
                 public object? Value { get; set; }
             }
+
+            [JsonIgnore]
+            public object? Result { get; set; }
         }
     }
 }

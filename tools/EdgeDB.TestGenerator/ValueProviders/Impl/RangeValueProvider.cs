@@ -36,7 +36,6 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
 
         public override string ToString() => ((IWrappingValueProvider)this).FormatAsGeneric();
 
-
         public string ToEdgeQLFormat(object value)
         {
             var method = typeof(RangeValueProvider).GetMethods(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)

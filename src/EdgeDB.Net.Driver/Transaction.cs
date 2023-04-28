@@ -26,10 +26,10 @@ namespace EdgeDB
         internal Task StartAsync()
             => _client.StartTransactionAsync(_settings.Isolation, _settings.ReadOnly, _settings.Deferrable);
 
-        internal Task CommitAsync()
+        public Task CommitAsync()
             => _client.CommitAsync();
 
-        internal Task RollbackAsync()
+        public Task RollbackAsync()
             => _client.RollbackAsync();
 
         internal async Task ExecuteInternalAsync(Func<Task> func)

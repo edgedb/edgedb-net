@@ -26,7 +26,7 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
         {
             var sz = rules.Random.Next(rules.GetRange<SetValueProvider>());
 
-            List<object> set = new List<object>();
+            var set = new List<object>();
 
             for (int i = 0; i != sz; i++)
             {
@@ -43,14 +43,7 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
             if (value is not List<object> list)
                 throw new ArgumentException("value is not a list");
 
-            var result = $"{{ {string.Join(", ", list.Select(x => _child!.ToEdgeQLFormat(x)))} }}";
-
-            if(result == "{  }")
-            {
-
-            }
-
-            return result;
+            return $"{{ {string.Join(", ", list.Select(x => _child!.ToEdgeQLFormat(x)))} }}";
         }
     }
 }

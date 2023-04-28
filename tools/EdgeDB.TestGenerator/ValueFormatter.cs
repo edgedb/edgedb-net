@@ -1,3 +1,4 @@
+using EdgeDB.DataTypes;
 using EdgeDB.TestGenerator.ValueProviders;
 using System;
 using System.Collections;
@@ -8,7 +9,7 @@ namespace EdgeDB.TestGenerator
 {
     internal class ValueFormatter
     {
-        public static async Task<FormatNode> FormatAsync(object edgedbValue, object generatedValue, Action progress, IValueProvider provider, IWrappingValueProvider? parent = null)
+        public static async Task<INode> FormatAsync(object edgedbValue, object generatedValue, Action progress, IValueProvider provider, IWrappingValueProvider? parent = null)
         {
             var name = provider.EdgeDBName;
 
@@ -37,6 +38,21 @@ namespace EdgeDB.TestGenerator
                                 };
                             }
 
+                            // named tuples can be flattened to normal tuples if the names don't match
+                            if(edgedbValue is TransientTuple transientTuple && provider is not IIdenticallyNamedProvider)
+                            {
+                                // TODO: does edgedb ensure that tuple arity is maintained? 
+
+                                return new FormatNode
+                                {
+                                    Type = "tuple",
+                                    Value = await FormatCollectionAsync(
+                                        transientTuple,
+                                        (v, i) => FormatAsync(v, generatedArr[i].Value, progress, wrapping.Children![i], wrapping)
+                                    )
+                                };
+                            }
+
                             if (edgedbValue is not IDictionary<string, object> dict)
                                 throw new InvalidOperationException("value is not a dictionary");
 
@@ -52,7 +68,7 @@ namespace EdgeDB.TestGenerator
                                     dictArr,
                                     (v, i) =>
                                         FormatAsync(v.Value, generatedArr[i].Value, progress, wrapping.Children[i], wrapping)
-                                        .ContinueWith(r => new KeyValuePair<string, FormatNode>(v.Key, r.Result))
+                                        .ContinueWith(r => new KeyValuePair<string, INode>(v.Key, r.Result))
                                 )
                             };
                         }
@@ -81,7 +97,7 @@ namespace EdgeDB.TestGenerator
                                     dictArr,
                                     (v, i) =>
                                         FormatAsync(v.Value, generatedArr[i].Value, progress, wrapping.Children[i], wrapping)
-                                        .ContinueWith(r => new KeyValuePair<string, FormatNode>(v.Key, r.Result))
+                                        .ContinueWith(r => new KeyValuePair<string, INode>(v.Key, r.Result))
                                 )
                             };
                         }
@@ -133,21 +149,25 @@ namespace EdgeDB.TestGenerator
 
                             var generatedArray = AsArray(generatedValue);
 
-                            // this value could be a set, or it could be a single
-                            // element due to cartesian product of arguments.
-                            if (provider.EdgeDBName is "set" &&
-                                parent?.EdgeDBName is "tuple" or "namedtuple")
+                            if (provider.EdgeDBName is "set")
                             {
-                                return await FormatAsync(edgedbValue, generatedArray, progress, wrapping.Children![0], wrapping);
-                            }
-
-                            if (provider.EdgeDBName is "set" && parent?.EdgeDBName is "set")
-                            {
-                                // sets are flattened into one set
-                                return await FormatAsync(edgedbValue, generatedValue, progress, wrapping.Children![0], wrapping);
+                                if (parent is not null && (generatedArray.Length == 1 || parent?.EdgeDBName is "tuple" or "namedtuple" or "set"))
+                                {
+                                    // sets are flattened into one set,
+                                    // or it could be a single element due to cartesian product of arguments,
+                                    // or the single element set is flattened to the single value.
+                                    return await FormatAsync(edgedbValue, generatedArray, progress, wrapping.Children![0], wrapping);
+                                }
+                                else if(parent is null && wrapping.Children![0].EdgeDBName == "set")
+                                {
+                                    return await FormatAsync(edgedbValue, generatedArray, progress, wrapping.Children![0], wrapping);
+                                } 
                             }
 
                             var array = AsArray(edgedbValue);
+
+                            if (array.Length != generatedArray.Length)
+                                throw new IndexOutOfRangeException("Generated and resulting array lengths don't match");
 
                             var elementProvider = wrapping.Children![0];
 
@@ -222,14 +242,22 @@ namespace EdgeDB.TestGenerator
         }
     }
 
-    public class FormatNode
+    public interface INode
+    {
+        string Type { get; }
+        object Value { get; }
+    }
+
+    public readonly struct FormatNode : INode
     {
         public required string Type { get; init; }
         public required object Value { get; init; }
     }
 
-    public class CollectionFormatNode : FormatNode
+    public readonly struct CollectionFormatNode : INode
     {
+        public required string Type { get; init; }
+        public required object Value { get; init; }
         public required string ElementType { get; init; }
     }
 }

@@ -24,122 +24,49 @@ namespace EdgeDB.TestGenerator
 
             private string? _edgeqlFormat;
 
-            public object FormatVariableIdentifier(VariableIdentifier identifier)
+            public bool FormatVariableIdentifier(GenerationRuleSet _, VariableIdentifier identifier, [NotNullWhen(true)] out object? obj)
             {
-                return identifier switch
+                switch (identifier)
                 {
-                    VariableIdentifier.EdgeDBTypeName => EdgeDBTypeName,
-                    VariableIdentifier.EdgeQLValue => ToEdgeQLFormat(),
-                    VariableIdentifier.Value => Value,
-                    _ => throw new FormatException($"Unsupported identifier '{identifier}'")
-                };
+                    case VariableIdentifier.EdgeDBTypeName:
+                        obj = EdgeDBTypeName;
+                        return true;
+                    case VariableIdentifier.EdgeQLValue:
+                        obj = ToEdgeQLFormat();
+                        return true;
+                    case VariableIdentifier.Value:
+                        obj = Value;
+                        return true;
+                    default:
+                        obj = null;
+                        return false;
+                }
             }
         }
 
         #region Defined rulesets
-
-        public static GenerationRuleSet V2ArugmentRuleSet = new()
-        {
-            Excluded = new List<Type>
-            {
-                typeof(SetValueProvider), typeof(ObjectValueProvider),
-                typeof(TupleValueProvider), typeof(NamedTupleValueProvider)
-            },
-            ExcludedChildren = new Dictionary<Type, List<Type>>
-            {
-                {typeof(ArrayValueProvider), new List<Type>() { typeof(ArrayValueProvider)} }
-            },
-            RollChildProviders = true
-        };
-
         public static GenerationRuleSet SmallJsonBlob = new()
         {
             ApplyRangeRulesToSetGeneration = true,
-            MaxDepth = 2,
+            MaxDepth = 1,
             DefaultRange = 1..2,
             Excluded = new List<Type>
             {
-                typeof(JsonValueProvider)
-            }
-        };
-
-        public static GenerationRuleSet QueryResultRuleSet = new()
-        {
-            MaxDepth = 2,
-            ExcludedChildren = new Dictionary<Type, List<Type>>()
-            {
-                {
-                    typeof(ArrayValueProvider), new List<Type>
-                    {
-                        typeof(ArrayValueProvider),
-                        typeof(SetValueProvider),    // shape union doesn't survive in arrays
-                        typeof(ObjectValueProvider), // shape union doesn't survive in arrays
-                    }
-                },
-                {
-                    typeof(SetValueProvider), new List<Type>
-                    {
-                        // since this generates a free object, shapes don't survive the 
-                        // union within sets.
-                        typeof(ObjectValueProvider),
-                    }
-                }
-            },
-            RollChildProviders = true,
-            ApplyRangeRulesToSetGeneration = true,
-        };
-
-        public static GenerationRuleSet DeepQueryResultNesting = new()
-        {
-            MaxDepth = 1,
-            Excluded = new List<Type>
-            {
                 typeof(JsonValueProvider),
-                typeof(BigIntValueProvider),
-                typeof(BooleanValueProvider),
-                typeof(BytesValueProvider),
-                typeof(DateDurationValueProvider),
-                typeof(DateTimeValueProvider),
-                typeof(DecimalValueProvider),
-                typeof(DurationValueProvider),
-                typeof(Float32ValueProvider),
-                typeof(Float64ValueProvider),
-                typeof(Int16ValueProvider),
-                typeof(Int32ValueProvider),
-                typeof(LocalDateTimeValueProvider),
-                typeof(LocalDateValueProvider),
-                typeof(LocalTimeValueProvider),
-                typeof(RelativeDurationValueProvider),
-                typeof(UUIDValueProvider)
-            },
-            RootExcluded = new List<Type>
-            {
-                typeof(StringValueProvider),
-                typeof(Int64ValueProvider)
-            },
-            ExcludedChildren = new Dictionary<Type, List<Type>>()
-            {
-                {
-                    typeof(ArrayValueProvider), new List<Type>
-                    {
-                        typeof(ArrayValueProvider),
-                        typeof(SetValueProvider) // union doesn't survive in arrays
-                    }
-                }
-            },
-            RollChildProviders = false,
-            DefaultRange = 2..2,
-            ProviderRanges = new()
-            {
-                {typeof(StringValueProvider), 15..15 }
+                typeof(SetValueProvider),
+                typeof(ArrayValueProvider),
+                typeof(NamedTupleValueProvider),
+                typeof(TupleValueProvider),
+                typeof(IdenticalNamedTupleValueProvider),
+                typeof(ObjectValueProvider),
+                typeof(IdenticallyNamedObjectValueProvider)
             }
         };
-
         #endregion
 
         private static readonly Dictionary<Type, List<Type>> _compatableWrappingTypes;
         public static readonly List<Type> ValueGenerators;
-        public static readonly Dictionary<string, Type> ValueGeneratorsMap;
+        public static readonly Dictionary<string, List<Type>> ValueGeneratorsMap;
 
         static ValueGenerator()
         {
@@ -147,7 +74,9 @@ namespace EdgeDB.TestGenerator
                 .Where(x => x.IsAssignableTo(typeof(IValueProvider)) && !x.IsInterface)
                 .ToList();
 
-            ValueGeneratorsMap = ValueGenerators.Select(x => ((IValueProvider)Activator.CreateInstance(x)!)).ToDictionary(x => x.EdgeDBName, x => x.GetType());
+            ValueGeneratorsMap = ValueGenerators.Select(x => ((IValueProvider)Activator.CreateInstance(x)!))
+                .GroupBy(x => x.EdgeDBName)
+                .ToDictionary(x => x.Key, x => x.Select(x => x.GetType()).ToList());
 
             _compatableWrappingTypes = new Dictionary<Type, List<Type>>()
             {
@@ -165,7 +94,7 @@ namespace EdgeDB.TestGenerator
             };
         }
 
-        public static bool TryGetValueGenerator(string name, [MaybeNullWhen(false)] out Type type)
+        public static bool TryGetValueGenerator(string name, [MaybeNullWhen(false)] out List<Type> type)
         {
             if (ValueGeneratorsMap.TryGetValue(name, out type))
                 return true;
@@ -227,7 +156,7 @@ namespace EdgeDB.TestGenerator
             {
                 var range = rules.GetRange(target);
 
-                var count = Random.Shared.Next(range);
+                var count = rules.Random.Next(range);
 
                 if(count < childrenCount && count > 0)
                 {
@@ -318,7 +247,7 @@ namespace EdgeDB.TestGenerator
 
         private static IValueProvider GetRandom(GenerationRuleSet rules)
         {
-            var provider = ValueGenerators.Except(rules.Excluded).Random();
+            var provider = ValueGenerators.Except(rules.Excluded).Random(rules.Random);
 
             return provider.IsAssignableTo(typeof(IWrappingValueProvider))
                 ? InitializeWrappingProvider(provider, rules)
@@ -338,6 +267,18 @@ namespace EdgeDB.TestGenerator
             if (depth >= rules.MaxDepth)
             {
                 allowedChildren = allowedChildren.Where(x => !x.IsAssignableTo(typeof(IWrappingValueProvider)));
+            }
+
+            if (rules.ApplyRangeRulesToSetGeneration)
+            {
+                var range = rules.GetRange(wrapping);
+
+                var count = rules.Random.Next(range);
+
+                if (count < allowedChildren.Count() && count > 0)
+                {
+                    allowedChildren = allowedChildren.OrderRandomly(rules.Random).Take(count).ToArray();
+                }
             }
 
             allowedChildren = allowedChildren.RandomSequence(rules.Random);

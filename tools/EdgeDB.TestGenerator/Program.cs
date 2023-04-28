@@ -24,7 +24,7 @@ var client = new EdgeDBClient(new EdgeDBClientPoolConfig
     PreferSystemTemporalTypes = true,
     DefaultPoolSize = 100,
     ConnectionTimeout = 30000,
-    MessageTimeout = 30000,
+    MessageTimeout = 600000,
     ExplicitObjectIds = true,
     ImplicitTypeIds = false,
 });
@@ -36,7 +36,11 @@ var generators = Assembly.GetExecutingAssembly().GetTypes()
     .Select(x => (TestGenerator)Activator.CreateInstance(x)!)
     .ToList();
 
+#if DEBUG
+var manifestPath = Path.Combine("C:\\Users\\lynch\\source\\repos\\EdgeDB\\tools\\EdgeDB.TestGenerator", TestManifestFile);
+#else
 var manifestPath = Path.Combine(Environment.CurrentDirectory, TestManifestFile);
+#endif
 
 if(!File.Exists(manifestPath))
 {
@@ -60,14 +64,14 @@ foreach(var ruleset in configuration.RuleSets)
 
     var generator = new ConfigurableTestGenerator(group, ruleset);
 
-    //generators.Add(generator);
+    generators.Add(generator);
 }
 
 var tests = new List<TestGroup>();
 
 foreach(var generator in generators)
 {
-    AnsiConsole.Write(new Rule($"{generator.GetType().Name}"));
+    AnsiConsole.Write(new Rule($"{generator}"));
     var group = await generator.GenerateAsync(client);
     if (!tests.Contains(group))
         tests.Add(group);
@@ -85,7 +89,7 @@ foreach(var group in tests)
 
             Directory.CreateDirectory(path);
 
-            path = Path.Combine(path, group.FileName!);
+            path = Path.Combine(path, $"{group.FileName!}.json");
 
             if (File.Exists(path))
                 File.Delete(path);

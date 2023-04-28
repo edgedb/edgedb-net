@@ -10,7 +10,6 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
     internal class Int64ValueProvider : IValueProvider<long>
     {
         public string EdgeDBName => "std::int64";
-
         public long GetRandom(GenerationRuleSet rules) => rules.Random.NextInt64();
         public string ToEdgeQLFormat(long value) => $"<std::int64>{value}";
         public override string ToString() => EdgeDBName;

@@ -22,5 +22,7 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
         }
 
         public string ToEdgeQLFormat(BigInteger value) => $"<std::bigint>{value}n";
+
+        public override string ToString() => EdgeDBName;
     }
 }

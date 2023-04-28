@@ -41,8 +41,13 @@ groups:
   - name: V2 Query Results
     id: v2_query_results
     protocol: '1.0'
+  - name: V2 State
+    id: v2_state
+    protocol: '1.0'
 rulesets:
   - group_id: v2_arguments
+    name: Query Arguments
+    test_name_template: Argument of type <$EDB_TYPE_NAME>
     excluded:
       - set
       - object
@@ -52,28 +57,29 @@ rulesets:
       array:
         - array
     roll_nested: false
-    query_template:
-      name: Argument of type <$EDB_TYPE_NAME>
-      query: SELECT <<$EDB_TYPE_NAME>>$arg
-      arguments:
-        arg: $VALUE
-  - name: Query Results
-    group_id: v2_query_results
+    query_templates:
+      - query: SELECT <<$EDB_TYPE_NAME>>$arg
+        arguments:
+          arg: <$VALUE>
+  - group_id: v2_query_results
+    name: Query Results
+    test_name_template: Query result of type <$EDB_TYPE_NAME>
     max_depth: 2
     nested_excluded:
       array:
         - array
         - set
+        - object
       set:
         - object
     roll_nested: true
     apply_range_to_sets: true
-    query_template:
-      name: Query result of type <$EDB_TYPE_NAME>
-      query: SELECT <$EDGEQL_VALUE>
-  - name: Deep Query Nesting
-    group_id: v2_query_results
-    max_depth: 5
+    query_templates:
+      - query: SELECT <$EDGEQL_VALUE>
+  - group_id: v2_query_results
+    name: Deep Query Nesting
+    test_name_template: Deep query nesting of type <$EDB_TYPE_NAME>
+    max_depth: 1
     excluded:
       - json
       - bigint
@@ -98,9 +104,53 @@ rulesets:
       array:
         - array
         - set
+        - object
     default_range: 2..2
     ranges:
       str: 15..15
-    query_template:
-      name: Deep query nesting of type <$EDB_TYPE_NAME>
-      query: SELECT <$EDB_TYPE_NAME>
+    query_templates:
+      - query: SELECT <$EDGEQL_VALUE>
+  - group_id: v2_state
+    name: Globals
+    test_name_template: Global of type <$EDB_TYPE_NAME>
+    max_depth: 3
+    excluded:
+      - object
+      - namedtuple
+      - set
+    nested_excluded:
+      array:
+        - array
+    query_templates:
+      - name: Start transaction
+        query: start transaction
+        capabilities: Transaction
+        cardinality: NoResult
+        session:
+          config:
+            session_idle_transaction_timeout: '10:00:00'
+            allow_bare_ddl: AlwaysAllow
+      - name: Create global
+        query: create global <$RAND_NAME_1> -> <$EDB_TYPE_NAME>
+        capabilities: DDL
+        cardinality: NoResult
+        session:
+          config:
+            session_idle_transaction_timeout: '10:00:00'
+            allow_bare_ddl: AlwaysAllow
+      - name: Select global of type <$EDB_TYPE_NAME>
+        query: select global <$RAND_NAME_1>
+        session:
+          globals:
+            <$RAND_NAME_1>: <$VALUE>
+          config:
+            session_idle_transaction_timeout: '10:00:00'
+            allow_bare_ddl: AlwaysAllow
+      - name: Rollback
+        query: rollback
+        capabilities: Transaction
+        cardinality: NoResult
+        session:
+          config:
+            session_idle_transaction_timeout: '10:00:00'
+            allow_bare_ddl: AlwaysAllow

@@ -6,6 +6,7 @@ using EdgeDB.TestGenerator.ValueProviders;
 using EdgeDB.Utils;
 using Spectre.Console;
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,14 +29,15 @@ namespace EdgeDB.TestGenerator.Generators
             => new() { Name = "V2 Query Results", ProtocolVersion = "1.0", FileName = "v2_queryresults.json" };
 
         protected record QueryDefinition(
-            string Query, Dictionary<string, object?>? Args = null,
-            Cardinality Cardinality = Cardinality.Many, Capabilities Capabilities = Capabilities.ReadOnly
+            string Name, string Query, Dictionary<string, object?>? Args = null,
+            Cardinality Cardinality = Cardinality.Many, Capabilities Capabilities = Capabilities.ReadOnly,
+            Func<BaseEdgeDBClient, BaseEdgeDBClient>? ConfigureState = null
         );
 
         protected abstract TestGroup GetTestGroup();
         protected abstract GenerationRuleSet GetTestSetRules();
         protected abstract string GetTestName(ValueGenerator.GenerationResult result);
-        protected abstract QueryDefinition GetQuery(ValueGenerator.GenerationResult result);
+        protected abstract IEnumerable<QueryDefinition> GetQueries(ValueGenerator.GenerationResult result);
 
         protected TestGroup GetOrAddTestGroup(GroupDefinition groupDefinition)
         {
@@ -78,7 +80,6 @@ namespace EdgeDB.TestGenerator.Generators
 
                     AnsiConsole.MarkupLine($"Generated [green]{set.Count}[/] root nodes");
 
-
                     foreach (var provider in set)
                     {
                         ctx.Status($"Generating value ([green]{i}[/]/[red]{f}[/]/[white]{set.Count}[/]) - nodes: [cyan]{totalNodes}[/]");
@@ -103,46 +104,84 @@ namespace EdgeDB.TestGenerator.Generators
 
                         ctx.Status($"Generating tests ([green]{i}[/]/[red]{f}[/]/[white]{set.Count}[/]) - test complexity: [yellow]{complexity:N0}[/] - test nodes [yellow]{c}[/] - nodes: [cyan]{totalNodes}[/]");
 
-                        var def = GetQuery(value);
+                        using var formatScope = FormatterUtils.Scoped(value);
+                        var queries = GetQueries(value);
+
+                        bool isResultSet = false;
+                        var testManifest = new Test
+                        {
+                            Name = GetTestName(value),
+                            Queries = new()
+                        };
+
+                        QueryDefinition? latestDefinition = null;
 
                         try
                         {
-                            var test = await GenerateTestManifestAsync(client, def.Query, def.Cardinality, def.Args, def.Capabilities);
-
-                            int resultNodeCount = 0;
-
-                            Action update = () =>
+                            foreach (var queryDefinition in queries)
                             {
-                                ctx.Status($"Formatting result ([green]{i}[/]/[red]{f}[/]/[white]{set.Count}[/]) - result nodes [cyan]{resultNodeCount:N0}[/] - test complexity: [yellow]{complexity:N0}[/] - test nodes [yellow]{c}[/] - nodes: [cyan]{totalNodes}[/]");
-                                Interlocked.Increment(ref resultNodeCount);
-                            };
+                                latestDefinition = queryDefinition;
 
-                            update();
+                                var queryResult = await ExecuteAndGenerateQueryArgs(provider, client, queryDefinition);
 
-                            test.Result = def.Cardinality is Cardinality.Many && provider.EdgeDBName != "set"
-                                ? await Task.WhenAll(((IEnumerable<object>)test.Result!).AsParallel().Select(x => ValueFormatter.FormatAsync(x!, value.Value, update, provider)))
-                                : await ValueFormatter.FormatAsync(test.Result!, value.Value, update, provider);
+                                if (queryResult.Cardinality is not Cardinality.NoResult || queryResult.Result is not null)
+                                {
+                                    int resultNodeCount = 0;
 
-                            test.Name = GetTestName(value);
+                                    void update()
+                                    {
+                                        ctx.Status($"Formatting result ([green]{i}[/]/[red]{f}[/]/[white]{set.Count}[/]) - result nodes [cyan]{resultNodeCount:N0}[/] - test complexity: [yellow]{complexity:N0}[/] - test nodes [yellow]{c}[/] - nodes: [cyan]{totalNodes}[/]");
+                                        Interlocked.Increment(ref resultNodeCount);
+                                    }
 
-                            if(!group.Tests.Any(x => x.Name == test.Name))
-                                group.Tests.Add(test);
+                                    update();
+
+                                    object obj = queryResult.Cardinality is Cardinality.Many && provider.EdgeDBName != "set"
+                                        ? await Task.WhenAll(
+                                            ((IEnumerable<object>)queryResult.Result!)
+                                            .AsParallel()
+                                            .Select(x => ValueFormatter.FormatAsync(x!, value.Value, update, provider)))
+                                        : await ValueFormatter.FormatAsync(queryResult.Result!, value.Value, update, provider);
+
+                                    if (isResultSet)
+                                    {
+                                        ((List<object>)testManifest.Result!).Add(obj);
+                                    }
+                                    else if (testManifest.Result is not null)
+                                    {
+                                        testManifest.Result = new List<object>() { testManifest.Result, obj };
+                                        isResultSet = true;
+                                    }
+                                    else
+                                    {
+                                        testManifest.Result = obj;
+                                    }
+                                }
+
+
+                                testManifest.Queries.Add(queryResult);
+                            }
 
                             i++;
+
+                            group.Tests.Add(testManifest);
                         }
-                        catch (Exception x)
+                        catch(Exception x)
                         {
                             AnsiConsole.WriteException(x);
                             AnsiConsole.WriteLine($"Query type: {value.EdgeDBTypeName}");
-                            AnsiConsole.MarkupLine(EdgeQLFormatter.PrettifyAndColor(def.Query));
+                            if(latestDefinition is not null)
+                                AnsiConsole.MarkupLine(EdgeQLFormatter.PrettifyAndColor(latestDefinition.Query));
 
                             Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory, "fails"));
                             File.WriteAllText(
                                 Path.Combine(Environment.CurrentDirectory, "fails", $"fail_{i}{f}.edgeql"),
-                                $"{x}\n\n{def.Query}\n\n{EdgeQLFormatter.ShittyPrettify(def.Query)}\n\n{GenerateTree(provider)}");
+                                $"{x}{(latestDefinition is not null ? $"\n\n{latestDefinition.Query}\n\n{EdgeQLFormatter.ShittyPrettify(latestDefinition.Query)}" : string.Empty)}\n\n{GenerateTree(provider)}");
 
                             f++;
                         }
+
+
                     }
 
                     AnsiConsole.MarkupLine($"Generated [green]{set.Count}[/] tests, [red]{f}[/] failed. Discovered {totalNodes} different value nodes");
@@ -158,13 +197,9 @@ namespace EdgeDB.TestGenerator.Generators
 
         private long EstimateComplexity(IValueProvider provider, GenerationRuleSet rules)
         {
-            var nodeCount = CountSetNodes(provider);
-
-            return nodeCount + FlattenProviders(provider)
-                .Select(x => x is IWrappingValueProvider wrapper
-                    ? rules.GetRange(wrapper.GetType()).End.Value * wrapper.Children!.Select(x => EstimateComplexity(x, rules)).Sum()
-                    : 1
-                ).Sum();
+            return provider is IWrappingValueProvider wrapping
+                ? 1 + rules.GetRange(wrapping.GetType()).Average() * wrapping.Children!.Sum(x => EstimateComplexity(x, rules))
+                : 1;
         }
 
         private static string GenerateTree(IValueProvider provider)
@@ -217,34 +252,89 @@ namespace EdgeDB.TestGenerator.Generators
             yield return provider;
         }
 
-        private async Task<Test> GenerateTestManifestAsync(
+        private static async Task<Test.QueryArgs> ExecuteAndGenerateQueryArgs(
+            IValueProvider provider,
             EdgeDBClient client,
-            string query,
-            Cardinality exp,
-            Dictionary<string, object?>? args = null,
-            Capabilities capabilities = Capabilities.ReadOnly)
+            QueryDefinition queryDefinition)
         {
-            await using var handle = await client.GetOrCreateClientAsync<TestGeneratorClient>();
+            await using var handle = (TestGeneratorClient)(queryDefinition.ConfigureState ?? ((c) => c))
+                .Invoke(await client.GetOrCreateClientAsync<TestGeneratorClient>());
 
-            //handle.ClearCaches();
-
-            var result = exp switch
+            try
             {
-                Cardinality.One => await handle.QueryRequiredSingleAsync<object>(query, args, capabilities),
-                Cardinality.Many => await handle.QueryAsync<object>(query, args, capabilities),
-                Cardinality.AtMostOne => await handle.QuerySingleAsync<object>(query, args, capabilities),
-                _ => throw new ArgumentException("Unknown cardinality", exp.ToString())
-            };
+                var qArgs = new Test.QueryArgs()
+                {
+                    Name = queryDefinition.Name,
+                    Value = queryDefinition.Query,
+                    Capabilities = queryDefinition.Capabilities,
+                    Cardinality = queryDefinition.Cardinality,
+                    Arguments = new List<Test.QueryArgs.QueryArgument>(),
+                    Result = queryDefinition.Cardinality switch
+                    {
+                        Cardinality.One => await handle.QueryRequiredSingleAsync<object>(
+                            queryDefinition.Query,
+                            queryDefinition.Args,
+                            queryDefinition.Capabilities
+                        ),
+                        Cardinality.Many => await handle.QueryAsync<object>(
+                            queryDefinition.Query,
+                            queryDefinition.Args,
+                            queryDefinition.Capabilities
+                        ),
+                        Cardinality.AtMostOne => await handle.QuerySingleAsync<object>(
+                            queryDefinition.Query,
+                            queryDefinition.Args,
+                            queryDefinition.Capabilities
+                        ),
+                        Cardinality.NoResult => await handle.ExecuteAsync(
+                            queryDefinition.Query,
+                            queryDefinition.Args,
+                            queryDefinition.Capabilities
+                        ).ContinueWith(r =>
+                        {
+                            if (r.Exception is not null)
+                                throw r.Exception;
 
-            return new Test
+                            return (object?)null;
+                        }),
+                        _ => throw new ArgumentException("Unknown cardinality", queryDefinition.Cardinality.ToString())
+                    }
+                };
+
+                if (handle.DataDescription.InputTypeDescriptorId != CodecBuilder.NullCodec && queryDefinition.Args is not null)
+                {
+                    var codec = (ObjectCodec)CodecBuilder.GetCodec(handle.DataDescription.InputTypeDescriptorId)!;
+
+                    var arr = queryDefinition.Args.ToArray();
+
+                    for (int i = 0; i != arr.Length; i++)
+                    {
+                        var name = codec.PropertyNames[i];
+                        var cid = CodecBuilder.CodecCache.FirstOrDefault(x => x.Value == codec.InnerCodecs[i]).Key;
+
+                        if (cid == Guid.Empty)
+                        {
+                            cid = CodecBuilder.InvalidCodec;
+                        }
+
+                        qArgs.Arguments.Add(new Test.QueryArgs.QueryArgument
+                        {
+                            EdgeDBTypeName = CodecNameResolver.GetEdgeDBName(codec.InnerCodecs[i], handle),
+                            Name = name,
+                            Value = await ValueFormatter.FormatAsync(arr[i].Value!, arr[i].Value!, () => { }, provider)
+                        });
+                    }
+                }
+
+                return qArgs;
+            }
+            catch
             {
-                Query = BuildArgs(handle, query, exp, args, capabilities, handle.DataDescription),
-                Descriptors = GetDescriptors(handle.DataDescription),
-                ActualCapabilities = handle.DataDescription.Capabilities,
-                ActualCardinality = handle.DataDescription.Cardinality,
-                Result = result,
-                BinaryResult = handle.Data.Select(x => HexConverter.ToHex(x.PayloadBuffer)).ToList()
-            };
+                // reset transaction state
+                if (handle.TransactionState is not TransactionState.NotInTransaction)
+                    await handle.ExecuteAsync("rollback", capabilities: Capabilities.Transaction);
+                throw;
+            }
         }
 
         private List<ITypeDescriptor> GetDescriptors(CommandDataDescription d)
@@ -259,51 +349,6 @@ namespace EdgeDB.TestGenerator.Generators
             }
 
             return descriptors;
-        }
-
-        private static Test.QueryArgs BuildArgs(
-            EdgeDBBinaryClient client,
-            string query,
-            Cardinality cardinality,
-            Dictionary<string, object?>? args,
-            Capabilities capabilities,
-            CommandDataDescription dataDescriptor)
-        {
-            var qArgs = new Test.QueryArgs()
-            {
-                Value = query,
-                Capabilities = capabilities,
-                Cardinality = cardinality,
-                Arguments = new List<Test.QueryArgs.QueryArgument>()
-            };
-
-            if (dataDescriptor.InputTypeDescriptorId != CodecBuilder.NullCodec && args is not null)
-            {
-                var codec = (ObjectCodec)CodecBuilder.GetCodec(dataDescriptor.InputTypeDescriptorId)!;
-
-                var arr = args.ToArray();
-
-                for (int i = 0; i != arr.Length; i++)
-                {
-                    var name = codec.PropertyNames[i];
-                    var cid = CodecBuilder.CodecCache.FirstOrDefault(x => x.Value == codec.InnerCodecs[i]).Key;
-
-                    if (cid == Guid.Empty)
-                    {
-                        cid = CodecBuilder.InvalidCodec;
-                    }
-
-                    qArgs.Arguments.Add(new Test.QueryArgs.QueryArgument
-                    {
-                        EdgeDBTypeName = CodecNameResolver.GetEdgeDBName(codec.InnerCodecs[i], client),
-                        Id = cid,
-                        Name = name,
-                        Value = arr[i].Value
-                    });
-                }
-            }
-
-            return qArgs;
         }
     }
 }

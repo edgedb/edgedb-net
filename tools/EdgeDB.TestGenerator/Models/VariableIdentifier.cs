@@ -5,7 +5,8 @@ namespace EdgeDB.TestGenerator
     {
         EdgeDBTypeName,
         Value,
-        EdgeQLValue
+        EdgeQLValue,
+        RandomName
     }
 }
 

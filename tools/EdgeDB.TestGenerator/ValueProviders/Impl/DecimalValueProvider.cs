@@ -10,7 +10,6 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
     internal class DecimalValueProvider : IValueProvider<decimal>
     {
         public string EdgeDBName => "std::decimal";
-
         public decimal GetRandom(GenerationRuleSet rules) => (decimal)rules.Random.NextDouble() * rules.Random.Next(rules.GetRange<DecimalValueProvider>());
         public string ToEdgeQLFormat(decimal value) => $"<std::decimal>{value}n";
         public override string ToString() => EdgeDBName;

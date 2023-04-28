@@ -11,7 +11,6 @@ namespace EdgeDB.TestGenerator.ValueProviders.Impl
     internal class DateTimeValueProvider : IValueProvider<DateTime>
     {
         public string EdgeDBName => "std::datetime";
-
         public DateTime GetRandom(GenerationRuleSet rules) => RandomDateTime.Next(rules.Random);
         public string ToEdgeQLFormat(DateTime value) => $"<datetime>'{(DateTimeOffset)value:O}'";
         public override string ToString() => EdgeDBName;
