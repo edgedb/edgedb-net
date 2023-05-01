@@ -11,20 +11,15 @@ using SysRange = System.Range;
 namespace EdgeDB.Binary.Codecs
 {
     internal sealed class RangeCodec<T>
-        : BaseComplexCodec<Range<T>, SysRange>, IWrappingCodec, ICacheableCodec
+        : BaseComplexCodec<Range<T>>, IWrappingCodec, ICacheableCodec
         where T : struct
     {
-        protected override Dictionary<Type, (FromTransient From, ToTransient To)>? Converters { get; }
-
         public ICodec<T> _innerCodec;
         public RangeCodec(ICodec<T> innerCodec)
         {
             _innerCodec = innerCodec;
 
-            Converters = new()
-            {
-                { typeof(SysRange), (From, To) }
-            };
+            AddConverter(From, To);
         }
 
         private static Range<T> From(ref SysRange transient)

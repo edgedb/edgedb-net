@@ -8,15 +8,10 @@ namespace EdgeDB.Binary.Codecs
 {
     internal sealed class LocalDateTimeCodec : BaseTemporalCodec<DataTypes.LocalDateTime>
     {
-        protected override Dictionary<Type, (FromTransient From, ToTransient To)>? Converters { get; }
-
         public LocalDateTimeCodec()
         {
-            Converters = new()
-            {
-                { typeof(System.DateTime),       (FromDT, ToTransientDT)},
-                { typeof(System.DateTimeOffset), (FromDTO, ToTransientDTO) }
-            };
+            AddConverter(FromDT, ToDT);
+            AddConverter(FromDTO, ToDTO);
         }
 
         public override DataTypes.LocalDateTime Deserialize(ref PacketReader reader, CodecContext context)
@@ -31,27 +26,16 @@ namespace EdgeDB.Binary.Codecs
             writer.Write(value.Microseconds);
         }
 
-        private DataTypes.LocalDateTime FromDT(ref TransientTemporal value)
-        {
-            return new DataTypes.LocalDateTime(value.DateTime);
-        }
+        private DataTypes.LocalDateTime FromDT(ref DateTime value)
+            => new(value);
 
-        private TransientTemporal ToTransientDT(ref DataTypes.LocalDateTime value)
-        {
-            var dt = value.DateTimeOffset.DateTime;
+        private DateTime ToDT(ref DataTypes.LocalDateTime value)
+            => value.DateTime;
 
-            return TransientTemporal.From(ref dt);
-        }
+        private DataTypes.LocalDateTime FromDTO(ref DateTimeOffset value)
+            => new(value);
 
-        private DataTypes.LocalDateTime FromDTO(ref TransientTemporal value)
-        {
-            return new DataTypes.LocalDateTime(value.DateTimeOffset);
-        }
-
-        private TransientTemporal ToTransientDTO(ref DataTypes.LocalDateTime value)
-        {
-            var dto = value.DateTimeOffset;
-            return TransientTemporal.From(ref dto);
-        }
+        private DateTimeOffset ToDTO(ref DataTypes.LocalDateTime value)
+            => value.DateTimeOffset;
     }
 }

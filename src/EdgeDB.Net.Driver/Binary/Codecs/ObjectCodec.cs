@@ -1,5 +1,6 @@
 using EdgeDB.Binary;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
@@ -52,6 +53,10 @@ namespace EdgeDB.Binary.Codecs
             PropertyNames = propertyNames;
         }
 
+        internal void UpdateFactory(TypeDeserializerFactory factory)
+        {
+            _factory = factory;
+        }
         public void Initialize(Type target)
         {
             if (Initialized && target == TargetType)
@@ -104,6 +109,9 @@ namespace EdgeDB.Binary.Codecs
         }
 
         public override void SerializeArguments(ref PacketWriter writer, object? value, CodecContext context)
+            => Serialize(ref writer, value, context);
+
+        public override void Serialize(ref PacketWriter writer, object? value, CodecContext context)
         {
             object?[]? values = null;
 
@@ -135,7 +143,7 @@ namespace EdgeDB.Binary.Codecs
                     writer.Write(-1);
                 }
                 else
-                { 
+                {
                     var innerCodec = InnerCodecs[i];
 
                     // special case for enums
@@ -152,13 +160,6 @@ namespace EdgeDB.Binary.Codecs
                 }
             }
         }
-
-        internal void UpdateFactory(TypeDeserializerFactory factory)
-        {
-            _factory = factory;
-        }
-
-        public override void Serialize(ref PacketWriter writer, object? value, CodecContext context) => throw new NotSupportedException();
 
         public override string ToString()
         {

@@ -117,6 +117,9 @@ namespace EdgeDB.Binary.Codecs
 
                             tuple.InnerCodecs[i] = innerCodec;
                         }
+
+                        codec = tuple.GetCodecFor(GetContextualTypeForComplexCodec(tuple));
+                        _logger.CodecVisitorComplexCodecFlattened(Depth, tuple, codec, Context.Type);
                     }
                     break;
                 case CompilableWrappingCodec compilable:
@@ -199,6 +202,13 @@ namespace EdgeDB.Binary.Codecs
             {
                 // always prefer the default converter for range
                 return codec.ConverterType;
+            }
+            else if (codec is TupleCodec tpl)
+            {
+                if (_client.ClientConfig.PreferValueTupleType)
+                    return tpl.CreateValueTupleType();
+
+                return typeof(TransientTuple);
             }
 
             // return out the current context type if we haven't

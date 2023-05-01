@@ -8,14 +8,9 @@ namespace EdgeDB.Binary.Codecs
 {
     internal sealed class LocalDateCodec : BaseTemporalCodec<DataTypes.LocalDate>
     {
-        protected override Dictionary<Type, (FromTransient From, ToTransient To)>? Converters { get; }
-
         public LocalDateCodec()
         {
-            Converters = new()
-            {
-                { typeof(DateOnly), (From, To) }
-            };
+            AddConverter(From, To);
         }
 
         public override DataTypes.LocalDate Deserialize(ref PacketReader reader, CodecContext context)
@@ -30,15 +25,10 @@ namespace EdgeDB.Binary.Codecs
             writer.Write(value.Days);
         }
 
-        private DataTypes.LocalDate From(ref TransientTemporal value)
-        {
-            return new(value.DateOnly);
-        }
+        private DataTypes.LocalDate From(ref DateOnly value)
+            => new(value);
 
-        private TransientTemporal To(ref DataTypes.LocalDate value)
-        {
-            var dateOnly = value.DateOnly;
-            return TransientTemporal.From(ref dateOnly);
-        }
+        private DateOnly To(ref DataTypes.LocalDate value)
+            => value.DateOnly;
     }
 }
