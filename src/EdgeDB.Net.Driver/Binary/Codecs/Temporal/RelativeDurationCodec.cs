@@ -8,14 +8,9 @@ namespace EdgeDB.Binary.Codecs
 {
     internal sealed class RelativeDurationCodec : BaseTemporalCodec<DataTypes.RelativeDuration>
     {
-        protected override Dictionary<Type, (FromTransient From, ToTransient To)>? Converters { get; }
-
         public RelativeDurationCodec()
         {
-            Converters = new()
-            {
-                { typeof(TimeSpan), (From, To) }
-            };
+            AddConverter(From, To);
         }
 
         public override DataTypes.RelativeDuration Deserialize(ref PacketReader reader, CodecContext context)
@@ -34,17 +29,10 @@ namespace EdgeDB.Binary.Codecs
             writer.Write(value.Months);
         }
 
-        private DataTypes.RelativeDuration From(ref TransientTemporal transient)
-        {
-            // transient here is timespan, since our only supported sys type is timespan
-            return new DataTypes.RelativeDuration(transient.TimeSpan);
-        }
+        private DataTypes.RelativeDuration From(ref TimeSpan value)
+            => new(value);
 
-        private TransientTemporal To(ref DataTypes.RelativeDuration dateDuration)
-        {
-            var timespan = dateDuration.TimeSpan;
-
-            return TransientTemporal.From(ref timespan);
-        }
+        private TimeSpan To(ref DataTypes.RelativeDuration value)
+            => value.TimeSpan;
     }
 }

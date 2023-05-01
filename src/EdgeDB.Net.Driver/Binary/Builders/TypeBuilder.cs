@@ -36,12 +36,17 @@ namespace EdgeDB
         internal readonly static ConcurrentDictionary<Type, IEdgeDBTypeConverter> TypeConverters = new();
         internal static readonly INamingStrategy AttributeNamingStrategy;
         private readonly static List<string> _scannedAssemblies;
+        private readonly static HashSet<Type> _typeBuilderBlacklisted;
 
         static TypeBuilder()
         {
             _scannedAssemblies = new();
             AttributeNamingStrategy = INamingStrategy.AttributeNamingStrategy;
             SchemaNamingStrategy ??= INamingStrategy.DefaultNamingStrategy;
+            _typeBuilderBlacklisted = new HashSet<Type>
+            {
+                typeof(TransientTuple)
+            };
         }
 
         /// <summary>
@@ -182,7 +187,10 @@ namespace EdgeDB
             // if its a scalar, defently don't try to use it.
             if (CodecBuilder.ContainsScalarCodec(type))
                 return false;
-            
+
+            if (_typeBuilderBlacklisted.Contains(type))
+                return false;
+
             return
                 type == typeof(object) || 
                 type.IsAssignableTo(typeof(ITuple)) ||
