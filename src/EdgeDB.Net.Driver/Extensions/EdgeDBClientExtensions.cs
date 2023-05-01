@@ -10,6 +10,138 @@ namespace EdgeDB
     /// </summary>
     public static class EdgeDBClientExtensions
     {
+        #region Extended Query Methods
+        /// <summary>
+        ///     Executes a given query and returns the result as a collection.
+        /// </summary>
+        /// <remarks>
+        ///     Cardinality isn't enforced nor takes effect on the return result, 
+        ///     the client will always construct a collection out of the data.
+        /// </remarks>
+        /// <param name="client">The client to execute the query on.</param>
+        /// <param name="query">The query to execute.</param>
+        /// <param name="args">Any arguments that are part of the query.</param>
+        /// <param name="capabilities">The allowed capabilities for the query.</param>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
+        /// <returns>
+        ///     A task representing the asynchronous query operation. The result 
+        ///     of the task is the result of the query.
+        /// </returns>
+        public static Task<IReadOnlyCollection<object?>> QueryAsync(this IEdgeDBQueryable client, string query, IDictionary<string, object?>? args = null,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => client.QueryAsync<object>(query, args, capabilities, token);
+
+        /// <summary>
+        ///     Executes a given query and returns a single result or <see langword="null"/>.
+        /// </summary>
+        /// <remarks>
+        ///     This method enforces <see cref="Cardinality.AtMostOne"/>, if your query returns 
+        ///     more than one result a <see cref="EdgeDBException"/> will be thrown.
+        /// </remarks>
+        /// <param name="client">The client to execute the query on.</param>
+        /// <param name="query">The query to execute.</param>
+        /// <param name="args">Any arguments that are part of the query.</param>
+        /// <param name="capabilities">The allowed capabilities for the query.</param>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
+        /// <returns>
+        ///     A task representing the asynchronous query operation. The result 
+        ///     of the task is the result of the query.
+        /// </returns>
+        public static Task<object?> QuerySingleAsync(this IEdgeDBQueryable client, string query, IDictionary<string, object?>? args = null,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => client.QuerySingleAsync<object>(query, args, capabilities, token);
+
+        /// <summary>
+        ///     Executes a given query and returns a single result.
+        /// </summary>
+        /// <remarks>
+        ///     This method enforces <see cref="Cardinality.One"/>, if your query returns zero 
+        ///     or more than one result a <see cref="EdgeDBException"/> will be thrown.
+        /// </remarks>
+        /// <param name="client">The client to execute the query on.</param>
+        /// <param name="query">The query to execute.</param>
+        /// <param name="args">Any arguments that are part of the query.</param>
+        /// <param name="capabilities">The allowed capabilities for the query.</param>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
+        /// <returns>
+        ///     A task representing the asynchronous query operation. The result 
+        ///     of the task is the result of the query.
+        /// </returns>
+        public static Task<object> QueryRequiredSingleAsync(this IEdgeDBQueryable client, string query, IDictionary<string, object?>? args = null,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => client.QueryRequiredSingleAsync<object>(query, args, capabilities, token);
+
+        /// <inheritdoc cref="IEdgeDBQueryable.ExecuteAsync(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)"/>
+        /// <typeparam name="T">The dynamic type of the arguments for this query.</typeparam>
+        /// <remarks>
+        ///     The <paramref name="args"/> parameter <i>must</i> be an
+        ///     <see href="https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/types/anonymous-types">anonymous type</see>.
+        /// </remarks>
+        public static Task ExecuteAsync<T>(this IEdgeDBQueryable client, string query, T args,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => client.ExecuteAsync(query, TypeArgumentUtils.CreateArguments(args), capabilities, token);
+
+        /// <typeparam name="T">The type of the return result of the query.</typeparam>
+        /// <remarks>
+        ///     The <paramref name="args"/> parameter <i>must</i> be an
+        ///     <see href="https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/types/anonymous-types">anonymous type</see>.
+        /// </remarks>
+        /// <inheritdoc cref="IEdgeDBQueryable.QueryAsync{TResult}(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)"/>
+        public static Task<IReadOnlyCollection<T?>> QueryAsync<T>(this IEdgeDBQueryable client, string query, object args,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => client.QueryAsync<T>(query, TypeArgumentUtils.CreateArguments(args.GetType(), args), capabilities, token);
+
+        /// <typeparam name="T">The type of the return result of the query.</typeparam>
+        /// <remarks>
+        ///     The <paramref name="args"/> parameter <i>must</i> be an
+        ///     <see href="https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/types/anonymous-types">anonymous type</see>.
+        /// </remarks>
+        /// <inheritdoc cref="IEdgeDBQueryable.QueryAsync{TResult}(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)"/>
+        public static Task<IReadOnlyCollection<object?>> QueryAsync<T>(this IEdgeDBQueryable client, string query, T args,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => client.QueryAsync(query, TypeArgumentUtils.CreateArguments(args), capabilities, token);
+
+        /// <typeparam name="T">The type of the return result of the query.</typeparam>
+        /// <remarks>
+        ///     The <paramref name="args"/> parameter <i>must</i> be an
+        ///     <see href="https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/types/anonymous-types">anonymous type</see>.
+        /// </remarks>
+        /// <inheritdoc cref="IEdgeDBQueryable.QuerySingleAsync{TResult}(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)"/>
+        public static Task<T?> QuerySingleAsync<T>(this IEdgeDBQueryable client, string query, object args,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => client.QuerySingleAsync<T>(query, TypeArgumentUtils.CreateArguments(args.GetType(), args), capabilities, token);
+
+        /// <typeparam name="T">The type of the return result of the query.</typeparam>
+        /// <remarks>
+        ///     The <paramref name="args"/> parameter <i>must</i> be an
+        ///     <see href="https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/types/anonymous-types">anonymous type</see>.
+        /// </remarks>
+        /// <inheritdoc cref="IEdgeDBQueryable.QuerySingleAsync{TResult}(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)"/>
+        public static Task<object?> QuerySingleAsync<T>(this IEdgeDBQueryable client, string query, T args,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => client.QuerySingleAsync(query, TypeArgumentUtils.CreateArguments(args), capabilities, token);
+
+        /// <typeparam name="T">The type of the return result of the query.</typeparam>
+        /// <remarks>
+        ///     The <paramref name="args"/> parameter <i>must</i> be an
+        ///     <see href="https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/types/anonymous-types">anonymous type</see>.
+        /// </remarks>
+        /// <inheritdoc cref="IEdgeDBQueryable.QueryRequiredSingleAsync{TResult}(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)"/>
+        public static Task<T> QueryRequiredSingleAsync<T>(this IEdgeDBQueryable client, string query, object args,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => client.QueryRequiredSingleAsync<T>(query, TypeArgumentUtils.CreateArguments(args.GetType(), args), capabilities, token);
+
+        /// <typeparam name="T">The type of the return result of the query.</typeparam>
+        /// <remarks>
+        ///     The <paramref name="args"/> parameter <i>must</i> be an
+        ///     <see href="https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/types/anonymous-types">anonymous type</see>.
+        /// </remarks>
+        /// <inheritdoc cref="IEdgeDBQueryable.QueryRequiredSingleAsync{TResult}(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)"/>
+        public static Task<object> QueryRequiredSingleAsync<T>(this IEdgeDBQueryable client, string query, T args,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => client.QueryRequiredSingleAsync(query, TypeArgumentUtils.CreateArguments(args), capabilities, token);
+        #endregion
+
         #region Transactions
         /// <summary>
         ///     Creates a transaction and executes a callback with the transaction object.
