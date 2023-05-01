@@ -7,10 +7,8 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary.Codecs
 {
-    internal abstract class BaseComplexScalarCodec<T, TTransient>
-        : BaseComplexCodec<T, TTransient>, IScalarCodec<T>
-        where TTransient : unmanaged
-        where T : struct
+    internal abstract class BaseComplexScalarCodec<T>
+        : BaseComplexCodec<T>, IScalarCodec<T>
     {
         public BaseComplexScalarCodec()
             : base(typeof(RuntimeScalarCodec<>))
@@ -18,51 +16,30 @@ namespace EdgeDB.Binary.Codecs
 
         }
 
-        private sealed class RuntimeScalarCodec<TIntermediate>
-            : BaseScalarCodec<TIntermediate>, IRuntimeCodec
-            where TIntermediate : unmanaged
+        private sealed class RuntimeScalarCodec<U>
+            : BaseScalarCodec<U>, IRuntimeCodec
         {
-            private readonly BaseComplexScalarCodec<T, TTransient> _codec;
-            private readonly FromTransient _from;
-            private readonly ToTransient _to;
-
+            private readonly BaseComplexScalarCodec<T> _codec;
+            private readonly Converter<U> _converter;
             public RuntimeScalarCodec(
-                BaseComplexScalarCodec<T, TTransient> codec,
-                FromTransient from,
-                ToTransient to)
+                BaseComplexScalarCodec<T> codec,
+                Converter<U> converter)
             {
                 _codec = codec;
-                _from = from;
-                _to = to;
+                _converter = converter;
             }
 
-            public override unsafe TIntermediate Deserialize(ref PacketReader reader, CodecContext context)
+            public override unsafe U? Deserialize(ref PacketReader reader, CodecContext context)
             {
-                if (sizeof(TTransient) < sizeof(TIntermediate))
-                    throw new InvalidOperationException($"Transient size is less than the size of {typeof(TIntermediate)}");
-
                 var model = _codec.Deserialize(ref reader, context);
 
-                var transient = _to(ref model);
-
-                // returning as non-ref creates a copy, keeping the
-                // transient safe from gc.
-                return Unsafe.As<TTransient, TIntermediate>(ref transient);
+                return _converter.To(ref model);
             }
 
-            public override unsafe void Serialize(ref PacketWriter writer, TIntermediate value, CodecContext context)
+            public override unsafe void Serialize(ref PacketWriter writer, U? value, CodecContext context)
             {
-                if (sizeof(TTransient) < sizeof(TIntermediate))
-                    throw new InvalidOperationException($"Transient size is less than the size of {typeof(TIntermediate)}");
+                var model = _converter.From(ref value);
 
-                // create as ref to ensure lifetime matches the 'value' arg.
-                ref var transient = ref Unsafe.As<TIntermediate, TTransient>(ref value);
-
-                // ensure passed as ref and copied on assignment.
-                var model = _from(ref transient);
-
-                // passing as a non-ref parameter creates a copy, keeping the
-                // transient safe from gc.
                 _codec.Serialize(ref writer, model, context);
             }
 

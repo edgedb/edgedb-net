@@ -8,14 +8,9 @@ namespace EdgeDB.Binary.Codecs
 {
     internal sealed class DurationCodec : BaseTemporalCodec<DataTypes.Duration>
     {
-        protected override Dictionary<Type, (FromTransient From, ToTransient To)>? Converters { get; }
-
         public DurationCodec()
         {
-            Converters = new()
-            {
-                { typeof(TimeSpan), (From, To) }
-            };
+            AddConverter(From, To);
         }
 
         public override DataTypes.Duration Deserialize(ref PacketReader reader, CodecContext context)
@@ -35,17 +30,10 @@ namespace EdgeDB.Binary.Codecs
             writer.Write(0); // months
         }
 
-        private DataTypes.Duration From(ref TransientTemporal transient)
-        {
-            // transient here is timespan, since our only supported sys type is timespan
-            return new DataTypes.Duration(transient.TimeSpan);
-        }
+        private DataTypes.Duration From(ref TimeSpan value)
+            => new(value);
 
-        private TransientTemporal To(ref DataTypes.Duration dateDuration)
-        {
-            var timespan = dateDuration.TimeSpan;
-
-            return TransientTemporal.From(ref timespan);
-        }
+        private TimeSpan To(ref DataTypes.Duration value)
+            => value.TimeSpan;
     }
 }

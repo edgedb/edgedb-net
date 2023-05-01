@@ -159,5 +159,17 @@ namespace EdgeDB
         ///     </code>
         /// </remarks>
         public bool PreferSystemTemporalTypes { get; set; }
+
+        /// <summary>
+        ///     Gets or sets whether or not to prefer <see cref="ValueTuple"/> when deserializing
+        ///     the <c>std::tuple</c> type opposed to <see cref="DataTypes.TransientTuple"/> when using
+        ///     non-concrete query result definitions.
+        /// </summary>
+        public bool PreferValueTupleType { get; set; }
+
+        /// <summary>
+        ///     Gets or sets whether or not to include type ids in results.
+        /// </summary>
+        public bool ImplicitTypeIds { get; internal set; }
     }
 }

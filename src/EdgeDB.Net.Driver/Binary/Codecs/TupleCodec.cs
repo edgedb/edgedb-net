@@ -1,19 +1,32 @@
 using EdgeDB.Binary;
 using EdgeDB.DataTypes;
+using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 
 namespace EdgeDB.Binary.Codecs
 {
     internal sealed class TupleCodec
-        : BaseCodec<TransientTuple>, IMultiWrappingCodec, ICacheableCodec
+        : BaseComplexCodec<TransientTuple>, IMultiWrappingCodec, ICacheableCodec
     {
         internal ICodec[] InnerCodecs;
         
         public TupleCodec(ICodec[] innerCodecs)
         {
             InnerCodecs = innerCodecs;
+
+            AddConverter(TransientTuple.IsReferenceTupleType, From, ToReferenceTuple);
+            AddConverter(TransientTuple.IsValueTupleType, From, ToValueTuple);
         }
-        
+
+        private TransientTuple From(ref ITuple? tuple)
+            => tuple is null ? default : new(tuple);
+
+        private ITuple ToValueTuple(ref TransientTuple tuple)
+            => tuple.ToValueTuple();
+
+        private ITuple ToReferenceTuple(ref TransientTuple tuple)
+            => tuple.ToReferenceTuple();
+
         public override TransientTuple Deserialize(ref PacketReader reader, CodecContext context)
         {
             var numElements = reader.ReadInt32();
@@ -51,12 +64,61 @@ namespace EdgeDB.Binary.Codecs
 
         public override void Serialize(ref PacketWriter writer, TransientTuple value, CodecContext context)
         {
-            throw new NotSupportedException("Tuples cannot be passed in query arguments");
+            if(value.Length == 0)
+            {
+                writer.Write(-1);
+                return;
+            }
+
+            if (InnerCodecs.Length != value.Length)
+                throw new ArgumentException("Tuple length does not match descriptor length");
+
+            writer.Write(value.Length);
+
+            for(int i = 0; i != value.Length; i++)
+            {
+                var codec = InnerCodecs[i];
+                var elementValue = value.RawValues[i];
+
+                writer.Write(0); // reserved
+
+                if (elementValue is null)
+                    writer.Write(-1);
+                else
+                    writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => codec.Serialize(ref innerWriter, elementValue, context));
+            }
         }
 
         public override string ToString()
         {
             return $"TupleCodec<{string.Join(", ", this.InnerCodecs.Select(x => x.ToString()))}>";
+        }
+
+        public Type CreateValueTupleType()
+        {
+            var typeArr = InnerCodecs.Select(x => x.ConverterType).ToArray();
+            return CreateTupleTypePart(typeArr);
+        }
+
+        private Type CreateTupleTypePart(Type[] elements, int offset = 0)
+        {
+            Type tupleType;
+            if (InnerCodecs.Length - offset > 7)
+            {
+                var innerTuple = CreateTupleTypePart(elements, offset + 7);
+
+                var types = new Type[8];
+                types[7] = innerTuple;
+                elements[offset..(offset + 7)].CopyTo(types, 0);
+
+                tupleType = TransientTuple.ValueTupleTypeMap[types.Length - 1];
+                return tupleType.MakeGenericType(types);
+            }
+
+            var remainingElements = elements[offset..];
+
+            tupleType = TransientTuple.ValueTupleTypeMap[remainingElements.Length - 1];
+            return tupleType.MakeGenericType(remainingElements);
         }
 
         ICodec[] IMultiWrappingCodec.InnerCodecs

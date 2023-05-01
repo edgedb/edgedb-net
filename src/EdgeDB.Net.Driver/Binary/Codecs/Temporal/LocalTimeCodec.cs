@@ -8,15 +8,10 @@ namespace EdgeDB.Binary.Codecs
 {
     internal sealed class LocalTimeCodec : BaseTemporalCodec<DataTypes.LocalTime>
     {
-        protected override Dictionary<Type, (FromTransient From, ToTransient To)>? Converters { get; }
-
         public LocalTimeCodec()
         {
-            Converters = new()
-            {
-                { typeof(TimeSpan), (FromTS, ToTransientTS) },
-                { typeof(TimeOnly), (FromTO, ToTransientTO) },
-            };
+            AddConverter(FromTS, ToTS);
+            AddConverter(FromTO, ToTO);
         }
 
         public override DataTypes.LocalTime Deserialize(ref PacketReader reader, CodecContext context)
@@ -31,26 +26,16 @@ namespace EdgeDB.Binary.Codecs
             writer.Write(value.Microseconds);
         }
 
-        private DataTypes.LocalTime FromTS(ref TransientTemporal value)
-        {
-            return new(value.TimeSpan);
-        }
+        private DataTypes.LocalTime FromTS(ref TimeSpan value)
+            => new(value);
 
-        private TransientTemporal ToTransientTS(ref DataTypes.LocalTime value)
-        {
-            var ts = value.TimeSpan;
-            return TransientTemporal.From(ref ts);
-        }
+        private TimeSpan ToTS(ref DataTypes.LocalTime value)
+            => value.TimeSpan;
 
-        private DataTypes.LocalTime FromTO(ref TransientTemporal value)
-        {
-            return new(value.TimeOnly);
-        }
+        private DataTypes.LocalTime FromTO(ref TimeOnly value)
+            => new(value);
 
-        private TransientTemporal ToTransientTO(ref DataTypes.LocalTime value)
-        {
-            var to = value.TimeOnly;
-            return TransientTemporal.From(ref to);
-        }
+        private TimeOnly ToTO(ref DataTypes.LocalTime value)
+            => value.TimeOnly;
     }
 }
