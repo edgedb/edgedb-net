@@ -35,6 +35,9 @@
 # apply_range_to_sets: false
 # seed: 0
 groups:
+  - name: V3 Arguments
+    id: v3_arguments
+    protocol: '1.0'
   - name: V2 Arguments
     id: v2_arguments
     protocol: '1.0'
@@ -43,6 +46,9 @@ groups:
     protocol: '1.0'
   - name: V2 State
     id: v2_state
+    protocol: '1.0'
+  - name: Schema Types
+    id: schema_types
     protocol: '1.0'
 rulesets:
   - group_id: v2_arguments
@@ -110,47 +116,64 @@ rulesets:
       str: 15..15
     query_templates:
       - query: SELECT <$EDGEQL_VALUE>
-  - group_id: v2_state
-    name: Globals
-    test_name_template: Global of type <$EDB_TYPE_NAME>
-    max_depth: 3
+  - group_id: v3_arguments
+    name: V3 Arguments Queries
+    test_name_template: Argument of type <$EDB_TYPE_NAME>
+    max_depth: 4
     excluded:
+      - set
       - object
       - namedtuple
-      - set
     nested_excluded:
       array:
         - array
+    roll_nested: false
     query_templates:
-      - name: Start transaction
-        query: start transaction
-        capabilities: Transaction
-        cardinality: NoResult
-        session:
-          config:
-            session_idle_transaction_timeout: '10:00:00'
-            allow_bare_ddl: AlwaysAllow
-      - name: Create global
-        query: create global <$RAND_NAME_1> -> <$EDB_TYPE_NAME>
-        capabilities: DDL
-        cardinality: NoResult
-        session:
-          config:
-            session_idle_transaction_timeout: '10:00:00'
-            allow_bare_ddl: AlwaysAllow
-      - name: Select global of type <$EDB_TYPE_NAME>
-        query: select global <$RAND_NAME_1>
-        session:
-          globals:
-            <$RAND_NAME_1>: <$VALUE>
-          config:
-            session_idle_transaction_timeout: '10:00:00'
-            allow_bare_ddl: AlwaysAllow
-      - name: Rollback
-        query: rollback
-        capabilities: Transaction
-        cardinality: NoResult
-        session:
-          config:
-            session_idle_transaction_timeout: '10:00:00'
-            allow_bare_ddl: AlwaysAllow
+      - query: SELECT <<$EDB_TYPE_NAME>>$arg
+        arguments:
+          arg: <$VALUE>
+  # - group_id: v2_state
+  #   name: Globals
+  #   test_name_template: Global of type <$EDB_TYPE_NAME>
+  #   max_depth: 3
+  #   excluded:
+  #     - object
+  #     - namedtuple
+  #     - set
+  #   nested_excluded:
+  #     array:
+  #       - array
+  #   query_templates:
+  #     - name: Start transaction
+  #       query: start transaction
+  #       capabilities: Transaction
+  #       cardinality: NoResult
+  #       session:
+  #         config:
+  #           session_idle_transaction_timeout: '10:00:00'
+  #           allow_bare_ddl: AlwaysAllow
+  #     - name: Create global
+  #       query: create global <$RAND_NAME_1> -> <$EDB_TYPE_NAME>
+  #       capabilities: DDL
+  #       cardinality: NoResult
+  #       session:
+  #         config:
+  #           session_idle_transaction_timeout: '10:00:00'
+  #           allow_bare_ddl: AlwaysAllow
+  #     - name: Select global of type <$EDB_TYPE_NAME>
+  #       query: select global <$RAND_NAME_1>
+  #       session:
+  #         globals:
+  #           <$RAND_NAME_1>: <$VALUE>
+  #         config:
+  #           session_idle_transaction_timeout: '10:00:00'
+  #           allow_bare_ddl: AlwaysAllow
+  #     - name: Rollback
+  #       query: rollback
+  #       capabilities: Transaction
+  #       cardinality: NoResult
+  #       session:
+  #         globals: 
+  #         config:
+  #           session_idle_transaction_timeout: '10:00:00'
+  #           allow_bare_ddl: AlwaysAllow

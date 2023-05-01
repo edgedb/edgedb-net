@@ -10,6 +10,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -118,11 +119,16 @@ namespace EdgeDB.TestGenerator.Generators
 
                         try
                         {
+                            var handle = await client.GetOrCreateClientAsync();
+
                             foreach (var queryDefinition in queries)
                             {
+                                if (queryDefinition.ConfigureState is not null)
+                                    handle = queryDefinition.ConfigureState(handle);
+
                                 latestDefinition = queryDefinition;
 
-                                var queryResult = await ExecuteAndGenerateQueryArgs(provider, client, queryDefinition);
+                                var queryResult = await ExecuteAndGenerateQueryArgs(provider, (TestGeneratorClient)handle, queryDefinition);
 
                                 if (queryResult.Cardinality is not Cardinality.NoResult || queryResult.Result is not null)
                                 {
@@ -165,6 +171,8 @@ namespace EdgeDB.TestGenerator.Generators
                             i++;
 
                             group.Tests.Add(testManifest);
+
+                            await handle.DisposeAsync();
                         }
                         catch(Exception x)
                         {
@@ -198,7 +206,7 @@ namespace EdgeDB.TestGenerator.Generators
         private long EstimateComplexity(IValueProvider provider, GenerationRuleSet rules)
         {
             return provider is IWrappingValueProvider wrapping
-                ? 1 + rules.GetRange(wrapping.GetType()).Average() * wrapping.Children!.Sum(x => EstimateComplexity(x, rules))
+                ? 1 + rules.GetRange(wrapping.GetType()).End.Value * (wrapping.Children!.Sum(x => EstimateComplexity(x, rules)) + 1)
                 : 1;
         }
 
@@ -254,12 +262,9 @@ namespace EdgeDB.TestGenerator.Generators
 
         private static async Task<Test.QueryArgs> ExecuteAndGenerateQueryArgs(
             IValueProvider provider,
-            EdgeDBClient client,
+            TestGeneratorClient handle,
             QueryDefinition queryDefinition)
         {
-            await using var handle = (TestGeneratorClient)(queryDefinition.ConfigureState ?? ((c) => c))
-                .Invoke(await client.GetOrCreateClientAsync<TestGeneratorClient>());
-
             try
             {
                 var qArgs = new Test.QueryArgs()
@@ -301,10 +306,13 @@ namespace EdgeDB.TestGenerator.Generators
                     }
                 };
 
-                if (handle.DataDescription.InputTypeDescriptorId != CodecBuilder.NullCodec && queryDefinition.Args is not null)
-                {
-                    var codec = (ObjectCodec)CodecBuilder.GetCodec(handle.DataDescription.InputTypeDescriptorId)!;
+                var inCodec = ResolveInputCodec(handle, queryDefinition);
 
+                if (inCodec is null && queryDefinition.Args is not null && queryDefinition.Args.Any())
+                    throw new ArgumentException("Could not find argument codec");
+
+                if (inCodec is not null && queryDefinition.Args is not null && inCodec is ObjectCodec codec)
+                {
                     var arr = queryDefinition.Args.ToArray();
 
                     for (int i = 0; i != arr.Length; i++)
@@ -332,9 +340,28 @@ namespace EdgeDB.TestGenerator.Generators
             {
                 // reset transaction state
                 if (handle.TransactionState is not TransactionState.NotInTransaction)
-                    await handle.ExecuteAsync("rollback", capabilities: Capabilities.Transaction);
+                    await handle.WithSession(State.Session.Default).ExecuteAsync("rollback", capabilities: Capabilities.Transaction);
                 throw;
             }
+        }
+
+        private static ICodec? ResolveInputCodec(TestGeneratorClient client, QueryDefinition queryDefinition)
+        {
+            var key = CodecBuilder.GetCacheHashKey(queryDefinition.Query, queryDefinition.Cardinality switch
+            {
+                Cardinality.One or Cardinality.AtMostOne => Cardinality.AtMostOne,
+                _ => Cardinality.Many
+            }, IOFormat.Binary);
+
+            if (CodecBuilder.TryGetCodecs(key, out var inCodecInfo, out _))
+                return inCodecInfo.Codec;
+
+            if (client.DataDescription.InputTypeDescriptorId != CodecBuilder.NullCodec && queryDefinition.Args is not null)
+            {
+                return (ObjectCodec)CodecBuilder.GetCodec(client.DataDescription.InputTypeDescriptorId)!;
+            }
+
+            return null;
         }
 
         private List<ITypeDescriptor> GetDescriptors(CommandDataDescription d)

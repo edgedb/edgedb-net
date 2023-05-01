@@ -27,6 +27,7 @@ namespace EdgeDB.TestGenerator
             public class QueryArgument
             {
                 public string? Name { get; set; }
+                [JsonProperty("edgedb_typename")]
                 public string? EdgeDBTypeName { get; set; }
                 public object? Value { get; set; }
             }
