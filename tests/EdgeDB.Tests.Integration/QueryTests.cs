@@ -47,6 +47,19 @@ namespace EdgeDB.Tests.Integration
         }
 
         [TestMethod]
+        public async Task TestCollectionResutls()
+        {
+            await TestTypeQuerying("array<int64>", new long[] { 1, 2, 3 }, Enumerable.SequenceEqual);
+            await TestTypeQuerying("array<int64>", (IEnumerable<long>)new long[] { 1, 2, 3 }, Enumerable.SequenceEqual);
+
+            var result = await _client.QueryAsync<long>("select {1,2,3}");
+
+            Assert.IsNotNull(result);
+            Assert.AreEqual(3, result.Count);
+            Assert.IsTrue(result.SequenceEqual(new List<long> { 1, 2, 3 }));
+        }
+
+        [TestMethod]
         public async Task TestPlainObjectDeserialization()
         {
             var result = await _client.QueryRequiredSingleAsync<dynamic>("select { a := 1, b := 'hello', c := { d := 2, e := 'world'} }");
