@@ -109,6 +109,11 @@ namespace EdgeDB
             if (_properties is null || _propertyIndexTable is null)
                 throw new NullReferenceException("Properties cannot be null");
 
+            if (_type.IsAssignableFrom(typeof(Dictionary<string, object?>)))
+                return (ref ObjectEnumerator enumerator) => new Dictionary<string, object?>(
+                    (IDictionary<string, object?>)enumerator.ToDynamic()!
+                );
+
             // proxy type
             var proxyAttr = _type.GetCustomAttribute<DebuggerTypeProxyAttribute>();
             if (proxyAttr is not null)
