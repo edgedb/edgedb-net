@@ -191,8 +191,13 @@ namespace EdgeDB
             if (_typeBuilderBlacklisted.Contains(type))
                 return false;
 
-            if (type.IsAssignableTo(typeof(IEnumerable)) && type.Assembly.GetName().Name!.StartsWith("System"))
+            if (
+                type.IsAssignableTo(typeof(IEnumerable)) &&
+                type.Assembly.GetName().Name!.StartsWith("System") &&
+                !type.IsAssignableFrom(typeof(Dictionary<string, object?>)))
+            {
                 return false;
+            }
 
             return
                 type == typeof(object) || 
