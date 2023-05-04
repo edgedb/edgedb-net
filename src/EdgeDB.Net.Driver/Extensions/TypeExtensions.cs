@@ -40,9 +40,11 @@ namespace EdgeDB
             }
 
             Type? iface = null;
-            if((iface = type.GetInterfaces().FirstOrDefault(x => x.Name == "IEnumerable`1")) is not null)
+            if(
+                (type.Name == "IEnumerable`1" ? iface = type : null) is not null ||
+                ((iface = type.GetInterfaces().FirstOrDefault(x => x.Name == "IEnumerable`1")) is not null))
             {
-                return iface.GenericTypeArguments[0];
+                return iface!.GenericTypeArguments[0];
             }
 
             throw new NotSupportedException($"Cannot find inner type of {type}");
