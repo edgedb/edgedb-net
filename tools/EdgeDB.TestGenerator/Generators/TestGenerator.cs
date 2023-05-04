@@ -3,6 +3,7 @@ using EdgeDB.Binary.Codecs;
 using EdgeDB.Binary.Packets;
 using EdgeDB.TestGenerator.Mixin;
 using EdgeDB.TestGenerator.ValueProviders;
+using EdgeDB.TestGenerator.ValueProviders.Impl;
 using EdgeDB.Utils;
 using Spectre.Console;
 using System;
@@ -170,7 +171,7 @@ namespace EdgeDB.TestGenerator.Generators
 
                             i++;
 
-                            group.Tests.Add(testManifest);
+                            group.Tests!.Add(testManifest);
 
                             await handle.DisposeAsync();
                         }
@@ -188,8 +189,6 @@ namespace EdgeDB.TestGenerator.Generators
 
                             f++;
                         }
-
-
                     }
 
                     AnsiConsole.MarkupLine($"Generated [green]{set.Count}[/] tests, [red]{f}[/] failed. Discovered {totalNodes} different value nodes");
@@ -205,9 +204,20 @@ namespace EdgeDB.TestGenerator.Generators
 
         private long EstimateComplexity(IValueProvider provider, GenerationRuleSet rules)
         {
-            return provider is IWrappingValueProvider wrapping
-                ? 1 + rules.GetRange(wrapping.GetType()).End.Value * (wrapping.Children!.Sum(x => EstimateComplexity(x, rules)) + 1)
-                : 1;
+            if (provider is not IWrappingValueProvider wrapping)
+                return 1;
+
+            var rangeAvg = rules.GetRange(wrapping.GetType()).Average();
+
+            var baseComplexity = rangeAvg * wrapping.Children!.Sum(x => EstimateComplexity(x, rules));
+
+            if(wrapping is SetValueProvider && (wrapping.Children![0] is TupleValueProvider || wrapping.Children![0] is NamedTupleValueProvider))
+            {
+                // this is worst case of all possible combinations
+                baseComplexity *= (long)Math.Pow(rangeAvg, wrapping.Children.Length);
+            }
+
+            return baseComplexity;
         }
 
         private static string GenerateTree(IValueProvider provider)

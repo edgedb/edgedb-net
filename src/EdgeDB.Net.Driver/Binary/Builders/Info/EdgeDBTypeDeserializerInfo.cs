@@ -118,7 +118,7 @@ namespace EdgeDB
                 // proxy should only have one constructor
                 var ctors = _type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance);
 
-                if (ctors.Length is > 1 or < 0)
+                if (ctors.Length is not 1)
                     throw new InvalidOperationException($"Proxy type {_type} does not have a valid constructor");
 
                 var ctor = ctors[0];

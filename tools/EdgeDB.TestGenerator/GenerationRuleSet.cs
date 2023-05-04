@@ -1,4 +1,4 @@
-﻿using EdgeDB.TestGenerator.ValueProviders;
+using EdgeDB.TestGenerator.ValueProviders;
 using EdgeDB.TestGenerator.ValueProviders.Impl;
 using System.Text;
 using YamlDotNet.Serialization;
@@ -9,6 +9,8 @@ namespace EdgeDB.TestGenerator
     {
         public static Dictionary<Type, Range> DefaultProviderRanges = new Dictionary<Type, Range>
         {
+            { typeof(TupleValueProvider),             2..20 },
+            { typeof(SetValueProvider),               3..20 },
             { typeof(ArrayValueProvider),             5..20 },
             { typeof(BigIntValueProvider),            4..15 },
             { typeof(BytesValueProvider),            10..20 },

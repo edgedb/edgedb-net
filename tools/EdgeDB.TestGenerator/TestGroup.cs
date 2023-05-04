@@ -13,6 +13,6 @@ namespace EdgeDB.TestGenerator
         public string? FileName { get; set; }
         public string? ProtocolVersion { get; set; }
         public string? Name { get; set; }
-        public List<Test> Tests { get; set; } = new();
+        public List<Test>? Tests { get; set; } = new();
     }
 }

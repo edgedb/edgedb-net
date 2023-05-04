@@ -85,7 +85,7 @@ rulesets:
   - group_id: v2_query_results
     name: Deep Query Nesting
     test_name_template: Deep query nesting of type <$EDB_TYPE_NAME>
-    max_depth: 1
+    max_depth: 4
     excluded:
       - json
       - bigint
@@ -151,7 +151,6 @@ rulesets:
         cardinality: NoResult
         session:
           config:
-            session_idle_transaction_timeout: '10:00:00'
             allow_bare_ddl: AlwaysAllow
       - name: Create global
         query: create global <$RAND_NAME_1> -> <$EDB_TYPE_NAME>
@@ -159,7 +158,6 @@ rulesets:
         cardinality: NoResult
         session:
           config:
-            session_idle_transaction_timeout: '10:00:00'
             allow_bare_ddl: AlwaysAllow
       - name: Select global of type <$EDB_TYPE_NAME>
         query: select global <$RAND_NAME_1>
@@ -167,7 +165,6 @@ rulesets:
           globals:
             <$RAND_NAME_1>: <$VALUE>
           config:
-            session_idle_transaction_timeout: '10:00:00'
             allow_bare_ddl: AlwaysAllow
       - name: Rollback
         query: rollback
@@ -176,5 +173,4 @@ rulesets:
         session:
           globals: 
           config:
-            session_idle_transaction_timeout: '10:00:00'
             allow_bare_ddl: AlwaysAllow

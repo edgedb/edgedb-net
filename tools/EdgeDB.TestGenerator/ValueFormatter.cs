@@ -64,12 +64,12 @@ namespace EdgeDB.TestGenerator
                             return new FormatNode
                             {
                                 Type = provider.EdgeDBName,
-                                Value = await FormatCollectionAsync(
+                                Value = new Dictionary<string, INode>(await FormatCollectionAsync(
                                     dictArr,
                                     (v, i) =>
                                         FormatAsync(v.Value, generatedArr[i].Value, progress, wrapping.Children[i], wrapping)
                                         .ContinueWith(r => new KeyValuePair<string, INode>(v.Key, r.Result))
-                                )
+                                ))
                             };
                         }
                     case "object":
@@ -93,12 +93,12 @@ namespace EdgeDB.TestGenerator
                             return new FormatNode
                             {
                                 Type = provider.EdgeDBName,
-                                Value = await FormatCollectionAsync(
+                                Value = new Dictionary<string, INode>(await FormatCollectionAsync(
                                     dictArr,
                                     (v, i) =>
                                         FormatAsync(v.Value, generatedArr[i].Value, progress, wrapping.Children[i], wrapping)
                                         .ContinueWith(r => new KeyValuePair<string, INode>(v.Key, r.Result))
-                                )
+                                ))
                             };
                         }
                     case "tuple":
@@ -179,6 +179,18 @@ namespace EdgeDB.TestGenerator
                                     array,
                                     (v, i) => FormatAsync(v, generatedArray.GetValue(i)!, progress, elementProvider, wrapping)
                                 )
+                            };
+                        }
+                    case "range":
+                        {
+                            if (provider is not IWrappingValueProvider wrapping)
+                                throw new InvalidOperationException("provider is not a wrapping provider");
+
+                            return new CollectionFormatNode
+                            {
+                                Type = provider.EdgeDBName,
+                                ElementType = wrapping.Children![0].EdgeDBName,
+                                Value = edgedbValue
                             };
                         }
                     default:

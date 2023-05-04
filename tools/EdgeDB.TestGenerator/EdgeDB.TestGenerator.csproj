@@ -21,4 +21,8 @@
   <ItemGroup>
     <None Remove="Models\" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="tests\" />
+  </ItemGroup>
 </Project>

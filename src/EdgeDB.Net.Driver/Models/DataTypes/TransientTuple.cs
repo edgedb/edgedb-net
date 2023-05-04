@@ -208,5 +208,27 @@ namespace EdgeDB.DataTypes
                 }
             }
         }
+
+        internal static Type CreateValueTupleType(Type[] elementTypes)
+            => CreateTupleType(t => ValueTupleTypeMap[t.Length - 1].MakeGenericType(t), elementTypes);
+
+        internal static Type CreateReferenceTupleType(Type[] elementTypes)
+            => CreateTupleType(t => ReferenceTupleTypeMap[t.Length - 1].MakeGenericType(t), elementTypes);
+
+        private static Type CreateTupleType(Func<Type[], Type> ctor, Type[] elements, int offset = 0)
+        {
+            if (elements.Length - offset > 7)
+            {
+                var innerTuple = CreateTupleType(ctor, elements, offset + 7);
+
+                var types = new Type[8];
+                types[7] = innerTuple.GetType();
+                elements[offset..(offset + 7)].CopyTo(types, 0);
+
+                return ctor(types);
+            }
+
+            return ctor(elements[offset..]);
+        }
     }
 }

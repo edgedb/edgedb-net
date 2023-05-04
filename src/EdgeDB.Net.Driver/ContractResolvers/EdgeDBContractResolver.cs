@@ -7,9 +7,9 @@ using Newtonsoft.Json.Serialization;
 
 namespace EdgeDB.ContractResolvers
 {
-    internal sealed class EdgeDBContractResolver : DefaultContractResolver
+    internal class EdgeDBContractResolver : DefaultContractResolver
     {
-        protected override JsonContract CreateContract(Type objectType)
+        protected sealed override JsonContract CreateContract(Type objectType)
         {
             var contract = base.CreateContract(objectType);
 
@@ -23,7 +23,7 @@ namespace EdgeDB.ContractResolvers
             return contract;
         }
 
-        protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
+        protected sealed override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
         {
             var property = base.CreateProperty(member, memberSerialization);
 
@@ -44,7 +44,7 @@ namespace EdgeDB.ContractResolvers
             return property;
         }
 
-        private static JsonConverter? GetConverter(Type type)
+        protected virtual JsonConverter? GetConverter(Type type)
         {
             // range type
             if (ReflectionUtils.IsSubclassOfRawGeneric(typeof(DataTypes.Range<>), type))

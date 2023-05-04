@@ -22,7 +22,4 @@
   <ItemGroup>
     <None Remove="SharedTests\" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="SharedTests\" />
-  </ItemGroup>
 </Project>

@@ -7,6 +7,9 @@
 tests/EdgeDB.Tests.Integration/coveragereports
 CoverageReport
 
+# tes generator files
+tools/EdgeDB.TestGenerator/tests
+
 # User-specific files
 *.rsuser
 *.suo

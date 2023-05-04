@@ -6,6 +6,7 @@ using EdgeDB.ContractResolvers;
 using EdgeDB.TestGenerator;
 using EdgeDB.TestGenerator.Generators;
 using EdgeDB.TestGenerator.Mixin;
+using EdgeDB.TestGenerator.OutputWriters;
 using EdgeDB.TestGenerator.ValueProviders;
 using EdgeDB.TestGenerator.ValueProviders.Impl;
 using Newtonsoft.Json;
@@ -16,6 +17,8 @@ using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
 const string TestManifestFile = "test_manifest.yaml";
+
+var outputWriter = new SpreadOutputWriter();
 
 var client = new EdgeDBClient(new EdgeDBClientPoolConfig
 {
@@ -79,38 +82,9 @@ foreach(var generator in generators)
 
 AnsiConsole.Write(new Rule("Finishing up"));
 
-foreach(var group in tests)
-{
-    await AnsiConsole.Status()
-        .Spinner(Spinner.Known.BouncingBar)
-        .StartAsync("Encoding to json...", async ctx =>
-        {
-            var path = Path.Combine(Environment.CurrentDirectory, "tests");
+Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory, "tests"));
 
-            Directory.CreateDirectory(path);
-
-            path = Path.Combine(path, $"{group.FileName!}.json");
-
-            if (File.Exists(path))
-                File.Delete(path);
-
-            using var fs = File.OpenWrite(path);
-            using var writer = new StreamWriter(fs);
-            using var jsonWriter = new JsonTextWriter(writer);
-
-            var serializer = new JsonSerializer
-            {
-                ContractResolver = new EdgeDBContractResolver()
-                {
-                    NamingStrategy = new Newtonsoft.Json.Serialization.SnakeCaseNamingStrategy()   
-                }
-            };
-            serializer.Serialize(jsonWriter, group);
-
-            ctx.Status("Writing to disc...");
-            await jsonWriter.FlushAsync();
-        });
-}
+await outputWriter.WriteAsync(Path.Combine(Environment.CurrentDirectory, "tests"), tests);
 
 AnsiConsole.MarkupLine("Test generation [green]complete![/]");
 
