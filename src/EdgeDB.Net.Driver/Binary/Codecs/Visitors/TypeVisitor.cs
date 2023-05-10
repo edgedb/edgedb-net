@@ -58,15 +58,23 @@ namespace EdgeDB.Binary.Codecs
             {
                 case ObjectCodec obj:
                     {
-                        obj.Initialize(Context.Type);
+                        if (obj is TypeInitializedObjectCodec typeCodec)
+                        {
+                            if (typeCodec.TargetType != Context.Type)
+                                typeCodec = typeCodec.Parent.GetOrCreateTypeCodec(Context.Type);
+                        }
+                        else
+                        {
+                            typeCodec = obj.GetOrCreateTypeCodec(Context.Type);
+                        }
 
-                        if (obj.TargetType is null || obj.DeserializerInfo is null)
+                        if (typeCodec.TargetType is null || typeCodec.Deserializer is null)
                             throw new NullReferenceException("Could not find deserializer info for object codec.");
 
-                        using var objHandle = EnterNewContext(obj.TargetType, obj.TargetType.Name, obj.DeserializerInfo);
+                        using var objHandle = EnterNewContext(typeCodec.TargetType, typeCodec.TargetType.Name, typeCodec.Deserializer);
                         for (int i = 0; i != obj.InnerCodecs.Length; i++)
                         {
-                            var innerCodec = obj.InnerCodecs[i];
+                            ref var innerCodec = ref obj.InnerCodecs[i];
                             var name = obj.PropertyNames[i];
 
                             // use the defined type, if not found, use the codecs type
@@ -86,9 +94,9 @@ namespace EdgeDB.Binary.Codecs
                             Visit(ref innerCodec);
 
                             _logger.CodecVisitorMutatedCodec(Depth, obj.InnerCodecs[i], innerCodec);
-
-                            obj.InnerCodecs[i] = innerCodec;
                         }
+
+                        codec = typeCodec;
                     }
                     break;
                 case TupleCodec tuple:
