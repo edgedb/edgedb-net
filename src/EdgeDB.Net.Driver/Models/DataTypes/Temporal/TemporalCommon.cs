@@ -13,6 +13,7 @@ namespace EdgeDB.DataTypes
 
         private const long MicrosecondsPerDay = 86400000000;
         private const long MicrosecondsPerMonth = MicrosecondsPerDay * 31;
+        private const int TicksPerMicrosecond = 10;
 
         public static DateTimeOffset DateTimeOffsetFromMicroseconds(long microseconds, bool preserveTimezone = false)
         {
@@ -58,7 +59,7 @@ namespace EdgeDB.DataTypes
 #if NET7_0_OR_GREATER
                 (long)Math.Round(offset.TotalMicroseconds);
 #else
-                (long)Math.Round(offset.TotalMilliseconds * 1000);
+                (long)Math.Round((double)offset.Ticks / TicksPerMicrosecond);
 #endif
         }
 

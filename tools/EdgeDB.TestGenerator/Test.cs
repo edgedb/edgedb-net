@@ -1,4 +1,5 @@
 using EdgeDB.Binary;
+using EdgeDB.State;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -23,6 +24,7 @@ namespace EdgeDB.TestGenerator
             public string? Value { get; set; }
             public List<QueryArgument>? Arguments { get; set; }
             public EdgeDB.Capabilities Capabilities { get; set; }
+            public Session? Session { get; set; }
 
             public class QueryArgument
             {

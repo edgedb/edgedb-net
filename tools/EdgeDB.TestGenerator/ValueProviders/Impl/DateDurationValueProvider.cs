@@ -1,3 +1,4 @@
+using EdgeDB.DataTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,23 +8,21 @@ using static EdgeDB.TestGenerator.ValueGenerator;
 
 namespace EdgeDB.TestGenerator.ValueProviders.Impl
 {
-    internal class DateDurationValueProvider : IValueProvider<TimeSpan>
+    internal class DateDurationValueProvider : IValueProvider<DateDuration>
     {
         public string EdgeDBName => "cal::date_duration";
 
-        public TimeSpan GetRandom(GenerationRuleSet rules)
+        public DateDuration GetRandom(GenerationRuleSet rules)
         {
-            var r = rules.Random.NextDouble();
+            var days = rules.Random.Next(rules.GetRange<DateDurationValueProvider>());
 
-            r *= Math.Pow(10, rules.Random.Next(rules.GetRange<DateDurationValueProvider>()));
+            if (rules.Random.Next() % 2 == 1)
+                days *= -1;
 
-            if (rules.Random.Next() % 2 == 0)
-                r *= -1;
-
-            return TimeSpan.FromMilliseconds(r);
+            return new DateDuration(days);
         }
 
-        public string ToEdgeQLFormat(TimeSpan value) => $"<cal::date_duration>'{(long)Math.Ceiling(value.TotalDays)} days'";
+        public string ToEdgeQLFormat(DateDuration value) => $"<cal::date_duration>'{(long)Math.Ceiling(value.TimeSpan.TotalDays)} days'";
         public override string ToString() => EdgeDBName;
     }
 }

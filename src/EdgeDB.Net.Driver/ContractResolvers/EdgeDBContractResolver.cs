@@ -56,6 +56,27 @@ namespace EdgeDB.ContractResolvers
             if (type == typeof(Json))
                 return JsonDatatypeConverter.Instance;
 
+            if (type == typeof(DateDuration))
+                return DateDurationConverter.Instance;
+
+            if (type == typeof(DataTypes.DateTime))
+                return DateTimeConverter.Instance;
+
+            if (type == typeof(Duration))
+                return DurationConverter.Instance;
+
+            if (type == typeof(LocalDate))
+                return LocalDateConverter.Instance;
+
+            if (type == typeof(LocalDateTime))
+                return LocalDateTimeConverter.Instance;
+
+            if (type == typeof(LocalTime))
+                return LocalTimeConverter.Instance;
+
+            if (type == typeof(RelativeDuration))
+                return RelativeDurationConverter.Instance;
+
             return null;
         }
     }

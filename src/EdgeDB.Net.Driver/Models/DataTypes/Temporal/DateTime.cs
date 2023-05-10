@@ -11,7 +11,7 @@ namespace EdgeDB.DataTypes
     /// <summary>
     ///     A struct representing a timezone-aware moment in time.
     /// </summary>
-    public readonly struct DateTime
+    public readonly struct DateTime : IComparable<DateTime>, IComparable
     {
         /// <summary>
         ///     Gets a <see cref="DateTimeOffset"/> that represents this <see cref="DateTime"/>.
@@ -82,6 +82,22 @@ namespace EdgeDB.DataTypes
         /// <inheritdoc/>
         public override int GetHashCode()
             => _microseconds.GetHashCode();
+
+        public int CompareTo(DateTime other)
+        {
+            return DateTimeOffset.CompareTo(other.DateTimeOffset);
+        }
+
+        public int CompareTo(object? obj)
+        {
+            if (obj is null)
+                return 1;
+
+            if (obj is not DateTime dt)
+                throw new ArgumentException("Argument type must be a DateTime");
+
+            return CompareTo(dt);
+        }
 
         /// <summary>
         ///     Gets a <see cref="DateTime"/> object whos date and time are set to the current UTC time.

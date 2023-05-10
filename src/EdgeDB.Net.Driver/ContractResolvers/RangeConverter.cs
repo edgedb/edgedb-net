@@ -17,10 +17,10 @@ namespace EdgeDB.ContractResolvers
 
             var rangePointType = objectType.GenericTypeArguments[0];
 
-            var lower = jObj["lower"]?.ToObject(rangePointType);
-            var upper = jObj["upper"]?.ToObject(rangePointType);
-            var includeLower = jObj["inc_lower"]?.ToObject<bool>() ?? true;
-            var includeUpper = jObj["inc_upper"]?.ToObject<bool>() ?? false;
+            var lower = jObj["lower"]?.ToObject(rangePointType, serializer);
+            var upper = jObj["upper"]?.ToObject(rangePointType, serializer);
+            var includeLower = jObj["inc_lower"]?.ToObject<bool>(serializer) ?? true;
+            var includeUpper = jObj["inc_upper"]?.ToObject<bool>(serializer) ?? false;
 
             return Activator.CreateInstance(objectType, lower, upper, includeLower, includeUpper);
         }

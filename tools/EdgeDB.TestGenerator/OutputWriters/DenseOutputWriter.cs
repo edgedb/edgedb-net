@@ -11,6 +11,16 @@ namespace EdgeDB.TestGenerator.OutputWriters
 {
     internal class DenseOutputWriter : IOutputWriter
     {
+        private static readonly JsonSerializer _serializer = new()
+        {
+            Formatting = Formatting.Indented,
+            DateFormatString = "yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFK",
+            ContractResolver = new EdgeDBContractResolver()
+            {   
+                NamingStrategy = new Newtonsoft.Json.Serialization.SnakeCaseNamingStrategy()
+            }
+        };
+
         public async Task WriteAsync(string root, List<TestGroup> tests)
         {
             foreach (var group in tests)
@@ -28,15 +38,7 @@ namespace EdgeDB.TestGenerator.OutputWriters
                         using var writer = new StreamWriter(fs);
                         using var jsonWriter = new JsonTextWriter(writer);
 
-                        var serializer = new JsonSerializer
-                        {
-                            Formatting = Formatting.Indented,
-                            ContractResolver = new EdgeDBContractResolver()
-                            {
-                                NamingStrategy = new Newtonsoft.Json.Serialization.SnakeCaseNamingStrategy()
-                            }
-                        };
-                        serializer.Serialize(jsonWriter, group);
+                        _serializer.Serialize(jsonWriter, group);
 
                         ctx.Status("Writing to disc...");
                         await jsonWriter.FlushAsync();

@@ -8,11 +8,16 @@ using static EdgeDB.TestGenerator.ValueGenerator;
 
 namespace EdgeDB.TestGenerator.ValueProviders.Impl
 {
-    internal class DateTimeValueProvider : IValueProvider<DateTime>
+    internal class DateTimeValueProvider : IValueProvider<DataTypes.DateTime>
     {
         public string EdgeDBName => "std::datetime";
-        public DateTime GetRandom(GenerationRuleSet rules) => RandomDateTime.Next(rules.Random);
-        public string ToEdgeQLFormat(DateTime value) => $"<datetime>'{(DateTimeOffset)value:O}'";
+
+        public DataTypes.DateTime GetRandom(GenerationRuleSet rules)
+            => RandomDateTime.Next(rules.Random);
+
+        public string ToEdgeQLFormat(DataTypes.DateTime value)
+            => $"<datetime>'{(DateTimeOffset)value:yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFK}'";
+
         public override string ToString() => EdgeDBName;
     }
 }

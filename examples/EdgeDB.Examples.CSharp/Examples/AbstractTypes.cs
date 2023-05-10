@@ -1,5 +1,6 @@
 using EdgeDB.State;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -43,7 +44,10 @@ namespace EdgeDB.ExampleApp.Examples
 
         public async Task ExecuteAsync(EdgeDBClient client)
         {
-            var t = await client.QueryAsync<Dictionary<string, object?>>("select (a := 1, b := 'sre')");
+            var str = "11.996639232149645";
+
+            var a = decimal.Parse(str);
+            var b = double.Parse(str);
 
             // select the abstract type from the schema.
             // Note that the type builder will 'discover' the types that inherit

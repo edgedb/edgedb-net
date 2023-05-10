@@ -10,7 +10,7 @@ namespace EdgeDB.DataTypes
     /// <summary>
     ///     A struct representing a time without a timezone.
     /// </summary>
-    public readonly struct LocalTime
+    public readonly struct LocalTime : IComparable<LocalTime>, IComparable
     {
         /// <summary>
         ///     Gets a <see cref="System.TimeOnly"/> that represents this <see cref="LocalTime"/>.
@@ -75,6 +75,22 @@ namespace EdgeDB.DataTypes
 
         /// <inheritdoc/>
         public override int GetHashCode() => _microseconds.GetHashCode();
+
+        public int CompareTo(LocalTime other)
+        {
+            return TimeSpan.CompareTo(other.TimeSpan);
+        }
+
+        public int CompareTo(object? obj)
+        {
+            if (obj is null)
+                return 1;
+
+            if (obj is not LocalTime time)
+                throw new ArgumentException("Argument type must be a LocalTime");
+
+            return CompareTo(time);
+        }
 
         public static implicit operator TimeOnly(LocalTime t) => t.TimeOnly;
         public static implicit operator TimeSpan(LocalTime t) => t.TimeSpan;

@@ -16,6 +16,7 @@ namespace EdgeDB.TestGenerator.OutputWriters
         {
             NullValueHandling = NullValueHandling.Ignore,
             Formatting = Formatting.Indented,
+            DateFormatString = "yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFK",
             ContractResolver = new EdgeDBContractResolver()
             {
                 NamingStrategy = new Newtonsoft.Json.Serialization.SnakeCaseNamingStrategy()

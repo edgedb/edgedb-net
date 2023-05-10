@@ -12,6 +12,8 @@ namespace EdgeDB.Tests.Integration.SharedTests.Json
 {
     internal class ResultNodeConverter : JsonConverter
     {
+        public static readonly ResultNodeConverter Instance = new();
+
         public override bool CanConvert(Type objectType) => true;
 
         public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
@@ -41,7 +43,7 @@ namespace EdgeDB.Tests.Integration.SharedTests.Json
             return resultArray;
         }
 
-        private object? ReadNode(JObject obj, JsonSerializer serializer)
+        private IResultNode ReadNode(JObject obj, JsonSerializer serializer)
         {
             var nodeType = (string?)obj["type"];
 
@@ -60,7 +62,7 @@ namespace EdgeDB.Tests.Integration.SharedTests.Json
                         Type = nodeType,
                         Value = ((JObject)obj["value"]!)
                             .Properties()
-                            .ToDictionary(x => x.Name, x => ReadNodeValue(x.Value, serializer))
+                            .ToDictionary(x => x.Name, x => (IResultNode)ReadNodeValue(x.Value, serializer)!) // should never be array of nodes
                     };
                 case "tuple":
                     {
@@ -90,15 +92,33 @@ namespace EdgeDB.Tests.Integration.SharedTests.Json
                         return new ResultNode()
                         {
                             Type = nodeType,
-                            Value = obj["value"]!.ToObject(rangeType)
+                            Value = obj["value"]!.ToObject(rangeType, serializer)
                         };
                     }
                 default:
-                    // should be scalar?
+                    // should be scalar
+                    var value = obj["value"]!.ToObject(ResultTypeBuilder.TryGetScalarType(nodeType, out var type) ? type : typeof(object), serializer);
+
+                    // newtonsoft.json only allows one root decmial type, if you want double or float, it
+                    // will cast down from decimal to double, which will lose precision. To fix this, we
+                    // explcitly tell newtonsoft.json to read the value as a string, then parse it ourselves.
+                    switch (nodeType)
+                    {
+                        case "std::float32":
+                            value = float.Parse((string)value!);
+                            break;
+                        case "std::float64":
+                            value = double.Parse((string)value!);
+                            break;
+                        case "std::decimal":
+                            value = decimal.Parse((string)value!);
+                            break;
+                    }
+
                     return new ResultNode()
                     {
                         Type = nodeType,
-                        Value = obj["value"]!.ToObject(ResultTypeBuilder.TryGetScalarType(nodeType, out var type) ? type : typeof(object), serializer)
+                        Value = value
                     };
 
             }
@@ -111,7 +131,7 @@ namespace EdgeDB.Tests.Integration.SharedTests.Json
         {
             if (value is JArray arr)
             {
-                var resultArray = new object?[arr.Count];
+                var resultArray = new IResultNode[arr.Count];
 
                 for (int i = 0; i != arr.Count; i++)
                 {

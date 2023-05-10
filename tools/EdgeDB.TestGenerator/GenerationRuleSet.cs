@@ -9,20 +9,20 @@ namespace EdgeDB.TestGenerator
     {
         public static Dictionary<Type, Range> DefaultProviderRanges = new Dictionary<Type, Range>
         {
-            { typeof(TupleValueProvider),             2..20 },
-            { typeof(SetValueProvider),               3..20 },
-            { typeof(ArrayValueProvider),             5..20 },
-            { typeof(BigIntValueProvider),            4..15 },
-            { typeof(BytesValueProvider),            10..20 },
-            { typeof(DateDurationValueProvider),       ..15 },
-            { typeof(DecimalValueProvider),            ..100 },
-            { typeof(DurationValueProvider),           ..500 },
-            { typeof(Float32ValueProvider),            ..100 },
-            { typeof(Float64ValueProvider),            ..100 },
-            { typeof(Int16ValueProvider),              ..short.MaxValue },
-            { typeof(Int32ValueProvider),              ..int.MaxValue },
-            { typeof(RelativeDurationValueProvider),   ..100 },
-            { typeof(StringValueProvider),           15..15 }
+            { typeof(TupleValueProvider),                     2..20 },
+            { typeof(SetValueProvider),                       3..20 },
+            { typeof(ArrayValueProvider),                     5..20 },
+            { typeof(BigIntValueProvider),                    4..15 },
+            { typeof(BytesValueProvider),                    10..20 },
+            { typeof(DateDurationValueProvider),               ..short.MaxValue },
+            { typeof(DecimalValueProvider),                    ..100 },
+            { typeof(DurationValueProvider),                   ..500 },
+            { typeof(Float32ValueProvider),                    ..100 },
+            { typeof(Float64ValueProvider),                    ..100 },
+            { typeof(Int16ValueProvider),                      ..short.MaxValue },
+            { typeof(Int32ValueProvider),                      ..int.MaxValue },
+            { typeof(RelativeDurationValueProvider),           ..100 },
+            { typeof(StringValueProvider),                   15..15 }
         };
 
         public string? Name { get; set; }

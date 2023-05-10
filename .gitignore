@@ -4,6 +4,7 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 # test coverage
+tests/EdgeDB.Tests.Integration/tests
 tests/EdgeDB.Tests.Integration/coveragereports
 CoverageReport
 

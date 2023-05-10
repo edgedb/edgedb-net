@@ -165,6 +165,7 @@ namespace EdgeDB.TestGenerator.Generators
                                     }
                                 }
 
+                                queryResult.Session = handle.Session;
 
                                 testManifest.Queries.Add(queryResult);
                             }
@@ -202,20 +203,42 @@ namespace EdgeDB.TestGenerator.Generators
             return 1 + (provider is IWrappingValueProvider wrapping ? wrapping.Children!.Sum(x => CountSetNodes(x)) : 0);
         }
 
-        private long EstimateComplexity(IValueProvider provider, GenerationRuleSet rules)
+        private long EstimateComplexity(IValueProvider provider, GenerationRuleSet rules, int depth = 0)
         {
             if (provider is not IWrappingValueProvider wrapping)
-                return 1;
+                return 1 + depth;
 
             var rangeAvg = rules.GetRange(wrapping.GetType()).Average();
 
-            var baseComplexity = rangeAvg * wrapping.Children!.Sum(x => EstimateComplexity(x, rules));
+            var baseComplexity = rangeAvg * wrapping.Children!.Sum(x => EstimateComplexity(x, rules, depth + 1));
 
-            if(wrapping is SetValueProvider && (wrapping.Children![0] is TupleValueProvider || wrapping.Children![0] is NamedTupleValueProvider))
+            if (wrapping is TupleValueProvider or NamedTupleValueProvider)
             {
-                // this is worst case of all possible combinations
-                baseComplexity *= (long)Math.Pow(rangeAvg, wrapping.Children.Length);
+                if (depth == 0)
+                    baseComplexity *= rangeAvg * wrapping.Children!.Length;
+                else if (wrapping.Children!.Any(x => x is SetValueProvider))
+                {
+                    // multiply all set lengths with eachother, then multiply that into our total, AxBx..
+                    var sets = wrapping.Children!
+                        .Where(x => x is SetValueProvider)
+                        .Cast<IWrappingValueProvider>();
+
+                    var setCount = sets.Count();
+                    var averageSetChildren = (long)Math.Ceiling(sets.Average(x => x.Children!.Length));
+                    var childrenLength = wrapping.Children!.Length;
+                    var cartesianProduct = sets
+                        .Select(x => EstimateComplexity(x, rules, depth + 1))
+                        .Aggregate((a, b) => a * b);
+
+                    baseComplexity = ((baseComplexity * (setCount * averageSetChildren) * cartesianProduct) / childrenLength) * depth;
+                }
             }
+            else if (wrapping is SetValueProvider)
+            {
+                if (wrapping.Children![0] is TupleValueProvider or NamedTupleValueProvider)
+                    baseComplexity *= rangeAvg * wrapping.Children!.Length * depth;
+            }
+
 
             return baseComplexity;
         }

@@ -10,7 +10,7 @@ namespace EdgeDB.DataTypes
     /// <summary>
     ///     A struct representing a span of time.
     /// </summary>
-    public readonly struct Duration
+    public readonly struct Duration : IComparable<Duration>, IComparable
     {
         /// <summary>
         ///     Gets a <see cref="System.TimeSpan"/> that represents the current <see cref="Duration"/>.
@@ -57,6 +57,22 @@ namespace EdgeDB.DataTypes
 
         /// <inheritdoc/>
         public override int GetHashCode() => _microseconds.GetHashCode();
+
+        public int CompareTo(Duration other)
+        {
+            return TimeSpan.CompareTo(other.TimeSpan);
+        }
+
+        public int CompareTo(object? obj)
+        {
+            if (obj is null)
+                return 1;
+
+            if (obj is not Duration duration)
+                throw new ArgumentException("Argument type must be a Duration");
+
+            return CompareTo(duration);
+        }
 
         public static implicit operator TimeSpan(Duration t) => t.TimeSpan;
         public static implicit operator Duration(TimeSpan t) => new(t);

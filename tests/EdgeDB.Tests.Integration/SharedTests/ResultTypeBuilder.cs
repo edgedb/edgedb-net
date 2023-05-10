@@ -45,16 +45,18 @@ namespace EdgeDB.Tests.Integration.SharedTests
                 "bytes" => typeof(byte[]),
                 "str" => typeof(string),
                 "local_date" => typeof(DataTypes.LocalDate),
+                "local_time" => typeof(DataTypes.LocalTime),
                 "local_datetime" => typeof(DataTypes.LocalDateTime),
                 "relative_duration" => typeof(DataTypes.RelativeDuration),
                 "datetime" => typeof(DataTypes.DateTime),
                 "duration" => typeof(DataTypes.Duration),
-                "float32" => typeof(float),
-                "float64" => typeof(double),
+                "date_duration" => typeof(DataTypes.DateDuration),
+                "float32" => typeof(string),
+                "float64" => typeof(string),
                 "int16" => typeof(short),
                 "int32" => typeof(int),
                 "int64" => typeof(long),
-                "decimal" => typeof(decimal),
+                "decimal" => typeof(string),
                 "bigint" => typeof(BigInteger),
                 "json" => typeof(DataTypes.Json),
                 "uuid" => typeof(Guid),
@@ -68,15 +70,15 @@ namespace EdgeDB.Tests.Integration.SharedTests
         {
             if (obj is object[] arr)
             {
-                return arr.Cast<IResultNode>().SelectMany(CreateResultTypes);
+                return arr.Cast<IResultNode>().SelectMany(x => CreateResultTypes(x, root: true));
             }
             else if (obj is IResultNode node)
-                return CreateResultTypes(node);
+                return CreateResultTypes(node, root: true);
             else
                 throw new InvalidOperationException($"unknown object type '{obj.GetType().Name}'");
         }
 
-        public static IEnumerable<Type> CreateResultTypes(IResultNode node)
+        public static IEnumerable<Type> CreateResultTypes(IResultNode node, bool root = false)
         {
             switch (node.Type)
             {
@@ -101,6 +103,9 @@ namespace EdgeDB.Tests.Integration.SharedTests
                             yield return TransientTuple.CreateValueTupleType(arr);
                             yield return TransientTuple.CreateReferenceTupleType(arr);
                         }
+
+                        if (node.Type is "namedtuple")
+                            yield return typeof(Dictionary<string, object>);
                     }
                     break;
                 case "range":
@@ -108,7 +113,26 @@ namespace EdgeDB.Tests.Integration.SharedTests
                     if (node.Value.GetType() == typeof(EdgeDB.DataTypes.Range<int>))
                         yield return typeof(System.Range);
                     break;
-                case "set" or "array":
+                case "set" when root:
+                    {
+                        // sets of sets are collapsed into one set
+                        if (node.Value is not Array arr)
+                            throw new InvalidOperationException("Node value must be an array");
+                        var elementTypes = new List<Type>();
+
+                        if (arr.Length == 0)
+                            elementTypes.Add(typeof(object));
+                        else
+                        {
+                            // peek child
+                            elementTypes.AddRange(CreateResultTypes((IResultNode)arr.GetValue(0)!));
+                        }
+
+                        foreach (var elementType in elementTypes)
+                            yield return elementType;
+                    }
+                    break;
+                case "set" or "array" when !root || node.Type != "set":
                     {
                         if (node.Value is not Array arr)
                             throw new InvalidOperationException("Node value must be an array");
@@ -245,28 +269,35 @@ namespace EdgeDB.Tests.Integration.SharedTests
 
         private static List<Dictionary<string, Type>> CreatePropertyDefinitions(Dictionary<string, IResultNode> props)
         {
-            var map = new List<Dictionary<string, Type>>();
+            var maps = new List<Dictionary<string, Type>>();
 
             foreach(var prop in props)
             {
                 var types = CreateResultTypes(prop.Value);
+                var dict = new List<Dictionary<string, Type>>();
 
-                foreach(var type in types)
+                if(maps.Any())
                 {
-                    var a = map.Select(x =>
+                    foreach (var map in maps)
                     {
-                        var b = new Dictionary<string, Type>(x)
+                        foreach (var type in types)
                         {
-                            { prop.Key, type }
-                        };
-                        return b;
-                    });
-
-                    map.AddRange(a);
+                            dict.Add(new Dictionary<string, Type>(map) { { prop.Key, type } });
+                        }
+                    }
                 }
+                else
+                {
+                    foreach (var type in types)
+                    {
+                        dict.Add(new Dictionary<string, Type>() { { prop.Key, type } });
+                    }
+                }
+
+                maps = dict;
             }
 
-            return map;
+            return maps;
         }
 
         private static string GetTypeName(IResultNode node)
@@ -274,11 +305,12 @@ namespace EdgeDB.Tests.Integration.SharedTests
             var sb = new StringBuilder();
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
             sb.Append(Enumerable.Repeat(chars, 10)
-                .Select(s => s[Random.Shared.Next(s.Length)]));
+                .Select(s => s[Random.Shared.Next(s.Length)]).ToArray());
 
             sb.Append(node.GetHashCode());
 
-            return sb.ToString();
+            var str = sb.ToString();
+            return str;
         }
     }
 }

@@ -13,7 +13,7 @@ namespace EdgeDB.DataTypes
     /// <remarks>
     ///     This type is only available in EdgeDB 2.0 or later.
     /// </remarks>
-    public readonly struct DateDuration
+    public readonly struct DateDuration : IComparable<DateDuration>, IComparable
     {
         /// <summary>
         ///     Gets a <see cref="System.TimeSpan"/> that represents the current <see cref="DateDuration"/>.
@@ -53,8 +53,8 @@ namespace EdgeDB.DataTypes
         /// <param name="timespan">The timespan to use to contruct this <see cref="DateDuration"/>.</param>
         public DateDuration(TimeSpan timespan)
         {
-            _days = (int)Math.Truncate(timespan.TotalDays) % 31;
-            _months = (int)Math.Floor((int)Math.Truncate(timespan.TotalDays) / 31d);
+            _days = (int)Math.Round(timespan.TotalDays);
+            _months = 0;
         }
 
         /// <inheritdoc/>
@@ -69,6 +69,22 @@ namespace EdgeDB.DataTypes
         /// <inheritdoc/>
         public override int GetHashCode()
             => base.GetHashCode();
+
+        public int CompareTo(DateDuration other)
+        {
+            return TimeSpan.CompareTo(other.TimeSpan);
+        }
+
+        public int CompareTo(object? obj)
+        {
+            if (obj is null)
+                return 1;
+
+            if (obj is not DateDuration dateDuration)
+                throw new ArgumentException("Argument type must be a DateDuration");
+
+            return CompareTo(dateDuration);
+        }
 
         public static implicit operator TimeSpan(DateDuration t) => t.TimeSpan;
         public static implicit operator DateDuration(TimeSpan t) => new(t);

@@ -74,7 +74,7 @@ namespace EdgeDB.Binary.Codecs
                             // if the inner is compilable, use its inner type and set the real
                             // flag, since compileable visits only care about the inner type rather
                             // than a concrete root.
-                            var hasPropInfo = Context.Deserializer!.PropertyMap.TryGetValue(name, out var propInfo);
+                            var hasPropInfo = Context.Deserializer!.PropertyMapInfo.Map.TryGetValue(name, out var propInfo);
 
                             var propType = hasPropInfo
                                 ? propInfo!.Type
@@ -95,7 +95,7 @@ namespace EdgeDB.Binary.Codecs
                 case TupleCodec tuple:
                     {
                         var tupleTypes = Context.Type.IsAssignableTo(typeof(ITuple)) && Context.Type != typeof(TransientTuple)
-                            ? DataTypes.TransientTuple.FlattenTypes(Context.Type)
+                            ? TransientTuple.FlattenTypes(Context.Type)
                             : null;
 
                         if (tupleTypes is not null && tupleTypes.Length != tuple.InnerCodecs.Length)

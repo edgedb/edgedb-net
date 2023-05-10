@@ -3,8 +3,9 @@
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <Nullable>enable</Nullable>
-
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <IsPackable>false</IsPackable>
+    <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,10 +17,22 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\generators\EdgeDB.Generators.SharedTests\EdgeDB.Generators.SharedTests.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\src\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <None Remove="SharedTests\" />
+    <None Remove="tests\v2_arguments.json" />
+    <None Remove="tests\v2_query_results.json" />
+    <None Remove="tests\v2_state.json" />
+    <None Remove="tests\v3_arguments.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="tests\v2_arguments.json" />
+    <AdditionalFiles Include="tests\v2_query_results.json" />
+    <AdditionalFiles Include="tests\v2_state.json" />
+    <AdditionalFiles Include="tests\v3_arguments.json" />
   </ItemGroup>
 </Project>

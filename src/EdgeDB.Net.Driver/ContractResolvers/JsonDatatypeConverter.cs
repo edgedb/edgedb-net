@@ -9,7 +9,7 @@ namespace EdgeDB.ContractResolvers
 
         public override Json ReadJson(JsonReader reader, Type objectType, Json existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
-            return new Json(reader.ReadAsString());
+            return new Json((string?)reader.Value);
         }
 
         public override void WriteJson(JsonWriter writer, Json value, JsonSerializer serializer)

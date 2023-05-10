@@ -24,7 +24,7 @@ var client = new EdgeDBClient(new EdgeDBClientPoolConfig
 {
     ClientType = EdgeDBClientType.Custom,
     ClientFactory = (i, con, conf) => ValueTask.FromResult((BaseEdgeDBClient)new TestGeneratorClient(con, conf, null!, i)),
-    PreferSystemTemporalTypes = true,
+    PreferSystemTemporalTypes = false,
     DefaultPoolSize = 100,
     ConnectionTimeout = 30000,
     MessageTimeout = 600000,

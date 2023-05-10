@@ -8,11 +8,16 @@ using static EdgeDB.TestGenerator.ValueGenerator;
 
 namespace EdgeDB.TestGenerator.ValueProviders.Impl
 {
-    internal class LocalTimeValueProvider : IValueProvider<TimeOnly>
+    internal class LocalTimeValueProvider : IValueProvider<DataTypes.LocalTime>
     {
         public string EdgeDBName => "cal::local_time";
-        public TimeOnly GetRandom(GenerationRuleSet rules) => TimeOnly.FromDateTime(RandomDateTime.Next(rules.Random));
-        public string ToEdgeQLFormat(TimeOnly value) => $"<cal::local_time>'{value:hh:mm}'";
+
+        public DataTypes.LocalTime GetRandom(GenerationRuleSet rules)
+            => TimeOnly.FromDateTime(RandomDateTime.Next(rules.Random));
+
+        public string ToEdgeQLFormat(DataTypes.LocalTime value)
+            => $"<cal::local_time>'{value.TimeSpan:c}'";
+
         public override string ToString() => EdgeDBName;
     }
 }

@@ -1,5 +1,6 @@
 using EdgeDB.DataTypes;
 using EdgeDB.TestGenerator.ValueProviders;
+using EdgeDB.TestGenerator.ValueProviders.Impl;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -160,7 +161,43 @@ namespace EdgeDB.TestGenerator
                                 }
                                 else if(parent is null && wrapping.Children![0].EdgeDBName == "set")
                                 {
-                                    return await FormatAsync(edgedbValue, generatedArray, progress, wrapping.Children![0], wrapping);
+                                    var elementChild = wrapping.Children[0];
+
+                                    while (elementChild is SetValueProvider set)
+                                        elementChild = set.Children![0];
+
+                                    var generatedArrayFlattened = new List<object?>();
+
+                                    void AddElement(object? element)
+                                    {
+                                        Array? arr = element is Array a
+                                            ? a
+                                            : element is IEnumerable e
+                                                ? e.Cast<object?>().ToArray()
+                                                : null;
+
+                                        if (arr is not null)
+                                        {
+                                            for (int i = 0; i != arr.Length; i++)
+                                                AddElement(arr.GetValue(i));
+                                        }
+                                        else
+                                            generatedArrayFlattened!.Add(element);
+                                    }
+
+                                    for (int i = 0; i != generatedArray.Length; i++)
+                                        AddElement(generatedArray.GetValue(i));
+
+                                    return new CollectionFormatNode()
+                                    {
+                                        ElementType = elementChild.EdgeDBName,
+                                        Type = wrapping.EdgeDBName,
+                                        Value = await FormatCollectionAsync(
+                                            AsArray(edgedbValue),
+                                            (v, i) => FormatAsync(v, generatedArrayFlattened[i]!, progress, elementChild, wrapping))
+                                    };
+
+                                    //return await FormatAsync(edgedbValue, generatedArray, progress, wrapping.Children![0], wrapping);
                                 } 
                             }
 

@@ -13,7 +13,7 @@ namespace EdgeDB.DataTypes
     /// <summary>
     ///     A struct representing a date and time without a timezone.
     /// </summary>
-    public readonly struct LocalDateTime
+    public readonly struct LocalDateTime : IComparable<LocalDateTime>, IComparable
     {
         /// <summary>
         ///     Gets a <see cref="System.DateTimeOffset"/> that represents this <see cref="LocalDateTime"/>.
@@ -79,6 +79,22 @@ namespace EdgeDB.DataTypes
 
         /// <inheritdoc/>
         public override int GetHashCode() => _microseconds.GetHashCode();
+
+        public int CompareTo(LocalDateTime other)
+        {
+            return DateTimeOffset.CompareTo(other.DateTimeOffset);
+        }
+
+        public int CompareTo(object? obj)
+        {
+            if (obj is null)
+                return 1;
+
+            if (obj is not LocalDateTime datetime)
+                throw new ArgumentException("Argument type must be a LocalDateTime");
+
+            return CompareTo(datetime);
+        }
 
         /// <summary>
         ///     Gets a <see cref="LocalDateTime"/> object whos date and time are set to the current UTC time.

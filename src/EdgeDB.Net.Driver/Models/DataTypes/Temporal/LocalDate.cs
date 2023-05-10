@@ -10,7 +10,7 @@ namespace EdgeDB.DataTypes
     /// <summary>
     ///     A struct representing a date without a timezone.
     /// </summary>
-    public readonly struct LocalDate
+    public readonly struct LocalDate : IComparable<LocalDate>, IComparable
     {
         /// <summary>
         ///     Gets a <see cref="System.DateOnly"/> that represents the current <see cref="LocalDate"/>.
@@ -56,6 +56,21 @@ namespace EdgeDB.DataTypes
         /// <inheritdoc/>
         public override int GetHashCode() => _days.GetHashCode();
 
+        public int CompareTo(LocalDate other)
+        {
+            return DateOnly.CompareTo(other.DateOnly);
+        }
+
+        public int CompareTo(object? obj)
+        {
+            if (obj is null)
+                return 1;
+
+            if (obj is not LocalDate date)
+                throw new ArgumentException("Argument type must be a LocalDate");
+
+            return CompareTo(date);
+        }
 
         public static implicit operator DateOnly(LocalDate t) => t.DateOnly;
         public static implicit operator LocalDate(DateOnly t) => new(t);

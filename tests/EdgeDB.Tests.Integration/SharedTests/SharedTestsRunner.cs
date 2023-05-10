@@ -1,10 +1,13 @@
+using EdgeDB.ContractResolvers;
 using EdgeDB.DataTypes;
+using EdgeDB.State;
 using EdgeDB.Tests.Integration.SharedTests.Json;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,6 +15,7 @@ using System.Reflection;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using BinaryResult = EdgeDB.EdgeDBBinaryClient.RawExecuteResult;
 
 namespace EdgeDB.Tests.Integration.SharedTests
 {
@@ -19,67 +23,119 @@ namespace EdgeDB.Tests.Integration.SharedTests
     public class SharedTestsRunner
     {
         public static readonly string TestsDirectory = Path.Combine(Environment.CurrentDirectory, "tests");
+        private static readonly JsonSerializer Serializer = new()
+        {
+            DateTimeZoneHandling = DateTimeZoneHandling.Utc,
+            DateParseHandling = DateParseHandling.DateTimeOffset,
+            ContractResolver = new EdgeDBContractResolver(),
+            FloatParseHandling = FloatParseHandling.Decimal,
+        };
+        private static readonly EdgeDBClient _client = new(new EdgeDBClientPoolConfig
+        {
+            PreferSystemTemporalTypes = true,
+            ExplicitObjectIds = true,
+            MessageTimeout = (uint)TimeSpan.FromHours(1).TotalMilliseconds
+        });
 
         private static T Read<T>(string path)
         {
+            Console.WriteLine($"Loading {path}...");
             using var fs = File.OpenRead(path);
             using var sr = new StreamReader(fs);
             using var r = new JsonTextReader(sr);
-            return EdgeDBConfig.JsonSerializer.Deserialize<T>(r)!;
+            return Serializer.Deserialize<T>(r)!;
         }
 
-        [TestMethod]
-        public async Task RunAsync()
+        private class ExecutionResult
         {
-            var client = new EdgeDBClient(new EdgeDBClientPoolConfig
+            public required Cardinality Cardinality { get; init; }
+            public required BinaryResult Result { get; init; }
+        }
+
+        public static async Task RunAsync(string path)
+        {
+            var testDefinition = Read<Test>(path);
+
+            List<ExecutionResult> results = new();
+
+            // can return 1 or more types, for example to test complex
+            // codecs by returning all possible combinations of valid
+            // types for the query.
+            var resultTypes = ResultTypeBuilder.CreateResultTypes(testDefinition.Result!).Prepend(typeof(object)).ToArray();
+
+            Console.WriteLine($"Created {resultTypes.Count()} different results for '{testDefinition.Name}'");
+
+            var clientHandle = await _client.GetOrCreateClientAsync<EdgeDBBinaryClient>();
+
+            for (int i = 0; i != testDefinition.Queries!.Count; i++)
             {
-                PreferSystemTemporalTypes = true
-            });
+                var query = testDefinition.Queries[i];
 
-            var groups = Directory.GetFiles(TestsDirectory, "*.json");
-            foreach (var file in groups)
+                Console.WriteLine($"{i + 1}/{testDefinition.Queries.Count}: {query.Name}");
+
+                // state
+                clientHandle.WithSession(query.Session!);
+
+                var result = await ExecuteQueryAsync(
+                    clientHandle,
+                    query,
+                    resultTypes
+                );
+
+                if(result.Data.Length > 0)
+                    results.Add(new() { Cardinality = query.Cardinality, Result = result });
+            }
+
+            foreach (var executionResult in results)
             {
-                var testgroup = Read<TestGroup>(file);
-
-                var testDir = Path.Combine(TestsDirectory, Path.GetFileNameWithoutExtension(file));
-
-                foreach(var testFile in Directory.GetFiles(testDir, "*.json"))
+                foreach (var resultType in resultTypes)
                 {
-                    var testDefinition = Read<Test>(testFile);
-
-                    List<ExecutionResult> results = new();
-
-                    // can return 1 or more types, for example to test complex
-                    // codecs by returning all possible combinations of valid
-                    // types for the query.
-                    var resultTypes = ResultTypeBuilder.CreateResultTypes(testDefinition.Result!).Prepend(typeof(object));
-
-                    foreach(var query in testDefinition.Queries!)
-                    {
-                        results.Add(await ExecuteQueryAsync(client, query, resultTypes));
-                    }
-
-                    foreach(var result in results)
-                    {
-                        foreach(var resultType in result.ResultMap)
-                        {
-                            ResultAsserter.AssertResult(testDefinition.Result, resultType.Value);
-                        }
-                    }
+                    var value = BuildResult(clientHandle, resultType, executionResult.Cardinality, executionResult.Result);
+                    ResultAsserter.AssertResult(testDefinition.Result, value);
                 }
             }
+
+            await clientHandle.DisposeAsync();
         }
 
-        private readonly struct ExecutionResult
+        private static object? BuildResult(EdgeDBBinaryClient client, Type type, Cardinality card, BinaryResult result)
         {
-            public readonly Dictionary<Type, object?> ResultMap;
-
-            public ExecutionResult(Dictionary<Type, object?> map)
+            switch (card)
             {
-                ResultMap = map;
+                case Cardinality.Many:
+                    {
+                        var array = Array.CreateInstance(type, result.Data.Length);
+
+                        for (int i = 0; i != result.Data.Length; i++)
+                        {
+                            var obj = ObjectBuilder.BuildResult(type, client, result.Deserializer, ref result.Data[i]);
+                            array.SetValue(obj, i);
+                        }
+                        return array;
+                    }
+                case Cardinality.AtMostOne:
+                    {
+                        if (result.Data.Length == 0)
+                            return null;
+
+                        return ObjectBuilder.BuildResult(type, client, result.Deserializer, ref result.Data[0]);
+                    }
+                case Cardinality.One:
+                    {
+                        if (result.Data.Length != 1)
+                            throw new ArgumentOutOfRangeException(nameof(result), "Missing data for result");
+
+                        return ObjectBuilder.BuildResult(type, client, result.Deserializer, ref result.Data[0]);
+                    }
+                default:
+                    if (result.Data.Length > 0)
+                        throw new ArgumentException("Unknown cardinality path for remaining data", nameof(card));
+
+                    return null;
             }
         }
-        private async Task<ExecutionResult> ExecuteQueryAsync(EdgeDBClient client, Test.QueryArgs query, IEnumerable<Type> resultTypes)
+
+        private static Task<BinaryResult> ExecuteQueryAsync(EdgeDBBinaryClient client, Test.QueryArgs query, IEnumerable<Type> resultTypes)
         {
             Dictionary<string, object?>? args = null;
 
@@ -93,27 +149,29 @@ namespace EdgeDB.Tests.Integration.SharedTests
                 }
             }
 
-            var map = new Dictionary<Type, object?>();
-
-            foreach(var resultType in resultTypes)
-            {
-                var queryMethod = GetQueryMethod(resultType, query.Cardinality);
-
-                var task = (Task)queryMethod.Invoke(client, new object?[] { query.Value, args, query.Capabilities, CancellationToken.None })!;
-
-                await task;
-
-                if(TryGetResult(task, out var taskResult))
-                {
-                    map.Add(resultType, taskResult);
-                }
-            }
-
-            return new ExecutionResult(map);
+            return QueryRawAsync(client, query.Value!, args, query.Capabilities, query.Cardinality);
         }
 
-        
-        private bool TryGetResult(Task task, out object? result)
+        private static Task<BinaryResult> QueryRawAsync(
+            EdgeDBBinaryClient client,
+            string query,
+            IDictionary<string, object?>? args,
+            Capabilities capabilities, Cardinality cardinality)
+        {
+            return client.ExecuteInternalAsync(
+                query,
+                args,
+                cardinality switch
+                {
+                    Cardinality.One or Cardinality.AtMostOne => Cardinality.AtMostOne,
+                    _ => Cardinality.Many
+                },
+                capabilities,
+                cardinality is Cardinality.NoResult ? IOFormat.None : IOFormat.Binary
+            );
+        }
+
+        private static bool TryGetResult(Task task, out object? result)
         {
             if (!task.GetType().IsGenericType)
                 return (result = null) is null;
@@ -125,23 +183,23 @@ namespace EdgeDB.Tests.Integration.SharedTests
             return true;
         }
 
-        private MethodInfo GetQueryMethod(Type result, Cardinality cardinality)
+        private static MethodInfo GetQueryMethod(Type result, Cardinality cardinality)
         {
             if (cardinality is Cardinality.NoResult)
-                return typeof(EdgeDBClient).GetMethod("ExecuteAsync", BindingFlags.Public | BindingFlags.Instance)!;
+                return typeof(BaseEdgeDBClient).GetMethod("ExecuteAsync", BindingFlags.Public | BindingFlags.Instance)!;
 
-            return typeof(EdgeDBClient).GetMethod(
+            return typeof(BaseEdgeDBClient).GetMethod(
                 cardinality switch
                 {
-                    Cardinality.One => nameof(EdgeDBClient.QueryRequiredSingleAsync),
-                    Cardinality.AtMostOne => nameof(EdgeDBClient.QuerySingleAsync),
-                    Cardinality.Many => nameof(EdgeDBClient.QueryAsync),
+                    Cardinality.One => nameof(BaseEdgeDBClient.QueryRequiredSingleAsync),
+                    Cardinality.AtMostOne => nameof(BaseEdgeDBClient.QuerySingleAsync),
+                    Cardinality.Many => nameof(BaseEdgeDBClient.QueryAsync),
                     _ => throw new InvalidOperationException($"Unsupported cardinality {cardinality}")
                 }, BindingFlags.Public | BindingFlags.Instance
            )!.MakeGenericMethod(result);
         }
 
-        private object ToObject(IResultNode node)
+        private static object ToObject(IResultNode node)
         {
             switch (node)
             {
@@ -187,7 +245,7 @@ namespace EdgeDB.Tests.Integration.SharedTests
         internal class Test
         {
             public string? Name { get; set; }
-            public IEnumerable<QueryArgs>? Queries { get; set; }
+            public List<QueryArgs>? Queries { get; set; }
 
             [Newtonsoft.Json.JsonConverter(typeof(ResultNodeConverter))]
             public object? Result { get; set; }
@@ -199,6 +257,7 @@ namespace EdgeDB.Tests.Integration.SharedTests
                 public string? Value { get; set; }
                 public List<QueryArgument>? Arguments { get; set; }
                 public EdgeDB.Capabilities Capabilities { get; set; }
+                public Session? Session { get; set; }
 
                 public class QueryArgument
                 {

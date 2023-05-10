@@ -1,3 +1,4 @@
+using EdgeDB.DataTypes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections;
@@ -12,15 +13,119 @@ namespace EdgeDB.Tests.Integration.SharedTests
 {
     internal static class ResultAsserter
     {
+        private interface IReducerContainer
+        {
+            Type ReducingTo { get; }
+            bool CanReduce(Type a, Type b);
+            (object? First, object? Second) Reduce(object? a, object? b);
+        }
+        private readonly struct ReducerContainer<T> : IReducerContainer
+        {
+            private readonly Dictionary<Type, IReducer> _reducers;
+
+            public interface IReducer
+            {
+                Type Type { get; }
+                T Reduce(object? value);
+            }
+
+            public readonly struct Reducer<U> : IReducer
+            {
+                private readonly Func<U?, T> _reducer;
+
+                public Reducer(Func<U?, T> reducer)
+                {
+                    _reducer = reducer;
+                }
+
+                public T Reduce(U? value)
+                   => _reducer(value);
+
+                public Type Type
+                    => typeof(U);
+
+                public T Reduce(object? value)
+                    => Reduce((U?)value);
+            }
+
+            public ReducerContainer(List<IReducer> reducers)
+            {
+                _reducers = reducers.ToDictionary(x => x.Type, x => x);
+            }
+
+            public bool CanReduce(Type a, Type b)
+                => _reducers.ContainsKey(a) && _reducers.ContainsKey(b);
+
+            public (T First, T Second) Reduce(object? first, object? second)
+                => (_reducers[first!.GetType()].Reduce(first), _reducers[second!.GetType()].Reduce(second));
+
+            (object? First, object? Second) IReducerContainer.Reduce(object? a, object? b) => Reduce(a, b);
+
+            public Type ReducingTo
+                => typeof(T);
+        }
+
+        private static readonly List<IReducerContainer> _reducers;
+
+        static ResultAsserter()
+        {
+            // TODO: reduce system & custom temporal types to precision scalar, then compare them
+            _reducers = new List<IReducerContainer>()
+            {
+                new ReducerContainer<long>(new List<ReducerContainer<long>.IReducer>() // datetime microseconds
+                {
+                    new ReducerContainer<long>.Reducer<DataTypes.DateTime>(v => v.Microseconds),
+                    new ReducerContainer<long>.Reducer<DataTypes.LocalDateTime>(v => v.Microseconds),
+                    new ReducerContainer<long>.Reducer<System.DateTime>(v => TemporalCommon.ToMicroseconds(v)),
+                    new ReducerContainer<long>.Reducer<System.DateTimeOffset>(TemporalCommon.ToMicroseconds)
+                }),
+                new ReducerContainer<int>(new List<ReducerContainer<int>.IReducer>() // date days
+                {
+                    new ReducerContainer<int>.Reducer<DataTypes.LocalDate>(v => v.Days),
+                    new ReducerContainer<int>.Reducer<System.DateOnly>(v => TemporalCommon.ToDays(v))
+                }),
+                new ReducerContainer<long>(new List<ReducerContainer<long>.IReducer>() // time microseconds
+                {
+                    new ReducerContainer<long>.Reducer<DataTypes.LocalTime>(v => v.Microseconds),
+                    new ReducerContainer<long>.Reducer<System.TimeOnly>(TemporalCommon.ToMicroseconds),
+                    new ReducerContainer<long>.Reducer<System.TimeSpan>(TemporalCommon.ToMicroseconds)
+                }),
+                new ReducerContainer<long>(new List<ReducerContainer<long>.IReducer>() // duration microseconds
+                {
+                    new ReducerContainer<long>.Reducer<DataTypes.Duration>(v => v.Microseconds),
+                    new ReducerContainer<long>.Reducer<System.TimeSpan>(TemporalCommon.ToMicroseconds)
+                }),
+                new ReducerContainer<long>(new List<ReducerContainer<long>.IReducer>() // duration days+months
+                {
+                    new ReducerContainer<long>.Reducer<DataTypes.DateDuration>(v => v.TimeSpan.Ticks),
+                    new ReducerContainer<long>.Reducer<System.TimeSpan>(v => v.Ticks)
+                }),
+                new ReducerContainer<long>(new List<ReducerContainer<long>.IReducer>()
+                {
+                    new ReducerContainer<long>.Reducer<DataTypes.RelativeDuration>(v => (long)(v.Microseconds + (v.Days + v.Months * 31) * 8.64e+10)),
+                    new ReducerContainer<long>.Reducer<System.TimeSpan>(v =>
+                    {
+                        var (microseconds, days, months) = TemporalCommon.ToComponents(v);
+                        return (long)(microseconds + (days + months * 31) * 8.64e+10);
+                    })
+                }),
+                new ReducerContainer<(int a, int b)?>(new List<ReducerContainer<(int a, int b)?>.IReducer>
+                {
+                    new ReducerContainer<(int a, int b)?>.Reducer<DataTypes.Range<int>>(v => v.Lower.HasValue && v.Upper.HasValue ? (v.Lower.Value, v.Upper.Value) : null),
+                    new ReducerContainer<(int a, int b)?>.Reducer<Range>(v => (v.Start.Value, v.End.Value))
+                })
+            };
+        }
+
         public static void AssertResult(object? expected, object? actual)
         {
             if(expected is IEnumerable)
             {
                 var col = AssertCollection<IResultNode>(expected, actual);
 
-                foreach(var item in col)
+                foreach(var (Expected, Actual) in col)
                 {
-                    AssertNode(item.Expected, item.Actual);
+                    AssertNode(Expected, Actual);
                 }
             }
             else if (expected is IResultNode node)
@@ -47,24 +152,86 @@ namespace EdgeDB.Tests.Integration.SharedTests
 
                         var values = expectedDict.Zip(actualDict, (a, b) => (Expected: a.Value, Actual: b.Value));
 
-                        foreach (var value in values)
+                        foreach (var (Expected, Actual) in values)
                         {
-                            AssertNode(value.Expected, value.Actual);
+                            AssertNode(Expected, Actual);
                         }
                     }
                     break;
-                case "tuple":
+                case "namedtuple":
                     {
                         Assert.IsNotNull(node.Value);
                         Assert.IsNotNull(actual);
 
-                        var nodes = ((object?[])node.Value).Cast<IResultNode>();
-                        var collection = ExtractCollection(actual);
+                        if (node.Value is not Dictionary<string, IResultNode> expectedDict)
+                            throw new AssertFailedException($"Expected dictionary, got {node.Value.GetType().Name}");
 
-                        Assert.AreEqual(nodes.Count(), collection.Count());
+                        if (actual is IDictionary<string, object?> actualDict)
+                        {
+                            Assert.AreEqual(expectedDict.Count, actualDict.Count);
 
-                        foreach (var value in nodes.Zip(collection))
-                            AssertNode(value.First, value.Second);
+                            var values = expectedDict.Zip(actualDict, (a, b) => (Expected: a.Value, Actual: b.Value));
+
+                            foreach (var (Expected, Actual) in values)
+                            {
+                                AssertNode(Expected, Actual);
+                            }
+                        }
+                        else
+                        {
+                            var expectedNodes = expectedDict.Values;
+                            var actualCollection = ExtractCollection(actual);
+
+                            Assert.AreEqual(expectedNodes.Count, actualCollection.Count());
+
+                            foreach (var (Expected, Actual) in expectedNodes.Zip(actualCollection))
+                                AssertNode(Expected, Actual);
+                        }
+                    }
+                    break;
+                case "tuple" or "set" or "array":
+                    {
+                        Assert.IsNotNull(node.Value);
+                        Assert.IsNotNull(actual);
+
+                        var expectedNodes = (IResultNode[])node.Value;
+                        var actualCollection = ExtractCollection(actual);
+
+                        Assert.AreEqual(expectedNodes.Length, actualCollection.Count());
+
+                        foreach (var (Expected, Actual) in expectedNodes.Zip(actualCollection))
+                            AssertNode(Expected, Actual);
+                    }
+                    break;
+                default:
+                    {
+                        var expected = node.Value;
+                        Assert.IsNotInstanceOfType(expected, typeof(IResultNode));
+
+                        if (expected is null)
+                            Assert.IsNull(actual);
+                        else
+                            Assert.IsNotNull(actual);
+
+                        if (expected is null)
+                            break;
+
+                        var reducer = _reducers.FirstOrDefault(x => x.CanReduce(expected.GetType(), actual!.GetType()));
+
+                        if (reducer is not null)
+                        {
+                            var (ReducedExpected, ReducedActual) = reducer.Reduce(expected, actual);
+
+                            Assert.AreEqual(ReducedExpected, ReducedActual);
+                        }
+                        else if (expected is IEnumerable a && actual is IEnumerable b)
+                        {
+                            Assert.IsTrue(a.Cast<object>().SequenceEqual(b.Cast<object>()));
+                        }
+                        else
+                        {
+                            Assert.AreEqual(expected, actual);
+                        }
                     }
                     break;
             }
@@ -106,7 +273,7 @@ namespace EdgeDB.Tests.Integration.SharedTests
             if (type.IsAssignableTo(typeof(IEnumerable<KeyValuePair<string, object?>>)))
                 return new Dictionary<string, object?>((IEnumerable<KeyValuePair<string, object?>>)actual);
 
-            if(type.Module.Name == "TestResults")
+            if(type.Assembly.GetName().Name == "EdgeDB.Runtime")
             {
                 var props = type.GetProperties();
 

@@ -7,16 +7,16 @@ using static EdgeDB.TestGenerator.ValueGenerator;
 
 namespace EdgeDB.TestGenerator.ValueProviders.Impl
 {
-    internal class RelativeDurationValueProvider : IValueProvider<TimeSpan>
+    internal class RelativeDurationValueProvider : IValueProvider<DataTypes.RelativeDuration>
     {
         public string EdgeDBName => "cal::relative_duration";
 
-        public TimeSpan GetRandom(GenerationRuleSet rules)
-        {
-            return TimeSpan.FromDays(rules.Random.Next(rules.GetRange<RelativeDurationValueProvider>()));
-        }
+        public DataTypes.RelativeDuration GetRandom(GenerationRuleSet rules)
+            => TimeSpan.FromDays(rules.Random.Next(rules.GetRange<RelativeDurationValueProvider>()));
 
-        public string ToEdgeQLFormat(TimeSpan value) => $"<cal::relative_duration>'{(long)Math.Ceiling(value.TotalSeconds)} seconds'";
+        public string ToEdgeQLFormat(DataTypes.RelativeDuration value)
+            => $"<cal::relative_duration>'{(long)Math.Ceiling(value.TimeSpan.TotalSeconds)} seconds'";
+
         public override string ToString() => EdgeDBName;
     }
 }
