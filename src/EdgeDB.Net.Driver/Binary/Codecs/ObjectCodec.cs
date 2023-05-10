@@ -2,6 +2,7 @@ using EdgeDB.Binary;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.Runtime.CompilerServices;
@@ -9,17 +10,68 @@ using System.Runtime.InteropServices;
 
 namespace EdgeDB.Binary.Codecs
 {
-    internal sealed class ObjectCodec
+    internal sealed class TypeInitializedObjectCodec : ObjectCodec
+    {
+        public EdgeDBTypeDeserializeInfo Deserializer
+            => _deserializer;
+
+        public ObjectCodec Parent
+            => _codec;
+
+        public Type TargetType
+            => _targetType;
+
+        private readonly EdgeDBTypeDeserializeInfo _deserializer;
+        private readonly Type _targetType;
+        private readonly ObjectCodec _codec;
+
+        public TypeInitializedObjectCodec(Type target, ObjectCodec codec)
+            : base(codec.InnerCodecs, codec.PropertyNames)
+        {
+            if (!TypeBuilder.TryGetTypeDeserializerInfo(target, out _deserializer!))
+                throw new NoTypeConverterException($"Failed to find type deserializer for {target}");
+
+            _targetType = target;
+            _codec = codec;
+        }
+
+        public override object? Deserialize(ref PacketReader reader, CodecContext context)
+        {
+            // reader is being copied if we just pass it as 'ref reader' to our object enumerator,
+            // so we need to pass the underlying data as a reference and wrap a new reader ontop.
+            // This method ensures we're not copying the packet in memory again but the downside is
+            // our 'reader' variable isn't kept up to data with the reader in the object enumerator.
+            var enumerator = new ObjectEnumerator(
+                ref reader.Data,
+                reader.Position,
+                PropertyNames,
+                InnerCodecs,
+                context
+            );
+
+            try
+            {
+                return _deserializer.Factory(ref enumerator);
+            }
+            catch (Exception x)
+            {
+                throw new EdgeDBException($"Failed to deserialize object to {_targetType}", x);
+            }
+            finally
+            {
+                // set the readers position to the enumerators' readers position.
+                reader.Position = enumerator.Reader.Position;
+            }
+        }
+    }
+
+    internal class ObjectCodec
         : BaseArgumentCodec<object>, IMultiWrappingCodec, ICacheableCodec
     {
         public ICodec[] InnerCodecs;
         public readonly string[] PropertyNames;
 
-        public EdgeDBTypeDeserializeInfo? DeserializerInfo;
-        internal Type? TargetType;
-        internal bool Initialized;
-
-        private TypeDeserializerFactory? _factory;
+        private ConcurrentDictionary<Type, TypeInitializedObjectCodec>? _typeCodecs;
 
         internal ObjectCodec(ObjectShapeDescriptor descriptor, List<ICodec> codecs)
         {
@@ -53,34 +105,11 @@ namespace EdgeDB.Binary.Codecs
             PropertyNames = propertyNames;
         }
 
-        internal void UpdateFactory(TypeDeserializerFactory factory)
-        {
-            _factory = factory;
-        }
-        public void Initialize(Type target)
-        {
-            if (Initialized && target == TargetType)
-                return;
-
-            TargetType = target;
-
-            try
-            {
-                _factory = TypeBuilder.GetDeserializationFactory(target);
-                DeserializerInfo = TypeBuilder.TypeInfo[target];
-                Initialized = true;
-            }
-            catch (Exception) when (TargetType == typeof(object))
-            {
-                _factory = (ref ObjectEnumerator enumerator) => enumerator.ToDynamic();
-            }
-        }
+        public TypeInitializedObjectCodec GetOrCreateTypeCodec(Type type)
+            => (_typeCodecs ??= new()).GetOrAdd(type, t => new TypeInitializedObjectCodec(t, this));
 
         public override object? Deserialize(ref PacketReader reader, CodecContext context)
-        {
-            if (!Initialized || _factory is null || TargetType is null)
-                Initialize(typeof(object));
-            
+        {   
             // reader is being copied if we just pass it as 'ref reader' to our object enumerator,
             // so we need to pass the underlying data as a reference and wrap a new reader ontop.
             // This method ensures we're not copying the packet in memory again but the downside is
@@ -90,16 +119,16 @@ namespace EdgeDB.Binary.Codecs
                 reader.Position,
                 PropertyNames,
                 InnerCodecs,
-                DeserializerInfo,
-                context);
+                context
+            );
             
             try
             {
-                return _factory!(ref enumerator);
+                return enumerator.ToDynamic();
             }
             catch(Exception x)
             {
-                throw new EdgeDBException($"Failed to deserialize object to {TargetType}", x);
+                throw new EdgeDBException($"Failed to deserialize object", x);
             }
             finally
             {
