@@ -38,7 +38,7 @@ namespace EdgeDB.Tests.Benchmarks
                 "name",
                 "email"
             });
-            Codec.Initialize(typeof(Person));
+            Codec = Codec.GetOrCreateTypeCodec(typeof(Person));
         }
 
         [Benchmark]
