@@ -51,8 +51,6 @@ namespace EdgeDB
 
             _factory = CreateDefaultFactory();
 
-            UpdateCodecsWithFactory(type, _factory);
-
             EdgeDBTypeName = _type.GetCustomAttribute<EdgeDBTypeAttribute>()?.Name ?? _type.Name;
         }
 
@@ -61,8 +59,6 @@ namespace EdgeDB
             _type = type;
 
             _factory = factory;
-
-            UpdateCodecsWithFactory(type, _factory);
 
             EdgeDBTypeName = _type.GetCustomAttribute<EdgeDBTypeAttribute>()?.Name ?? _type.Name;
         }
@@ -90,7 +86,6 @@ namespace EdgeDB
         public void UpdateFactory(TypeDeserializerFactory factory)
         {
             _factory = factory;
-            UpdateCodecsWithFactory(_type, _factory);
         }
 
         private bool CanDeserializeToTuple()
@@ -296,18 +291,6 @@ namespace EdgeDB
                 throw new InvalidOperationException($"No empty constructor found on type {_type}");
 
             return Activator();
-        }
-
-        private static void UpdateCodecsWithFactory(Type type, TypeDeserializerFactory factory)
-        {
-            var codecs = CodecBuilder.CachedCodecs
-                .Where(x => x is Binary.Codecs.ObjectCodec obj && obj.TargetType == type)
-                .Cast<Binary.Codecs.ObjectCodec>();
-
-            foreach(var codec in codecs)
-            {
-                codec.UpdateFactory(factory);
-            }   
         }
 
         public object? Deserialize(ref ObjectEnumerator enumerator)

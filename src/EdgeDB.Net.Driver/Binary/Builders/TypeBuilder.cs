@@ -153,7 +153,8 @@ namespace EdgeDB
                 ScanAssemblyForTypes(type.Assembly);
             }
 
-            codec.Initialize(type);
+            if (codec is not TypeInitializedObjectCodec typeCodec)
+                codec = codec.GetOrCreateTypeCodec(type);
 
             var reader = new PacketReader(data.PayloadBuffer);
             return codec.Deserialize(ref reader, client.CodecContext);
