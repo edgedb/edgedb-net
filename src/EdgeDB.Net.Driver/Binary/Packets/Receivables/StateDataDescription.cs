@@ -10,21 +10,19 @@ namespace EdgeDB.Binary.Packets
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#statedatadescription">State Data Description</see> packet.
     /// </summary>
-    internal readonly struct StateDataDescription : IReceiveable
+    internal unsafe readonly struct StateDataDescription : IReceiveable
     {
         public ServerMessageType Type => ServerMessageType.StateDataDescription;
 
         public Guid TypeDescriptorId { get; }
 
-        public IReadOnlyCollection<byte> TypeDescriptor
-            => TypeDescriptorBuffer.ToImmutableArray();
 
-        internal readonly byte[] TypeDescriptorBuffer;
+        internal readonly ReservedBuffer* TypeDescriptorBuffer;
 
         internal StateDataDescription(ref PacketReader reader)
         {
             TypeDescriptorId = reader.ReadGuid();
-            TypeDescriptorBuffer = reader.ReadByteArray();
+            TypeDescriptorBuffer = reader.ReserveRead();
         }
     }
 }

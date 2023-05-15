@@ -1,4 +1,5 @@
 using EdgeDB.Binary.Codecs;
+using EdgeDB.Binary.Packets;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Concurrent;
@@ -123,9 +124,22 @@ namespace EdgeDB.Binary
         public static ICodec? GetCodec(Guid id)
             => CodecCache.TryGetValue(id, out var codec) ? codec : GetScalarCodec(id);
 
-        public static ICodec BuildCodec(EdgeDBBinaryClient client, Guid id, byte[] buff)
+        public static unsafe ICodec BuildCodec(EdgeDBBinaryClient client, ref StateDataDescription descriptor)
         {
-            var reader = new PacketReader(buff.AsSpan());
+            return BuildCodec(client, descriptor.TypeDescriptorId, descriptor.TypeDescriptorBuffer);
+        }
+
+        public static unsafe (CodecInfo InCodec, CodecInfo OutCodec) BuildCodecs(EdgeDBBinaryClient client, ref CommandDataDescription descriptor)
+        {
+            return (
+                new CodecInfo(descriptor.InputTypeDescriptorId, BuildCodec(client, descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer)),
+                new CodecInfo(descriptor.OutputTypeDescriptorId, BuildCodec(client, descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer))
+            );
+        }
+
+        public static unsafe ICodec BuildCodec(EdgeDBBinaryClient client, Guid id, ReservedBuffer* buff)
+        {
+            var reader = buff->GetReader();
             return BuildCodec(client, id, ref reader);
         }
 
@@ -142,7 +156,7 @@ namespace EdgeDB.Binary
                 var typeDescriptor = ITypeDescriptor.GetDescriptor(ref reader);
                 var end = reader.Position;
 
-                client.Logger.TraceTypeDescriptor(typeDescriptor, typeDescriptor.Id, end - start, $"{end}/{reader.Data.Length}".PadRight(reader.Data.Length.ToString().Length *2 + 2));
+                client.Logger.TraceTypeDescriptor(typeDescriptor, typeDescriptor.Id, end - start, $"{end}/{reader.Length}".PadRight(reader.Length.ToString().Length *2 + 2));
 
                 if (!CodecCache.TryGetValue(typeDescriptor.Id, out var codec))
                     codec = GetScalarCodec(typeDescriptor.Id);

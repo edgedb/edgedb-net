@@ -147,7 +147,7 @@ namespace EdgeDB
             return info is not null;
         }
         
-        internal static object? BuildObject(EdgeDBBinaryClient client, Type type, Binary.Codecs.ObjectCodec codec, ref Data data)
+        internal static object? BuildObject(EdgeDBBinaryClient client, Type type, Binary.Codecs.ObjectCodec codec, ref PacketReader reader)
         {
             if (!IsValidObjectType(type))
                 throw new InvalidOperationException($"Cannot deserialize data to {type.Name}");
@@ -161,7 +161,6 @@ namespace EdgeDB
             if (codec is not TypeInitializedObjectCodec typeCodec)
                 codec = codec.GetOrCreateTypeCodec(type);
 
-            var reader = new PacketReader(data.PayloadBuffer);
             return codec.Deserialize(ref reader, client.CodecContext);
         }
 

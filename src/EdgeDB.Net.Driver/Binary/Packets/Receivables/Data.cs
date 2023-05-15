@@ -11,24 +11,9 @@ namespace EdgeDB.Binary.Packets
         public ServerMessageType Type 
             => ServerMessageType.Data;
 
-        /// <summary>
-        ///     Gets the payload of this data packet
-        /// </summary>
-        public IReadOnlyCollection<byte> PayloadData
-            => PayloadBuffer.ToImmutableArray();
+        internal readonly unsafe ReservedBuffer* Buffer;
 
-        internal readonly byte[] PayloadBuffer;
-
-        internal Data(byte[] buff)
-        {
-            PayloadBuffer = buff;
-        }
-        public Data()
-        {
-            PayloadBuffer = new byte[] { };
-        }
-
-        internal Data(ref PacketReader reader)
+        internal unsafe Data(ref PacketReader reader)
         {
             // skip arary since its always one, errr should be one
             var numElements = reader.ReadUInt16();
@@ -38,8 +23,7 @@ namespace EdgeDB.Binary.Packets
             }
 
             var payloadLength = reader.ReadUInt32();
-            reader.ReadBytes((int)payloadLength, out var buff);
-            PayloadBuffer = buff.ToArray();
+            Buffer = reader.ReserveRead(payloadLength);
         }
     }
 }

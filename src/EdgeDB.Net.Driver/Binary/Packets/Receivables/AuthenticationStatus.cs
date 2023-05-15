@@ -13,7 +13,7 @@ namespace EdgeDB.Binary.Packets
     ///     <see href="https://www.edgedb.com/docs/reference/protocol/messages#authenticationsaslcontinue">AuthenticationSASLContinue</see>,
     ///     and <see href="https://www.edgedb.com/docs/reference/protocol/messages#authenticationsaslfinal">AuthenticationSASLFinal</see> packets.
     /// </summary>
-    internal readonly struct AuthenticationStatus : IReceiveable
+    internal unsafe readonly struct AuthenticationStatus : IReceiveable
     {
         /// <inheritdoc/>
         public ServerMessageType Type 
@@ -29,13 +29,7 @@ namespace EdgeDB.Binary.Packets
         /// </summary>
         public string[]? AuthenticationMethods { get; }
 
-        /// <summary>
-        ///     Gets the SASL data.
-        /// </summary>
-        public IReadOnlyCollection<byte>? SASLData
-            => SASLDataBuffer?.ToImmutableArray();
-
-        internal byte[] SASLDataBuffer { get; }
+        internal readonly ReservedBuffer* SASLDataBuffer;
 
         internal AuthenticationStatus(ref PacketReader reader)
         {
@@ -52,17 +46,17 @@ namespace EdgeDB.Binary.Packets
                         {
                             AuthenticationMethods[i] = reader.ReadString();
                         }
-                        SASLDataBuffer = Array.Empty<byte>();
+                        SASLDataBuffer = null;
                     }
                     break;
                 case AuthStatus.AuthenticationSASLContinue or AuthStatus.AuthenticationSASLFinal:
                     {
-                        SASLDataBuffer = reader.ReadByteArray();
+                        SASLDataBuffer = reader.ReserveRead();
                         AuthenticationMethods = Array.Empty<string>();
                     }
                     break;
                 default:
-                    SASLDataBuffer = Array.Empty<byte>();
+                    SASLDataBuffer = null;
                     AuthenticationMethods = Array.Empty<string>();
                     break;
             }

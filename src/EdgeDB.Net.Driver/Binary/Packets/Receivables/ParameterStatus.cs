@@ -10,7 +10,7 @@ namespace EdgeDB.Binary.Packets
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#parameterstatus">Parameter Status</see> packet.
     /// </summary>
-    internal readonly struct ParameterStatus : IReceiveable
+    internal unsafe readonly struct ParameterStatus : IReceiveable
     {
         /// <inheritdoc/>
         public ServerMessageType Type 
@@ -21,18 +21,12 @@ namespace EdgeDB.Binary.Packets
         /// </summary>
         public string Name { get; }
 
-        /// <summary>
-        ///     Gets the value of the parameter.
-        /// </summary>
-        public IReadOnlyCollection<byte> Value
-            => ValueBuffer.ToImmutableArray();
-
-        internal byte[] ValueBuffer { get; }
+        internal readonly ReservedBuffer* Value;
 
         internal ParameterStatus(ref PacketReader reader)
         {
             Name = reader.ReadString();
-            ValueBuffer = reader.ReadByteArray();
+            Value = reader.ReserveRead();
         }
     }
 }

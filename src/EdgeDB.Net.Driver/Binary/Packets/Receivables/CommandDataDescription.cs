@@ -10,7 +10,7 @@ namespace EdgeDB.Binary.Packets
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#commanddatadescription">Command Data Description</see> packet.
     /// </summary>
-    internal readonly struct CommandDataDescription : IReceiveable
+    internal unsafe readonly struct CommandDataDescription : IReceiveable
     {
         /// <inheritdoc/>
         public ServerMessageType Type 
@@ -33,27 +33,15 @@ namespace EdgeDB.Binary.Packets
         ///     Gets the input type descriptor id.
         /// </summary>
         public Guid InputTypeDescriptorId { get; }
-
-        /// <summary>
-        ///     Gets the complete input type descriptor.
-        /// </summary>
-        public IReadOnlyCollection<byte> InputTypeDescriptor
-            => InputTypeDescriptorBuffer.ToImmutableArray();
         
         /// <summary>
         ///     Gets the output type descriptor id.
         /// </summary>
         public Guid OutputTypeDescriptorId { get; }
 
-        /// <summary>
-        ///     Gets the complete output type descriptor.
-        /// </summary>
-        public IReadOnlyCollection<byte> OutputTypeDescriptor
-            => OutputTypeDescriptorBuffer.ToImmutableArray();
-
         private readonly Annotation[] _annotations;
-        internal byte[] InputTypeDescriptorBuffer { get; }
-        internal byte[] OutputTypeDescriptorBuffer { get; }
+        internal readonly ReservedBuffer* InputTypeDescriptorBuffer;
+        internal readonly ReservedBuffer* OutputTypeDescriptorBuffer;
 
         internal CommandDataDescription(ref PacketReader reader)
         {
@@ -61,9 +49,9 @@ namespace EdgeDB.Binary.Packets
             Capabilities = (Capabilities)reader.ReadUInt64();
             Cardinality = (Cardinality)reader.ReadByte();
             InputTypeDescriptorId = reader.ReadGuid();
-            InputTypeDescriptorBuffer = reader.ReadByteArray();
+            InputTypeDescriptorBuffer = reader.ReserveRead();
             OutputTypeDescriptorId = reader.ReadGuid();
-            OutputTypeDescriptorBuffer = reader.ReadByteArray();
+            OutputTypeDescriptorBuffer = reader.ReserveRead();
         }
     }
 }

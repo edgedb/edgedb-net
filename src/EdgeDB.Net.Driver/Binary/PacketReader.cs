@@ -8,10 +8,10 @@ using System.Text;
 
 namespace EdgeDB.Binary
 {
-    internal unsafe ref struct PacketReader
+    internal unsafe struct PacketReader
     {
         public bool Empty
-            => Position >= _limit || Data.IsEmpty;
+            => Contract.IsEmpty;
 
         internal int Limit
         {
@@ -21,109 +21,132 @@ namespace EdgeDB.Binary
                 if(value < 0)
                 {
                     // reset limit
-                    _limit = Data.Length;
+                    _limit = Contract.Length;
                     return;
                 }
 
-                if (Position + value > Data.Length)
+                if (Contract.Position + value > Contract.Length)
                     throw new InternalBufferOverflowException($"Setting the buffer limit to {value} would overflow the internal buffer");
 
-                _limit = Position + value;
+                _limit = Contract.Position + value;
             }
         }
 
-        internal Span<byte> Data;
-        
-        internal int Position;
+        public int Position
+            => Contract.Position;
+
+        public int Length
+            => Contract.Length;
+
+        internal readonly PacketContract Contract;
 
         private int _limit;
 
-        public PacketReader(Span<byte> bytes, int position = 0)
+        public PacketReader(PacketContract contract)
         {
-            Data = bytes;
-            Position = position;
-            _limit = Data.Length;
+            Contract = contract;
+            _limit = Contract.Length;
         }
 
-        public PacketReader(ref Span<byte> bytes, int position = 0)
+        public static PacketReader CreateFrom(byte[] data)
+            => CreateFrom(data.AsSpan());
+
+        public static PacketReader CreateFrom(Span<byte> data)
         {
-            Data = bytes;
-            Position = position;
-            _limit = Data.Length;
-        }
+            return new PacketReader(new PacketContract(data));
+        } 
 
         private void VerifyInLimits(int sz)
         {
-            if (Position + sz > _limit)
+            var target = Contract.Position + sz;
+            if (target > _limit || target > Contract.Length)
                 throw new InternalBufferOverflowException("The requested read operation would overflow the buffer");
         }
 
+        public ReservedBuffer* ReserveRead(uint size)
+            => ReserveRead((int)size);
+
+        public ReservedBuffer* ReserveRead(int size)
+            => Contract.ReserveRead(size);
+
+        public ReservedBuffer* ReserveReadRemaining()
+            => Contract.ReserveRead(Contract.Length - Contract.Position);
+
+        public ReservedBuffer* ReserveRead()
+        {
+            var length = ReadUInt32();
+            return ReserveRead(length);
+        }
+
 #region Unmanaged basic reads & endianness correction
-        private T UnsafeReadAs<T>()
+        /// <summary>
+        ///     Reads an unmanaged type from the underlying contract source.
+        /// </summary>
+        /// <typeparam name="T">The unmanaged type to read.</typeparam>
+        /// <returns>
+        ///     A reference to <typeparamref name="T"/> that can point to memory shared within
+        ///     the contract source. Esentially, the callee should process <typeparamref name="T"/>
+        ///     before making another call to <see cref="Read"/>. 
+        /// </returns>
+        private ref T Read<T>()
             where T : unmanaged
         {
             VerifyInLimits(sizeof(T));
 
-            var ret = Unsafe.Read<T>(Unsafe.AsPointer(ref Data[Position]));
+            ref var result = ref Contract.Request<T>();
 
-            BinaryUtils.CorrectEndianness(ref ret);
-            Position += sizeof(T);
-            return ret;
+            BinaryUtils.CorrectEndianness(ref result);
+
+            return ref result;
         }
         
         public bool ReadBoolean()
             => ReadByte() > 0;
 
-        public byte ReadByte()
-            => UnsafeReadAs<byte>();
+        public ref byte ReadByte()
+            => ref Read<byte>();
 
-        public char ReadChar()
-            => UnsafeReadAs<char>();
+        public ref char ReadChar()
+            => ref Read<char>();
 
-        public double ReadDouble()
-            => UnsafeReadAs<double>();
+        public ref double ReadDouble()
+            => ref Read<double>();
 
-        public float ReadSingle()
-            => UnsafeReadAs<float>();
+        public ref float ReadSingle()
+            => ref Read<float>();
 
-        public ulong ReadUInt64()
-            => UnsafeReadAs<ulong>();
+        public ref ulong ReadUInt64()
+            => ref Read<ulong>();
 
-        public long ReadInt64()
-            => UnsafeReadAs<long>();
+        public ref long ReadInt64()
+            => ref Read<long>();
 
-        public uint ReadUInt32()
-            => UnsafeReadAs<uint>();
+        public ref uint ReadUInt32()
+            => ref Read<uint>();
 
-        public int ReadInt32()
-            => UnsafeReadAs<int>();
+        public ref int ReadInt32()
+            => ref Read<int>();
 
-        public ushort ReadUInt16()
-            => UnsafeReadAs<ushort>();
+        public ref ushort ReadUInt16()
+            => ref Read<ushort>();
 
-        public short ReadInt16()
-            => UnsafeReadAs<short>();
+        public ref short ReadInt16()
+            => ref Read<short>();
 #endregion
 
         public void Skip(int count)
         {
             VerifyInLimits(count);
-            Position += count;
+            Contract.Skip(count);
         }
 
-        public byte[] ConsumeByteArray()
+        public Span<byte> ConsumeByteArray()
         {
-            var data =  Data[Position.._limit].ToArray();
-            Position = _limit;
-            return data;
+            return Contract.RequestBuffer(_limit - Contract.Position);
         }
 
         public string ConsumeString()
-        {
-            var str = Encoding.UTF8.GetString(Data[Position.._limit]);
-            Position = _limit;
-            return str;
-        }
+            => Encoding.UTF8.GetString(ConsumeByteArray());
 
         public Guid ReadGuid()
         {
@@ -132,11 +155,10 @@ namespace EdgeDB.Binary
             var a = ReadInt32();
             var b = ReadInt16();
             var c = ReadInt16();
-            
-            var buffer = Data[Position..(Position + 8)];
-            var guid = new Guid(a, b, c, buffer.ToArray());
-            Position += 8;
-            return guid;
+
+            var buffer = Contract.RequestBuffer(8);
+
+            return new Guid(a, b, c, buffer.ToArray());
         }
         
         public KeyValue[] ReadKeyValues()
@@ -158,7 +180,9 @@ namespace EdgeDB.Binary
             VerifyInLimits(sizeof(ushort));
 
             var code = ReadUInt16();
-            var value = ReadByteArray();
+
+
+            var value = ReadUnsafeBytes().ToArray();
 
             return new KeyValue(code, value);
         }
@@ -166,11 +190,14 @@ namespace EdgeDB.Binary
         public string ReadString()
         {
             VerifyInLimits(sizeof(int));
+
             var strLength = (int)ReadUInt32();
+
             VerifyInLimits(strLength);
-            var str = Encoding.UTF8.GetString(Data[Position..(strLength + Position)]);
-            Position += strLength;
-            return str;
+
+            var stringBuffer = Contract.RequestBuffer(strLength);
+
+            return Encoding.UTF8.GetString(stringBuffer);
         }
 
         public Annotation[] ReadAnnotations()
@@ -188,34 +215,27 @@ namespace EdgeDB.Binary
             return arr;
         }
 
+        /// <summary>
+        ///     Reads a buffer from the underlying contract, the buffer can point into
+        ///     memory shared within the contract, making it unsafe.
+        /// </summary>
+        /// <remarks>
+        ///     Callees should process the returned span before continuing to make read
+        ///     calls.
+        /// </remarks>
+        private Span<byte> ReadUnsafeBytes()
+        {
+            var length = (int)ReadUInt32();
+
+            return Contract.RequestBuffer(length, copy: false);
+        }
+
         public Annotation ReadAnnotation()
         {
             var name = ReadString();
             var value = ReadString();
 
             return new Annotation(name, value);
-        }
-
-        public byte[] ReadByteArray()
-        {
-            VerifyInLimits(sizeof(int));
-            var length = (int)ReadUInt32();
-            VerifyInLimits(length);
-            var buffer = Data[Position..(Position + length)];
-            Position += length;
-            return buffer.ToArray();
-        }
-
-        public void ReadBytes(int length, out Span<byte> buff)
-        {
-            VerifyInLimits(length);
-            buff = Data[Position..(Position + length)];
-            Position += length;
-        }
-
-        public void Dispose()
-        {
-            Data.Clear();
         }
     }
 }

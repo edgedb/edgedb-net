@@ -165,25 +165,16 @@ namespace EdgeDB
             }
         }
 
-        internal readonly struct RawExecuteResult
-        {
-            public readonly ICodec Deserializer;
-            public readonly Data[] Data;
 
-            public RawExecuteResult(ICodec codec, List<Data> data)
-            {
-                Data = data.ToArray();
-                Deserializer = codec;
-            }
-        }
+        internal delegate void DataDeserializer(ICodec codec, ref PacketReader reader);
 
         /// <exception cref="EdgeDBException">A general error occored.</exception>
         /// <exception cref="EdgeDBErrorException">The client received an <see cref="ErrorResponse"/>.</exception>
         /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
-        internal virtual async Task<RawExecuteResult> ExecuteInternalAsync(string query, IDictionary<string, object?>? args = null, Cardinality? cardinality = null,
+        internal virtual async Task ExecuteInternalAsync(string query, IDictionary<string, object?>? args = null, Cardinality? cardinality = null,
             Capabilities? capabilities = Capabilities.Modifications, IOFormat format = IOFormat.Binary, bool isRetry = false, bool implicitTypeName = false,
-            CancellationToken token = default)
+            DataDeserializer? deserializer = null, CancellationToken token = default)
         {
             // if the current client is not connected, reconnect it
             if (!Duplexer.IsConnected)
@@ -257,18 +248,14 @@ namespace EdgeDB
                                     break;
                                 case CommandDataDescription descriptor:
                                     {
-                                        outCodecInfo = new(descriptor.OutputTypeDescriptorId,
-                                            CodecBuilder.BuildCodec(this, descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer));
-
-                                        inCodecInfo = new(descriptor.InputTypeDescriptorId,
-                                            CodecBuilder.BuildCodec(this, descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer));
+                                        (inCodecInfo, outCodecInfo) = CodecBuilder.BuildCodecs(this, ref descriptor);
 
                                         CodecBuilder.UpdateKeyMap(cacheKey, descriptor.InputTypeDescriptorId, descriptor.OutputTypeDescriptorId);
                                     }
                                     break;
                                 case StateDataDescription stateDescriptor:
                                     {
-                                        _stateCodec = CodecBuilder.BuildCodec(this, stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                                        _stateCodec = CodecBuilder.BuildCodec(this, ref stateDescriptor);
                                         _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                                         gotStateDescriptor = true;
                                         stateBuf = SerializeState();
@@ -286,8 +273,7 @@ namespace EdgeDB
                         
                         parseAttempts++;
                     }
-                    
-                    
+
                     if (error.HasValue)
                         throw new EdgeDBErrorException(error.Value, query);
 
@@ -326,11 +312,23 @@ namespace EdgeDB
                         switch (result.Packet)
                         {
                             case Data data:
-                                receivedData.Add(data);
+                                if(deserializer is null)
+                                {
+                                    throw new ArgumentNullException(nameof(deserializer), "Received data without a deserializer");
+                                }
+
+                                PacketReader reader;
+
+                                unsafe
+                                {
+                                    reader = data.Buffer->GetReader();
+                                }
+
+                                deserializer.Invoke(outCodecInfo.Codec, ref reader);
                                 break;
                             case StateDataDescription stateDescriptor:
                                 {
-                                    _stateCodec = CodecBuilder.BuildCodec(this, stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                                    _stateCodec = CodecBuilder.BuildCodec(this, ref stateDescriptor);
                                     _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                                     gotStateDescriptor = true;
                                     stateBuf = SerializeState();
@@ -367,8 +365,6 @@ namespace EdgeDB
                     throw new EdgeDBErrorException(error.Value, query);
 
                 execResult = new ExecuteResult(true, null, query);
-
-                return new RawExecuteResult(outCodecInfo.Codec!, receivedData);
             }
             catch (OperationCanceledException ce)
             {
@@ -388,14 +384,14 @@ namespace EdgeDB
                 _semaphore.Release();
                 released = true;
 
-                return await ExecuteInternalAsync(query, args, cardinality, capabilities, format, true, implicitTypeName, token).ConfigureAwait(false);
+                await ExecuteInternalAsync(query, args, cardinality, capabilities, format, true, implicitTypeName, deserializer, token).ConfigureAwait(false);
             }
             catch (EdgeDBException x) when (x.ShouldRetry && !isRetry)
             {
                 _semaphore.Release();
                 released = true;
 
-                return await ExecuteInternalAsync(query, args, cardinality, capabilities, format, true, implicitTypeName, token).ConfigureAwait(false);
+                await ExecuteInternalAsync(query, args, cardinality, capabilities, format, true, implicitTypeName, deserializer, token).ConfigureAwait(false);
             }
             catch (Exception x)
             {
@@ -419,6 +415,9 @@ namespace EdgeDB
             }
         }
 
+        private T? BuildResult<T>(ICodec codec, ref PacketReader reader)
+            => ObjectBuilder.BuildResult<T>(this, codec, ref reader);
+
         /// <inheritdoc/>
         /// <exception cref="EdgeDBException">A general error occored.</exception>
         /// <exception cref="EdgeDBErrorException">The client received an <see cref="ErrorResponse"/>.</exception>
@@ -441,23 +440,19 @@ namespace EdgeDB
         {
             var implicitTypeName = TypeBuilder.TryGetTypeDeserializerInfo(typeof(TResult), out var info) && info.RequiresTypeName;
 
-            var result = await ExecuteInternalAsync(
+            var queryResults = new List<TResult?>();
+
+            await ExecuteInternalAsync(
                 query,
                 args,
                 Cardinality.Many,
                 capabilities,
                 implicitTypeName: implicitTypeName,
-                token: token);
+                deserializer: (ICodec codec, ref PacketReader reader) => queryResults.Add(BuildResult<TResult>(codec, ref reader)),
+                token: token) ;
 
-            var array = new TResult?[result.Data.Length];
 
-            for(int i = 0; i != result.Data.Length; i++)
-            {
-                var obj = ObjectBuilder.BuildResult<TResult>(this, result.Deserializer, ref result.Data[i]);
-                array[i] = obj;
-            }
-
-            return array.ToImmutableArray();
+            return queryResults.ToImmutableArray();
         }
 
         /// <inheritdoc/>
@@ -473,23 +468,32 @@ namespace EdgeDB
             where TResult : default
         {
             var implicitTypeName = TypeBuilder.TryGetTypeDeserializerInfo(typeof(TResult), out var info) && info.RequiresTypeName;
-            
-            var result = await ExecuteInternalAsync(
+
+            TResult? result = default(TResult);
+            bool hasRead = false;
+
+            void deserializer(ICodec codec, ref PacketReader reader)
+            {
+                if(hasRead)
+                {
+                    throw new ResultCardinalityMismatchException(Cardinality.AtMostOne, Cardinality.Many);
+                }
+
+                result = ObjectBuilder.BuildResult<TResult>(this, codec, ref reader);
+                hasRead = true;
+            };
+
+            await ExecuteInternalAsync(
                 query,
                 args,
                 Cardinality.AtMostOne,
                 capabilities,
                 implicitTypeName: implicitTypeName,
-                token: token);
+                deserializer: deserializer,
+                token: token
+            );
 
-            if (result.Data.Length > 1)
-                throw new ResultCardinalityMismatchException(Cardinality.AtMostOne, Cardinality.Many);
-
-            var queryResult = result.Data.FirstOrDefault();
-
-            return queryResult.PayloadBuffer is null
-                ? default
-                : ObjectBuilder.BuildResult<TResult>(this, result.Deserializer, ref result.Data[0]);
+            return result;
         }
 
         /// <inheritdoc/>
@@ -505,23 +509,36 @@ namespace EdgeDB
             Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
             var implicitTypeName = TypeBuilder.TryGetTypeDeserializerInfo(typeof(TResult), out var info) && info.RequiresTypeName;
-            
-            var result = await ExecuteInternalAsync(
+
+            var result = default(TResult);
+            bool hasRead = false;
+
+            void deserializer(ICodec codec, ref PacketReader reader)
+            {
+                if (hasRead)
+                {
+                    throw new ResultCardinalityMismatchException(Cardinality.AtMostOne, Cardinality.Many);
+                }
+
+                result = ObjectBuilder.BuildResult<TResult>(this, codec, ref reader);
+                hasRead = true;
+            };
+
+            await ExecuteInternalAsync(
                 query,
                 args,
                 Cardinality.AtMostOne,
                 capabilities,
                 implicitTypeName: implicitTypeName,
+                deserializer: deserializer,
                 token: token);
 
-            if (result.Data.Length is > 1 or 0)
-                throw new ResultCardinalityMismatchException(Cardinality.One, result.Data.Length > 1 ? Cardinality.Many : Cardinality.AtMostOne);
+            if(!hasRead)
+            {
+                throw new MissingRequiredException();
+            }
 
-            var queryResult = result.Data.FirstOrDefault();
-            
-            return queryResult.PayloadBuffer is null
-                ? throw new MissingRequiredException()
-                : ObjectBuilder.BuildResult<TResult>(this, result.Deserializer, ref result.Data[0])!;
+            return result!;
         }
 
         /// <inheritdoc/>
@@ -686,7 +703,14 @@ namespace EdgeDB
                 switch (status.Name)
                 {
                     case "suggested_pool_concurrency":
-                        var str = Encoding.UTF8.GetString(status.ValueBuffer);
+                        string str;
+
+                        unsafe
+                        {
+                            str = status.Value->GetReader().ConsumeString();
+                        }
+
+
                         if (!int.TryParse(str, out var suggestedPoolConcurrency))
                         {
                             throw new FormatException("suggested_pool_concurrency type didn't match the expected type of int");
@@ -695,17 +719,23 @@ namespace EdgeDB
                         break;
 
                     case "system_config":
-                        var reader = new PacketReader(status.ValueBuffer);
+                        PacketReader reader;
+
+                        unsafe
+                        {
+                            reader = status.Value->GetReader();
+                        }
+
                         var length = reader.ReadInt32() - 16;
                         var descriptorId = reader.ReadGuid();
-                        reader.ReadBytes(length, out var typeDesc);
+
+                        reader.Limit = length;
 
                         var codec = CodecBuilder.GetCodec(descriptorId);
 
                         if (codec is null)
                         {
-                            var innerReader = new PacketReader(ref typeDesc);
-                            codec = CodecBuilder.BuildCodec(this, descriptorId, ref innerReader);
+                            codec = CodecBuilder.BuildCodec(this, descriptorId, ref reader);
 
                             if (codec is null)
                                 throw new MissingCodecException("Failed to build codec for system_config");
