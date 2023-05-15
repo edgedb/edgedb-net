@@ -165,7 +165,14 @@ namespace EdgeDB.TestGenerator.Generators
                                     }
                                 }
 
-                                queryResult.Session = handle.Session;
+                                var globalNodes = new Dictionary<string, object?>();
+
+                                foreach (var global in handle.Session.Globals)
+                                {
+                                    globalNodes.Add(global.Key, await ValueFormatter.FormatAsync(global.Value!, global.Value!, () => { }, provider));
+                                }
+
+                                queryResult.Session = handle.Session.WithGlobals(globalNodes);
 
                                 testManifest.Queries.Add(queryResult);
                             }

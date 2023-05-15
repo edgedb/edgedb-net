@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -44,10 +45,14 @@ namespace EdgeDB.ExampleApp.Examples
 
         public async Task ExecuteAsync(EdgeDBClient client)
         {
-            var str = "11.996639232149645";
-
-            var a = decimal.Parse(str);
-            var b = double.Parse(str);
+            var r = await client.QueryAsync<BigInteger[]>("select <array<std::bigint>>$arg", new Dictionary<string, object?>()
+            {
+                {"arg", new BigInteger[]
+                {
+                    BigInteger.Parse("1683471060357585966953401719466952"),
+                    BigInteger.Parse("1078594995")
+                } }
+            });
 
             // select the abstract type from the schema.
             // Note that the type builder will 'discover' the types that inherit

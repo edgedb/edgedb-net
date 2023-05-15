@@ -18,6 +18,10 @@ namespace EdgeDB.DataTypes
         /// <summary>
         ///     Gets a <see cref="System.DateTimeOffset"/> that represents this <see cref="LocalDateTime"/>.
         /// </summary>
+        /// <remarks>
+        ///     The returned <see cref="DateTimeOffset"/> is converted to the current system timezone specified
+        ///     by <see cref="TimeZoneInfo.Local"/>.
+        /// </remarks>
         public DateTimeOffset DateTimeOffset
             => TemporalCommon.DateTimeOffsetFromMicroseconds(_microseconds, true);
 
@@ -25,7 +29,7 @@ namespace EdgeDB.DataTypes
         ///     Gets a <see cref="SysDateTime"/> that represents this <see cref="LocalDateTime"/>
         /// </summary>
         public SysDateTime DateTime
-            => DateTimeOffset.DateTime;
+            => TemporalCommon.DateTimeOffsetFromMicroseconds(_microseconds, false).DateTime;
 
         /// <summary>
         ///     Gets the microsecond component of this <see cref="LocalDateTime"/>; representing the

@@ -222,7 +222,7 @@ namespace EdgeDB.DataTypes
                 var innerTuple = CreateTupleType(ctor, elements, offset + 7);
 
                 var types = new Type[8];
-                types[7] = innerTuple.GetType();
+                types[7] = innerTuple;
                 elements[offset..(offset + 7)].CopyTo(types, 0);
 
                 return ctor(types);

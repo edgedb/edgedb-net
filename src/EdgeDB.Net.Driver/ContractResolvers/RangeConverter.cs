@@ -17,12 +17,38 @@ namespace EdgeDB.ContractResolvers
 
             var rangePointType = objectType.GenericTypeArguments[0];
 
-            var lower = jObj["lower"]?.ToObject(rangePointType, serializer);
-            var upper = jObj["upper"]?.ToObject(rangePointType, serializer);
+            var lower = ReadRangePoint(jObj["lower"], rangePointType, serializer);
+            var upper = ReadRangePoint(jObj["upper"], rangePointType, serializer);
             var includeLower = jObj["inc_lower"]?.ToObject<bool>(serializer) ?? true;
             var includeUpper = jObj["inc_upper"]?.ToObject<bool>(serializer) ?? false;
 
             return Activator.CreateInstance(objectType, lower, upper, includeLower, includeUpper);
+        }
+
+        private object? ReadRangePoint(JToken? value, Type type, JsonSerializer serializer)
+        {
+            if (value is null || value.Type == JTokenType.Null)
+                return null;
+
+            // since the serializer will either read fractional types as either
+            // double or decimal, it will cast down which can lose precision.
+            // we can fix this by reading it as a string, then calling the
+            // types 'Parse' method.
+
+            if(type == typeof(float))
+            {
+                return float.Parse((string)value!);
+            }
+            else if (type == typeof(double))
+            {
+                return double.Parse((string)value!);
+            }
+            else if (type == typeof(decimal))
+            {
+                return decimal.Parse((string)value!);
+            }
+
+            return value.ToObject(type, serializer);
         }
 
         public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)

@@ -43,6 +43,8 @@ groups:
     protocol: '1.0'
   - name: V2 Query Results
     id: v2_query_results
+  - name: V2 Deep Nesting
+    id: v2_deep_nesting
     protocol: '1.0'
   - name: V2 State
     id: v2_state
@@ -82,7 +84,7 @@ rulesets:
     apply_range_to_sets: true
     query_templates:
       - query: SELECT <$EDGEQL_VALUE>
-  - group_id: v2_query_results
+  - group_id: v2_deep_nesting
     name: Deep Query Nesting
     test_name_template: Deep query nesting of type <$EDB_TYPE_NAME>
     max_depth: 4

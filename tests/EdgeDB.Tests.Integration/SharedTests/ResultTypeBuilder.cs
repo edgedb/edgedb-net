@@ -27,6 +27,42 @@ namespace EdgeDB.Tests.Integration.SharedTests
             _moduleBuilder = _assemblyBuilder.DefineDynamicModule("TestResults");
         }
 
+        public static object ToObject(IResultNode node)
+        {
+            switch (node)
+            {
+                case CollectionResultNode collection:
+                    var values = (object[])collection.Value!;
+
+                    if (values.Length == 0)
+                        return Array.Empty<object>();
+
+                    var type = ResultTypeBuilder.TryGetScalarType(((IResultNode)values[0]).Type, out var t)
+                        ? t
+                        : ToObject((IResultNode)values[0])!.GetType();
+
+                    var arr = Array.CreateInstance(type, values.Length);
+
+                    for (int i = 0; i != values.Length; i++)
+                        arr.SetValue(ToObject((IResultNode)values[i]), i);
+
+                    return arr;
+                case ResultNode:
+                    switch (node.Type)
+                    {
+                        case "tuple":
+                            {
+                                var children = ((IResultNode?[])node.Value!).Select(x => ToObject(x!)).ToArray();
+                                return new TransientTuple(children).ToValueTuple();
+                            }
+                        default:
+                            return node.Value!;
+                    }
+                default:
+                    throw new NotSupportedException($"Unsupported node {node.GetType().Name}");
+            }
+        }
+
         [return: NotNullIfNotNull(nameof(name))]
         public static bool TryGetScalarType(string? name, [NotNullWhen(true)] out Type? type)
         {
@@ -258,10 +294,27 @@ namespace EdgeDB.Tests.Integration.SharedTests
             {
                 var types = CreateResultTypes(node);
 
-                foreach(var type in types)
+                var map = new List<IEnumerable<Type>>();
+
+                if (result.Any())
                 {
-                    result.AddRange(result.Select(x => new List<Type>(x) { type }));
+                    foreach(var col in result)
+                    {
+                        foreach(var type in types)
+                        {
+                            map.Add(new List<Type>(col) { type });
+                        }
+                    }
                 }
+                else
+                {
+                    foreach(var type in types)
+                    {
+                        map.Add(new List<Type>() { type });
+                    }
+                }
+
+                result = map;
             }
 
             return result;

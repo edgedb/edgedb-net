@@ -208,7 +208,6 @@ namespace EdgeDB.Binary.Codecs
             }
             else if (codec.GetType().IsGenericType && codec.GetType().GetGenericTypeDefinition() == typeof(RangeCodec<>))
             {
-                // always prefer the default converter for range
                 return codec.ConverterType;
             }
             else if (codec is TupleCodec tpl)

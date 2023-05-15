@@ -61,9 +61,12 @@ namespace EdgeDB.Tests.Integration.SharedTests
             // can return 1 or more types, for example to test complex
             // codecs by returning all possible combinations of valid
             // types for the query.
-            var resultTypes = ResultTypeBuilder.CreateResultTypes(testDefinition.Result!).Prepend(typeof(object)).ToArray();
 
-            Console.WriteLine($"Created {resultTypes.Count()} different results for '{testDefinition.Name}'");
+            Console.WriteLine("Creating result types...");
+
+            var resultTypes = ResultTypeBuilder.CreateResultTypes(testDefinition.Result!).Prepend(typeof(object));
+
+            Console.WriteLine($"Created result types for '{testDefinition.Name}'");
 
             var clientHandle = await _client.GetOrCreateClientAsync<EdgeDBBinaryClient>();
 
@@ -86,11 +89,43 @@ namespace EdgeDB.Tests.Integration.SharedTests
                     results.Add(new() { Cardinality = query.Cardinality, Result = result });
             }
 
-            foreach (var executionResult in results)
+            Console.WriteLine("Asserting results...");
+
+            if (path.Contains("deep_nesting"))
             {
-                foreach (var resultType in resultTypes)
+                for (int i = 0; i != results.Count; i++)
                 {
+                    var executionResult = results[i];
+
+                    // only check against a reasonable amount, deep nesting can have millions of combinations
+                    var shortenedResultTypes = resultTypes.Take(5);
+
+                    int j = 0;
+
+                    foreach(var resultType in shortenedResultTypes)
+                    {
+                        Console.WriteLine($"{i + 1}/{results.Count} -> {j + 1}/5: Building...");
+                        var value = BuildResult(clientHandle, resultType, executionResult.Cardinality, executionResult.Result);
+                        Console.WriteLine($"{i + 1}/{results.Count} -> {j + 1}/5: Asserting...");
+                        ResultAsserter.AssertResult(testDefinition.Result, value);
+                        j++;
+                    }
+                }
+            }
+
+            var arrResultTypes = resultTypes.ToArray();
+
+            for (int i = 0; i != results.Count; i++)
+            {
+                var executionResult = results[i];
+
+                for (int j = 0; j != arrResultTypes.Length; j++)
+                {
+                    var resultType = arrResultTypes[j];
+
+                    Console.WriteLine($"{i + 1}/{results.Count} -> {j + 1}/{arrResultTypes.Length}: Building...");
                     var value = BuildResult(clientHandle, resultType, executionResult.Cardinality, executionResult.Result);
+                    Console.WriteLine($"{i + 1}/{results.Count} -> {j + 1}/{arrResultTypes.Length}: Asserting...");
                     ResultAsserter.AssertResult(testDefinition.Result, value);
                 }
             }
@@ -145,7 +180,7 @@ namespace EdgeDB.Tests.Integration.SharedTests
 
                 foreach (var argument in query.Arguments)
                 {
-                    args.Add(argument.Name!, ToObject(argument.Value!));
+                    args.Add(argument.Name!, ResultTypeBuilder.ToObject(argument.Value!));
                 }
             }
 
@@ -199,42 +234,6 @@ namespace EdgeDB.Tests.Integration.SharedTests
            )!.MakeGenericMethod(result);
         }
 
-        private static object ToObject(IResultNode node)
-        {
-            switch (node)
-            {
-                case CollectionResultNode collection:
-                    var values = (object[])collection.Value!;
-
-                    if (values.Length == 0)
-                        return Array.Empty<object>();
-
-                    var type = ResultTypeBuilder.TryGetScalarType(((IResultNode)values[0]).Type, out var t)
-                        ? t
-                        : ToObject((IResultNode)values[0])!.GetType();
-
-                    var arr = Array.CreateInstance(type, values.Length);
-
-                    for (int i = 0; i != values.Length; i++)
-                        arr.SetValue(ToObject((IResultNode)values[i]), i);
-
-                    return arr;
-                case ResultNode:
-                    switch (node.Type)
-                    {
-                        case "tuple":
-                            {
-                                var children = ((IResultNode?[])node.Value!).Select(x => ToObject(x!)).ToArray();
-                                return new TransientTuple(children).ToValueTuple();
-                            }
-                        default:
-                            return node.Value!;
-                    }
-                default:
-                    throw new NotSupportedException($"Unsupported node {node.GetType().Name}");
-            }
-        }
-
         internal class TestGroup
         {
             public string? ProtocolVersion { get; set; }
@@ -257,6 +256,8 @@ namespace EdgeDB.Tests.Integration.SharedTests
                 public string? Value { get; set; }
                 public List<QueryArgument>? Arguments { get; set; }
                 public EdgeDB.Capabilities Capabilities { get; set; }
+
+                [Newtonsoft.Json.JsonConverter(typeof(SessionConverter))]
                 public Session? Session { get; set; }
 
                 public class QueryArgument
