@@ -12,6 +12,7 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace EdgeDB
 {
@@ -549,11 +550,32 @@ namespace EdgeDB
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         public override async Task<DataTypes.Json> QueryJsonAsync(string query, IDictionary<string, object?>? args = null, Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
-            var result = await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, IOFormat.Json, token: token);
-            
-            return result.Data.Length == 1
-                ? (string)result.Deserializer.Deserialize(this, result.Data[0].PayloadBuffer)!
-                : "[]";
+            string result = null!;
+            bool hasRead = false;
+
+            void deserializer(ICodec codec, ref PacketReader reader)
+            {
+                if (hasRead)
+                {
+                    throw new ResultCardinalityMismatchException(Cardinality.AtMostOne, Cardinality.Many);
+                }
+
+                result = (string)codec.Deserialize(ref reader, CodecContext)!;
+                hasRead = true;
+            };
+
+            await ExecuteInternalAsync(
+                query,
+                args,
+                Cardinality.Many,
+                capabilities,
+                IOFormat.Json,
+                deserializer: deserializer,
+                token: token);
+
+            Debug.Assert(result != null, "result was not assigned");
+
+            return result;
         }
 
         /// <inheritdoc/>
@@ -563,11 +585,24 @@ namespace EdgeDB
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         public override async Task<IReadOnlyCollection<DataTypes.Json>> QueryJsonElementsAsync(string query, IDictionary<string, object?>? args = null, Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
-            var result = await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, IOFormat.JsonElements, token: token);
+            var result = new List<DataTypes.Json>();
 
-            return result.Data.Any()
-                ? result.Data.Select(x => new DataTypes.Json((string?)result.Deserializer.Deserialize(this, x.PayloadBuffer))).ToImmutableArray()
-                : ImmutableArray<DataTypes.Json>.Empty;
+            void deserializer(ICodec codec, ref PacketReader reader)
+            {
+                result!.Add((string)codec.Deserialize(ref reader, CodecContext)!);
+            };
+
+            await ExecuteInternalAsync(
+                query,
+                args,
+                Cardinality.Many,
+                capabilities,
+                IOFormat.JsonElements,
+                deserializer: deserializer,
+                token: token
+            );
+
+            return result.ToImmutableArray();
         }
         #endregion
 
@@ -600,7 +635,7 @@ namespace EdgeDB
                     ServerKey = keyData.KeyBuffer;
                     break;
                 case StateDataDescription stateDescriptor:
-                    _stateCodec = CodecBuilder.BuildCodec(this,  stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                    _stateCodec = CodecBuilder.BuildCodec(this, ref stateDescriptor);
                     _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                     break;
                 case ParameterStatus parameterStatus:

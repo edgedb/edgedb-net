@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.Linq;
+using System.Reflection.PortableExecutable;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -13,32 +15,33 @@ namespace EdgeDB
     /// <summary>
     ///     Represents an enumerator for creating objects.
     /// </summary>
-    public ref struct ObjectEnumerator
+    public unsafe ref struct ObjectEnumerator
     {
         internal static readonly Type RefType = typeof(ObjectEnumerator).MakeByRefType();
 
         public int Length => _names.Length;
-        internal PacketReader Reader;
+
         internal readonly ICodec[] Codecs;
         private readonly string[] _names;
         private readonly int _numElements;
         private readonly CodecContext _context;
+        private unsafe readonly PacketReader* _reader;
         private int _pos;
 
         internal ObjectEnumerator(
-            ref Span<byte> data,
+            scoped ref PacketReader reader,
             int position,
             string[] names,
             ICodec[] codecs,
             CodecContext context)
         {
-            Reader = new PacketReader(ref data, position);
+            _reader = (PacketReader*)Unsafe.AsPointer(ref reader);
             Codecs = codecs;
             _names = names;
             _pos = 0;
             _context = context;
 
-            _numElements = Reader.ReadInt32();
+            _numElements = _reader->ReadInt32();
         }
 
         /// <summary>
@@ -73,16 +76,16 @@ namespace EdgeDB
         /// </returns>
         public bool Next([NotNullWhen(true)] out string? name, out object? value)
         {
-            if (_pos >= _numElements || Reader.Empty)
+            if (_pos >= _numElements || _reader->Empty)
             {
                 name = null;
                 value = null;
                 return false;
             }
 
-            Reader.Skip(4);
+            _reader->Skip(4);
 
-            var length = Reader.ReadInt32();
+            var length = _reader->ReadInt32();
 
             if (length == -1)
             {
@@ -92,13 +95,15 @@ namespace EdgeDB
                 return true;
             }
 
-            Reader.ReadBytes(length, out var buff);
+            _reader->Limit = length;
 
-            var innerReader = new PacketReader(ref buff);
             name = _names[_pos];
             var codec = Codecs[_pos];
 
-            value = codec.Deserialize(ref innerReader, _context);
+            value = codec.Deserialize(ref *_reader, _context);
+
+            _reader->Limit = -1;
+
             _pos++;
             return true;
         }

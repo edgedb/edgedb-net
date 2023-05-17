@@ -14,20 +14,22 @@ namespace EdgeDB.Binary
         public int PacketPosition
             => _packetPosition;
 
-        public int Size
-            => _size;
+        public int Length
+            => _length;
 
-        private readonly int _size;
+        private readonly int _length;
         private readonly int _packetPosition;
 
         private readonly BufferContract* _contract;
 
         public ReservedBuffer(
             BufferContract* contract,
-            int size)
+            int start,
+            int length)
         {
             _contract = contract;
-            _size = size;
+            _length = length;
+            _packetPosition = start;
         }
 
         public PacketReader GetReader()

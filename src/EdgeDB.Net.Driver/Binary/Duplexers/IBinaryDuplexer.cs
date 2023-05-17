@@ -18,8 +18,14 @@ namespace EdgeDB.Binary
         ValueTask DisconnectAsync(CancellationToken token = default);
 
         ValueTask SendAsync(CancellationToken token = default, params Sendable[] packets);
+
         Task<IReceiveable?> ReadNextAsync(CancellationToken token = default);
+
         IAsyncEnumerable<DuplexResult> DuplexAsync(CancellationToken token = default, params Sendable[] packets);
+
+        void OnContractComplete(PacketContract contract);
+        void OnContractDisconnected(PacketContract contract);
+
 
         ValueTask SendAsync(Sendable packet, CancellationToken token = default)
             => SendAsync(token, packet);

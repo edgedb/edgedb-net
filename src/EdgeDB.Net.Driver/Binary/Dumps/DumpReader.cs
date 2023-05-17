@@ -34,7 +34,7 @@ namespace EdgeDB.Dumps
                     throw new EdgeDBException("Failed to get buffer from the stream");
             }
 
-            var reader = new PacketReader(ref buff);
+            var reader = PacketReader.CreateFrom(buff);
 
             var version = reader.ReadInt64();
 
@@ -64,6 +64,8 @@ namespace EdgeDB.Dumps
                 });
             }
 
+            reader.Dispose();
+
             return (restore!, blocks);
         }
 
@@ -72,27 +74,31 @@ namespace EdgeDB.Dumps
             var type = reader.ReadChar();
 
             // read hash
-            reader.ReadBytes(20, out var hash);
+            var hash = reader.ReadBytes(20);
 
             var length = (int)reader.ReadUInt32();
 
-            reader.ReadBytes(length, out var packetData);
+            var packetData = reader.ReadBytes(length);
 
             // check hash
-            using (var alg = SHA1.Create())
+            if (!SHA1.HashData(packetData.ToArray()).SequenceEqual(hash.ToArray()))
+                throw new ArgumentException("Hash did not match");
+
+            var innerReader = PacketReader.CreateFrom(packetData);
+
+            try
             {
-                if (!alg.ComputeHash(packetData.ToArray()).SequenceEqual(hash.ToArray()))
-                    throw new ArgumentException("Hash did not match");
+                return type switch
+                {
+                    'H' => new DumpHeader(ref innerReader, length),
+                    'D' => new DumpBlock(ref innerReader, length),
+                    _ => throw new ArgumentException($"Unknown packet format {type}"),
+                };
             }
-
-            var innerReader = new PacketReader(ref packetData);
-
-            return type switch
+            finally
             {
-                'H' => new DumpHeader(ref innerReader, length),
-                'D' => new DumpBlock(ref innerReader, length),
-                _ => throw new ArgumentException($"Unknown packet format {type}"),
-            };
+                innerReader.Dispose();
+            }
         }
 
         private static void ThrowIfEndOfStream(bool readSuccess)

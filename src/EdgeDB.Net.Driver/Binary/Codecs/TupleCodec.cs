@@ -52,11 +52,8 @@ namespace EdgeDB.Binary.Codecs
                     continue;
                 }
 
-
-                reader.ReadBytes(length, out var data);
-
-                var innerReader = new PacketReader(data);
-                values[i] = InnerCodecs[i].Deserialize(ref innerReader, context);
+                using var _ = reader.LimitTo(length);
+                values[i] = InnerCodecs[i].Deserialize(ref reader, context);
             }
 
             return new TransientTuple(InnerCodecs.Select(x => x.ConverterType).ToArray(), values);

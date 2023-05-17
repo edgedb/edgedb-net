@@ -3,6 +3,7 @@ using EdgeDB.Binary.Codecs;
 using System.Collections.Concurrent;
 using System.Numerics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace EdgeDB.Binary
 {
@@ -22,9 +23,16 @@ namespace EdgeDB.Binary
             return val.Key;
         }
 
-        public static IReceiveable? DeserializePacket(ServerMessageType type, ref Memory<byte> buffer, int length, EdgeDBBinaryClient client)
+        public static unsafe PacketContract CreateContract<T>(T duplexer, Stream source, ref PacketHeader header, int chunkSize)
+            where T : IBinaryDuplexer
         {
-            var reader = new PacketReader(buffer.Span);
+            return new PacketContract(duplexer, source, (PacketHeader*)Unsafe.AsPointer(ref header), chunkSize);
+        }
+
+
+        public static IReceiveable? DeserializePacket(ServerMessageType type, ref PacketContract contract, EdgeDBBinaryClient client)
+        {
+            var reader = new PacketReader(contract.ContractHandle);
 
             try
             {
@@ -39,9 +47,9 @@ namespace EdgeDB.Binary
                     case ServerMessageType.Data:
                         return new Data(ref reader);
                     case ServerMessageType.DumpBlock:
-                        return new DumpBlock(ref reader, in length);
+                        return new DumpBlock(ref reader, contract.Length);
                     case ServerMessageType.DumpHeader:
-                        return new DumpHeader(ref reader, in length);
+                        return new DumpHeader(ref reader, contract.Length);
                     case ServerMessageType.ErrorResponse:
                         return new ErrorResponse(ref reader);
                     case ServerMessageType.LogMessage:
@@ -60,7 +68,7 @@ namespace EdgeDB.Binary
                         return new StateDataDescription(ref reader);
                     default:
                         // skip the packet length
-                        reader.Skip(length);
+                        reader.Skip(contract.Length);
 
                         client.Logger.UnknownPacket(type.ToString("X"));
                         return null;
@@ -72,7 +80,7 @@ namespace EdgeDB.Binary
                 if (!reader.Empty)
                 {
                     // log a warning
-                    client.Logger.DidntReadTillEnd(type, length);
+                    client.Logger.DidntReadTillEnd(type, contract.Length);
                 }
 
                 reader.Dispose();

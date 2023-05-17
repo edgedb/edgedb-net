@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB.Binary.Packets
+namespace EdgeDB.Binary
 {
     [StructLayout(LayoutKind.Explicit, Pack = 0, Size = 5)]
     internal struct PacketHeader

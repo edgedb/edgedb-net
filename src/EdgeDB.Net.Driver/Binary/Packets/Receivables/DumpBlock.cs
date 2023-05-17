@@ -39,17 +39,18 @@ namespace EdgeDB.Binary.Packets
 
         private readonly KeyValue[] _attributes;
 
-        internal DumpBlock(ref PacketReader reader, in int length)
+        internal DumpBlock(ref PacketReader reader, int length)
         {
             Length = length;
 
-            reader.ReadBytes(length, out var rawBuff);
-            Raw = rawBuff.ToArray();
+            var rawBuffer = reader.ReadBytes(length);
 
-            HashBuffer = SHA1.Create().ComputeHash(Raw);
+            Raw = rawBuffer.ToArray();
 
-            using var r = new PacketReader(rawBuff);
-            _attributes = r.ReadKeyValues();
+            HashBuffer = SHA1.HashData(Raw);
+
+            using var rawReader = PacketReader.CreateFrom(rawBuffer);
+            _attributes = rawReader.ReadKeyValues();
         }
     }
 }

@@ -46,8 +46,8 @@ namespace EdgeDB.Binary.Codecs
             for(int i = 0; i != numElements; i++)
             {
                 var elementLength = reader.ReadInt32();
-                reader.ReadBytes(elementLength, out var innerData);
-                array[i] = InnerCodec.Deserialize(context, innerData);
+                using var _ = reader.LimitTo(elementLength);
+                array[i] = InnerCodec.Deserialize(ref reader, context);
             }
 
             return array;

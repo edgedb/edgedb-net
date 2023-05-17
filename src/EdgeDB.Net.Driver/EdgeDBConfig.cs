@@ -166,5 +166,10 @@ namespace EdgeDB
         ///     non-concrete query result definitions.
         /// </summary>
         public bool PreferValueTupleType { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the chunk size when deserializing messages and data from edgedb.
+        /// </summary>
+        public int PacketChunkSize { get; set; }
     }
 }

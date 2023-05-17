@@ -53,11 +53,10 @@ namespace EdgeDB.Binary.Codecs
                     continue;
                 }
 
-                reader.ReadBytes(length, out var innerData);
-
                 object? value;
 
-                value = InnerCodecs[i].Deserialize(context, innerData);
+                using var _ = reader.LimitTo(length);
+                value = InnerCodecs[i].Deserialize(ref reader, context);
 
                 dataDictionary.Add(elementName, value);
             }

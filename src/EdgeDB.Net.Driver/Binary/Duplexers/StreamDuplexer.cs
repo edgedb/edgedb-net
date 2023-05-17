@@ -35,6 +35,7 @@ namespace EdgeDB.Binary
         private readonly SemaphoreSlim _duplexLock;
         private readonly SemaphoreSlim _onMessageLock;
         private readonly SemaphoreSlim _readLock;
+        private readonly SemaphoreSlim _contractLock;
 
         private readonly Memory<byte> _packetHeaderBuffer;
         private readonly MemoryHandle _packetHeaderHandle;
@@ -44,23 +45,7 @@ namespace EdgeDB.Binary
 
         private Stream? _stream;
         private CancellationTokenSource _disconnectTokenSource;
-
-        [StructLayout(LayoutKind.Explicit, Pack = 0, Size = 5)]
-        internal struct PacketHeader
-        {
-            [FieldOffset(0)]
-            public readonly ServerMessageType Type;
-
-            [FieldOffset(1)]
-            public int Length;
-
-            public void CorrectLength()
-            {
-                BinaryUtils.CorrectEndianness(ref Length);
-                // remove the length of "Length" from the length of the packet
-                Length -= 4;
-            }
-        }
+        private PacketContract? _packetContract;
 
         public unsafe StreamDuplexer(EdgeDBBinaryClient client)
         {
@@ -69,6 +54,7 @@ namespace EdgeDB.Binary
             _duplexLock = new(1, 1);
             _onMessageLock = new(1, 1);
             _readLock = new(1, 1);
+            _contractLock = new(1, 1);
 
             _packetHeaderBuffer = new byte[PACKET_HEADER_SIZE];
             _packetHeaderHandle = _packetHeaderBuffer.Pin();
@@ -103,6 +89,7 @@ namespace EdgeDB.Binary
             using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectTokenSource.Token, timeoutTokenSource.Token);
 
             await _readLock.WaitAsync(linkedToken.Token).ConfigureAwait(false);
+            await _contractLock.WaitAsync(linkedToken.Token).ConfigureAwait(false);
 
             try
             {
@@ -124,18 +111,11 @@ namespace EdgeDB.Binary
                     header.CorrectLength();
                 }
 
-                using var memoryOwner = MemoryPool<byte>.Shared.Rent(header.Length);
-                var buffer = memoryOwner.Memory[..header.Length];
+                _client.Logger.MessageReceived(_client.ClientId, header.Type, header.Length);
 
-                if (await ReadExactAsync(buffer, linkedToken.Token).ConfigureAwait(false) == 0)
-                {
-                    await DisconnectInternalAsync();
-                    return null;
-                }
+                var contract = PacketSerializer.CreateContract(this, _stream!, ref header, _client.ClientConfig.PacketChunkSize);
 
-                _client.Logger.MessageReceived(_client.ClientId, header.Type, buffer.Length);
-
-                var packet = PacketSerializer.DeserializePacket(header.Type, ref buffer, header.Length, _client);
+                var packet = PacketSerializer.DeserializePacket(header.Type, ref contract, _client);
 
                 // check for idle timeout
                 if(packet is ErrorResponse err && err.ErrorCode == ServerErrorCodes.IdleSessionTimeoutError)
@@ -146,6 +126,8 @@ namespace EdgeDB.Binary
                     await DisconnectInternalAsync();
                     throw new EdgeDBErrorException(err);
                 }
+
+                _packetContract = contract;
 
                 return packet;
             }
@@ -278,6 +260,25 @@ namespace EdgeDB.Binary
         {
             _disconnectTokenSource.Dispose();
             _packetHeaderHandle.Dispose();
+        }
+
+        public void OnContractComplete(PacketContract contract)
+        {
+            if (_packetContract != contract)
+            {
+                contract.Dispose();
+                throw new EdgeDBException("Dangling packet contract was unexpectedly complete.");
+            }
+
+            contract.Dispose();
+            _contractLock.Release();
+            
+        }
+
+        public void OnContractDisconnected(PacketContract contract)
+        {
+            contract.Dispose();
+            _contractLock.Release();
         }
     }
 }

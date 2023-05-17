@@ -83,7 +83,7 @@ namespace EdgeDB.Utils
             return ($"{final},p={Convert.ToBase64String(clientProof)}", serverProof);
         }
 
-        public (AuthenticationSASLResponse FinalMessage, byte[] ExpectedSig) BuildFinalMessagePacket(
+        public unsafe (AuthenticationSASLResponse FinalMessage, byte[] ExpectedSig) BuildFinalMessagePacket(
             EdgeDBBinaryClient client,
             in AuthenticationStatus status,
             string password)
@@ -93,7 +93,7 @@ namespace EdgeDB.Utils
             return (new AuthenticationSASLResponse(_stringCodec.Serialize(client, final)), sig);
         }
 
-        public static byte[] ParseServerFinalMessage(EdgeDBBinaryClient client, in AuthenticationStatus status)
+        public static unsafe byte[] ParseServerFinalMessage(EdgeDBBinaryClient client, in AuthenticationStatus status)
         {
             var msg = _stringCodec.Deserialize(client, status.SASLDataBuffer)!;
 

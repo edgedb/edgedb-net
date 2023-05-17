@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Packets;
 using EdgeDB.Utils;
 using System;
 using System.Buffers;
@@ -23,15 +24,20 @@ namespace EdgeDB.Binary.Duplexers
         private readonly Queue<IReceiveable> _packetQueue;
         private readonly SemaphoreSlim _sendSemaphore;
         private readonly SemaphoreSlim _readSemaphore;
+        private readonly SemaphoreSlim _contractLock;
+
         private TaskCompletionSource _packetReadTCS;
+        private PacketContract? _packetContract;
+
 
         public HttpDuplexer(EdgeDBHttpClient client)
         {
             _client = client;
-            _packetQueue = new(5);
+            _packetQueue   = new(5);
             _packetReadTCS = new();
             _sendSemaphore = new(1, 1);
             _readSemaphore = new(1, 1);
+            _contractLock  = new(1, 1);
         }
 
         public void Reset()
@@ -147,35 +153,62 @@ namespace EdgeDB.Binary.Duplexers
 
             while (totalRead < length)
             {
+                await _contractLock.WaitAsync(token).ConfigureAwait(false);
+
                 totalRead += await stream.ReadAsync(headerBuffer, token).ConfigureAwait(false);
 
-                StreamDuplexer.PacketHeader header;
+                PacketHeader header;
 
                 unsafe
                 {
-                    header = *(StreamDuplexer.PacketHeader*)pin.Pointer;
+                    header = *(PacketHeader*)pin.Pointer;
+                    header.CorrectLength();
                 }
 
-                header.CorrectLength();
+                if(_packetContract != null)
+                {
+                    if(!_packetContract.IsEmpty)
+                    {
+                        throw new EdgeDBException("Previous packet failed to be processed fully before the next packet was read");
+                    }
+                } 
 
-                using var memoryOwner = MemoryPool<byte>.Shared.Rent(header.Length);
-                var buffer = memoryOwner.Memory[..header.Length];
+                _packetContract = PacketSerializer.CreateContract(this, stream, ref header, _client.ClientConfig.PacketChunkSize);
 
-                totalRead += await stream.ReadAsync(buffer, token).ConfigureAwait(false);
-
-                var packet = PacketSerializer.DeserializePacket(header.Type, ref buffer, header.Length, _client);
+                var packet = PacketSerializer.DeserializePacket(header.Type, ref _packetContract, _client);
 
                 if (packet is null)
                     throw new EdgeDBException($"Failed to deserialize packet type {header.Type}");
 
                 _packetQueue.Enqueue(packet);
 
-                _client.Logger.MessageReceived(_client.ClientId, header.Type, buffer.Length);
+                _packetReadTCS.TrySetResult();
+
+                _client.Logger.MessageReceived(_client.ClientId, header.Type, header.Length);
             }
 
-            _packetReadTCS.TrySetResult();
+            
         }
 
         void IDisposable.Dispose() {}
+
+        public void OnContractComplete(PacketContract contract)
+        {
+            if (_packetContract != contract)
+            {
+                contract.Dispose();
+                throw new EdgeDBException("Dangling packet contract was unexpectedly complete.");
+            }
+
+            contract.Dispose();
+            _contractLock.Release();
+
+        }
+
+        public void OnContractDisconnected(PacketContract contract)
+        {
+            contract.Dispose();
+            _contractLock.Release();
+        }
     }
 }

@@ -8,8 +8,24 @@ using System.Text;
 
 namespace EdgeDB.Binary
 {
-    internal unsafe struct PacketReader
+    internal unsafe struct PacketReader : IDisposable
     {
+        private class LimitScope : IDisposable
+        {
+            private readonly PacketReader* _reader;
+            private readonly int _returnTo;
+            public LimitScope(PacketReader* reader, int returnTo)
+            {
+                _reader = reader;
+                _returnTo = returnTo;
+            }
+
+            public void Dispose()
+            {
+                _reader->Limit = _returnTo;
+            }
+        }
+
         public bool Empty
             => Contract.IsEmpty;
 
@@ -38,14 +54,26 @@ namespace EdgeDB.Binary
         public int Length
             => Contract.Length;
 
-        internal readonly PacketContract Contract;
+        public PacketContract Contract
+            => _contractHandle.Value;
+
+        private readonly PacketContract.Handle _contractHandle;
 
         private int _limit;
 
-        public PacketReader(PacketContract contract)
+        private readonly bool _isOwnedContract;
+
+        public PacketReader(PacketContract.Handle contractHandle)
         {
-            Contract = contract;
+            _contractHandle = contractHandle;
             _limit = Contract.Length;
+            _isOwnedContract = false;
+        }
+
+        private PacketReader(PacketContract.Handle handle, bool isOwnedContract)
+            : this(handle)
+        {
+            _isOwnedContract = isOwnedContract;
         }
 
         public static PacketReader CreateFrom(byte[] data)
@@ -53,7 +81,8 @@ namespace EdgeDB.Binary
 
         public static PacketReader CreateFrom(Span<byte> data)
         {
-            return new PacketReader(new PacketContract(data));
+            var contract = new PacketContract(data);
+            return new PacketReader(contract.ContractHandle, true);
         } 
 
         private void VerifyInLimits(int sz)
@@ -230,12 +259,39 @@ namespace EdgeDB.Binary
             return Contract.RequestBuffer(length, copy: false);
         }
 
+        public Span<byte> ReadBytes()
+        {
+            var length = (int)ReadUInt32();
+
+            return ReadBytes(length);
+        }
+
+        public Span<byte> ReadBytes(int length)
+        {
+            return Contract.RequestBuffer(length, true);
+        }
+
         public Annotation ReadAnnotation()
         {
             var name = ReadString();
             var value = ReadString();
 
             return new Annotation(name, value);
+        }
+
+        public IDisposable LimitTo(int limit)
+        {
+            var prev = Limit;
+            Limit = limit;
+            return new LimitScope((PacketReader*)Unsafe.AsPointer(ref this), prev);
+        }
+
+        public void Dispose()
+        {
+            if(_isOwnedContract)
+            {
+                Contract.Dispose();
+            }
         }
     }
 }

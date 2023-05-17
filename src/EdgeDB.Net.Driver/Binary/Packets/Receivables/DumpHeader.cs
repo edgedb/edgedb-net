@@ -65,33 +65,33 @@ namespace EdgeDB.Binary.Packets
 
         private readonly KeyValue[] _attributes;
 
-        internal DumpHeader(ref PacketReader reader, in int length)
+        internal DumpHeader(ref PacketReader reader, int length)
         {
             Length = length;
-            reader.ReadBytes(length, out var rawBuffer);
+            var rawBuffer = reader.ReadBytes(length);
 
             Raw = rawBuffer.ToArray();
 
             RawHash = SHA1.Create().ComputeHash(Raw);
 
-            var r = new PacketReader(rawBuffer);
+            var innerReader = PacketReader.CreateFrom(rawBuffer);
 
-            _attributes = r.ReadKeyValues();
-            MajorVersion = r.ReadUInt16();
-            MinorVersion = r.ReadUInt16();
-            SchemaDDL = r.ReadString();
+            _attributes = innerReader.ReadKeyValues();
+            MajorVersion = innerReader.ReadUInt16();
+            MinorVersion = innerReader.ReadUInt16();
+            SchemaDDL = innerReader.ReadString();
 
-            var numTypeInfo = r.ReadUInt32();
+            var numTypeInfo = innerReader.ReadUInt32();
             DumpTypeInfo[] typeInfo = new DumpTypeInfo[numTypeInfo];
 
             for (uint i = 0; i != numTypeInfo; i++)
-                typeInfo[i] = new DumpTypeInfo(ref r);
+                typeInfo[i] = new DumpTypeInfo(ref innerReader);
 
-            var numDescriptors = r.ReadUInt32();
+            var numDescriptors = innerReader.ReadUInt32();
             DumpObjectDescriptor[] descriptors = new DumpObjectDescriptor[numDescriptors];
 
             for (uint i = 0; i != numDescriptors; i++)
-                descriptors[i] = new DumpObjectDescriptor(ref r);
+                descriptors[i] = new DumpObjectDescriptor(ref innerReader);
 
             Types = typeInfo;
             Descriptors = descriptors;

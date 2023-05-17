@@ -42,7 +42,7 @@ namespace EdgeDB.Binary.Codecs
             // This method ensures we're not copying the packet in memory again but the downside is
             // our 'reader' variable isn't kept up to data with the reader in the object enumerator.
             var enumerator = new ObjectEnumerator(
-                ref reader.Data,
+                ref reader,
                 reader.Position,
                 PropertyNames,
                 InnerCodecs,
@@ -56,11 +56,6 @@ namespace EdgeDB.Binary.Codecs
             catch (Exception x)
             {
                 throw new EdgeDBException($"Failed to deserialize object to {_targetType}", x);
-            }
-            finally
-            {
-                // set the readers position to the enumerators' readers position.
-                reader.Position = enumerator.Reader.Position;
             }
         }
     }
@@ -115,7 +110,7 @@ namespace EdgeDB.Binary.Codecs
             // This method ensures we're not copying the packet in memory again but the downside is
             // our 'reader' variable isn't kept up to data with the reader in the object enumerator.
             var enumerator = new ObjectEnumerator(
-                ref reader.Data,
+                ref reader,
                 reader.Position,
                 PropertyNames,
                 InnerCodecs,
@@ -129,11 +124,6 @@ namespace EdgeDB.Binary.Codecs
             catch(Exception x)
             {
                 throw new EdgeDBException($"Failed to deserialize object", x);
-            }
-            finally
-            {
-                // set the readers position to the enumerators' readers position.
-                reader.Position = enumerator.Reader.Position;
             }
         }
 
