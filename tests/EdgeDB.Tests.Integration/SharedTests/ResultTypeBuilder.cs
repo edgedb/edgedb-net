@@ -8,6 +8,7 @@ using System.Numerics;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace EdgeDB.Tests.Integration.SharedTests
@@ -102,25 +103,43 @@ namespace EdgeDB.Tests.Integration.SharedTests
             return type is not null;
         }
 
-        public static IEnumerable<Type> CreateResultTypes(object obj)
+        public class IntRef
         {
+            public int Value;
+
+            public IntRef(int v)
+            {
+                Value = v;
+            }
+        }
+
+        public static IEnumerable<Type> CreateResultTypes(object obj, int count)
+        {
+            var countRef = new IntRef(count);
+
             if (obj is object[] arr)
             {
-                return arr.Cast<IResultNode>().SelectMany(x => CreateResultTypes(x, root: true));
+                return arr.Cast<IResultNode>().SelectMany(x => CreateResultTypes(x, countRef, root: true));
             }
             else if (obj is IResultNode node)
-                return CreateResultTypes(node, root: true);
+                return CreateResultTypes(node, countRef, root: true);
             else
                 throw new InvalidOperationException($"unknown object type '{obj.GetType().Name}'");
         }
 
-        public static IEnumerable<Type> CreateResultTypes(IResultNode node, bool root = false)
+        public static IEnumerable<Type> CreateResultTypes(IResultNode node, IntRef max, bool root = false)
         {
             switch (node.Type)
             {
                 case "object":
-                    foreach (var result in CreateConcreteDefinition(node))
+                    foreach (var result in CreateConcreteDefinition(node, max))
+                    {
                         yield return result;
+                        if(max.Value < 0)
+                        {
+                            yield break;
+                        }
+                    }
                     break;
                 case "tuple" or "namedtuple":
                     {
@@ -130,7 +149,7 @@ namespace EdgeDB.Tests.Integration.SharedTests
                             ? (IResultNode[])node.Value!
                             : ((Dictionary<string, IResultNode>)node.Value!).Values;
 
-                        var combos = CreateTupleDefinitions(children);
+                        var combos = CreateTupleDefinitions(children, max);
 
                         foreach (var combo in combos)
                         {
@@ -138,6 +157,11 @@ namespace EdgeDB.Tests.Integration.SharedTests
 
                             yield return TransientTuple.CreateValueTupleType(arr);
                             yield return TransientTuple.CreateReferenceTupleType(arr);
+
+                            if(max.Value < 0)
+                            {
+                                yield break;
+                            }
                         }
 
                         if (node.Type is "namedtuple")
@@ -161,7 +185,7 @@ namespace EdgeDB.Tests.Integration.SharedTests
                         else
                         {
                             // peek child
-                            elementTypes.AddRange(CreateResultTypes((IResultNode)arr.GetValue(0)!));
+                            elementTypes.AddRange(CreateResultTypes((IResultNode)arr.GetValue(0)!, max));
                         }
 
                         foreach (var elementType in elementTypes)
@@ -180,7 +204,7 @@ namespace EdgeDB.Tests.Integration.SharedTests
                         else
                         {
                             // peek child
-                            elementTypes.AddRange(CreateResultTypes((IResultNode)arr.GetValue(0)!));
+                            elementTypes.AddRange(CreateResultTypes((IResultNode)arr.GetValue(0)!, max));
                         }
 
                         foreach(var elementType in elementTypes)
@@ -230,12 +254,12 @@ namespace EdgeDB.Tests.Integration.SharedTests
             }
         }
 
-        private static IEnumerable<Type> CreateConcreteDefinition(IResultNode node)
+        private static IEnumerable<Type> CreateConcreteDefinition(IResultNode node, IntRef max)
         {
             if (node.Value is not Dictionary<string, IResultNode> dict)
                 throw new InvalidOperationException("Value must be a dictionary");
 
-            foreach(var propertyDef in CreatePropertyDefinitions(dict))
+            foreach(var propertyDef in CreatePropertyDefinitions(dict, max))
             {
                 var type = _moduleBuilder.DefineType(
                     GetTypeName(node),
@@ -286,71 +310,204 @@ namespace EdgeDB.Tests.Integration.SharedTests
             prop.SetGetMethod(getter);
         }
 
-        private static List<IEnumerable<Type>> CreateTupleDefinitions(IEnumerable<IResultNode> nodes)
+        private static List<Type[]> CreateTupleDefinitions(IEnumerable<IResultNode> nodes, IntRef max)
         {
-            var result = new List<IEnumerable<Type>>();
+            var propMap = new List<KeyValuePair<IResultNode, Type[]>>();
+            var result = new List<Type[]>();
 
-            foreach(var node in nodes)
+            var nodeArr = nodes.ToArray();
+
+            foreach (var node in nodeArr)
             {
-                var types = CreateResultTypes(node);
+                var types = CreateResultTypes(node, max).ToArray();
 
-                var map = new List<IEnumerable<Type>>();
-
-                if (result.Any())
+                if (types.Length == 0)
                 {
-                    foreach(var col in result)
+                    var t = 0;
+                    while (types.Length == 0)
                     {
-                        foreach(var type in types)
+                        var a = Interlocked.Increment(ref max.Value);
+                        t++;
+                        types = CreateResultTypes(node, max).ToArray();
+                        if (max.Value <= a)
                         {
-                            map.Add(new List<Type>(col) { type });
+                            Interlocked.Add(ref max.Value, t);
                         }
                     }
-                }
-                else
-                {
-                    foreach(var type in types)
-                    {
-                        map.Add(new List<Type>() { type });
-                    }
+
+                    Interlocked.Add(ref max.Value, t);
                 }
 
-                result = map;
+                if (max.Value - (nodeArr.Length - propMap.Count) <= 1)
+                {
+                    var list = new Type[] { types[0] };
+                    propMap.Add(new KeyValuePair<IResultNode, Type[]>(node, list));
+                    Interlocked.Add(ref max.Value, types.Length - 1);
+                    continue;
+                }
+
+                propMap.Add(new KeyValuePair<IResultNode, Type[]>(node, types!));
+            }
+
+            for (int i = 0; i != propMap.Count; i++)
+            {
+                var prop = propMap[i];
+
+                if (Enumerable.Range(0, i + 1).Select(x => propMap[x].Value.Length).Sum() == i + 1)
+                {
+                    continue;
+                }
+
+                for (int j = 0; j != prop.Value.Length; j++)
+                {
+                    var type = prop.Value[j];
+
+                    var list = new Type[propMap.Count];
+
+                    for (int k = propMap.Count - 1; k > i; k--)
+                    {
+                        list[k] = propMap[k].Value[0];
+                    }
+
+                    list[i] = type;
+
+                    for (int k = i - 1; k >= 0; k--)
+                    {
+                        list[k] = propMap[k].Value[0];
+                    }
+
+                    for (int k = i - 1; k >= 0; k--)
+                    {
+                        var entry = propMap[k];
+                        for (int l = 1; l != entry.Value.Length; l++)
+                        {
+                            var entryType = entry.Value[l];
+                            var copy = new Type[propMap.Count];
+                            list.CopyTo(copy, 0);
+                            copy[k] = entryType;
+
+                            if (Interlocked.Decrement(ref max.Value) > 0)
+                            {
+                                result.Add(copy);
+                            }
+                            else
+                            {
+                                return result;
+                            }
+                        }
+                    }
+
+                    if (Interlocked.Decrement(ref max.Value) > 0)
+                    {
+                        result.Add(list);
+                    }
+                    else
+                    {
+                        return result;
+                    }
+                }
             }
 
             return result;
         }
 
-        private static List<Dictionary<string, Type>> CreatePropertyDefinitions(Dictionary<string, IResultNode> props)
+        private static List<Dictionary<string, Type>> CreatePropertyDefinitions(Dictionary<string, IResultNode> props, IntRef max)
         {
-            var maps = new List<Dictionary<string, Type>>();
+            var propMap = new List<KeyValuePair<KeyValuePair<string, IResultNode>, Type[]>>();
+            var result = new List<Dictionary<string, Type>>();
 
             foreach(var prop in props)
             {
-                var types = CreateResultTypes(prop.Value);
-                var dict = new List<Dictionary<string, Type>>();
+                var types = CreateResultTypes(prop.Value, max).ToArray();
 
-                if(maps.Any())
+                if(types.Length == 0)
                 {
-                    foreach (var map in maps)
+                    var t = 0;
+                    while(types.Length == 0)
                     {
-                        foreach (var type in types)
+                        var a = Interlocked.Increment(ref max.Value);
+                        t++;
+                        types = CreateResultTypes(prop.Value, max).ToArray();
+                        if(max.Value <= a)
                         {
-                            dict.Add(new Dictionary<string, Type>(map) { { prop.Key, type } });
+                            Interlocked.Add(ref max.Value, t);
                         }
                     }
-                }
-                else
-                {
-                    foreach (var type in types)
-                    {
-                        dict.Add(new Dictionary<string, Type>() { { prop.Key, type } });
-                    }
+
+                    Interlocked.Add(ref max.Value, t);
                 }
 
-                maps = dict;
+                if(max.Value - (props.Count - propMap.Count) <= 1)
+                {
+                    var list = new Type[] { types[0] };
+                    propMap.Add(new KeyValuePair<KeyValuePair<string, IResultNode>, Type[]>(prop, list));
+                    Interlocked.Add(ref max.Value, types.Length - 1);
+                    continue;
+                }
+
+                propMap.Add(new KeyValuePair<KeyValuePair<string, IResultNode>, Type[]>(prop, types!));
             }
 
-            return maps;
+            for(int i = 0; i != propMap.Count; i++)
+            {
+                var prop = propMap[i];
+
+                if(Enumerable.Range(0, i + 1).Select(x => propMap[x].Value.Length).Sum() == i + 1)
+                {
+                    continue;
+                }
+
+                for(int j = 0; j != prop.Value.Length; j++)
+                {
+                    var type = prop.Value[j];
+
+                    var list = new KeyValuePair<string, Type>[propMap.Count];
+
+                    for(int k = propMap.Count - 1; k > i; k--)
+                    {
+                        list[k] = new KeyValuePair<string, Type>(propMap[k].Key.Key, propMap[k].Value[0]);
+                    }
+
+                    list[i] = new KeyValuePair<string, Type>(prop.Key.Key, type);
+
+                    for(int k = i - 1; k >= 0; k--)
+                    {
+                        list[k] = new KeyValuePair<string, Type>(propMap[k].Key.Key, propMap[k].Value[0]);
+                    }
+
+                    for (int k = i - 1; k >= 0; k--)
+                    {
+                        var entry = propMap[k];
+                        for(int l = 1; l != entry.Value.Length; l++)
+                        {
+                            var entryType = entry.Value[l];
+                            var copy = new KeyValuePair<string, Type>[propMap.Count];
+                            list.CopyTo(copy, 0);
+                            copy[k] = new KeyValuePair<string, Type>(entry.Key.Key, entryType);
+
+                            if(Interlocked.Decrement(ref max.Value) > 0)
+                            {
+                                result.Add(copy.ToDictionary(x => x.Key, x => x.Value));
+                            }
+                            else
+                            {
+                                return result;
+                            } 
+                        }
+                    }
+
+                    if(Interlocked.Decrement(ref max.Value) > 0)
+                    {
+                        result.Add(list.ToDictionary(x => x.Key, x => x.Value));
+                    }
+                    else
+                    {
+                        return result;
+                    }
+                }
+            }
+
+            return result;
         }
 
         private static string GetTypeName(IResultNode node)

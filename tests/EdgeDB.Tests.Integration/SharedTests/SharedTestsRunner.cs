@@ -54,6 +54,8 @@ namespace EdgeDB.Tests.Integration.SharedTests
 
         public static async Task RunAsync(string path)
         {
+            const int maxTypeIteration = 150;
+
             var testDefinition = Read<Test>(path);
 
             List<ExecutionResult> results = new();
@@ -64,7 +66,7 @@ namespace EdgeDB.Tests.Integration.SharedTests
 
             Console.WriteLine("Creating result types...");
 
-            var resultTypes = ResultTypeBuilder.CreateResultTypes(testDefinition.Result!).Prepend(typeof(object));
+            var resultTypes = ResultTypeBuilder.CreateResultTypes(testDefinition.Result!, maxTypeIteration).Prepend(typeof(object));
 
             Console.WriteLine($"Created result types for '{testDefinition.Name}'");
 
