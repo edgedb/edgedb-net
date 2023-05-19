@@ -133,8 +133,17 @@ namespace EdgeDB
             set => _tlsSecurity = value;
         }
 
+        /// <summary>
+        ///     Gets or sets the secret key used to authenticate with cloud instances.
+        /// </summary>
         public string? SecretKey { get; set; }
 
+        /// <summary>
+        ///     Gets or sets the name of the cloud profile to use to resolve the <see cref="SecretKey"/>.
+        /// </summary>
+        /// <remarks>
+        ///     The default cloud profile is called 'default'
+        /// </remarks>
         public string CloudProfile
         {
             get => _cloudProfile ?? "default";
@@ -465,14 +474,21 @@ connectionDefinition:
                 throw new ConfigurationException($"Cloud instance name must be {DOMAIN_NAME_MAX_LEN} characters or less");
             }
 
-            var profile = ConfigUtils.ReadCloudProfile(CloudProfile);
+            string? secretKey = SecretKey;
 
-            if(profile.SecretKey is null)
+            if(secretKey is null)
             {
-                throw new ConfigurationException("Secret key cannot be null");
+                var profile = ConfigUtils.ReadCloudProfile(CloudProfile);
+
+                if (profile.SecretKey is null)
+                {
+                    throw new ConfigurationException("Secret key cannot be null");
+                }
+
+                secretKey = profile.SecretKey;
             }
 
-            var spl = profile.SecretKey.Split('.');
+            var spl = secretKey.Split('.');
 
             if(spl.Length < 2)
             {
@@ -500,7 +516,7 @@ connectionDefinition:
             spl = name.Split("/");
 
             Hostname = $"{spl[1]}--{spl[0]}.c-{dnsBucket}.i.{dnsZone}";
-            SecretKey = profile.SecretKey;
+            SecretKey ??= secretKey;
         }
 
         /// <summary>
@@ -509,7 +525,7 @@ connectionDefinition:
         ///     of arguments.
         /// </summary>
         /// <param name="instance">The instance name to connect to.</param>
-        /// <param name="dsn">The DSN string to use to connect.</param>
+        /// <param name="dsn">A DSN string or cloud instance name.</param>
         /// <param name="configure">A configuration delegate.</param>
         /// <param name="autoResolve">Whether or not to autoresolve a connection using <see cref="ResolveEdgeDBTOML"/>.</param>
         /// <returns>
