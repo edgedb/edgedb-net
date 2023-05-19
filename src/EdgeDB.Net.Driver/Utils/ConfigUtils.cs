@@ -1,4 +1,6 @@
 using EdgeDB.Abstractions;
+using EdgeDB.Models;
+using Newtonsoft.Json;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -61,5 +63,17 @@ namespace EdgeDB.Utils
         
         public static string GetCredentialsDir(ISystemProvider? platform = null)
             => (platform ?? _defaultPlatformProvider).CombinePaths(GetEdgeDBConfigDir(platform), "credentials");
+
+        public static CloudProfile ReadCloudProfile(string profile, ISystemProvider? platform = null)
+        {
+            platform ??= _defaultPlatformProvider;
+
+            var profilePath = platform.CombinePaths(GetEdgeDBConfigDir(platform), "cloud-credentials", $"{profile}.json");
+
+            if (!File.Exists(profilePath))
+                throw new ConfigurationException($"Unknown cloud profile '{profile}'");
+
+            return JsonConvert.DeserializeObject<CloudProfile>(File.ReadAllText(profilePath))!;
+        }
     }
 }

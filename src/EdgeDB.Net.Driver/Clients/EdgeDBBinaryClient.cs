@@ -868,12 +868,8 @@ namespace EdgeDB
                 if(Duplexer is StreamDuplexer streamDuplexer)
                     streamDuplexer.Init(stream);
 
-                // send handshake
-                await Duplexer.SendAsync(token, new ClientHandshake
-                {
-                    MajorVersion = PROTOCOL_MAJOR_VERSION,
-                    MinorVersion = PROTOCOL_MINOR_VERSION,
-                    ConnectionParameters = new ConnectionParam[]
+                var connParams = Connection.SecretKey is not null
+                    ? new ConnectionParam[]
                     {
                         new ConnectionParam
                         {
@@ -884,8 +880,33 @@ namespace EdgeDB
                         {
                             Name = "database",
                             Value = Connection.Database!
+                        },
+                        new ConnectionParam
+                        {
+                            Name = "secret_key",
+                            Value = Connection.SecretKey
                         }
                     }
+                    : new ConnectionParam[]
+                    {
+                        new ConnectionParam
+                        {
+                            Name = "user",
+                            Value = Connection.Username!
+                        },
+                        new ConnectionParam
+                        {
+                            Name = "database",
+                            Value = Connection.Database!
+                        },
+                    };
+
+                // send handshake
+                await Duplexer.SendAsync(token, new ClientHandshake
+                {
+                    MajorVersion = PROTOCOL_MAJOR_VERSION,
+                    MinorVersion = PROTOCOL_MINOR_VERSION,
+                    ConnectionParameters = connParams
                 }).ConfigureAwait(false);
             }
             catch (EdgeDBException x) when (x.ShouldReconnect)
