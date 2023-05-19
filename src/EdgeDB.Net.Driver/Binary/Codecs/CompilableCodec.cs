@@ -24,7 +24,7 @@ namespace EdgeDB.Binary.Codecs
 
             var genType = _rootCodecType.MakeGenericType(innerCodec.ConverterType);
 
-            var cacheKey = HashCode.Combine(type, genType);
+            var cacheKey = HashCode.Combine(type, genType, _id);
 
             return CodecBuilder.CompiledCodecCache.GetOrAdd(cacheKey, (k) =>
             {

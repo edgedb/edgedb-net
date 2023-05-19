@@ -25,13 +25,23 @@ namespace EdgeDB
 
         public Dictionary<Type, EdgeDBTypeDeserializeInfo> Children { get; } = new();
 
-        internal readonly Dictionary<string, EdgeDBPropertyInfo> PropertyMap;
+        internal EdgeDBPropertyInfo[] Properties
+            => PropertyMapInfo.Properties;
+
+        internal EdgeDBPropertyMapInfo PropertyMapInfo
+            => _propertyMapInfo ??= EdgeDBPropertyMapInfo.Create(_type);
+
+        internal EdgeDBTypeConstructorInfo? ConstructorInfo
+            => _ctorInfo ??= (EdgeDBTypeConstructorInfo.TryGetConstructorInfo(_type, PropertyMapInfo, out var ctorInfo) ? ctorInfo : null);
+
+        private ObjectActivator? Activator
+            => _typeActivator ??= CreateActivator();
 
         private readonly Type _type;
-        private readonly ObjectActivator? _typeActivator;
-        private readonly EdgeDBPropertyInfo[]? _properties;
-        private readonly Dictionary<EdgeDBPropertyInfo, int>? _propertyIndexTable;
-        private readonly EdgeDBTypeConstructorInfo? _ctorInfo;
+
+        private ObjectActivator? _typeActivator;
+        private EdgeDBTypeConstructorInfo? _ctorInfo;
+        private EdgeDBPropertyMapInfo? _propertyMapInfo;
 
         private TypeDeserializerFactory _factory;
 
@@ -39,37 +49,18 @@ namespace EdgeDB
         {
             _type = type;
 
-            var props = EdgeDBPropertyMapInfo.Create(type);
-            _properties = props.Properties;
-            PropertyMap = props.Map;
-            _propertyIndexTable = props.IndexMap;
-
-            if (EdgeDBTypeConstructorInfo.TryGetConstructorInfo(type, props, out var ctorInfo))
-                _ctorInfo = ctorInfo;
-
             _factory = CreateDefaultFactory();
 
             EdgeDBTypeName = _type.GetCustomAttribute<EdgeDBTypeAttribute>()?.Name ?? _type.Name;
-
-            _typeActivator = CreateActivator();
         }
 
         public EdgeDBTypeDeserializeInfo(Type type, TypeDeserializerFactory factory)
         {
             _type = type;
 
-            var props = EdgeDBPropertyMapInfo.Create(type);
-            _properties = props.Properties;
-            PropertyMap = props.Map;
-            _propertyIndexTable = props.IndexMap;
-
-            if (EdgeDBTypeConstructorInfo.TryGetConstructorInfo(type, props, out var ctorInfo))
-                _ctorInfo = ctorInfo;
+            _factory = factory;
 
             EdgeDBTypeName = _type.GetCustomAttribute<EdgeDBTypeAttribute>()?.Name ?? _type.Name;
-
-            _typeActivator = CreateActivator();
-            _factory = factory;
         }
 
         private ObjectActivator? CreateActivator()
@@ -77,10 +68,10 @@ namespace EdgeDB
             if (IsAbtractType)
                 return null;
 
-            if (!_ctorInfo.HasValue || _ctorInfo.Value.EmptyConstructor is null)
+            if (!ConstructorInfo.HasValue || ConstructorInfo.Value.EmptyConstructor is null)
                 return null;
 
-            return Expression.Lambda<ObjectActivator>(Expression.New(_ctorInfo.Value.EmptyConstructor)).Compile();
+            return Expression.Lambda<ObjectActivator>(Expression.New(ConstructorInfo.Value.EmptyConstructor)).Compile();
         }
 
         public void AddOrUpdateChildren(EdgeDBTypeDeserializeInfo child)
@@ -97,18 +88,40 @@ namespace EdgeDB
             _factory = factory;
         }
 
+        private bool CanDeserializeToTuple()
+        {
+            return _type == typeof(TransientTuple) ||
+                TransientTuple.IsValueTupleType(_type) ||
+                TransientTuple.IsReferenceTupleType(_type);
+        }
+
         private TypeDeserializerFactory CreateDefaultFactory()
         {
             if (_type == typeof(object))
                 return (ref ObjectEnumerator enumerator) => enumerator.ToDynamic();
 
-            if (_properties is null || _propertyIndexTable is null)
-                throw new NullReferenceException("Properties cannot be null");
-
             if (_type.IsAssignableFrom(typeof(Dictionary<string, object?>)))
                 return (ref ObjectEnumerator enumerator) => new Dictionary<string, object?>(
                     (IDictionary<string, object?>)enumerator.ToDynamic()!
                 );
+
+            // is it a tuple
+            if (_type.IsAssignableTo(typeof(ITuple)) && CanDeserializeToTuple())
+            {
+                return (ref ObjectEnumerator enumerator) =>
+                {
+                    var transient = TransientTuple.FromObjectEnumerator(ref enumerator);
+
+                    if (_type == typeof(TransientTuple))
+                        return transient;
+                    else if (TransientTuple.IsValueTupleType(_type))
+                        return transient.ToValueTuple();
+                    else if (TransientTuple.IsReferenceTupleType(_type))
+                        return transient.ToReferenceTuple();
+                    else
+                        throw new NoTypeConverterException($"Cannot convert transient tuple to {_type.Name}");
+                };
+            }
 
             // proxy type
             var proxyAttr = _type.GetCustomAttribute<DebuggerTypeProxyAttribute>();
@@ -119,7 +132,7 @@ namespace EdgeDB
                 // proxy should only have one constructor
                 var ctors = _type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance);
 
-                if (ctors.Length is > 1 or < 0)
+                if (ctors.Length is not 1)
                     throw new InvalidOperationException($"Proxy type {_type} does not have a valid constructor");
 
                 var ctor = ctors[0];
@@ -157,11 +170,11 @@ namespace EdgeDB
             }
 
             // if type has custom constructor factory
-            if (_ctorInfo.HasValue && _ctorInfo.Value.Constructor is not null)
+            if (ConstructorInfo.HasValue && ConstructorInfo.Value.Constructor is not null)
             {
-                var ctor = _ctorInfo.Value.Constructor;
+                var ctor = ConstructorInfo.Value.Constructor;
 
-                switch (_ctorInfo.Value.ParamType)
+                switch (ConstructorInfo.Value.ParamType)
                 {
                     case EdgeDBConstructorParamType.Dynamic:
                         return (ref ObjectEnumerator enumerator) =>
@@ -191,14 +204,14 @@ namespace EdgeDB
                     case EdgeDBConstructorParamType.Props:
                         return (ref ObjectEnumerator enumerator) =>
                         {
-                            var ctorParams = new object?[_properties.Length];
-                            var reverseIndexer = new FastInverseIndexer(_properties.Length);
+                            var ctorParams = new object?[Properties.Length];
+                            var reverseIndexer = new FastInverseIndexer(Properties.Length);
 
                             while (enumerator.Next(out var name, out var value))
                             {
-                                if (PropertyMap.TryGetValue(name, out var prop))
+                                if (PropertyMapInfo.Map.TryGetValue(name, out var prop))
                                 {
-                                    var index = _propertyIndexTable[prop];
+                                    var index = PropertyMapInfo.IndexMap[prop];
                                     reverseIndexer.Track(index);
 
                                     try
@@ -216,7 +229,7 @@ namespace EdgeDB
                             var missed = reverseIndexer.GetIndexies();
                             for (int i = 0; i != missed.Length; i++)
                             {
-                                var prop = _properties[missed[i]];
+                                var prop = Properties[missed[i]];
                                 ctorParams[missed[i]] = ReflectionUtils.GetDefault(prop.Type);
                             }
 
@@ -229,7 +242,7 @@ namespace EdgeDB
             if (IsAbtractType)
             {
                 RequiresTypeName = true;
-                
+
                 return (ref ObjectEnumerator enumerator) =>
                 {
                     // introspect the type name
@@ -253,20 +266,6 @@ namespace EdgeDB
                 };
             }
 
-            // is it a tuple
-            if (_type.IsAssignableTo(typeof(ITuple)))
-            {
-                return (ref ObjectEnumerator enumerator) =>
-                {
-                    var transient = TransientTuple.FromObjectEnumerator(ref enumerator);
-
-                    if (_type.Name.StartsWith("ValueTuple"))
-                        return transient.ToValueTuple();
-                    else
-                        return transient.ToReferenceTuple();
-                };
-            }
-
             return (ref ObjectEnumerator enumerator) =>
             {
                 var instance = CreateInstance();
@@ -276,7 +275,7 @@ namespace EdgeDB
 
                 while (enumerator.Next(out var name, out var value))
                 {
-                    if (!PropertyMap.TryGetValue(name, out var prop))
+                    if (!PropertyMapInfo.Map.TryGetValue(name, out var prop))
                         continue;
 
                     prop.ConvertAndSetValue(instance, value);
@@ -288,10 +287,10 @@ namespace EdgeDB
 
         private object CreateInstance()
         {
-            if (_typeActivator is null)
+            if (Activator is null)
                 throw new InvalidOperationException($"No empty constructor found on type {_type}");
 
-            return _typeActivator();
+            return Activator();
         }
 
         public object? Deserialize(ref ObjectEnumerator enumerator)

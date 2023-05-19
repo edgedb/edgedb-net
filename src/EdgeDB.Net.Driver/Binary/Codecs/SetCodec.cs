@@ -4,15 +4,18 @@ namespace EdgeDB.Binary.Codecs
         : BaseCodec<IEnumerable<T?>>, IWrappingCodec, ICacheableCodec
     {
         internal ICodec<T> InnerCodec;
+        private readonly bool _isSetOfArray;
 
         public SetCodec(ICodec<T> innerCodec)
         {
             InnerCodec = innerCodec;
+            var codecType = innerCodec.GetType();
+            _isSetOfArray = codecType.IsGenericType && codecType.GetGenericTypeDefinition() == typeof(ArrayCodec<>);
         }
 
         public override IEnumerable<T?>? Deserialize(ref PacketReader reader, CodecContext context)
         {
-            if (InnerCodec is ArrayCodec<T>)
+            if (_isSetOfArray)
                 return DecodeSetOfArrays(ref reader, context);
             else return DecodeSet(ref reader, context);
         }

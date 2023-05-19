@@ -233,7 +233,7 @@ namespace EdgeDB
                             StateData = stateBuf,
                             ImplicitLimit = _config.ImplicitLimit,
                             ImplicitTypeNames = implicitTypeName, // used for type builder
-                            ImplicitTypeIds = true,  // used for type builder
+                            ImplicitTypeIds = _config.ImplicitTypeIds,
                         }, linkedTokenSource.Token))
                         {
                             switch (result.Packet)
@@ -316,7 +316,7 @@ namespace EdgeDB
                         StateTypeDescriptorId = _stateDescriptorId,
                         StateData = stateBuf,
                         ImplicitTypeNames = implicitTypeName, // used for type builder
-                        ImplicitTypeIds = true,  // used for type builder
+                        ImplicitTypeIds = _config.ImplicitTypeIds,
                         Arguments = argumentCodec.SerializeArguments(this, args),
                         ImplicitLimit = _config.ImplicitLimit,
                         InputTypeDescriptorId = inCodecInfo.Id,

@@ -1,6 +1,7 @@
 using EdgeDB.DataTypes;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Xml.Linq;
 
@@ -81,7 +82,7 @@ namespace EdgeDB.Binary.Codecs
                             // if the inner is compilable, use its inner type and set the real
                             // flag, since compileable visits only care about the inner type rather
                             // than a concrete root.
-                            var hasPropInfo = Context.Deserializer!.PropertyMap.TryGetValue(name, out var propInfo);
+                            var hasPropInfo = Context.Deserializer!.PropertyMapInfo.Map.TryGetValue(name, out var propInfo);
 
                             var propType = hasPropInfo
                                 ? propInfo!.Type
@@ -101,15 +102,21 @@ namespace EdgeDB.Binary.Codecs
                     break;
                 case TupleCodec tuple:
                     {
-                        var tupleTypes = DataTypes.TransientTuple.FlattenTypes(Context.Type);
+                        var tupleTypes = Context.Type.IsAssignableTo(typeof(ITuple)) && Context.Type != typeof(TransientTuple)
+                            ? TransientTuple.FlattenTypes(Context.Type)
+                            : null;
 
-                        if (tupleTypes.Length != tuple.InnerCodecs.Length)
+                        if (tupleTypes is not null && tupleTypes.Length != tuple.InnerCodecs.Length)
                             throw new NoTypeConverterException($"Cannot determine inner types of the tuple {Context.Type}");
+
+                        var type = typeof(object);
 
                         for (int i = 0; i != tuple.InnerCodecs.Length; i++)
                         {
+                            if (tupleTypes != null)
+                                type = tupleTypes[i];
+
                             var innerCodec = tuple.InnerCodecs[i];
-                            var type = tupleTypes[i];
                             using var elementHandle = EnterNewContext(type);
 
                             Visit(ref innerCodec);
@@ -174,7 +181,7 @@ namespace EdgeDB.Binary.Codecs
         {
             // if theres a concrete type def supplied by the
             // user, return their requested type.
-            if (!Context.IsDynamicResult)
+            if (!Context.IsDynamicResult && !Context.InnerRealType)
                 return Context.Type;
 
             if(codec is ITemporalCodec temporal)
