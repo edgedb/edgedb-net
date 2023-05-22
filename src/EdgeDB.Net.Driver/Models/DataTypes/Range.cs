@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,7 +11,7 @@ namespace EdgeDB.DataTypes
     ///     Represents the <see href="https://www.edgedb.com/docs/stdlib/range">Range</see> type in EdgeDB.
     /// </summary>
     /// <typeparam name="T">The inner type of the range.</typeparam>
-    public struct Range<T> : IRange
+    public readonly struct Range<T> : IRange
         where T : struct
     {
         /// <summary>
@@ -51,7 +52,7 @@ namespace EdgeDB.DataTypes
             Upper = upper;
             IncludeLower = includeLower;
             IncludeUpper = includeUpper;
-            IsEmpty = !lower.HasValue && !upper.HasValue;
+            IsEmpty = (!lower.HasValue && !upper.HasValue) || (lower.HasValue && upper.HasValue && lower.Value.Equals(upper.Value));
         }
 
         /// <summary>
@@ -61,6 +62,29 @@ namespace EdgeDB.DataTypes
         public static Range<T> Empty()
             => new(null, null);
 
+        /// <inheritdoc/>
+        public override bool Equals([NotNullWhen(true)] object? obj)
+        {
+            if (obj is not Range<T> rng)
+                return false;
+
+            // Since empty ranges contain no values, they are all considered to be
+            // equal to each other (as long as the types are compatible):
+            if (rng.IsEmpty && IsEmpty)
+                return true;
+            
+            return rng.Lower.Equals(Lower) && rng.Upper.Equals(Upper);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => base.GetHashCode();
+
+        /// <inheritdoc/>
+        public static bool operator ==(Range<T> left, Range<T> right) => left.Equals(right);
+        
+        /// <inheritdoc/>
+        public static bool operator !=(Range<T> left, Range<T> right) => !left.Equals(right);
+          
         Type IRange.WrappingType => typeof(T);
     }
 

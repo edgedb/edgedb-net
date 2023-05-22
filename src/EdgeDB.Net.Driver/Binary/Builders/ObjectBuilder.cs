@@ -5,19 +5,53 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
 
 namespace EdgeDB
 {
     internal sealed class ObjectBuilder
     {
-        public static TType? BuildResult<TType>(ICodec codec, ref Data data)
+        private static readonly Dictionary<int, Guid> _codecVisitorStateTable = new();
+        private static readonly object _visitorLock = new();
+
+        public static TType? BuildResult<TType>(EdgeDBBinaryClient client, ICodec codec, ref Data data)
         {
-            if (codec is Binary.Codecs.Object objectCodec)
+            // TO INVESTIGATE: since a codec can only be "visited" or "mutated" for
+            // one type at a time, we have to ensure that the codec is ready to deserialize
+            // TType, we can store the states of the codecs here for building result
+            // to achieve this.
+            bool wasSkipped = false;
+            lock(_visitorLock)
             {
-                return (TType?)TypeBuilder.BuildObject(typeof(TType), objectCodec, ref data);
+                // if TType is object, we *have* to walk since external factors (such as config changes) can influence
+                // the overall behaviour of the type visitor, therefor we cant guarantee the cached state is correct. 
+                wasSkipped = typeof(TType) != typeof(object) && _codecVisitorStateTable.TryGetValue(codec.GetHashCode(), out var typeId) && typeId == typeof(TType).GUID;
+
+                if (!wasSkipped)
+                {
+                    var visitor = new TypeVisitor(client);
+
+                    visitor.SetTargetType(typeof(TType));
+
+                    visitor.Visit(ref codec);
+
+                    if(typeof(TType) != typeof(object))
+                        _codecVisitorStateTable[codec.GetHashCode()] = typeof(TType).GUID;
+                }
             }
 
-            var value = codec.Deserialize(data.PayloadBuffer);
+            if(wasSkipped)
+            {
+                client.Logger.SkippingCodecVisiting(typeof(TType), codec);
+            }
+            
+
+            if (codec is ObjectCodec objectCodec)
+            {
+                return (TType?)TypeBuilder.BuildObject(client, typeof(TType), objectCodec, ref data);
+            }
+
+            var value = codec.Deserialize(client, data.PayloadBuffer);
 
             return (TType?)ConvertTo(typeof(TType), value);
         }

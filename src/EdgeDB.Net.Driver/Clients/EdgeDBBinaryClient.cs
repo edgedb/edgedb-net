@@ -75,14 +75,20 @@ namespace EdgeDB
         
         internal abstract IBinaryDuplexer Duplexer { get; }
 
+        internal CodecContext CodecContext
+            => _codecContext;
+
         internal byte[] ServerKey;
-        internal int SuggestedPoolConcurrency;
+        internal int? SuggestedPoolConcurrency;
         internal Dictionary<string, object?> RawServerConfig = new();
         
         internal readonly ILogger Logger;
         internal readonly TimeSpan MessageTimeout;
         internal readonly TimeSpan ConnectionTimeout;
         internal readonly EdgeDBConnection Connection;
+
+        internal EdgeDBConfig ClientConfig
+            => _config;
         
         protected CancellationToken DisconnectCancelToken
             => Duplexer.DisconnectToken;
@@ -92,12 +98,14 @@ namespace EdgeDB
 
         private ICodec? _stateCodec;
         private Guid _stateDescriptorId;
+
         private TaskCompletionSource _readySource;
         private CancellationTokenSource _readyCancelTokenSource;
         private readonly SemaphoreSlim _semaphore;
         private readonly SemaphoreSlim _commandSemaphore;
         private readonly SemaphoreSlim _connectSemaphone;
         private readonly EdgeDBConfig _config;
+        private readonly CodecContext _codecContext;
         private uint _currentRetries;
 
         /// <summary>
@@ -126,6 +134,7 @@ namespace EdgeDB
             _connectSemaphone = new(1, 1);
             _readySource = new();
             _readyCancelTokenSource = new();
+            _codecContext = new(this);
         }
 
         #region Commands/queries
@@ -172,7 +181,7 @@ namespace EdgeDB
         /// <exception cref="EdgeDBErrorException">The client received an <see cref="ErrorResponse"/>.</exception>
         /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
-        internal virtual async Task<RawExecuteResult> ExecuteInternalAsync<TResult>(string query, IDictionary<string, object?>? args = null, Cardinality? cardinality = null,
+        internal virtual async Task<RawExecuteResult> ExecuteInternalAsync(string query, IDictionary<string, object?>? args = null, Cardinality? cardinality = null,
             Capabilities? capabilities = Capabilities.Modifications, IOFormat format = IOFormat.Binary, bool isRetry = false, bool implicitTypeName = false,
             CancellationToken token = default)
         {
@@ -200,9 +209,8 @@ namespace EdgeDB
             {
                 var cacheKey = CodecBuilder.GetCacheHashKey(query, cardinality ?? Cardinality.Many, format);
 
-                var serializedState = Session.Serialize();
-                var stateBuf = _stateCodec?.Serialize(serializedState)!;
-                
+                var stateBuf = SerializeState();
+
                 if (!CodecBuilder.TryGetCodecs(cacheKey, out var inCodecInfo, out var outCodecInfo))
                 {                    
                     while (!successfullyParsed)
@@ -225,7 +233,7 @@ namespace EdgeDB
                             StateData = stateBuf,
                             ImplicitLimit = _config.ImplicitLimit,
                             ImplicitTypeNames = implicitTypeName, // used for type builder
-                            ImplicitTypeIds = true,  // used for type builder
+                            ImplicitTypeIds = _config.ImplicitTypeIds,
                         }, linkedTokenSource.Token))
                         {
                             switch (result.Packet)
@@ -250,20 +258,20 @@ namespace EdgeDB
                                 case CommandDataDescription descriptor:
                                     {
                                         outCodecInfo = new(descriptor.OutputTypeDescriptorId,
-                                            CodecBuilder.BuildCodec(descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer));
+                                            CodecBuilder.BuildCodec(this, descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer));
 
                                         inCodecInfo = new(descriptor.InputTypeDescriptorId,
-                                            CodecBuilder.BuildCodec(descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer));
+                                            CodecBuilder.BuildCodec(this, descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer));
 
                                         CodecBuilder.UpdateKeyMap(cacheKey, descriptor.InputTypeDescriptorId, descriptor.OutputTypeDescriptorId);
                                     }
                                     break;
                                 case StateDataDescription stateDescriptor:
                                     {
-                                        _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                                        _stateCodec = CodecBuilder.BuildCodec(this, stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
                                         _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                                         gotStateDescriptor = true;
-                                        stateBuf = _stateCodec?.Serialize(serializedState)!;
+                                        stateBuf = SerializeState();
                                     }
                                     break;
                                 case ReadyForCommand ready:
@@ -306,10 +314,10 @@ namespace EdgeDB
                         ExpectedCardinality = cardinality ?? Cardinality.Many,
                         ExplicitObjectIds = _config.ExplicitObjectIds,
                         StateTypeDescriptorId = _stateDescriptorId,
-                        StateData = _stateCodec?.Serialize(serializedState),
+                        StateData = stateBuf,
                         ImplicitTypeNames = implicitTypeName, // used for type builder
-                        ImplicitTypeIds = true,  // used for type builder
-                        Arguments = argumentCodec.SerializeArguments(args),
+                        ImplicitTypeIds = _config.ImplicitTypeIds,
+                        Arguments = argumentCodec.SerializeArguments(this, args),
                         ImplicitLimit = _config.ImplicitLimit,
                         InputTypeDescriptorId = inCodecInfo.Id,
                         OutputTypeDescriptorId = outCodecInfo.Id,
@@ -322,10 +330,10 @@ namespace EdgeDB
                                 break;
                             case StateDataDescription stateDescriptor:
                                 {
-                                    _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                                    _stateCodec = CodecBuilder.BuildCodec(this, stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
                                     _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                                     gotStateDescriptor = true;
-                                    stateBuf = _stateCodec?.Serialize(serializedState)!;
+                                    stateBuf = SerializeState();
                                 }
                                 break;
                             case ErrorResponse err when err.ErrorCode is ServerErrorCodes.StateMismatchError:
@@ -362,11 +370,17 @@ namespace EdgeDB
 
                 return new RawExecuteResult(outCodecInfo.Codec!, receivedData);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ce)
             {
+                // only throw if it was the timeout token that caused the operation to cancel
+                bool wasTimedOut = !token.IsCancellationRequested && !Duplexer.DisconnectToken.IsCancellationRequested;
+
                 // disconnect
                 await DisconnectAsync(default);
-                throw;
+
+                if (wasTimedOut)
+                    throw new QueryTimeoutException(_config.MessageTimeout, query, ce);
+                else throw;
             }
             catch (EdgeDBException x) when (x.ShouldReconnect && !isRetry)
             {
@@ -374,14 +388,14 @@ namespace EdgeDB
                 _semaphore.Release();
                 released = true;
 
-                return await ExecuteInternalAsync<TResult>(query, args, cardinality, capabilities, format, true, implicitTypeName, token).ConfigureAwait(false);
+                return await ExecuteInternalAsync(query, args, cardinality, capabilities, format, true, implicitTypeName, token).ConfigureAwait(false);
             }
             catch (EdgeDBException x) when (x.ShouldRetry && !isRetry)
             {
                 _semaphore.Release();
                 released = true;
 
-                return await ExecuteInternalAsync<TResult>(query, args, cardinality, capabilities, format, true, implicitTypeName, token).ConfigureAwait(false);
+                return await ExecuteInternalAsync(query, args, cardinality, capabilities, format, true, implicitTypeName, token).ConfigureAwait(false);
             }
             catch (Exception x)
             {
@@ -412,7 +426,7 @@ namespace EdgeDB
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         public override async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null,
             Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
-            => await ExecuteInternalAsync<object>(query, args, Cardinality.Many, capabilities, token: token).ConfigureAwait(false);
+            => await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, IOFormat.None, token: token).ConfigureAwait(false);
 
         /// <inheritdoc/>
         /// <exception cref="EdgeDBException">A general error occored.</exception>
@@ -427,7 +441,7 @@ namespace EdgeDB
         {
             var implicitTypeName = TypeBuilder.TryGetTypeDeserializerInfo(typeof(TResult), out var info) && info.RequiresTypeName;
 
-            var result = await ExecuteInternalAsync<TResult>(
+            var result = await ExecuteInternalAsync(
                 query,
                 args,
                 Cardinality.Many,
@@ -439,7 +453,7 @@ namespace EdgeDB
 
             for(int i = 0; i != result.Data.Length; i++)
             {
-                var obj = ObjectBuilder.BuildResult<TResult>(result.Deserializer, ref result.Data[i]);
+                var obj = ObjectBuilder.BuildResult<TResult>(this, result.Deserializer, ref result.Data[i]);
                 array[i] = obj;
             }
 
@@ -460,7 +474,7 @@ namespace EdgeDB
         {
             var implicitTypeName = TypeBuilder.TryGetTypeDeserializerInfo(typeof(TResult), out var info) && info.RequiresTypeName;
             
-            var result = await ExecuteInternalAsync<TResult>(
+            var result = await ExecuteInternalAsync(
                 query,
                 args,
                 Cardinality.AtMostOne,
@@ -475,7 +489,7 @@ namespace EdgeDB
 
             return queryResult.PayloadBuffer is null
                 ? default
-                : ObjectBuilder.BuildResult<TResult>(result.Deserializer, ref result.Data[0]);
+                : ObjectBuilder.BuildResult<TResult>(this, result.Deserializer, ref result.Data[0]);
         }
 
         /// <inheritdoc/>
@@ -492,7 +506,7 @@ namespace EdgeDB
         {
             var implicitTypeName = TypeBuilder.TryGetTypeDeserializerInfo(typeof(TResult), out var info) && info.RequiresTypeName;
             
-            var result = await ExecuteInternalAsync<TResult>(
+            var result = await ExecuteInternalAsync(
                 query,
                 args,
                 Cardinality.AtMostOne,
@@ -507,7 +521,7 @@ namespace EdgeDB
             
             return queryResult.PayloadBuffer is null
                 ? throw new MissingRequiredException()
-                : ObjectBuilder.BuildResult<TResult>(result.Deserializer, ref result.Data[0])!;
+                : ObjectBuilder.BuildResult<TResult>(this, result.Deserializer, ref result.Data[0])!;
         }
 
         /// <inheritdoc/>
@@ -518,10 +532,10 @@ namespace EdgeDB
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         public override async Task<DataTypes.Json> QueryJsonAsync(string query, IDictionary<string, object?>? args = null, Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
-            var result = await ExecuteInternalAsync<object>(query, args, Cardinality.Many, capabilities, IOFormat.Json, token: token);
+            var result = await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, IOFormat.Json, token: token);
             
             return result.Data.Length == 1
-                ? (string)result.Deserializer.Deserialize(result.Data[0].PayloadBuffer)!
+                ? (string)result.Deserializer.Deserialize(this, result.Data[0].PayloadBuffer)!
                 : "[]";
         }
 
@@ -532,10 +546,10 @@ namespace EdgeDB
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         public override async Task<IReadOnlyCollection<DataTypes.Json>> QueryJsonElementsAsync(string query, IDictionary<string, object?>? args = null, Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
-            var result = await ExecuteInternalAsync<object>(query, args, Cardinality.Many, capabilities, IOFormat.JsonElements, token: token);
+            var result = await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, IOFormat.JsonElements, token: token);
 
             return result.Data.Any()
-                ? result.Data.Select(x => new DataTypes.Json((string?)result.Deserializer.Deserialize(x.PayloadBuffer))).ToImmutableArray()
+                ? result.Data.Select(x => new DataTypes.Json((string?)result.Deserializer.Deserialize(this, x.PayloadBuffer))).ToImmutableArray()
                 : ImmutableArray<DataTypes.Json>.Empty;
         }
         #endregion
@@ -569,7 +583,7 @@ namespace EdgeDB
                     ServerKey = keyData.KeyBuffer;
                     break;
                 case StateDataDescription stateDescriptor:
-                    _stateCodec = CodecBuilder.BuildCodec(stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                    _stateCodec = CodecBuilder.BuildCodec(this,  stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
                     _stateDescriptorId = stateDescriptor.TypeDescriptorId;
                     break;
                 case ParameterStatus parameterStatus:
@@ -607,7 +621,7 @@ namespace EdgeDB
                     throw new ProtocolViolationException("The only supported method is SCRAM-SHA-256");
                 }
 
-                var initialMsg = scram.BuildInitialMessagePacket(Connection.Username!, method);
+                var initialMsg = scram.BuildInitialMessagePacket(this, Connection.Username!, method);
                 byte[] expectedSig = Array.Empty<byte>();
 
                 await foreach(var result in Duplexer.DuplexAsync(initialMsg))
@@ -620,7 +634,7 @@ namespace EdgeDB
                                 {
                                     case AuthStatus.AuthenticationSASLContinue:
                                         {
-                                            var (msg, sig) = scram.BuildFinalMessagePacket(in authResult, Connection.Password!);
+                                            var (msg, sig) = scram.BuildFinalMessagePacket(this, in authResult, Connection.Password!);
                                             expectedSig = sig;
 
                                             await Duplexer.SendAsync(packets: msg).ConfigureAwait(false);
@@ -628,7 +642,7 @@ namespace EdgeDB
                                         break;
                                     case AuthStatus.AuthenticationSASLFinal:
                                         {
-                                            var key = Scram.ParseServerFinalMessage(authResult);
+                                            var key = Scram.ParseServerFinalMessage(this, in authResult);
 
                                             if (!key.SequenceEqual(expectedSig))
                                             {
@@ -652,30 +666,6 @@ namespace EdgeDB
                     }
                 }
             }
-            catch(EdgeDBException x) when (x.ShouldReconnect)
-            {
-                await ReconnectAsync().ConfigureAwait(false);
-                throw;
-            }
-            catch (Exception x)
-            {
-                if (_config.RetryMode is ConnectionRetryMode.AlwaysRetry)
-                {
-                    if (_currentRetries < _config.MaxConnectionRetries)
-                    {
-                        _currentRetries++;
-                        Logger.AttemptToReconnect(_currentRetries, _config.MaxConnectionRetries);
-                        await ReconnectAsync();
-                    }
-                    else
-                        Logger.MaxConnectionRetries(_config.MaxConnectionRetries);
-                }
-                else
-                {
-                    Logger.AuthenticationFailed(x);
-                    throw;
-                }
-            }
             finally
             {
                 IsIdle = true;
@@ -697,10 +687,11 @@ namespace EdgeDB
                 {
                     case "suggested_pool_concurrency":
                         var str = Encoding.UTF8.GetString(status.ValueBuffer);
-                        if (!int.TryParse(str, out SuggestedPoolConcurrency))
+                        if (!int.TryParse(str, out var suggestedPoolConcurrency))
                         {
                             throw new FormatException("suggested_pool_concurrency type didn't match the expected type of int");
                         }
+                        SuggestedPoolConcurrency = suggestedPoolConcurrency;
                         break;
 
                     case "system_config":
@@ -714,7 +705,7 @@ namespace EdgeDB
                         if (codec is null)
                         {
                             var innerReader = new PacketReader(ref typeDesc);
-                            codec = CodecBuilder.BuildCodec(descriptorId, ref innerReader);
+                            codec = CodecBuilder.BuildCodec(this, descriptorId, ref innerReader);
 
                             if (codec is null)
                                 throw new MissingCodecException("Failed to build codec for system_config");
@@ -723,7 +714,7 @@ namespace EdgeDB
                         // disard length
                         reader.Skip(4);
 
-                        var obj = codec.Deserialize(ref reader)!;
+                        var obj = codec.Deserialize(ref reader, _codecContext)!;
 
                         RawServerConfig = ((ExpandoObject)obj).ToDictionary(x => x.Key, x => x.Value);
                         break;
@@ -736,6 +727,20 @@ namespace EdgeDB
             {
                 Logger.ServerSettingsParseFailed(x);
             }
+        }
+
+        private ReadOnlyMemory<byte>? SerializeState()
+        {
+            // TODO: version check this, prevent the state codec
+            // from being walked again if the state data hasn't
+            // been updated.
+
+            if (_stateCodec is null)
+                return null;
+
+            var data = Session.Serialize();
+
+            return _stateCodec.Serialize(this, data);
         }
         #endregion
 
@@ -752,6 +757,11 @@ namespace EdgeDB
         public override async ValueTask ConnectAsync(CancellationToken token = default)
         {
             await _connectSemaphone.WaitAsync(token).ConfigureAwait(false);
+
+            if (IsConnected)
+                return;
+
+            var released = false;
 
             try
             {
@@ -770,9 +780,46 @@ namespace EdgeDB
                         throw new UnexpectedDisconnectException();
 
                     if (message is ReadyForCommand)
+                    {
+                        // reset connection attempts
+                        _currentRetries = 0;
                         break;
+                    }
 
-                    await HandlePacketAsync(message).ConfigureAwait(false);
+                    try
+                    {
+                        await HandlePacketAsync(message).ConfigureAwait(false);
+                    }
+                    catch(EdgeDBErrorException x) when (x.ShouldReconnect)
+                    {
+                        if (_config.RetryMode is ConnectionRetryMode.AlwaysRetry)
+                        {
+                            if (_currentRetries < _config.MaxConnectionRetries)
+                            {
+                                _currentRetries++;
+
+                                Logger.AttemptToReconnect(_currentRetries, _config.MaxConnectionRetries, x);
+
+                                // do not forward the linked token in this method to the new
+                                // reconnection, only supply the external token. We also don't
+                                // want to call 'ReconnectAsync' since we queue up a disconnect
+                                // and connect request, if this method was called externally
+                                // while we handle the error, it would be next in line to attempt
+                                // to connect, if that external call completes we would then disconnect
+                                // and connect after a successful connection attempt which wouldn't be ideal.
+                                await DisconnectAsync(token);
+
+                                _connectSemaphone.Release();
+
+                                await ConnectAsync(token);
+                                return;
+                            }
+                            else
+                                Logger.MaxConnectionRetries(_config.MaxConnectionRetries, x);
+                        }
+
+                        throw;
+                    }
                 }
 
                 _readySource.SetResult();
@@ -782,7 +829,8 @@ namespace EdgeDB
             }
             finally
             {
-                _connectSemaphone.Release();
+                if(!released)
+                    _connectSemaphone.Release();
             }
         }
 

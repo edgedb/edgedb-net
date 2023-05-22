@@ -17,7 +17,7 @@ namespace EdgeDB
         /// </summary>
         public int DefaultPoolSize
         {
-            get => _poolSize;
+            get => _poolSize ?? 50;
             set
             {
                 if (value <= 0)
@@ -39,7 +39,10 @@ namespace EdgeDB
         /// </remarks>
         internal Func<ulong, EdgeDBConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? ClientFactory { get; set; }
 
-        private int _poolSize = 50;
+        internal bool HasCustomPoolSize
+            => _poolSize.HasValue;
+
+        private int? _poolSize;
     }
 
     /// <summary>
@@ -107,7 +110,7 @@ namespace EdgeDB
         /// <summary>
         ///     Gets or sets the max amount of miliseconds a client will wait for an expected message.
         /// </summary>
-        public uint MessageTimeout { get; set; } = 5000;
+        public uint MessageTimeout { get; set; } = 15000;
 
         /// <summary>
         ///     Gets or sets whether or not to always return object ids.
@@ -134,5 +137,39 @@ namespace EdgeDB
             get => TypeBuilder.SchemaNamingStrategy;
             set => TypeBuilder.SchemaNamingStrategy = value;
         }
+
+        /// <summary>
+        ///     Gets or sets whether or not to prefer using .NETs system temporal types
+        ///     when deserializing EdgeDB's temporal types using non-concrete query result
+        ///     definitions.
+        /// </summary>
+        /// <remarks>
+        ///     This setting does not override property-defined types, for example:
+        ///     <code>
+        ///     public class ExampleModel
+        ///     {
+        ///         public EdgeDB.DataTypes.DateTime EDBDateTime { get; set; }
+        ///     }
+        ///     </code>
+        ///     would be deserialized as <see cref="EdgeDB.DataTypes.DateTime"/> regardless of this option.
+        ///     Where this option does apply is when using <see langword="dynamic"/> or <see langword="object"/>
+        ///     as the generic in one of the Query* methods, e.g.:
+        ///     <code>
+        ///     var result = client.QueryAsync&lt;object&gt;(...);
+        ///     </code>
+        /// </remarks>
+        public bool PreferSystemTemporalTypes { get; set; }
+
+        /// <summary>
+        ///     Gets or sets whether or not to prefer <see cref="ValueTuple"/> when deserializing
+        ///     the <c>std::tuple</c> type opposed to <see cref="DataTypes.TransientTuple"/> when using
+        ///     non-concrete query result definitions.
+        /// </summary>
+        public bool PreferValueTupleType { get; set; }
+
+        /// <summary>
+        ///     Gets or sets whether or not to include type ids in results.
+        /// </summary>
+        public bool ImplicitTypeIds { get; internal set; }
     }
 }

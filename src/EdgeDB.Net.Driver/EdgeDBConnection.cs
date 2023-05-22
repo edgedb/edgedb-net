@@ -278,25 +278,25 @@ connectionDefinition:
                         break;
                     case "host":
                         if (host is not null)
-                            throw new ArgumentException("Port ambiguity mismatch");
+                            throw new ArgumentException("Host ambiguity mismatch");
 
                         conn.Hostname = value;
                         break;
                     case "database":
                         if (database is not null)
-                            throw new ArgumentException("Port ambiguity mismatch");
+                            throw new ArgumentException("Database ambiguity mismatch");
 
                         conn.Database = value;
                         break;
                     case "user":
                         if (username is not null)
-                            throw new ArgumentException("Port ambiguity mismatch");
+                            throw new ArgumentException("User ambiguity mismatch");
 
                         conn.Username = value;
                         break;
                     case "password":
                         if (password is not null)
-                            throw new ArgumentException("Port ambiguity mismatch");
+                            throw new ArgumentException("Password ambiguity mismatch");
 
                         conn.Password = value;
                         break;

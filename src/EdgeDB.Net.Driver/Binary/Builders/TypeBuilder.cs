@@ -146,7 +146,7 @@ namespace EdgeDB
             return info is not null;
         }
         
-        internal static object? BuildObject(Type type, Binary.Codecs.Object codec, ref Data data)
+        internal static object? BuildObject(EdgeDBBinaryClient client, Type type, Binary.Codecs.ObjectCodec codec, ref Data data)
         {
             if (!IsValidObjectType(type))
                 throw new InvalidOperationException($"Cannot deserialize data to {type.Name}");
@@ -157,10 +157,11 @@ namespace EdgeDB
                 ScanAssemblyForTypes(type.Assembly);
             }
 
-            codec.Initialize(type);
+            if (codec is not TypeInitializedObjectCodec typeCodec)
+                codec = codec.GetOrCreateTypeCodec(type);
 
             var reader = new PacketReader(data.PayloadBuffer);
-            return codec.Deserialize(ref reader);
+            return codec.Deserialize(ref reader, client.CodecContext);
         }
 
         internal static TypeDeserializerFactory GetDeserializationFactory(Type type)
@@ -184,9 +185,17 @@ namespace EdgeDB
                 return true;
 
             // if its a scalar, defently don't try to use it.
-            if (ICodec.ContainsScalarCodec(type))
+            if (CodecBuilder.ContainsScalarCodec(type))
                 return false;
-            
+
+            if (
+                type.IsAssignableTo(typeof(IEnumerable)) &&
+                type.Assembly.GetName().Name!.StartsWith("System") &&
+                !type.IsAssignableFrom(typeof(Dictionary<string, object?>)))
+            {
+                return false;
+            }
+
             return
                 type == typeof(object) || 
                 type.IsAssignableTo(typeof(ITuple)) ||

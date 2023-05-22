@@ -24,4 +24,4 @@ jobs:
       - name: Pack
         run: dotnet pack src/EdgeDB.Net.Driver/EdgeDB.Net.Driver.csproj -c Release -o ./artifacts --no-build
       - name: Upload
-        run: dotnet nuget push ./artifacts/*.nupkg --api-key ${{ secrets.NUGET_KEY }} --source https://www.myget.org/F/edgedb-net/api/v2/package
+        run: dotnet nuget push ./artifacts/EdgeDB.Net.*.nupkg --api-key ${{ secrets.NUGET_KEY }} --source https://www.myget.org/F/edgedb-net/api/v2/package

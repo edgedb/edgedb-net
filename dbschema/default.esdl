@@ -1,5 +1,6 @@
 module default {
   global current_user_id -> uuid;
+  global abc -> tuple<str, int64>;
   
   type Movie {
     required property title -> str {

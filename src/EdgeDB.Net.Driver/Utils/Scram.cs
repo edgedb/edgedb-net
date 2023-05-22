@@ -18,7 +18,7 @@ namespace EdgeDB.Utils
 
         static Scram()
         {
-            _stringCodec = ICodec.GetScalarCodec<string>()!;
+            _stringCodec = CodecBuilder.GetScalarCodec<string>()!;
         }
 
         public Scram(byte[]? clientNonce = null)
@@ -46,9 +46,9 @@ namespace EdgeDB.Utils
         }
 
 
-        public AuthenticationSASLInitialResponse BuildInitialMessagePacket(string username, string method)
+        public AuthenticationSASLInitialResponse BuildInitialMessagePacket(EdgeDBBinaryClient client, string username, string method)
             => new(
-                _stringCodec.Serialize(BuildInitialMessage(username)),
+                _stringCodec.Serialize(client, BuildInitialMessage(username)),
                 method);
 
         public (string final, byte[] expectedSig) BuildFinalMessage(string initialResponse, string password)
@@ -83,16 +83,19 @@ namespace EdgeDB.Utils
             return ($"{final},p={Convert.ToBase64String(clientProof)}", serverProof);
         }
 
-        public (AuthenticationSASLResponse FinalMessage, byte[] ExpectedSig) BuildFinalMessagePacket(in AuthenticationStatus status, string password)
+        public (AuthenticationSASLResponse FinalMessage, byte[] ExpectedSig) BuildFinalMessagePacket(
+            EdgeDBBinaryClient client,
+            in AuthenticationStatus status,
+            string password)
         {
-            var (final, sig) = BuildFinalMessage(_stringCodec.Deserialize(status.SASLDataBuffer)!, password);
+            var (final, sig) = BuildFinalMessage(_stringCodec.Deserialize(client, status.SASLDataBuffer)!, password);
 
-            return (new AuthenticationSASLResponse(_stringCodec.Serialize(final)), sig);
+            return (new AuthenticationSASLResponse(_stringCodec.Serialize(client, final)), sig);
         }
 
-        public static byte[] ParseServerFinalMessage(AuthenticationStatus status)
+        public static byte[] ParseServerFinalMessage(EdgeDBBinaryClient client, in AuthenticationStatus status)
         {
-            var msg = _stringCodec.Deserialize(status.SASLDataBuffer)!;
+            var msg = _stringCodec.Deserialize(client, status.SASLDataBuffer)!;
 
             var parsed = ParseServerMessage(msg);
 
