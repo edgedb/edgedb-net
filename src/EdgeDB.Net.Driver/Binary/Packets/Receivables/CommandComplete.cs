@@ -10,7 +10,7 @@ namespace EdgeDB.Binary.Packets
     /// <summary>
     ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#commandcomplete">Command Complete</see> packet
     /// </summary>
-    internal readonly struct CommandComplete : IReceiveable
+    internal unsafe readonly struct CommandComplete : IReceiveable
     {
         public const int CAPBILITIES_HEADER = 0x1001;
 
@@ -28,16 +28,14 @@ namespace EdgeDB.Binary.Packets
 
         public Guid StateTypeDescriptorId { get; }
 
-        public IReadOnlyCollection<byte> StateData
-            => _stateData.ToImmutableArray();
-
         /// <summary>
         ///     Gets the status of the completed command.
         /// </summary>
         public string Status { get; }
 
+        internal readonly ReservedBuffer* StateData;
+
         private readonly Annotation[] _annotations;
-        private readonly byte[] _stateData;
 
         internal CommandComplete(ref PacketReader reader)
         {
@@ -45,7 +43,7 @@ namespace EdgeDB.Binary.Packets
             UsedCapabilities = (Capabilities)reader.ReadUInt64();
             Status = reader.ReadString();
             StateTypeDescriptorId = reader.ReadGuid();
-            _stateData = reader.ReadByteArray();
+            StateData = reader.ReserveRead();
         }
     }
 }

@@ -54,10 +54,10 @@ namespace EdgeDB.Binary
         public int Length
             => Contract.Length;
 
-        public PacketContract Contract
-            => _contractHandle.Value;
+        public ref PacketContract Contract
+            => ref _contractHandle.Value;
 
-        private readonly PacketContract.Handle _contractHandle;
+        private PacketContract.Handle _contractHandle;
 
         private int _limit;
 
@@ -269,6 +269,16 @@ namespace EdgeDB.Binary
         public Span<byte> ReadBytes(int length)
         {
             return Contract.RequestBuffer(length, true);
+        }
+
+        public void ReadInto(scoped Span<byte> span)
+        {
+            Contract.ReadInto(span);
+        }
+
+        public unsafe void ReadInto(void* ptr, int sz)
+        {
+            ReadInto(new Span<byte>(ptr, sz));
         }
 
         public Annotation ReadAnnotation()

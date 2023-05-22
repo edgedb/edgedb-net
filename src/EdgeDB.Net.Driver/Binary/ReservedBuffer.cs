@@ -5,7 +5,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
-using static EdgeDB.Binary.Packets.PacketContract;
 
 namespace EdgeDB.Binary
 {
@@ -20,10 +19,10 @@ namespace EdgeDB.Binary
         private readonly int _length;
         private readonly int _packetPosition;
 
-        private readonly BufferContract* _contract;
+        private readonly PacketContract.Handle _contract;
 
         public ReservedBuffer(
-            BufferContract* contract,
+            PacketContract.Handle contract,
             int start,
             int length)
         {
@@ -33,11 +32,8 @@ namespace EdgeDB.Binary
         }
 
         public PacketReader GetReader()
-            => _contract->CreateReader();
-
-        public void Dispose()
         {
-            _contract->Dispose();
+            return new PacketReader(_contract);
         }
     }
 }

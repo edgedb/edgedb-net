@@ -41,8 +41,15 @@ namespace EdgeDB.Tests.Unit
         {
             var inner = Encoding.UTF8.GetBytes($"r={SCRAM_SERVER_NONCE},s={SCRAM_SALT},i=4096");
             var data = new byte[] { 0x00, 0x00, 0x00, 0x0b }.Concat(BitConverter.GetBytes(inner.Length).Reverse()).Concat(inner).ToArray();
-            var reader = new PacketReader(data);
-            return new AuthenticationStatus(ref reader);
+            var reader = PacketReader.CreateFrom(data);
+            try
+            {
+                return new AuthenticationStatus(ref reader);
+            }
+            finally
+            {
+                reader.Dispose();
+            }
         }
     }
 }

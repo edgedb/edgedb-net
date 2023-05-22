@@ -45,7 +45,8 @@ namespace EdgeDB.Binary
 
         private Stream? _stream;
         private CancellationTokenSource _disconnectTokenSource;
-        private PacketContract? _packetContract;
+        private PacketContract _packetContract;
+        private bool _packetContractFufilled;
 
         public unsafe StreamDuplexer(EdgeDBBinaryClient client)
         {
@@ -93,6 +94,13 @@ namespace EdgeDB.Binary
 
             try
             {
+                if (_packetContractFufilled)
+                {
+                    // the last contract can be free'd safely
+                    _packetContract.Dispose();
+                    _packetContractFufilled = false;
+                }
+
                 if (linkedToken.IsCancellationRequested)
                     return null;
 
@@ -113,9 +121,9 @@ namespace EdgeDB.Binary
 
                 _client.Logger.MessageReceived(_client.ClientId, header.Type, header.Length);
 
-                var contract = PacketSerializer.CreateContract(this, _stream!, ref header, _client.ClientConfig.PacketChunkSize);
+                PacketSerializer.CreateContract(ref _packetContract, this, _stream!, ref header, _client.ClientConfig.PacketChunkSize);
 
-                var packet = PacketSerializer.DeserializePacket(header.Type, ref contract, _client);
+                var packet = PacketSerializer.DeserializePacket(header.Type, ref _packetContract, _client);
 
                 // check for idle timeout
                 if(packet is ErrorResponse err && err.ErrorCode == ServerErrorCodes.IdleSessionTimeoutError)
@@ -126,8 +134,6 @@ namespace EdgeDB.Binary
                     await DisconnectInternalAsync();
                     throw new EdgeDBErrorException(err);
                 }
-
-                _packetContract = contract;
 
                 return packet;
             }
@@ -262,20 +268,19 @@ namespace EdgeDB.Binary
             _packetHeaderHandle.Dispose();
         }
 
-        public void OnContractComplete(PacketContract contract)
+        public void OnContractComplete(ref PacketContract contract)
         {
-            if (_packetContract != contract)
+            if (!_packetContract.Equals(contract) && !_packetContract.TryFreeSubContract(ref contract))
             {
                 contract.Dispose();
                 throw new EdgeDBException("Dangling packet contract was unexpectedly complete.");
             }
 
-            contract.Dispose();
+            _packetContractFufilled = true;
             _contractLock.Release();
-            
         }
 
-        public void OnContractDisconnected(PacketContract contract)
+        public void OnContractDisconnected(ref PacketContract contract)
         {
             contract.Dispose();
             _contractLock.Release();

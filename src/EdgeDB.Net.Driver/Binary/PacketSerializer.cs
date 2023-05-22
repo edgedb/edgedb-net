@@ -23,10 +23,10 @@ namespace EdgeDB.Binary
             return val.Key;
         }
 
-        public static unsafe PacketContract CreateContract<T>(T duplexer, Stream source, ref PacketHeader header, int chunkSize)
+        public static unsafe void CreateContract<T>(ref PacketContract contract, T duplexer, Stream source, ref PacketHeader header, int chunkSize)
             where T : IBinaryDuplexer
         {
-            return new PacketContract(duplexer, source, (PacketHeader*)Unsafe.AsPointer(ref header), chunkSize);
+            contract = new PacketContract(duplexer, source, (PacketHeader*)Unsafe.AsPointer(ref header), chunkSize);
         }
 
 

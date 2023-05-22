@@ -23,8 +23,8 @@ namespace EdgeDB.Binary
 
         IAsyncEnumerable<DuplexResult> DuplexAsync(CancellationToken token = default, params Sendable[] packets);
 
-        void OnContractComplete(PacketContract contract);
-        void OnContractDisconnected(PacketContract contract);
+        void OnContractComplete(ref PacketContract contract);
+        void OnContractDisconnected(ref PacketContract contract);
 
 
         ValueTask SendAsync(Sendable packet, CancellationToken token = default)

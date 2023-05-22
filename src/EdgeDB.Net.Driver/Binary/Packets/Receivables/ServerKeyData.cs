@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,24 +14,37 @@ namespace EdgeDB.Binary.Packets
     /// </summary>
     internal readonly struct ServerKeyData : IReceiveable
     {
-        public const int SERVER_KEY_LENGTH = 32;
 
         /// <inheritdoc/>
         public ServerMessageType Type 
             => ServerMessageType.ServerKeyData;
 
-        /// <summary>
-        ///     Gets the key data.
-        /// </summary>
-        public IReadOnlyCollection<byte> Key
-            => KeyBuffer.ToImmutableArray();
+        internal readonly ServerKey Key;
 
-        internal readonly byte[] KeyBuffer { get; }
-
-        internal ServerKeyData(ref PacketReader reader)
+        internal unsafe ServerKeyData(ref PacketReader reader)
         {
-            reader.ReadBytes(SERVER_KEY_LENGTH, out var buff);
-            KeyBuffer = buff.ToArray();
+            ServerKey key;
+            reader.ReadInto(&key, ServerKey.SERVER_KEY_LENGTH);
+            Key = key;
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 0, Size = SERVER_KEY_LENGTH)]
+    internal readonly struct ServerKey
+    {
+        public const int SERVER_KEY_LENGTH = 32;
+
+        public unsafe void GetBytes(scoped Span<byte> buffer)
+        {
+            if(buffer.Length != SERVER_KEY_LENGTH)
+            {
+                throw new ArgumentException($"Target buffer must be {SERVER_KEY_LENGTH} bytes");
+            } 
+
+            fixed (void* ptr = &this)
+            {
+                Unsafe.CopyBlockUnaligned(ref buffer[0], ref *(byte*)ptr, SERVER_KEY_LENGTH);
+            }
         }
     }
 }

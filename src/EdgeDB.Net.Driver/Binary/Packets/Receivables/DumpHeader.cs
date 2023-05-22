@@ -129,7 +129,7 @@ namespace EdgeDB.Binary.Packets
     /// <summary>
     ///     Represents a object descriptor sent within the <see cref="DumpHeader"/> packet.
     /// </summary>
-    internal readonly struct DumpObjectDescriptor
+    internal unsafe readonly struct DumpObjectDescriptor
     {
         /// <summary>
         ///     Gets the object Id that the descriptor describes.
@@ -139,7 +139,7 @@ namespace EdgeDB.Binary.Packets
         /// <summary>
         ///     Gets the description of the object.
         /// </summary>
-        public IReadOnlyCollection<byte> Description { get; }
+        public readonly ReservedBuffer* Description { get; }
 
         /// <summary>
         ///     Gets a collection of dependencies that this descriptor relies on.
@@ -149,7 +149,7 @@ namespace EdgeDB.Binary.Packets
         internal DumpObjectDescriptor(ref PacketReader reader)
         {
             ObjectId = reader.ReadGuid();
-            Description = reader.ReadByteArray();
+            Description = reader.ReserveRead();
 
             var numDep = reader.ReadUInt16();
             Guid[] dep = new Guid[numDep];

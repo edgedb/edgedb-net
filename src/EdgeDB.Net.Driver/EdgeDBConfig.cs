@@ -170,6 +170,20 @@ namespace EdgeDB
         /// <summary>
         ///     Gets or sets the chunk size when deserializing messages and data from edgedb.
         /// </summary>
-        public int PacketChunkSize { get; set; }
+        public int PacketChunkSize
+        {
+            get => _packetChunkSize;
+            set
+            {
+                if(value <= 0)
+                {
+                    throw new ArgumentException("PacketChunkSize must be greater than 0", nameof(value));
+                }
+
+                _packetChunkSize = value;
+            }
+        }
+
+        private int _packetChunkSize = 2048;
     }
 }

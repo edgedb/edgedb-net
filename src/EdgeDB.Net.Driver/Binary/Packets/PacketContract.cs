@@ -14,55 +14,62 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Binary.Packets
 {
-    internal sealed class PacketContract : IDisposable
+    internal struct PacketContract : IDisposable
     {
-        public unsafe readonly struct Handle
+        private sealed class SubContract
         {
-            public PacketContract Value
-                => Unsafe.As<IntPtr, PacketContract>(ref *(IntPtr*)_handle.AddrOfPinnedObject());
+            public Handle Vendor;
+            public PacketContract Contract;
 
-            private readonly GCHandle _handle;
-
-            public Handle(PacketContract contract)
+            public SubContract(ref PacketContract vendor, int size, int offset)
             {
-                _handle = contract._thisPin;
+                Vendor = vendor.ContractHandle;
+                Contract = new PacketContract(ref vendor, size, offset);
+            }
+
+            public unsafe SubContract(ref PacketContract vendor, byte* ptr, int size)
+            {
+                Vendor = vendor.ContractHandle;
+                Contract = new PacketContract(ptr, size);
             }
         }
 
-        internal unsafe struct BufferContract : IDisposable
+
+        public unsafe readonly struct Handle
+        {
+            public bool IsNulled
+                => _ptr == null;
+
+            public ref PacketContract Value
+                => ref Unsafe.As<IntPtr, PacketContract>(ref *(IntPtr*)_ptr);
+
+            private readonly void* _ptr;
+
+            public Handle(ref PacketContract contract)
+            {
+                _ptr = Unsafe.AsPointer(ref contract);
+            }
+        }
+
+        internal unsafe sealed class BufferContract : IDisposable
         {
             public readonly ReservedBuffer* Buffer;
 
-            private void* _pointer;
+            private PacketContract.Handle _contract;
 
             private int _disposed;
 
-            public BufferContract(int start, int length)
+            public BufferContract(int start, int length, ref PacketContract contract)
             {
                 Buffer = (ReservedBuffer*)NativeMemory.Alloc((nuint)sizeof(ReservedBuffer));
+                *Buffer = new ReservedBuffer(contract.ContractHandle, start, length);
 
-                *Buffer = new ReservedBuffer((BufferContract*)Unsafe.AsPointer(ref this), start, length);
+                _contract = contract.ContractHandle;
             }
 
-            public BufferContract(int start, int length, PacketContract contract)
-                : this(start, length)
+            public void RegisterContract(ref PacketContract contract)
             {
-                RegisterContract(contract);
-            }
-
-            public PacketReader CreateReader()
-            {
-                if (_pointer == null)
-                {
-                    throw new NullReferenceException();
-                }
-
-                return new PacketReader(Unsafe.AsRef<PacketContract>(_pointer).ContractHandle);
-            }
-
-            public void RegisterContract(PacketContract contract)
-            {
-                _pointer = (void*)contract._thisPin.AddrOfPinnedObject();
+                _contract = contract.ContractHandle;
             }
 
             public void Dispose()
@@ -75,15 +82,15 @@ namespace EdgeDB.Binary.Packets
         }
 
         public Handle ContractHandle
-            => new(this);
+            => new(ref this);
 
-        public bool IsEmpty
+        public readonly bool IsEmpty
             => _position == _length;
 
-        public int Length
+        public readonly int Length
             => _length;
 
-        public int Position
+        public readonly int Position
             => _position;
 
         [MemberNotNullWhen(
@@ -91,11 +98,11 @@ namespace EdgeDB.Binary.Packets
             nameof(_chunk), nameof(_allocs), nameof(_reservedBuffers),
             nameof(_subContracts), nameof(_source), nameof(_duplexer)
         )]
-        private unsafe bool IsCompletedContract
+        private readonly unsafe bool IsCompletedContract
             => _pointer != null;
 
         [MemberNotNullWhen(true, nameof(_duplexer))]
-        private bool ShouldSignalComplete
+        private readonly bool ShouldSignalComplete
             => IsEmpty && _duplexer != null && !_signaledComplete;
 
         private readonly Stream? _source;
@@ -113,14 +120,12 @@ namespace EdgeDB.Binary.Packets
 
         private readonly Queue<BufferContract>? _reservedBuffers;
 
-        private readonly List<PacketContract>? _subContracts;
+        private readonly List<SubContract>? _subContracts;
 
         private readonly object _lock;
 
         // this field is only set if this contract was constructed as a complete contract.
         private readonly unsafe byte* _pointer;
-
-        private readonly GCHandle _thisPin;
 
         private readonly bool _isSubContract;
 
@@ -132,7 +137,6 @@ namespace EdgeDB.Binary.Packets
             _duplexer = duplexer;
             _allocs = new();
             _lock = new object();
-            _thisPin = GCHandle.Alloc(this, GCHandleType.Pinned);
         }
 
         internal unsafe PacketContract(IBinaryDuplexer duplexer, Stream source, PacketHeader* header, int chunkSize)
@@ -145,15 +149,16 @@ namespace EdgeDB.Binary.Packets
             _subContracts = new();
         }
 
-        private PacketContract(IBinaryDuplexer duplexer, PacketContract parent, int length, int position = 0)
-            : this(duplexer)
+        private PacketContract(scoped ref PacketContract parent, int length, int position = 0)
+            : this(parent._duplexer)
         {
             _isSubContract = true;
             _length = length;
             _position = position;
             _source = parent._source;
             _chunk = parent._chunk;
-            _reservedBuffers = parent._reservedBuffers;
+            _chunkPosition = parent._chunkPosition;
+            _reservedBuffers = new();
             _subContracts = new();
         }
 
@@ -176,13 +181,20 @@ namespace EdgeDB.Binary.Packets
                 throw new InvalidOperationException("Cannot reserve buffers from a completed contract");
             }
 
-            var subContract = new PacketContract(_duplexer, this, count);
+            if (_position + count > _length)
+            {
+                throw new InvalidOperationException($"Reading {count} bytes would exceed the packet size");
+            }
 
-            var bufferContract = new BufferContract(_position, count, subContract);
+            var subContract = new SubContract(ref this, count, _position);
 
-            _subContracts.Add(subContract);
+            var bufferContract = new BufferContract(_position, count, ref subContract.Contract);
 
-            _reservedBuffers.Enqueue(bufferContract);
+            _subContracts!.Add(subContract);
+
+            _reservedBuffers!.Enqueue(bufferContract);
+
+            _position += count;
 
             return bufferContract.Buffer;
         }
@@ -199,7 +211,7 @@ namespace EdgeDB.Binary.Packets
             NativeMemory.Free(ptr);
 
             CheckComplete();
-        } 
+        }
 
         public unsafe Span<byte> RequestBuffer(int sz, bool copy = false)
         {
@@ -229,19 +241,20 @@ namespace EdgeDB.Binary.Packets
                 if (copy)
                 {
                     var ptr = TrackedAlloc(sz);
-                    ReadIntoPointer(ptr, sz);
+                    ReadIntoPointer(ptr, sz); // updates position
                     span = new Span<byte>(ptr, sz);
                 }
                 else
                 {
                     span = new Span<byte>(Unsafe.AsPointer(ref elementReference), sz);
+                    _position += span.Length;
                 }
             }
             else
             {
                 var ptr = TrackedAlloc(sz);
 
-                ReadIntoPointer(ptr, sz);
+                ReadIntoPointer(ptr, sz); // updates position
 
                 span = new Span<byte>(ptr, sz);
 
@@ -261,6 +274,13 @@ namespace EdgeDB.Binary.Packets
             CheckComplete();
 
             return span;
+        }
+
+        public unsafe void ReadInto(scoped Span<byte> span)
+        {
+            ReadExact(span);
+
+            _position += span.Length;
         }
 
         private unsafe void ReadIntoPointer(byte* ptr, int size)
@@ -438,12 +458,12 @@ namespace EdgeDB.Binary.Packets
             return ref Unsafe.As<byte, T>(ref pos);
         }
 
-        private bool RequiresRead(int sz)
+        private readonly bool RequiresRead(int sz)
         {
             return _chunkPosition + sz > _readTrack;
         }
 
-        private unsafe byte* TrackedAlloc(int size)
+        private readonly unsafe byte* TrackedAlloc(int size)
         {
             var ptr = (byte*)NativeMemory.Alloc((nuint)size);
             _allocs.Add((nuint)ptr);
@@ -503,20 +523,23 @@ namespace EdgeDB.Binary.Packets
                 return;
             }
 
-            if(_reservedBuffers.TryPeek(out var contract))
+            if(_reservedBuffers.TryPeek(out var bufferContract))
             {
                 // is the contract within our range
-                if(_position == contract.Buffer->PacketPosition)
+                if(_position == bufferContract.Buffer->PacketPosition)
                 {
                     // complete the contract
-                    var ptr = TrackedAlloc(contract.Buffer->Length);
+                    var ptr = TrackedAlloc(bufferContract.Buffer->Length);
 
-                    ReadIntoPointer(ptr, contract.Buffer->Length);
+                    ReadIntoPointer(ptr, bufferContract.Buffer->Length);
 
-                    contract.RegisterContract(new PacketContract(ptr, contract.Buffer->Length));
-                    _reservedBuffers.Dequeue();
+                    var subContract = new SubContract(ref this, ptr, bufferContract.Buffer->Length);
+
+                    bufferContract.RegisterContract(ref subContract.Contract);
+
+                    _reservedBuffers!.Dequeue();
                 }
-                else if(_position > contract.Buffer->PacketPosition && _position + size < contract.Buffer->PacketPosition)
+                else if(_position > bufferContract.Buffer->PacketPosition && _position + size < bufferContract.Buffer->PacketPosition)
                 {
                     // fail because the read operation spans over multiple sections. this shouldn't ever occor
                     throw new InvalidOperationException("The requested read spans over multiple reserved buffer sections");
@@ -526,10 +549,7 @@ namespace EdgeDB.Binary.Packets
 
         private void OnDisconnect()
         {
-            if(_duplexer != null)
-            {
-                _duplexer.OnContractDisconnected(this);
-            }
+            _duplexer?.OnContractDisconnected(ref this);
 
             throw new EndOfStreamException();
         }
@@ -538,16 +558,51 @@ namespace EdgeDB.Binary.Packets
         {
             if (ShouldSignalComplete)
             {
-                _duplexer.OnContractComplete(this);
+                _duplexer.OnContractComplete(ref this);
                 _signaledComplete = true;
             }
         }
 
-        public void Dispose()
+        public bool TryFreeSubContract(ref PacketContract subContractRef)
+        {
+            if (_subContracts == null)
+                return false;
+
+            SubContract? subContract = null;
+
+            foreach(var contract in _subContracts)
+            {
+                if(Unsafe.AreSame(ref subContractRef, ref contract.Contract))
+                {
+                    subContract = contract;
+                    break;
+                }    
+            }
+
+            if(subContract == null)
+                return false;
+
+            _subContracts.Remove(subContract);
+
+            subContractRef.Dispose();
+
+            return true;
+        }
+
+        public readonly void Dispose()
         {
             if(!IsCompletedContract && !_isSubContract)
             {
                 ArrayPool<byte>.Shared.Return(_chunk);
+            }
+
+            // ensure any subcontracts are free'd
+            if(_subContracts is not null)
+            {
+                foreach(var subContract in _subContracts)
+                {
+                    subContract.Contract.Dispose();
+                } 
             }
 
             unsafe

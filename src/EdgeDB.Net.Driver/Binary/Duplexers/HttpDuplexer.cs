@@ -27,7 +27,7 @@ namespace EdgeDB.Binary.Duplexers
         private readonly SemaphoreSlim _contractLock;
 
         private TaskCompletionSource _packetReadTCS;
-        private PacketContract? _packetContract;
+        private PacketContract _packetContract;
 
 
         public HttpDuplexer(EdgeDBHttpClient client)
@@ -165,15 +165,12 @@ namespace EdgeDB.Binary.Duplexers
                     header.CorrectLength();
                 }
 
-                if(_packetContract != null)
+                if (!_packetContract.IsEmpty)
                 {
-                    if(!_packetContract.IsEmpty)
-                    {
-                        throw new EdgeDBException("Previous packet failed to be processed fully before the next packet was read");
-                    }
-                } 
+                    throw new EdgeDBException("Previous packet failed to be processed fully before the next packet was read");
+                }
 
-                _packetContract = PacketSerializer.CreateContract(this, stream, ref header, _client.ClientConfig.PacketChunkSize);
+                PacketSerializer.CreateContract(ref _packetContract, this, stream, ref header, _client.ClientConfig.PacketChunkSize);
 
                 var packet = PacketSerializer.DeserializePacket(header.Type, ref _packetContract, _client);
 
@@ -192,9 +189,9 @@ namespace EdgeDB.Binary.Duplexers
 
         void IDisposable.Dispose() {}
 
-        public void OnContractComplete(PacketContract contract)
+        public void OnContractComplete(ref PacketContract contract)
         {
-            if (_packetContract != contract)
+            if (!_packetContract.Equals(contract))
             {
                 contract.Dispose();
                 throw new EdgeDBException("Dangling packet contract was unexpectedly complete.");
@@ -205,7 +202,7 @@ namespace EdgeDB.Binary.Duplexers
 
         }
 
-        public void OnContractDisconnected(PacketContract contract)
+        public void OnContractDisconnected(ref PacketContract contract)
         {
             contract.Dispose();
             _contractLock.Release();

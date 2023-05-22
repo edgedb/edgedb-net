@@ -5,7 +5,7 @@ namespace EdgeDB.Binary.Codecs
     {
         public override byte[] Deserialize(ref PacketReader reader, CodecContext context)
         {
-            return reader.ConsumeByteArray();
+            return reader.ConsumeByteArray().ToArray();
         }
 
         public override void Serialize(ref PacketWriter writer, byte[]? value, CodecContext context)

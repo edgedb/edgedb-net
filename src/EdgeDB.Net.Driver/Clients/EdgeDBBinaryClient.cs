@@ -79,7 +79,7 @@ namespace EdgeDB
         internal CodecContext CodecContext
             => _codecContext;
 
-        internal byte[] ServerKey;
+        internal ServerKey ServerKey;
         internal int? SuggestedPoolConcurrency;
         internal Dictionary<string, object?> RawServerConfig = new();
         
@@ -125,7 +125,6 @@ namespace EdgeDB
         {
             Logger = clientConfig.Logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
             Connection = connection;
-            ServerKey = new byte[32];
             MessageTimeout = TimeSpan.FromMilliseconds(clientConfig.MessageTimeout);
             ConnectionTimeout = TimeSpan.FromMilliseconds(clientConfig.ConnectionTimeout);
             _stateDescriptorId = CodecBuilder.InvalidCodec;
@@ -632,7 +631,7 @@ namespace EdgeDB
                         throw new UnexpectedMessageException("Expected AuthenticationRequiredSASLMessage, got " + authStatus.AuthStatus);
                     break;
                 case ServerKeyData keyData:
-                    ServerKey = keyData.KeyBuffer;
+                    ServerKey = keyData.Key;
                     break;
                 case StateDataDescription stateDescriptor:
                     _stateCodec = CodecBuilder.BuildCodec(this, ref stateDescriptor);
