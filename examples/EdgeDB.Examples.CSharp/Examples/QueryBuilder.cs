@@ -32,7 +32,6 @@ namespace EdgeDB.ExampleApp.Examples
             try
             {
                 await QueryBuilderDemo(client);
-                await QueryableCollectionDemo(client);
             }
             catch(Exception x)
             {
@@ -56,7 +55,13 @@ namespace EdgeDB.ExampleApp.Examples
 
             // Specifying a shape
             query = QueryBuilder.Select<Person>(shape =>
-                shape.Include(x => x.BestFriend)
+                shape
+                    .Explicitly(p => new
+                    {
+                        p.Name,
+                        p.Email,
+                        p.BestFriend
+                    })
             ).Build().Prettify();
             
             // selecting things that are not types
@@ -192,55 +197,6 @@ namespace EdgeDB.ExampleApp.Examples
                 .Filter(x => EdgeQL.ILike(x.Name, "e%"))
                 .Build()
                 .Prettify();
-        }
-
-        private static async Task QueryableCollectionDemo(EdgeDBClient client)
-        {
-            // Get a 'collection' object, this class wraps the query
-            // builder and provides simple CRUD methods.
-            var collection = client.GetCollection<Person>();
-
-            // Get or add a value
-            var person = await collection.GetOrAddAsync(new Person
-            {
-                Email = "example@example.com",
-                Name = "example"
-            });
-
-            // we can change properties locally and then call UpdateAsync to update the type in the database.
-            person.Name = "example new name";
-
-            await collection.UpdateAsync(person);
-
-            // or we can provide an update function
-            person = await collection.UpdateAsync(person, old => new Person
-            {
-                Name = "example"
-            });
-
-            // we can select types based on a filter
-            var people = await collection.WhereAsync(x => EdgeQL.ILike(x.Name, "e%"));
-
-            // we can add or update a type (Broken https://github.com/edgedb/edgedb/issues/4577)
-            //var otherPerson = await collection.AddOrUpdateAsync(new Person
-            //{
-            //    Name = "example2",
-            //    Email = "example2@example.com",
-            //    BestFriend = person
-            //});
-
-            // we can delete types
-            var toBeDeleted = await collection.GetOrAddAsync(new Person
-            {
-                Email = "example3@example.com",
-                Name = "example3"
-            });
-
-            // the result of this delete functions is whether or not it was deleted.
-            var success = await collection.DeleteAsync(toBeDeleted);
-
-            // we can also delete types based on a filter
-            var count = await collection.DeleteWhereAsync(x => EdgeQL.ILike(x.Name, "e%"));
         }
     }
 }

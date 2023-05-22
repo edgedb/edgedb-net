@@ -1367,14 +1367,6 @@ namespace EdgeDB
         public static long Count<TType>(IEnumerable<TType> a) { return default!; }
         #endregion
 
-        #region Count
-        /// <summary>
-        ///     A function that represents the EdgeQL version of: <code>count(<paramref name="a"/>)</code>
-        /// </summary>
-        [EquivalentOperator(typeof(EdgeDB.Operators.SetsCount))]
-        public static long Count(IQueryBuilder a) { return default!; }
-        #endregion
-
         #region Enumerate<TType>
         /// <summary>
         ///     A function that represents the EdgeQL version of: <code>enumerate(<paramref name="a"/>)</code>
@@ -1697,6 +1689,29 @@ namespace EdgeDB
 
         #endregion math
 
+        #region links
+
+        #region AddLink<TSource, TType>
+        /// <summary>
+        ///     A function that represents the EdgeQL version of: <code>+= <paramref name="element"/></code>
+        /// </summary>
+        [EquivalentOperator(typeof(EdgeDB.Operators.LinksAddLink))]
+        public static TSource AddLink<TSource, TType>(TSource source, TType element) where TSource : IEnumerable<TType>? { return default!; }
+        #endregion
+
+        #region RemoveLink<TSource, TType>
+        /// <summary>
+        ///     A function that represents the EdgeQL version of: <code>-= <paramref name="element"/></code>
+        /// </summary>
+        [EquivalentOperator(typeof(EdgeDB.Operators.LinksRemoveLink))]
+        public static TSource RemoveLink<TSource, TType>(TSource source, TType element) where TSource : IEnumerable<TType>? { return default!; }
+        #endregion
+
+        #endregion links
+
+        #region variables
+
+        #endregion variables
 
         internal static Dictionary<string, IEdgeQLOperator> FunctionOperators = new()
         {

@@ -1,4 +1,4 @@
-﻿Generic:
+Generic:
   - expression: Equal
     operator: "{0} ?= {1}"
     return: bool
@@ -318,7 +318,7 @@ boolean:
           - bool
           - bool
 
-  - expression: And
+  - expression: AndAlso
     operator: "{0} and {1}"
     name: And
     return: bool
