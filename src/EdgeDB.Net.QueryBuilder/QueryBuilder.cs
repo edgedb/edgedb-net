@@ -584,7 +584,27 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
+        public IUpdateQuery<TType, TContext> Update(Expression<Func<TContext, TType, TType>> updateFunc, bool returnUpdatedValue)
+        {
+            var updateNode = AddNode<UpdateNode>(new UpdateContext(typeof(TType))
+            {
+                UpdateExpression = updateFunc,
+            });
+
+            if (returnUpdatedValue)
+            {
+                AddNode<SelectNode>(new SelectContext(typeof(TType)), true, updateNode);
+            }
+
+            return this;
+        }
+
+        /// <inheritdoc/>
         public IUpdateQuery<TType, TContext> Update(Expression<Func<TType, TType>> updateFunc)
+            => Update(updateFunc, false);
+
+        /// <inheritdoc/>
+        public IUpdateQuery<TType, TContext> Update(Expression<Func<TContext, TType, TType>> updateFunc)
             => Update(updateFunc, false);
 
         /// <inheritdoc/>

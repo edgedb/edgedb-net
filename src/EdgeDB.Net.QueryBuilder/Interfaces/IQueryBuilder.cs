@@ -162,10 +162,33 @@ namespace EdgeDB
         ///     Adds a <c>UPDATE</c> statement updating an instance of <typeparamref name="TType"/>.
         /// </summary>
         /// <param name="updateFunc">
+        ///     The callback used to update <typeparamref name="TType"/>. The first parameter is the context
+        ///     of the builder, the second parameter is a reference to the old value.
+        /// </param>
+        /// <param name="returnUpdatedValue">
+        ///     whether or not to implicitly add a select statement to return the inserted value.
+        /// </param>
+        /// <returns>A <see cref="IInsertQuery{TType, TContext}"/>.</returns>
+        IUpdateQuery<TType, TContext> Update(Expression<Func<TContext, TType, TType>> updateFunc, bool returnUpdatedValue);
+
+        /// <summary>
+        ///     Adds a <c>UPDATE</c> statement updating an instance of <typeparamref name="TType"/>.
+        /// </summary>
+        /// <param name="updateFunc">
         ///     The callback used to update <typeparamref name="TType"/>. The first parameter is the old value.
         /// </param>
         /// <returns>A <see cref="IInsertQuery{TType, TContext}"/>.</returns>
         IUpdateQuery<TType, TContext> Update(Expression<Func<TType, TType>> updateFunc);
+
+        /// <summary>
+        ///     Adds a <c>UPDATE</c> statement updating an instance of <typeparamref name="TType"/>.
+        /// </summary>
+        /// <param name="updateFunc">
+        ///     The callback used to update <typeparamref name="TType"/>. The first parameter is the context
+        ///     of the builder, the second parameter is a reference to the old value.
+        /// </param>
+        /// <returns>A <see cref="IInsertQuery{TType, TContext}"/>.</returns>
+        IUpdateQuery<TType, TContext> Update(Expression<Func<TContext, TType, TType>> updateFunc);
 
         /// <summary>
         ///     Adds a <c>DELETE</c> statement deleting an instance of <typeparamref name="TType"/>.
