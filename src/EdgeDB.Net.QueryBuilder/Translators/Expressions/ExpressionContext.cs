@@ -1,4 +1,4 @@
-﻿using EdgeDB.QueryNodes;
+using EdgeDB.QueryNodes;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -63,7 +63,13 @@ namespace EdgeDB
         /// </summary>
         public bool IsFreeObject
             => NodeContext is SelectContext selectContext && selectContext.IsFreeObject;
-        
+
+        /// <summary>
+        ///     Gets the query node requesting the translation; otherwise <see langword="null"/>
+        ///     if the translation was not requested by a query node.
+        /// </summary>
+        public QueryNode? Node { get; }
+
         /// <summary>
         ///     The collection of query variables.
         /// </summary>
@@ -82,8 +88,10 @@ namespace EdgeDB
         /// <param name="queryArguments">The query arguments collection.</param>
         /// <param name="globals">The query global collection.</param>
         public ExpressionContext(NodeContext context, LambdaExpression rootExpression, 
-            IDictionary<string, object?> queryArguments, List<QueryGlobal> globals)
+            IDictionary<string, object?> queryArguments, List<QueryGlobal> globals,
+            QueryNode? node = null)
         {
+            Node = node;
             RootExpression = rootExpression;
             QueryArguments = queryArguments;
             NodeContext = context;
@@ -124,6 +132,21 @@ namespace EdgeDB
         public bool TryGetGlobal(object? reference, [MaybeNullWhen(false)]out QueryGlobal global)
         {
             global = Globals.FirstOrDefault(x => x.Reference == reference);
+            return global != null;
+        }
+
+        /// <summary>
+        ///     Attempts to fetch a query global by reference.
+        /// </summary>
+        /// <param name="name">The name of the global.</param>
+        /// <param name="global">The out parameter containing the global.</param>
+        /// <returns>
+        ///     <see langword="true"/> if a global could be found with the reference; 
+        ///     otherwise <see langword="false"/>.
+        /// </returns>
+        public bool TryGetGlobal(string? name, [MaybeNullWhen(false)] out QueryGlobal global)
+        {
+            global = Globals.FirstOrDefault(x => x.Name == name);
             return global != null;
         }
 

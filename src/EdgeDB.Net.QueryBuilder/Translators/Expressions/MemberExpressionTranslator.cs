@@ -39,6 +39,13 @@ namespace EdgeDB.Translators.Expressions
                         switch (target)
                         {
                             case MemberExpression targetMember:
+                                // add a global reference to the current node with the expressions value
+                                if (context.Node is not null && context.TryGetGlobal(targetMember.Member.Name, out var global))
+                                {
+                                    context.Node.ReferencedGlobals.Add(global);
+                                }
+
+
                                 if (targetMember.Type.IsAssignableTo(typeof(IJsonVariable)))
                                 {
                                     // pull the paths coming off of target member

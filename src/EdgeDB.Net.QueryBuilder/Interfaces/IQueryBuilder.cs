@@ -82,6 +82,21 @@ namespace EdgeDB
         ISelectQuery<TNewType, TContext> SelectExp<TNewType>(Expression<Func<TContext, TNewType?>> expression);
 
         /// <summary>
+        ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
+        /// </summary>
+        /// <typeparam name="TNewType">The resulting type of the expression.</typeparam>
+        /// <typeparam name="TQuery">A query containing a result of <typeparamref name="TNewType"/></typeparam>
+        /// <param name="expression">The expression on which to select.</param>
+        /// <param name="shape">A optional delegate to build the shape for selecting <typeparamref name="TNewType"/>.</param>
+        /// <returns>
+        ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
+        /// </returns>
+        ISelectQuery<TNewType, TContext> SelectExp<TNewType, TQuery>(
+            Expression<Func<TContext, TQuery?>> expression,
+            Action<ShapeBuilder<TNewType>>? shape = null
+        ) where TQuery : ISingleCardinalityExecutable<TNewType>;
+
+        /// <summary>
         ///     Adds a <c>INSERT</c> statement inserting an instance of <typeparamref name="TType"/>.
         /// </summary>
         /// <remarks>

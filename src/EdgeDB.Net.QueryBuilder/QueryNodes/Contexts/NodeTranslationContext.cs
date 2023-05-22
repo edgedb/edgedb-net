@@ -45,7 +45,7 @@ namespace EdgeDB.QueryNodes.Contexts
             LambdaExpression rootExpression,
             IDictionary<string, object?> queryArguments,
             List<QueryGlobal> globals)
-            : base(node.Context, rootExpression, queryArguments, globals)
+            : base(node.Context, rootExpression, queryArguments, globals, node)
         {
             _callback = callback;
         }

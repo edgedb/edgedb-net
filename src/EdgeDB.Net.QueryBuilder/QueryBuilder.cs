@@ -481,6 +481,40 @@ namespace EdgeDB
             return EnterNewType<TNewType>();
         }
 
+
+        /// <summary>
+        ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
+        /// </summary>
+        /// <typeparam name="TNewType">The resulting type of the expression.</typeparam>
+        /// <typeparam name="TQuery">A query containing a result of <typeparamref name="TNewType"/></typeparam>
+        /// <param name="expression">The expression on which to select.</param>
+        /// <param name="shape">A optional delegate to build the shape for selecting <typeparamref name="TNewType"/>.</param>
+        /// <returns>
+        ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
+        /// </returns>
+        public ISelectQuery<TNewType, TContext> SelectExp<TQuery, TNewType>(
+            Expression<Func<TContext, TQuery?>> expression,
+            Action<ShapeBuilder<TNewType>>? shape = null
+        ) where TQuery : IQuery<TNewType>
+        {
+            var shapeBuilder = shape is not null ? new ShapeBuilder<TNewType>() : null;
+
+            if(shape is not null && shapeBuilder is not null)
+            {
+                shape(shapeBuilder);
+            }
+
+            AddNode<SelectNode>(new SelectContext(typeof(TType))
+            {
+                Expression = expression,
+                Shape = shapeBuilder,
+                IsFreeObject = typeof(TNewType).IsAnonymousType(),
+            });
+
+            return EnterNewType<TNewType>();
+        }
+
+
         internal ISelectQuery<TNewType, TContext> SelectExp<TNewType, TInitContext>(Expression<Func<TInitContext, TNewType?>> expression)
         {
             AddNode<SelectNode>(new SelectContext(typeof(TType))
@@ -491,6 +525,7 @@ namespace EdgeDB
             });
             return EnterNewType<TNewType>();
         }
+
 
         /// <inheritdoc/>
         public IInsertQuery<TType, TContext> Insert(TType value, bool returnInsertedValue = true)
@@ -940,6 +975,8 @@ namespace EdgeDB
         IReadOnlyDictionary<string, object?> IQueryBuilder.Variables => _queryVariables;
         IQueryBuilder<TType, QueryContext<TType, TVariables>> IQueryBuilder<TType, TContext>.With<TVariables>(TVariables variables) => With(variables);
         BuiltQuery IQueryBuilder.BuildWithGlobals(Action<QueryNode>? preFinalizerModifier) => BuildWithGlobals(preFinalizerModifier);
+        ISelectQuery<TNewType, TContext> IQueryBuilder<TType, TContext>.SelectExp<TNewType, TQuery>(Expression<Func<TContext, TQuery?>> expression, Action<ShapeBuilder<TNewType>>? shape) where TQuery : default
+            => SelectExp(expression, shape);
         #endregion
     }
 
