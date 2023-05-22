@@ -83,6 +83,14 @@ namespace EdgeDB
         public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(Expression<Func<TType, TType>> updateFunc)
             => new QueryBuilder<TType>().Update(updateFunc, false);
 
+        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{QueryContext, TType, TType}}, bool)"/>
+        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(Expression<Func<QueryContext<TType>, TType, TType>> updateFunc, bool returnUpdatedValue)
+            => new QueryBuilder<TType>().Update(updateFunc, returnUpdatedValue);
+
+        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{QueryContext, TType, TType}})"/>
+        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(Expression<Func<QueryContext<TType>, TType, TType>> updateFunc)
+            => new QueryBuilder<TType>().Update(updateFunc, false);
+
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Delete"/>
         public static IDeleteQuery<TType, QueryContext<TType>> Delete<TType>()
             => new QueryBuilder<TType>().Delete;
