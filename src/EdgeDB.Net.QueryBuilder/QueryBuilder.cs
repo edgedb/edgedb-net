@@ -969,6 +969,21 @@ namespace EdgeDB
             return await edgedb.QuerySingleAsync<TType>(result.Query, result.Parameters, capabilities, token).ConfigureAwait(false);
         }
 
+        /// <inheritdoc/>
+        async Task<TType?> IMultiCardinalityExecutable<TType>.ExecuteSingleAsync(IEdgeDBQueryable edgedb, Capabilities? capabilities, CancellationToken token)
+        {
+            var result = await IntrospectAndBuildAsync(edgedb, token).ConfigureAwait(false);
+            return await edgedb.QuerySingleAsync<TType>(result.Query, result.Parameters, capabilities, token).ConfigureAwait(false);
+        }
+
+        /// <inheritdoc/>
+        async Task<TType> IMultiCardinalityExecutable<TType>.ExecuteRequiredSingleAsync(IEdgeDBQueryable edgedb, Capabilities? capabilities, CancellationToken token)
+        {
+            var result = await IntrospectAndBuildAsync(edgedb, token).ConfigureAwait(false);
+            return await edgedb.QueryRequiredSingleAsync<TType>(result.Query, result.Parameters, capabilities, token).ConfigureAwait(false);
+        }
+
+
         #region IQueryBuilder<TType>
         IReadOnlyCollection<QueryNode> IQueryBuilder.Nodes => _nodes;
         IReadOnlyCollection<QueryGlobal> IQueryBuilder.Globals => _queryGlobals;
