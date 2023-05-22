@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -29,12 +29,13 @@ namespace EdgeDB.StandardLibGenerator.Models
 
         public async Task<MetaType> GetMetaInfoAsync(EdgeDBClient client)
         {
-            var result = await QueryBuilder.Select<MetaType>((ctx) => new MetaType
-            {
-                Pointers = ctx.Raw<Pointer[]>("[is schema::ObjectType].pointers { name, target: {name, is_abstract}}"),
-                EnumValues = ctx.Raw<string[]?>("[is schema::ScalarType].enum_values")
-            }).Filter(x => x.Id == Id).ExecuteAsync(client);
-            return result.First()!;
+            //var result = await QueryBuilder.Select<MetaType>((ctx) => new MetaType
+            //{
+            //    Pointers = ctx.Raw<Pointer[]>("[is schema::ObjectType].pointers { name, target: {name, is_abstract}}"),
+            //    EnumValues = ctx.Raw<string[]?>("[is schema::ScalarType].enum_values")
+            //}).Filter(x => x.Id == Id).ExecuteAsync(client);
+            //return result.First()!;
+            return null!;
         }
     }
 

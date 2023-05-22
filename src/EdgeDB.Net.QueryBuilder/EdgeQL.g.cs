@@ -3,6 +3,8 @@
 using EdgeDB.Operators;
 using EdgeDB.DataTypes;
 using System.Numerics;
+using DateTime = System.DateTime;
+using EdgeDB.Interfaces.Queries;
 
 namespace EdgeDB
 {
@@ -1365,6 +1367,12 @@ namespace EdgeDB
         /// </summary>
         [EquivalentOperator(typeof(EdgeDB.Operators.SetsCount))]
         public static long Count<TType>(IEnumerable<TType> a) { return default!; }
+
+        /// <summary>
+        ///     A function that represents the EdgeQL version of: <code>count(<paramref name="a"/>)</code>
+        /// </summary>
+        [EquivalentOperator(typeof(EdgeDB.Operators.SetsCount))]
+        public static long Count<TType>(EdgeDB.Interfaces.IMultiCardinalityExecutable<TType> a) { return default!; }
         #endregion
 
         #region Enumerate<TType>

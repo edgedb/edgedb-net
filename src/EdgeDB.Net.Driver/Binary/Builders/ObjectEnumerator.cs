@@ -87,7 +87,7 @@ namespace EdgeDB
 
             reader.ReadBytes(len, out var buff);
             var codecReader = new PacketReader(buff);
-            value = Codecs[idx].Deserialize(ref codecReader);
+            value = Codecs[idx].Deserialize(ref codecReader, _context);
             return true;
         }
         

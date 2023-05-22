@@ -1215,13 +1215,15 @@ sets:
     functions:
       - parameters:
           - TType?
-  
+
   - operator: "count({0})"
     name: Count<TType>
     return: long
     functions:
       - parameters:
           - IEnumerable<TType>
+      - parameters:
+          - IMultiCardinalityExecutable<TType>
 
   - operator: "enumerate({0})"
     name: Enumerate<TType>

@@ -1,4 +1,4 @@
-﻿using EdgeDB.DataTypes;
+using EdgeDB.DataTypes;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -112,7 +112,7 @@ namespace EdgeDB.StandardLibGenerator
                 "std::str" => typeof(string),
                 "cal::local_date" => typeof(DateOnly),
                 "cal::local_time" => typeof(TimeSpan),
-                "cal::local_datetime" => typeof(DateTime),
+                "cal::local_datetime" => typeof(System.DateTime),
                 "cal::relative_duration" => typeof(TimeSpan),
                 "cal::date_duration" => typeof(TimeSpan),
                 "std::datetime" => typeof(DateTimeOffset),

@@ -137,7 +137,7 @@ namespace EdgeDB
             innerLinkType = null;
             isMultiLink = false;
 
-            if (ICodec.ContainsScalarCodec(type))
+            if (CodecBuilder.ContainsScalarCodec(type))
                 return false;
 
             Type? enumerableType = ReflectionUtils.IsSubclassOfRawGeneric(typeof(IEnumerable<>), type) ? type : null;
