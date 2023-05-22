@@ -87,6 +87,7 @@ namespace EdgeDB
         /// <param name="rootExpression">The root lambda expression.</param>
         /// <param name="queryArguments">The query arguments collection.</param>
         /// <param name="globals">The query global collection.</param>
+        /// <param name="node">The query node constructing this translation context.</param>
         public ExpressionContext(NodeContext context, LambdaExpression rootExpression, 
             IDictionary<string, object?> queryArguments, List<QueryGlobal> globals,
             QueryNode? node = null)
