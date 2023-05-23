@@ -23,8 +23,12 @@ namespace EdgeDB.QueryNodes
         /// <inheritdoc/>
         public override void Visit()
         {
-            // append 'update type'
-            Query.Append($"update {OperatingType.GetEdgeDBTypeName()}");
+            // resolve and append the UPDATE ... statement
+            var updateTarget = Context.Selector is not null
+                ? TranslateExpression(Context.Selector)
+                : OperatingType.GetEdgeDBTypeName();
+
+            Query.Append($"update {updateTarget}");
             
             // translate the update factory
             _translatedExpression = TranslateExpression(Context.UpdateExpression!);

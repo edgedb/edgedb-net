@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -16,6 +16,11 @@ namespace EdgeDB.QueryNodes
         ///     Gets the update factory used within the 'SET' statement.
         /// </summary>
         public LambdaExpression? UpdateExpression { get; init; }
+
+        /// <summary>
+        ///     Gets the selector for the target of the update statement.
+        /// </summary>
+        public LambdaExpression? Selector { get; init; }
         
         /// <inheritdoc/>
         public UpdateContext(Type currentType) : base(currentType)

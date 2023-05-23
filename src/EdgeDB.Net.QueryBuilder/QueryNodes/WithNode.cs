@@ -2,6 +2,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -40,7 +41,7 @@ namespace EdgeDB.QueryNodes
                 if (EdgeDBTypeUtils.IsLink(operatingType, out _, out _) && bannedTypes.Contains(operatingType))
                     continue;
 
-                node.ReplaceSubqueryAsLiteral(global.Name, CompileGlobalValue(global.Value));
+                node.ReplaceSubqueryAsLiteral(global.Name, CompileGlobalValue(global));
                 c--;
             }
             
@@ -64,7 +65,7 @@ namespace EdgeDB.QueryNodes
                     continue;
                 }
 
-                var value = CompileGlobalValue(global.Value);
+                var value = CompileGlobalValue(global);
 
                 // parse the object and add it to the values.
                 values.Add($"{global.Name} := {value}");
@@ -77,10 +78,10 @@ namespace EdgeDB.QueryNodes
             Query.Append($"with {string.Join(", ", values)}");
         }
 
-        private string CompileGlobalValue(object? value)
+        private string CompileGlobalValue(QueryGlobal global)
         {
             // if its a query builder, build it and add it as a sub-query.
-            if (value is IQueryBuilder queryBuilder)
+            if (global.Value is IQueryBuilder queryBuilder)
             {
                 var query = queryBuilder.Build();
 
@@ -96,7 +97,7 @@ namespace EdgeDB.QueryNodes
             }
 
             // if its a sub query that requires introspection, build it and add it.
-            if (value is SubQuery subQuery && subQuery.RequiresIntrospection)
+            if (global.Value is SubQuery subQuery && subQuery.RequiresIntrospection)
             {
                 if (subQuery.RequiresIntrospection && SchemaInfo is null)
                     throw new InvalidOperationException("Cannot build without introspection! A node requires query introspection.");
@@ -104,7 +105,13 @@ namespace EdgeDB.QueryNodes
                 return subQuery.Build(SchemaInfo!).Query!;
             }
 
-            return QueryUtils.ParseObject(value);
+            // if its an expession, translate it and then return the subquery form
+            if(global.Value is Expression expression && global.Reference is LambdaExpression root)
+            {
+                return $"({TranslateExpression(root, expression)})";
+            }
+
+            return QueryUtils.ParseObject(global.Value);
         }
     }
 }

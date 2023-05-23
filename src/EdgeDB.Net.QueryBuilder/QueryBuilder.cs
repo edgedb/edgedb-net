@@ -3,6 +3,7 @@ using EdgeDB.Interfaces;
 using EdgeDB.Interfaces.Queries;
 using EdgeDB.QueryNodes;
 using EdgeDB.Schema;
+using EdgeDB.Translators.Expressions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -21,6 +22,10 @@ namespace EdgeDB
     {
         /// <inheritdoc cref="IQueryBuilder{TType, TContext}.With{TVariables}(TVariables)"/>
         public static IQueryBuilder<dynamic, QueryContext<dynamic, TVariables>> With<TVariables>(TVariables variables)
+            => QueryBuilder<dynamic>.With(variables);
+
+        /// <inheritdoc cref="IQueryBuilder{TType, TContext}.With{TVariables}(TVariables)"/>
+        public static IQueryBuilder<dynamic, QueryContext<dynamic, TVariables>> With<TVariables>(Expression<Func<QueryContext<dynamic>, TVariables>> variables)
             => QueryBuilder<dynamic>.With(variables);
 
         /// <inheritdoc cref="IQueryBuilder{TType, TContext}.For(IEnumerable{TType}, Expression{Func{JsonCollectionVariable{TType}, IQueryBuilder}})"/>
@@ -110,6 +115,9 @@ namespace EdgeDB
             : base(nodes, globals, variables) { }
 
         new public static IQueryBuilder<TType, QueryContext<TType, TVariables>> With<TVariables>(TVariables variables)
+            => new QueryBuilder<TType, TVariables>().With(variables);
+
+        new public static IQueryBuilder<TType, QueryContext<TType, TVariables>> With<TVariables>(Expression<Func<QueryContext<TType>, TVariables>> variables)
             => new QueryBuilder<TType, TVariables>().With(variables);
     }
 
@@ -373,6 +381,27 @@ namespace EdgeDB
             => InternalBuild(false, preFinalizerModifier);
 
         #region Root nodes
+        public QueryBuilder<TType, QueryContext<TType, TVariables>> With<TVariables>(Expression<Func<QueryContext<TType>, TVariables>> variables)
+        {
+            if (variables is null)
+                throw new NullReferenceException("Variables cannot be null");
+
+            // check if TVariables is an anonymous type
+            if (!typeof(TVariables).IsAnonymousType())
+                throw new ArgumentException("Variables must be an anonymous type");
+
+            // pull the initialization expression
+            var initializations = InitializationTranslator.PullInitializationExpression(variables.Body);
+
+            // add each as a global
+            foreach(var initialization in initializations)
+            {
+                _queryGlobals.Add(new QueryGlobal(initialization.Key.Name, initialization.Value, variables));
+            }
+
+            return EnterNewContext<QueryContext<TType, TVariables>>();
+        }
+
         public QueryBuilder<TType, QueryContext<TType, TVariables>> With<TVariables>(TVariables variables)
         {
             if (variables is null)
@@ -407,7 +436,7 @@ namespace EdgeDB
                 }
                 else if (ReflectionUtils.IsSubclassOfRawGeneric(typeof(JsonReferenceVariable<>), property.PropertyType))
                 {
-                    // Serialize and add as global and variable
+                    // serialize and add as global and variable
                     var referenceValue = property.PropertyType.GetProperty("Value")!.GetValue(value);
                     var jsonVarName = QueryUtils.GenerateRandomVariableName();
                     _queryVariables.Add(jsonVarName, DataTypes.Json.Serialize(referenceValue));
@@ -577,26 +606,56 @@ namespace EdgeDB
 
         /// <inheritdoc/>
         public IUpdateQuery<TType, TContext> Update(Expression<Func<TType, TType>> updateFunc, bool returnUpdatedValue)
-        {
-            var updateNode = AddNode<UpdateNode>(new UpdateContext(typeof(TType))
-            {
-                UpdateExpression = updateFunc,
-            });
-
-            if (returnUpdatedValue)
-            {
-                AddNode<SelectNode>(new SelectContext(typeof(TType)), true, updateNode);
-            }
-            
-            return this;
-        }
+            => Update(updateFunc, null, returnUpdatedValue);
 
         /// <inheritdoc/>
         public IUpdateQuery<TType, TContext> Update(Expression<Func<TContext, TType, TType>> updateFunc, bool returnUpdatedValue)
+            => Update(updateFunc, null, returnUpdatedValue);
+
+        /// <inheritdoc/>
+        public IUpdateQuery<TType, TContext> Update(Expression<Func<TType, TType>> updateFunc)
+             => Update(updateFunc, null, false);
+
+        /// <inheritdoc/>
+        public IUpdateQuery<TType, TContext> Update(Expression<Func<TContext, TType, TType>> updateFunc)
+            => Update(updateFunc, null, false);
+
+        /// <inheritdoc/>
+        public IUpdateQuery<TType, TContext> Update(Expression<Func<TContext, TType>> selector, Expression<Func<TContext, TType, TType>> updateFunc, bool returnUpdatedValue)
+            => Update(updateFunc, selector, returnUpdatedValue);
+
+        /// <inheritdoc/>
+        public IUpdateQuery<TType, TContext> Update(Expression<Func<TContext, TType>> selector, Expression<Func<TType, TType>> updateFunc, bool returnUpdatedValue)
+            => Update(updateFunc, selector, returnUpdatedValue);
+
+        /// <inheritdoc/>
+        public IUpdateQuery<TType, TContext> Update(Expression<Func<TContext, TType>> selector, Expression<Func<TContext, TType, TType>> updateFunc)
+            => Update(updateFunc, selector, false);
+
+        /// <inheritdoc/>
+        public IUpdateQuery<TType, TContext> Update(Expression<Func<TContext, TType>> selector, Expression<Func<TType, TType>> updateFunc)
+            => Update(updateFunc, selector, false);
+
+        /// <summary>
+        ///     Adds a generic update node, with the specified update function and target selector.
+        /// </summary>
+        /// <param name="updateFunc">
+        ///     The callback used to update <typeparamref name="TType"/>.
+        /// </param>
+        /// <param name="selector">
+        ///     The expression that selects the object to update.
+        /// </param>
+        /// <param name="returnUpdatedValue">
+        ///     Whether or not to implicitly add a <c>SELECT</c> node that selects the result of the update,
+        ///     with a default shape.
+        /// </param>
+        /// <returns>A <see cref="IUpdateQuery{TType, TContext}"/>.</returns>
+        private IUpdateQuery<TType, TContext> Update(LambdaExpression updateFunc, LambdaExpression? selector, bool returnUpdatedValue)
         {
             var updateNode = AddNode<UpdateNode>(new UpdateContext(typeof(TType))
             {
                 UpdateExpression = updateFunc,
+                Selector = selector,
             });
 
             if (returnUpdatedValue)
@@ -606,14 +665,6 @@ namespace EdgeDB
 
             return this;
         }
-
-        /// <inheritdoc/>
-        public IUpdateQuery<TType, TContext> Update(Expression<Func<TType, TType>> updateFunc)
-            => Update(updateFunc, false);
-
-        /// <inheritdoc/>
-        public IUpdateQuery<TType, TContext> Update(Expression<Func<TContext, TType, TType>> updateFunc)
-            => Update(updateFunc, false);
 
         /// <inheritdoc/>
         [DebuggerHidden]
@@ -1017,6 +1068,7 @@ namespace EdgeDB
         IReadOnlyCollection<QueryGlobal> IQueryBuilder.Globals => _queryGlobals;
         IReadOnlyDictionary<string, object?> IQueryBuilder.Variables => _queryVariables;
         IQueryBuilder<TType, QueryContext<TType, TVariables>> IQueryBuilder<TType, TContext>.With<TVariables>(TVariables variables) => With(variables);
+        IQueryBuilder<TType, QueryContext<TType, TVariables>> IQueryBuilder<TType, TContext>.With<TVariables>(Expression<Func<QueryContext<TType>, TVariables>> variables) => With(variables);
         BuiltQuery IQueryBuilder.BuildWithGlobals(Action<QueryNode>? preFinalizerModifier) => BuildWithGlobals(preFinalizerModifier);
         ISelectQuery<TNewType, TContext> IQueryBuilder<TType, TContext>.SelectExp<TNewType, TQuery>(Expression<Func<TContext, TQuery?>> expression, Action<ShapeBuilder<TNewType>>? shape) where TQuery : default
             => SelectExp(expression, shape);
