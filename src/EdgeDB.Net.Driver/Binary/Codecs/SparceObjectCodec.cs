@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace EdgeDB.Binary.Codecs
 {
     internal sealed class SparceObjectCodec
-        : BaseCodec<object>, ICacheableCodec
+        : BaseCodec<object>, ICacheableCodec, IMultiWrappingCodec
     {
         public ICodec[] InnerCodecs;
         public readonly string[] FieldNames;
@@ -113,6 +113,15 @@ namespace EdgeDB.Binary.Codecs
         public override string ToString()
         {
             return $"SparseObjectCodec<{string.Join(", ", InnerCodecs.Zip(FieldNames).Select(x => $"[{x.Second}: {x.First}]"))}>";
+        }
+
+        ICodec[] IMultiWrappingCodec.InnerCodecs
+        {
+            get => InnerCodecs;
+            set
+            {
+                InnerCodecs = value;
+            }
         }
     }
 }
