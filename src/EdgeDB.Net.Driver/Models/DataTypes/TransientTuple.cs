@@ -2,16 +2,27 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+
+#if NET461
+using TupleBox = System.Object;
+#else
+using TupleBox = System.Runtime.CompilerServices.ITuple;
+#endif
+
 
 namespace EdgeDB.DataTypes
 {
     /// <summary>
     ///     Represents an abstract tuple which is used for deserializing edgedb tuples to dotnet tuples.
     /// </summary>
-    public readonly struct TransientTuple : ITuple
+    public readonly struct TransientTuple
+#if !NET461
+        : ITuple
+#endif
     {
         /// <summary>
         ///     Gets the types within this tuple, following the arity order of the tuple.
@@ -28,7 +39,7 @@ namespace EdgeDB.DataTypes
         internal readonly Type[] RawTypes;
         internal readonly object?[] RawValues;
 
-        private delegate ITuple TupleBuilder(Type[] types, object?[] values);
+        private delegate TupleBox TupleBuilder(Type[] types, object?[] values);
 
         internal static bool IsValueTupleType(Type type)
             => ValueTupleTypeMap.Contains(type.IsConstructedGenericType
@@ -82,6 +93,7 @@ namespace EdgeDB.DataTypes
             }
         }
 
+#if !NET461
         internal TransientTuple(ITuple tuple)
         {
             if (tuple is null)
@@ -99,36 +111,37 @@ namespace EdgeDB.DataTypes
             RawValues = values;
             RawTypes = types;
         }
+#endif
 
         /// <summary>
         ///     Converts this tuple to a <see cref="ValueTuple"/> with the specific arity.
         /// </summary>
-        /// <returns>A <see cref="ValueTuple"/> boxed as a <see cref="ITuple"/>.</returns>
-        public ITuple ToValueTuple()
+        /// <returns>A <see cref="ValueTuple"/> boxed as a <see cref="TupleBox"/>.</returns>
+        public TupleBox ToValueTuple()
         {
             return GenerateTuple((types, values) =>
             {
                 var t = ValueTupleTypeMap[types.Length - 1];
                 var generic = t.MakeGenericType(types);
-                return (ITuple)Activator.CreateInstance(generic, values)!;
+                return (TupleBox)Activator.CreateInstance(generic, values)!;
             });
         }
 
         /// <summary>
         ///     Converts this tuple to a <see cref="Tuple"/> with the specific arity.
         /// </summary>
-        /// <returns>A <see cref="Tuple"/> boxed as a <see cref="ITuple"/>.</returns>
-        public ITuple ToReferenceTuple()
+        /// <returns>A <see cref="Tuple"/> boxed as a <see cref="TupleBox"/>.</returns>
+        public TupleBox ToReferenceTuple()
         {
             return GenerateTuple((types, values) =>
             {
                 var t = ReferenceTupleTypeMap[types.Length - 1];
                 var generic = t.MakeGenericType(types);
-                return (ITuple)Activator.CreateInstance(generic, values)!;
+                return (TupleBox)Activator.CreateInstance(generic, values)!;
             });
         }
 
-        private ITuple GenerateTuple(TupleBuilder builder, int offset = 0)
+        private TupleBox GenerateTuple(TupleBuilder builder, int offset = 0)
         {
             if (RawValues.Length - offset > 7)
             {
@@ -166,7 +179,9 @@ namespace EdgeDB.DataTypes
         /// </summary>
         public int Length => RawValues?.Length ?? 0;
 
+#if !NET461
         object? ITuple.this[int index] => RawValues[index];
+#endif
 
         public static TransientTuple FromObjectEnumerator(ref ObjectEnumerator enumerator)
         {
@@ -184,7 +199,7 @@ namespace EdgeDB.DataTypes
 
         public static Type[] FlattenTypes(Type tuple)
         {
-            if (!tuple.IsAssignableTo(typeof(ITuple)))
+            if (!tuple.IsTuple())
                 throw new InvalidOperationException($"The type {tuple} is not a tuple!");
 
             var cTuple = tuple;
@@ -195,7 +210,7 @@ namespace EdgeDB.DataTypes
             {
                 if(
                     cTuple.GenericTypeArguments.Length == 8 &&
-                    cTuple.GenericTypeArguments[7].IsAssignableTo(typeof(ITuple)))
+                    cTuple.GenericTypeArguments[7].IsTuple())
                 {
                     // full tuple
                     tupleTypes.AddRange(cTuple.GenericTypeArguments[..7]);
@@ -208,5 +223,56 @@ namespace EdgeDB.DataTypes
                 }
             }
         }
+
+#if NET461
+        public static TransientTuple FromBoxed(TupleBox box)
+        {
+            var type = box.GetType();
+            if (IsValueTupleType(type))
+                return IterateBoxed(type, box, (inst, el) => inst.GetType().GetField(el.HasValue ? $"Item{el.Value + 1}" : "Rest"));
+            else if (IsReferenceTupleType(type))
+                return IterateBoxed(type, box, (inst, el) => inst.GetType().GetProperty(el.HasValue ? $"Item{el.Value + 1}" : "Rest"));
+            else
+                throw new ArgumentException("Boxed object is not a tuple!", nameof(box));
+        }
+
+        private static TransientTuple IterateBoxed(Type tupleType, TupleBox value, Func<object, int?, object?> getProp)
+        {
+            // calc length
+            int tupleLength = 0;
+
+            var tempType = tupleType;
+
+            while (tempType.GetGenericArguments().Length == 8)
+            {
+                tupleLength += 7;
+                tempType = tupleType.GetGenericArguments()[7];
+            }
+
+            tupleLength += tempType.GetGenericArguments().Length;
+
+            tempType = tupleType;
+            var tempValue = value;
+
+            var types = new Type[tupleLength];
+            var values = new object?[tupleLength];
+
+            for (int i = 0; i != tupleLength; i++)
+            {
+                if (i != 0 && i % 8 == 0)
+                {
+                    tempValue = getProp(tempValue!, null);
+                    tempType = tempType.GetGenericArguments()[7];
+                }
+
+                var rel = i % 8;
+
+                values[i] = getProp(tempValue!, rel);
+                types[i] = tempType.GetGenericArguments()[rel];
+            }
+
+            return new TransientTuple(types, values);
+        }
+#endif
     }
 }

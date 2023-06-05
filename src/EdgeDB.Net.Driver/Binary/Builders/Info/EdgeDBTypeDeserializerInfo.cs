@@ -106,7 +106,7 @@ namespace EdgeDB
                 );
 
             // is it a tuple
-            if (_type.IsAssignableTo(typeof(ITuple)) && CanDeserializeToTuple())
+            if (_type.IsTuple() && CanDeserializeToTuple())
             {
                 return (ref ObjectEnumerator enumerator) =>
                 {

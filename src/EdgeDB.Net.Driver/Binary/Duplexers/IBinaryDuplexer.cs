@@ -20,27 +20,6 @@ namespace EdgeDB.Binary
         ValueTask SendAsync(CancellationToken token = default, params Sendable[] packets);
         Task<IReceiveable?> ReadNextAsync(CancellationToken token = default);
         IAsyncEnumerable<DuplexResult> DuplexAsync(CancellationToken token = default, params Sendable[] packets);
-
-        ValueTask SendAsync(Sendable packet, CancellationToken token = default)
-            => SendAsync(token, packet);
-
-        async Task<IReceiveable?> DuplexSingleAsync(Sendable packet, CancellationToken token = default)
-        {
-            await SendAsync(token, packet).ConfigureAwait(false);
-            return await ReadNextAsync(token).ConfigureAwait(false);
-        }
-
-        async Task<IReceiveable?> DuplexAndSyncSingleAsync(Sendable packet, CancellationToken token = default)
-        {
-            await SendAsync(token, packet, new Sync()).ConfigureAwait(false);
-            return await ReadNextAsync(token).ConfigureAwait(false);
-        }
-
-        IAsyncEnumerable<DuplexResult> DuplexAsync(Sendable packet, CancellationToken token = default)
-            => DuplexAsync(token, packet);
-
-        IAsyncEnumerable<DuplexResult> DuplexAndSyncAsync(Sendable packet, CancellationToken token = default)
-            => DuplexAsync(token, packet, new Sync());
     }
 
     internal readonly struct DuplexResult

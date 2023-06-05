@@ -112,7 +112,14 @@ namespace EdgeDB.Binary.Codecs
 
         public override string ToString()
         {
-            return $"SparseObjectCodec<{string.Join(", ", InnerCodecs.Zip(FieldNames).Select(x => $"[{x.Second}: {x.First}]"))}>";
+            var props = InnerCodecs.Zip(FieldNames
+#if LEGACY
+                , (a, b) => (First: a, Second: b)
+#endif
+
+               ).Select(x => $"[{x.Second}: {x.First}]");
+
+            return $"SparseObjectCodec<{string.Join(", ", props)}>";
         }
 
         ICodec[] IMultiWrappingCodec.InnerCodecs

@@ -94,6 +94,8 @@ namespace EdgeDB
                 }
             }
 
+            // look at: https://social.msdn.microsoft.com/Forums/windowsapps/en-US/ac40d670-2a5f-41b3-8a66-d16c920b0f89/using-bouncy-castle-c-library-for-open-an-ssl-socket?forum=wpdevelop
+
             _stream = _tcpClient.GetStream();
 
             _secureStream = new SslStream(_stream, false, Connection.ValidateServerCertificateCallback, null);

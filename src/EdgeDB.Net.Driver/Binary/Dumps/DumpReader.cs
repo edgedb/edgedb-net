@@ -15,7 +15,15 @@ namespace EdgeDB.Dumps
             // read file format
             var formatLength = DumpWriter.FileFormatLength;
             var format = new byte[formatLength];
-            ThrowIfEndOfStream(stream.Read(format) == formatLength);
+
+            ThrowIfEndOfStream(
+                stream.Read(format
+#if LEGACY_BUFFERS
+                ,0,
+                format.Length
+#endif
+                ) == formatLength
+            );
 
             if (!format.SequenceEqual(DumpWriter.FileFormat))
                 throw new FormatException("Format of stream does not match the edgedb dump format");

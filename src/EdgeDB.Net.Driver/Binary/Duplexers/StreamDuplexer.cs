@@ -36,9 +36,11 @@ namespace EdgeDB.Binary
         private readonly SemaphoreSlim _onMessageLock;
         private readonly SemaphoreSlim _readLock;
 
+#if !LEGACY_BUFFERS
         private readonly Memory<byte> _packetHeaderBuffer;
         private readonly MemoryHandle _packetHeaderHandle;
         private unsafe readonly PacketHeader* _packetHeader;
+#endif
 
         private readonly object _connectivityLock = new();
 
@@ -70,9 +72,11 @@ namespace EdgeDB.Binary
             _onMessageLock = new(1, 1);
             _readLock = new(1, 1);
 
+#if !LEGACY_BUFFERS
             _packetHeaderBuffer = new byte[PACKET_HEADER_SIZE];
             _packetHeaderHandle = _packetHeaderBuffer.Pin();
             _packetHeader = (PacketHeader*)_packetHeaderHandle.Pointer;
+#endif
         }
 
         public void Init(Stream stream)
@@ -104,12 +108,30 @@ namespace EdgeDB.Binary
 
             await _readLock.WaitAsync(linkedToken.Token).ConfigureAwait(false);
 
+#if LEGACY_BUFFERS
+            var headerBuffer = new byte[PACKET_HEADER_SIZE];
+#endif
+
             try
             {
                 if (linkedToken.IsCancellationRequested)
                     return null;
 
-                if (await ReadExactAsync(_packetHeaderBuffer, linkedToken.Token).ConfigureAwait(false) == 0)
+                if (_stream is null)
+                    return null;
+
+                if (await BinaryUtils.ReadExactAsync(
+                    _stream,
+                    _client,
+#if LEGACY_BUFFERS
+                    headerBuffer,
+                    PACKET_HEADER_SIZE,
+#else
+                    _packetHeaderBuffer,
+#endif
+
+                    linkedToken.Token
+                ).ConfigureAwait(false) == 0)
                 {
                     // disconnected
                     await DisconnectInternalAsync();
@@ -120,22 +142,44 @@ namespace EdgeDB.Binary
 
                 unsafe
                 {
+#if LEGACY_BUFFERS
+                    fixed (byte* ptr = headerBuffer)
+                    {
+                        header = *(StreamDuplexer.PacketHeader*)ptr;
+                    }
+#else
                     header = *_packetHeader;
-                    header.CorrectLength();
+#endif
                 }
 
-                using var memoryOwner = MemoryPool<byte>.Shared.Rent(header.Length);
-                var buffer = memoryOwner.Memory[..header.Length];
+                header.CorrectLength();
 
-                if (await ReadExactAsync(buffer, linkedToken.Token).ConfigureAwait(false) == 0)
+#if LEGACY_BUFFERS
+                var bufferSource = new BufferedSource(ArrayPool<byte>.Shared.Rent(header.Length), header.Length);
+#else
+                using var memoryOwner = MemoryPool<byte>.Shared.Rent(header.Length);
+                var bufferSource = new BufferedSource(memoryOwner.Memory[..header.Length]);
+#endif
+
+                if (await BinaryUtils.ReadExactAsync(
+                    _stream,
+                    _client,
+#if LEGACY_BUFFERS
+                    bufferSource,
+                    header.Length,
+#else
+                    bufferSource,
+#endif
+                    linkedToken.Token
+                ).ConfigureAwait(false) == 0)
                 {
                     await DisconnectInternalAsync();
                     return null;
                 }
 
-                _client.Logger.MessageReceived(_client.ClientId, header.Type, buffer.Length);
+                _client.Logger.MessageReceived(_client.ClientId, header.Type, header.Length);
 
-                var packet = PacketSerializer.DeserializePacket(header.Type, ref buffer, header.Length, _client);
+                var packet = PacketSerializer.DeserializePacket(header.Type, ref bufferSource, header.Length, _client);
 
                 // check for idle timeout
                 if(packet is ErrorResponse err && err.ErrorCode == ServerErrorCodes.IdleSessionTimeoutError)
@@ -185,7 +229,23 @@ namespace EdgeDB.Binary
 
             using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectTokenSource.Token);
 
-            await _stream.WriteAsync(BinaryUtils.BuildPackets(packets), linkedToken.Token).ConfigureAwait(false);
+            var packetData =
+#if LEGACY_BUFFERS
+                BinaryUtils.GetByteArray(BinaryUtils.BuildPackets(packets));
+#else
+                BinaryUtils.BuildPackets(packets);
+#endif
+
+
+            await _stream.WriteAsync(
+#if LEGACY_BUFFERS
+                packetData.Array,
+                packetData.Offset,
+                packetData.Count,
+#else
+                packetData,
+#endif
+                linkedToken.Token).ConfigureAwait(false);
 
             // only perform second iteration if debug log enabled.
             if(_client.Logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Debug))
@@ -218,53 +278,6 @@ namespace EdgeDB.Binary
             yield break;
         }
 
-        private async ValueTask<int> ReadExactAsync(Memory<byte> buffer, CancellationToken token)
-        {
-            var sw = Stopwatch.StartNew();
-
-            try
-            {
-#if NET7_0_OR_GREATER
-                await _stream!.ReadExactlyAsync(buffer, token).ConfigureAwait(false);
-                return buffer.Length;
-#else
-                var targetLength = buffer.Length;
-
-                int numRead = 0;
-
-                while (numRead < targetLength)
-                {
-                    var buff = numRead == 0
-                        ? buffer
-                        : buffer[numRead..];
-
-                    var read = await _stream!.ReadAsync(buff, token);
-
-                    if (read == 0) // disconnected
-                        return 0;
-
-                    numRead += read;
-                }
-
-                return numRead;
-#endif
-            }
-            finally
-            {
-                sw.Stop();
-
-                var delta = sw.ElapsedMilliseconds / _client.MessageTimeout.TotalMilliseconds;
-                if (delta >= 0.75)
-                {
-                    if (delta < 1)
-                        _client.Logger.MessageTimeoutDeltaWarning((int)(delta * 100), (int)_client.MessageTimeout.TotalMilliseconds);
-                    else
-                        _client.Logger.MessageTimeoutDeltaError((int)(delta * 100), (int)_client.MessageTimeout.TotalMilliseconds);
-                }
-            }
-
-        }
-        
         private CancellationTokenSource GetTimeoutToken()
             => new(_client.MessageTimeout);
 
@@ -277,7 +290,9 @@ namespace EdgeDB.Binary
         public void Dispose()
         {
             _disconnectTokenSource.Dispose();
+#if !LEGACY_BUFFERS
             _packetHeaderHandle.Dispose();
+#endif
         }
     }
 }

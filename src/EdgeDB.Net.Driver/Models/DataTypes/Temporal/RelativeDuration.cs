@@ -62,7 +62,7 @@ namespace EdgeDB.DataTypes
         /// </remarks>
         public RelativeDuration(TimeSpan timespan)
         {
-            var (microseconds, days, months) = TemporalCommon.ToComponents(timespan);
+            (long microseconds, int days, int months) = TemporalCommon.ToComponents(timespan);
 
             _months = months;
             _days = days;

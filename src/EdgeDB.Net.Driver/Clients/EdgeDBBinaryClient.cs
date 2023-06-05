@@ -99,7 +99,12 @@ namespace EdgeDB
         private ICodec? _stateCodec;
         private Guid _stateDescriptorId;
 
+#if LEGACY || LEGACY_BUFFERS
+        private TaskCompletionSource<object?> _readySource;
+#else
         private TaskCompletionSource _readySource;
+#endif
+
         private CancellationTokenSource _readyCancelTokenSource;
         private readonly SemaphoreSlim _semaphore;
         private readonly SemaphoreSlim _commandSemaphore;
@@ -676,7 +681,11 @@ namespace EdgeDB
         #region Helper functions
         protected void TriggerReady()
         {
-            _readySource.TrySetResult();
+            _readySource.TrySetResult(
+#if LEGACY
+                null
+#endif
+                );
         }
 
         private void ParseServerSettings(ParameterStatus status)
@@ -716,7 +725,15 @@ namespace EdgeDB
 
                         var obj = codec.Deserialize(ref reader, _codecContext)!;
 
-                        RawServerConfig = ((ExpandoObject)obj).ToDictionary(x => x.Key, x => x.Value);
+                        RawServerConfig = ((ExpandoObject)obj).ToDictionary(
+                            x => x.Key,
+                            x =>
+#if LEGACY
+                            (object?)
+#endif
+                            x.Value
+                        );
+
                         break;
 
                     default:
@@ -822,7 +839,7 @@ namespace EdgeDB
                     }
                 }
 
-                _readySource.SetResult();
+                TriggerReady();
 
                 // call base to notify listeners that we connected.
                 await base.ConnectAsync(token);

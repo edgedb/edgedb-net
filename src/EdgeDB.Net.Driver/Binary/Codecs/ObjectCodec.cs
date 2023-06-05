@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -192,7 +193,13 @@ namespace EdgeDB.Binary.Codecs
 
         public override string ToString()
         {
-            return $"ObjectCodec<{string.Join(", ", InnerCodecs.Zip(PropertyNames).Select(x => $"[{x.Second}: {x.First}]"))}>";
+            var props = InnerCodecs.Zip(PropertyNames
+#if LEGACY
+                 , (a, b) => (First: a, Second: b)
+#endif
+
+                ).Select(x => $"[{x.Second}: {x.First}]");
+            return $"ObjectCodec<{string.Join(", ", props)}>";
         }
 
         ICodec[] IMultiWrappingCodec.InnerCodecs

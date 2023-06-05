@@ -1,19 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-
+#if NET461
 namespace EdgeDB
 {
     /// <summary>
-    ///     Represents an abstract naming strategy used to convert property names within 
-    ///     a dotnet type to a name within a schema file.
+    ///     A class containing default implementations of <see cref="INamingStrategy"/>.
     /// </summary>
-    public interface INamingStrategy
+    public static class NamingStrategies
     {
-#if !NET461
         /// <summary>
         ///     Gets the default naming strategy. This strategy does not modify property
         ///     names.
@@ -47,20 +39,6 @@ namespace EdgeDB
         /// </remarks>
         public static INamingStrategy SnakeCaseNamingStrategy
             => new SnakeCaseNamingStrategy();
-#endif
-
-        /// <summary>
-        ///     Converts the <paramref name="property"/>'s name to the desired naming scheme.
-        /// </summary>
-        /// <param name="property">The property info of which to convert its name.</param>
-        /// <returns>The name defined in the schema.</returns>
-        public string Convert(PropertyInfo property);
-
-        /// <summary>
-        ///     Converts the name to the desired naming scheme.
-        /// </summary>
-        /// <param name="name">The property name of which to convert its name.</param>
-        /// <returns>The name defined in the schema.</returns>
-        public string Convert(string name);
     }
 }
+#endif

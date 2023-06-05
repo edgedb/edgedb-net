@@ -139,7 +139,7 @@ namespace EdgeDB.Binary
             while (!reader.Empty)
             {
                 var start = reader.Position;
-                var typeDescriptor = ITypeDescriptor.GetDescriptor(ref reader);
+                var typeDescriptor = PacketSerializer.GetDescriptor(ref reader);
                 var end = reader.Position;
 
                 client.Logger.TraceTypeDescriptor(typeDescriptor, typeDescriptor.Id, end - start, $"{end}/{reader.Data.Length}".PadRight(reader.Data.Length.ToString().Length *2 + 2));

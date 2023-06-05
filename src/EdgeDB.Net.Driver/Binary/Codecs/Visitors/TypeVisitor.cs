@@ -102,7 +102,7 @@ namespace EdgeDB.Binary.Codecs
                     break;
                 case TupleCodec tuple:
                     {
-                        var tupleTypes = Context.Type.IsAssignableTo(typeof(ITuple)) && Context.Type != typeof(TransientTuple)
+                        var tupleTypes = Context.Type.IsTuple() && Context.Type != typeof(TransientTuple)
                             ? TransientTuple.FlattenTypes(Context.Type)
                             : null;
 

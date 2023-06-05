@@ -23,7 +23,12 @@ namespace EdgeDB.Binary.Duplexers
         private readonly Queue<IReceiveable> _packetQueue;
         private readonly SemaphoreSlim _sendSemaphore;
         private readonly SemaphoreSlim _readSemaphore;
+
+#if LEGACY
+        private TaskCompletionSource<object?> _packetReadTCS;
+#else
         private TaskCompletionSource _packetReadTCS;
+#endif
 
         public HttpDuplexer(EdgeDBHttpClient client)
         {
@@ -40,7 +45,7 @@ namespace EdgeDB.Binary.Duplexers
             _packetQueue.Clear();
         }
 
-        public ValueTask DisconnectAsync(CancellationToken token = default(CancellationToken)) => ValueTask.CompletedTask;
+        public ValueTask DisconnectAsync(CancellationToken token = default(CancellationToken)) => default;
 
         public async IAsyncEnumerable<DuplexResult> DuplexAsync([EnumeratorCancellation] CancellationToken token = default, params Sendable[] packets)
         {
@@ -102,7 +107,11 @@ namespace EdgeDB.Binary.Duplexers
 
                 var message = new HttpRequestMessage(HttpMethod.Post, _client.Connection.GetExecUri())
                 {
+#if LEGACY_BUFFERS
+                    Content = new System.Net.Http.ByteArrayContent(data.ToArray())
+#else
                     Content = new ReadOnlyMemoryContent(data)
+#endif
                 };
 
                 message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _client.AuthorizationToken);
@@ -138,44 +147,78 @@ namespace EdgeDB.Binary.Duplexers
                 _sendSemaphore.Release();
             }
         }
-
         private async Task ReadPacketsAsync(Stream stream, long length, CancellationToken token)
         {
             long totalRead = 0;
+
+#if LEGACY_BUFFERS
+            byte[] headerBuffer = new byte[5];
+            
+#else
             Memory<byte> headerBuffer = new byte[5];
             using var pin = headerBuffer.Pin(); // pin the header buffer so we can use its pointer to link a struct
+#endif
 
             while (totalRead < length)
             {
-                totalRead += await stream.ReadAsync(headerBuffer, token).ConfigureAwait(false);
+                totalRead +=
+#if LEGACY_BUFFERS
+                    await stream.ReadAsync(headerBuffer, 0, 5).ConfigureAwait(false);
+#else
+                    await stream.ReadAsync(headerBuffer, token).ConfigureAwait(false);
+#endif
 
                 StreamDuplexer.PacketHeader header;
 
                 unsafe
                 {
+#if LEGACY_BUFFERS
+                    fixed (byte* ptr = headerBuffer)
+                    {
+                        header = *(StreamDuplexer.PacketHeader*)ptr;
+                    }
+#else
                     header = *(StreamDuplexer.PacketHeader*)pin.Pointer;
+#endif
                 }
 
                 header.CorrectLength();
 
+#if LEGACY_BUFFERS
+                var bufferSource = new BufferedSource(ArrayPool<byte>.Shared.Rent(header.Length), header.Length);
+#else
                 using var memoryOwner = MemoryPool<byte>.Shared.Rent(header.Length);
-                var buffer = memoryOwner.Memory[..header.Length];
+                var bufferSource = new BufferedSource(memoryOwner.Memory[..header.Length]);
+#endif
 
-                totalRead += await stream.ReadAsync(buffer, token).ConfigureAwait(false);
+                totalRead +=
+#if LEGACY_BUFFERS
+                    await BinaryUtils.ReadExactAsync(stream, _client, bufferSource, header.Length, token).ConfigureAwait(false);
 
-                var packet = PacketSerializer.DeserializePacket(header.Type, ref buffer, header.Length, _client);
+#else
+                    await BinaryUtils.ReadExactAsync(stream, _client, bufferSource, token).ConfigureAwait(false);
+#endif
+
+                var packet = PacketSerializer.DeserializePacket(header.Type, ref bufferSource, header.Length, _client);
 
                 if (packet is null)
                     throw new EdgeDBException($"Failed to deserialize packet type {header.Type}");
 
                 _packetQueue.Enqueue(packet);
 
-                _client.Logger.MessageReceived(_client.ClientId, header.Type, buffer.Length);
+                _client.Logger.MessageReceived(_client.ClientId, header.Type, bufferSource.Length);
+
+#if LEGACY_BUFFERS
+                ArrayPool<byte>.Shared.Return(bufferSource.Buffer);
+#endif
             }
 
-            _packetReadTCS.TrySetResult();
+            _packetReadTCS.TrySetResult(
+#if LEGACY || LEGACY_BUFFERS
+                null
+#endif
+                );
         }
-
         void IDisposable.Dispose() {}
     }
 }

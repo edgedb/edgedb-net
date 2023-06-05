@@ -3,6 +3,12 @@ using EdgeDB.DataTypes;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 
+#if NET461
+using TupleBox = System.Object;
+#else
+using TupleBox = System.Runtime.CompilerServices.ITuple;
+#endif
+
 namespace EdgeDB.Binary.Codecs
 {
     internal sealed class TupleCodec
@@ -18,13 +24,22 @@ namespace EdgeDB.Binary.Codecs
             AddConverter(TransientTuple.IsValueTupleType, From, ToValueTuple);
         }
 
-        private TransientTuple From(ref ITuple? tuple)
-            => tuple is null ? default : new(tuple);
+        private TransientTuple From(ref TupleBox? tuple)
+        {
+            if (tuple is null)
+                return default;
 
-        private ITuple ToValueTuple(ref TransientTuple tuple)
+#if !NET461
+            return new TransientTuple(tuple);
+#else
+            return TransientTuple.FromBoxed(tuple);
+#endif
+        }
+
+        private TupleBox ToValueTuple(ref TransientTuple tuple)
             => tuple.ToValueTuple();
 
-        private ITuple ToReferenceTuple(ref TransientTuple tuple)
+        private TupleBox ToReferenceTuple(ref TransientTuple tuple)
             => tuple.ToReferenceTuple();
 
         public override TransientTuple Deserialize(ref PacketReader reader, CodecContext context)

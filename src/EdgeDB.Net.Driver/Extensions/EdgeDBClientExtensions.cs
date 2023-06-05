@@ -1,6 +1,7 @@
 using EdgeDB.Binary;
 using EdgeDB.Binary.Packets;
 using EdgeDB.Dumps;
+using EdgeDB.Utils;
 using System.Runtime.InteropServices;
 
 namespace EdgeDB
@@ -172,7 +173,13 @@ namespace EdgeDB
             writer.WriteDumpHeader(header);
             writer.WriteDumpBlocks(blocks);
 
-            stream.Write(writer.Collect().Span);
+            var buffer = BinaryUtils.GetByteArray(writer.Collect());
+
+#if LEGACY_BUFFERS
+            stream.Write(buffer.Array, buffer.Offset, buffer.Count);
+#else
+            stream.Write(buffer);
+#endif
         }
 
         /// <summary>
@@ -231,6 +238,70 @@ namespace EdgeDB
                 ? throw new UnexpectedMessageException(ServerMessageType.CommandComplete, restoreResult.Type)
                 : complete.Status;
         }
+#endregion
+
+        #region Queryable Extensions
+
+        /// <summary>
+        ///     Executes a given query and returns the result as a collection.
+        /// </summary>
+        /// <remarks>
+        ///     Cardinality isn't enforced nor takes effect on the return result, 
+        ///     the client will always construct a collection out of the data.
+        /// </remarks>
+        /// <param name="client">The client to preform the query on.</param>
+        /// <param name="query">The query to execute.</param>
+        /// <param name="args">Any arguments that are part of the query.</param>
+        /// <param name="capabilities">The allowed capabilities for the query.</param>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
+        /// <returns>
+        ///     A task representing the asynchronous query operation. The result 
+        ///     of the task is the result of the query.
+        /// </returns>
+        public static Task<IReadOnlyCollection<object?>> QueryAsync(this IEdgeDBQueryable client, string query, IDictionary<string, object?>? args = null,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => client.QueryAsync<object>(query, args, capabilities, token);
+
+        /// <summary>
+        ///     Executes a given query and returns a single result or <see langword="null"/>.
+        /// </summary>
+        /// <remarks>
+        ///     This method enforces <see cref="Cardinality.AtMostOne"/>, if your query returns 
+        ///     more than one result a <see cref="EdgeDBException"/> will be thrown.
+        /// </remarks>
+        /// <param name="client">The client to preform the query on.</param>
+        /// <param name="query">The query to execute.</param>
+        /// <param name="args">Any arguments that are part of the query.</param>
+        /// <param name="capabilities">The allowed capabilities for the query.</param>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
+        /// <returns>
+        ///     A task representing the asynchronous query operation. The result 
+        ///     of the task is the result of the query.
+        /// </returns>
+        public static Task<object?> QuerySingleAsync(this IEdgeDBQueryable client, string query, IDictionary<string, object?>? args = null,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => client.QuerySingleAsync<object>(query, args, capabilities, token);
+
+        /// <summary>
+        ///     Executes a given query and returns a single result.
+        /// </summary>
+        /// <remarks>
+        ///     This method enforces <see cref="Cardinality.One"/>, if your query returns zero 
+        ///     or more than one result a <see cref="EdgeDBException"/> will be thrown.
+        /// </remarks>
+        /// <param name="client">The client to preform the query on.</param>
+        /// <param name="query">The query to execute.</param>
+        /// <param name="args">Any arguments that are part of the query.</param>
+        /// <param name="capabilities">The allowed capabilities for the query.</param>
+        /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
+        /// <returns>
+        ///     A task representing the asynchronous query operation. The result 
+        ///     of the task is the result of the query.
+        /// </returns>
+        public static Task<object> QueryRequiredSingleAsync(this IEdgeDBQueryable client, string query, IDictionary<string, object?>? args = null,
+            Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
+            => client.QueryRequiredSingleAsync<object>(query, args, capabilities, token);
+
         #endregion
     }
 }

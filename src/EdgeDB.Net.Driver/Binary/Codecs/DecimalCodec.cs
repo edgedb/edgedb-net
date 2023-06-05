@@ -58,11 +58,15 @@ namespace EdgeDB.Binary.Codecs
 
         public override void Serialize(ref PacketWriter writer, decimal value, CodecContext context)
         {
-            Span<int> span = stackalloc int[4];
-            decimal.GetBits(value, span);
+#if LEGACY
+            var bits = decimal.GetBits(value);
+#else
+            Span<int> bits = stackalloc int[4];
+            decimal.GetBits(value, bits);
+#endif
 
-            var rawDscale = (span[3] >> 16) & 0x7F;
-            var rawSign = (span[3] >> 31) & 0x01;
+            var rawDscale = (bits[3] >> 16) & 0x7F;
+            var rawSign = (bits[3] >> 31) & 0x01;
 
             var str = value.ToString();
             var spl = str.Split(CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator);

@@ -49,5 +49,19 @@ namespace EdgeDB
 
             throw new NotSupportedException($"Cannot find inner type of {type}");
         }
+
+#if LEGACY
+        public static bool IsAssignableTo(this Type type, Type target)
+            => target.IsAssignableFrom(type);
+#endif
+
+        public static bool IsTuple(this Type type)
+        {
+#if NET461
+            return type.GetInterface("ITupleInternal") != null;
+#else
+            return type.IsAssignableTo(typeof(System.Runtime.CompilerServices.ITuple));
+#endif
+        }
     }
 }

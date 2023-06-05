@@ -194,7 +194,7 @@ namespace EdgeDB
 
             return
                 type == typeof(object) || 
-                type.IsAssignableTo(typeof(ITuple)) ||
+                type.IsTuple() ||
                 type.IsAbstract ||
                 type.IsRecord() ||
                 (type.IsClass || type.IsValueType)

@@ -4,7 +4,7 @@
     <AssemblyName>EdgeDB.Net.Driver</AssemblyName>
     <RootNamespace>EdgeDB</RootNamespace>
     <Description>A core driver to interface with EdgeDB</Description>
-    <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
+    <TargetFrameworks>net461;netstandard2.1;net6.0;net7.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
@@ -14,16 +14,27 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net461' or '$(TargetFramework)' == 'netstandard2.1' ">
+    <DefineConstants>$(DefineConstants);LEGACY</DefineConstants>
+    <DefineConstants Condition="'$(TargetFramework)' == 'net461'">$(DefineConstants);LEGACY_BUFFERS</DefineConstants>
+  </PropertyGroup>
+  
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
   </ItemGroup>
-  <ItemGroup>
-    <None Remove="ContractResolvers\" />
-    <None Remove="Binary\Codecs\Visitors\" />
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net461' or '$(TargetFramework)' == 'netstandard2.1' ">
+    <PackageReference Include="Portable.System.DateTimeOnly" Version="7.0.1" />
+    <PackageReference Include="System.Collections.Immutable" Version="7.0.0" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="ContractResolvers\" />
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net461' ">
+    <PackageReference Include="System.Net.Security" Version="4.3.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Cryptography.KeyDerivation" Version="7.0.5" />
+    <PackageReference Include="IndexRange" Version="1.0.2" />
+    <PackageReference Include="Microsoft.Bcl.HashCode" Version="1.1.1" />
+    <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
 </Project>

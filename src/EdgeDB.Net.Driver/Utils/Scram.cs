@@ -5,6 +5,10 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
+#if NET461
+using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+#endif
+
 namespace EdgeDB.Utils
 {
     internal sealed class Scram : IDisposable
@@ -106,14 +110,22 @@ namespace EdgeDB.Utils
         {
             var matches = Regex.Matches(msg, @"(.{1})=(.+?)(?>,|$)");
 
-            return matches.ToDictionary(x => x.Groups[1].Value, x => x.Groups[2].Value);
+            return matches
+#if NET461
+                .Iterate()
+#endif
+                .ToDictionary(x => x.Groups[1].Value, x => x.Groups[2].Value);
         }
 
         private static byte[] SaltPassword(string password, byte[] salt, int iterations)
         {
-            var pdb = new Rfc2898DeriveBytes(password, salt, iterations, HashAlgorithmName.SHA256);
+#if NET461
+            return KeyDerivation.Pbkdf2(password, salt, KeyDerivationPrf.HMACSHA256, iterations, 32);
 
+#else
+            var pdb = new Rfc2898DeriveBytes(password, salt, iterations, HashAlgorithmName.SHA256);
             return pdb.GetBytes(32);
+#endif
         }
 
         private static byte[] ComputeHMACHash(byte[] data, string key)
