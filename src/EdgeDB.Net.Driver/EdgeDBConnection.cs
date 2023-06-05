@@ -1,3 +1,4 @@
+using EdgeDB.Models;
 using EdgeDB.Utils;
 using Newtonsoft.Json;
 using System.Buffers.Text;
@@ -402,10 +403,10 @@ connectionDefinition:
             if (!Directory.Exists(projectDir))
                 throw new DirectoryNotFoundException($"Couldn't find project directory for {path}: {projectDir}");
 
-            var instanceName = File.ReadAllText(Path.Combine(projectDir, "instance-name"));
+            if (!ConfigUtils.TryResolveInstanceCloudProfile(projectDir, out string? profile, out string? inst) || inst is null)
+                throw new FileNotFoundException($"Could not find instance name under project directory {projectDir}");
 
-            // get credentials
-            return FromInstanceName(instanceName);
+            return FromInstanceName(inst, profile);
         }
 
         /// <summary>
@@ -418,10 +419,11 @@ connectionDefinition:
         ///     apply environment variables.
         /// </remarks>
         /// <param name="name">The name of the instance.</param>
+        /// <param name="cloudProfile">The optional cloud profile if the instance name is a cloud instance.</param>
         /// <returns>A <see cref="EdgeDBConnection"/> containing connection details for the specific instance.</returns>
         /// <exception cref="FileNotFoundException">The instances config file couldn't be found.</exception>
         /// <exception cref="ConfigurationException">The configuration is invalid.</exception>
-        public static EdgeDBConnection FromInstanceName(string name)
+        public static EdgeDBConnection FromInstanceName(string name, string? cloudProfile = null)
         {
             if (Regex.IsMatch(name, @"^\w(-?\w)*$"))
             {
@@ -434,7 +436,7 @@ connectionDefinition:
             else if (Regex.IsMatch(name, @"^([A-Za-z0-9](-?[A-Za-z0-9])*)\/([A-Za-z0-9](-?[A-Za-z0-9])*)$"))
             {
                 var conn = new EdgeDBConnection();
-                conn.ParseCloudInstanceName(name);
+                conn.ParseCloudInstanceName(name, cloudProfile);
                 return conn;
             }
             else
@@ -467,7 +469,7 @@ connectionDefinition:
             }
         }
 
-        private void ParseCloudInstanceName(string name)
+        private void ParseCloudInstanceName(string name, string? cloudProfile = null)
         {
             if(name.Length > DOMAIN_NAME_MAX_LEN)
             {
@@ -478,7 +480,9 @@ connectionDefinition:
 
             if(secretKey is null)
             {
-                var profile = ConfigUtils.ReadCloudProfile(CloudProfile);
+                var profile = cloudProfile is not null
+                    ? JsonConvert.DeserializeObject<CloudProfile>(cloudProfile)!
+                    : ConfigUtils.ReadCloudProfile(CloudProfile);
 
                 if (profile.SecretKey is null)
                 {
