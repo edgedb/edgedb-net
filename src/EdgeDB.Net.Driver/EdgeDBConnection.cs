@@ -480,9 +480,7 @@ connectionDefinition:
 
             if(secretKey is null)
             {
-                var profile = cloudProfile is not null
-                    ? JsonConvert.DeserializeObject<CloudProfile>(cloudProfile)!
-                    : ConfigUtils.ReadCloudProfile(CloudProfile);
+                var profile = ConfigUtils.ReadCloudProfile(cloudProfile ?? CloudProfile);
 
                 if (profile.SecretKey is null)
                 {
