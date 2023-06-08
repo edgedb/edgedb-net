@@ -242,7 +242,7 @@ namespace EdgeDB
             if (IsAbtractType)
             {
                 RequiresTypeName = true;
-                
+
                 return (ref ObjectEnumerator enumerator) =>
                 {
                     // introspect the type name

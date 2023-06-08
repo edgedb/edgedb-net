@@ -83,7 +83,7 @@ namespace EdgeDB
 
                 try
                 {
-                    if(client.TransactionState is TransactionState.InTransaction)
+                    if (client.TransactionState is TransactionState.InTransaction)
                         await transaction.CommitAsync();
                 }
                 catch

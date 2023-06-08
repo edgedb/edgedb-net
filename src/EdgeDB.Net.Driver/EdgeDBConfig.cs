@@ -171,5 +171,10 @@ namespace EdgeDB
         ///     non-concrete query result definitions.
         /// </summary>
         public bool PreferValueTupleType { get; set; }
+
+        /// <summary>
+        ///     Gets or sets whether or not to include type ids in results.
+        /// </summary>
+        public bool ImplicitTypeIds { get; internal set; }
     }
 }
