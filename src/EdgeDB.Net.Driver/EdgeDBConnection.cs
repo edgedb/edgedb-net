@@ -506,10 +506,12 @@ connectionDefinition:
                 throw new ConfigurationException("Invalid secret key: payload does not contain 'iss' value");
             }
 
+            name = name.ToLowerInvariant();
+
             // safe: checks name length above to be less than DOMAIN_NAME_MAX_LEN
             Span<byte> instanceNameBuffer = stackalloc byte[name.Length];
 
-            Encoding.UTF8.GetBytes(name.ToLowerInvariant(), instanceNameBuffer);
+            Encoding.UTF8.GetBytes(name, instanceNameBuffer);
 
             var dnsBucket = (CRCHQX.CRCHqx(instanceNameBuffer, 0) % 100)
                 .ToString()
