@@ -506,6 +506,8 @@ connectionDefinition:
                 throw new ConfigurationException("Invalid secret key: payload does not contain 'iss' value");
             }
 
+            name = name.ToLowerInvariant();
+
             // safe: checks name length above to be less than DOMAIN_NAME_MAX_LEN
             Span<byte> instanceNameBuffer = stackalloc byte[name.Length];
 
