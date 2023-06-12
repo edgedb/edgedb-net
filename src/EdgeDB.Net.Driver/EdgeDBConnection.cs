@@ -509,7 +509,7 @@ connectionDefinition:
             // safe: checks name length above to be less than DOMAIN_NAME_MAX_LEN
             Span<byte> instanceNameBuffer = stackalloc byte[name.Length];
 
-            Encoding.UTF8.GetBytes(name, instanceNameBuffer);
+            Encoding.UTF8.GetBytes(name.ToLowerInvariant(), instanceNameBuffer);
 
             var dnsBucket = (CRCHQX.CRCHqx(instanceNameBuffer, 0) % 100)
                 .ToString()
