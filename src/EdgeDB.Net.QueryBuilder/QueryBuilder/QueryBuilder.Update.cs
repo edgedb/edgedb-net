@@ -1,3 +1,4 @@
+using EdgeDB.Interfaces;
 using EdgeDB.Interfaces.Queries;
 using EdgeDB.QueryNodes;
 using System;
@@ -117,5 +118,10 @@ namespace EdgeDB
 
             return this;
         }
+
+        IMultiCardinalityExecutable<TType> IUpdateQuery<TType, TContext>.Filter(Expression<Func<TType, bool>> filter)
+            => Filter(filter);
+        IMultiCardinalityExecutable<TType> IUpdateQuery<TType, TContext>.Filter(Expression<Func<TType, TContext, bool>> filter)
+            => Filter(filter);
     }
 }

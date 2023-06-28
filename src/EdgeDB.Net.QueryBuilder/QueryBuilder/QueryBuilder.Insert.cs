@@ -1,3 +1,4 @@
+using EdgeDB.Interfaces;
 using EdgeDB.Interfaces.Queries;
 using EdgeDB.QueryNodes;
 using System;
