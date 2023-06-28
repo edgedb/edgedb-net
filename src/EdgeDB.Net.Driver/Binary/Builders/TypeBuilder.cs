@@ -36,17 +36,12 @@ namespace EdgeDB
         internal readonly static ConcurrentDictionary<Type, IEdgeDBTypeConverter> TypeConverters = new();
         internal static readonly INamingStrategy AttributeNamingStrategy;
         private readonly static List<string> _scannedAssemblies;
-        private readonly static HashSet<Type> _typeBuilderBlacklisted;
 
         static TypeBuilder()
         {
             _scannedAssemblies = new();
             AttributeNamingStrategy = INamingStrategy.AttributeNamingStrategy;
             SchemaNamingStrategy ??= INamingStrategy.DefaultNamingStrategy;
-            _typeBuilderBlacklisted = new HashSet<Type>
-            {
-                typeof(TransientTuple)
-            };
         }
 
         /// <summary>
@@ -158,7 +153,8 @@ namespace EdgeDB
                 ScanAssemblyForTypes(type.Assembly);
             }
 
-            codec.Initialize(type);
+            if (codec is not TypeInitializedObjectCodec typeCodec)
+                codec = codec.GetOrCreateTypeCodec(type);
 
             var reader = new PacketReader(data.PayloadBuffer);
             return codec.Deserialize(ref reader, client.CodecContext);
@@ -188,8 +184,13 @@ namespace EdgeDB
             if (CodecBuilder.ContainsScalarCodec(type))
                 return false;
 
-            if (_typeBuilderBlacklisted.Contains(type))
+            if (
+                type.IsAssignableTo(typeof(IEnumerable)) &&
+                type.Assembly.GetName().Name!.StartsWith("System") &&
+                !type.IsAssignableFrom(typeof(Dictionary<string, object?>)))
+            {
                 return false;
+            }
 
             return
                 type == typeof(object) || 

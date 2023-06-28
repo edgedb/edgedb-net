@@ -215,7 +215,8 @@ namespace EdgeDB
 
                 try
                 {
-                    await transaction.CommitAsync();
+                    if (client.TransactionState is TransactionState.InTransaction)
+                        await transaction.CommitAsync();
                 }
                 catch
                 {

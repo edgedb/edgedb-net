@@ -1,6 +1,7 @@
 using EdgeDB.DataTypes;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Xml.Linq;
 
@@ -58,22 +59,30 @@ namespace EdgeDB.Binary.Codecs
             {
                 case ObjectCodec obj:
                     {
-                        obj.Initialize(Context.Type);
+                        if (obj is TypeInitializedObjectCodec typeCodec)
+                        {
+                            if (typeCodec.TargetType != Context.Type)
+                                typeCodec = typeCodec.Parent.GetOrCreateTypeCodec(Context.Type);
+                        }
+                        else
+                        {
+                            typeCodec = obj.GetOrCreateTypeCodec(Context.Type);
+                        }
 
-                        if (obj.TargetType is null || obj.DeserializerInfo is null)
+                        if (typeCodec.TargetType is null || typeCodec.Deserializer is null)
                             throw new NullReferenceException("Could not find deserializer info for object codec.");
 
-                        using var objHandle = EnterNewContext(obj.TargetType, obj.TargetType.Name, obj.DeserializerInfo);
+                        using var objHandle = EnterNewContext(typeCodec.TargetType, typeCodec.TargetType.Name, typeCodec.Deserializer);
                         for (int i = 0; i != obj.InnerCodecs.Length; i++)
                         {
-                            var innerCodec = obj.InnerCodecs[i];
+                            ref var innerCodec = ref obj.InnerCodecs[i];
                             var name = obj.PropertyNames[i];
 
                             // use the defined type, if not found, use the codecs type
                             // if the inner is compilable, use its inner type and set the real
                             // flag, since compileable visits only care about the inner type rather
                             // than a concrete root.
-                            var hasPropInfo = Context.Deserializer!.PropertyMap.TryGetValue(name, out var propInfo);
+                            var hasPropInfo = Context.Deserializer!.PropertyMapInfo.Map.TryGetValue(name, out var propInfo);
 
                             var propType = hasPropInfo
                                 ? propInfo!.Type
@@ -86,22 +95,28 @@ namespace EdgeDB.Binary.Codecs
                             Visit(ref innerCodec);
 
                             _logger.CodecVisitorMutatedCodec(Depth, obj.InnerCodecs[i], innerCodec);
-
-                            obj.InnerCodecs[i] = innerCodec;
                         }
+
+                        codec = typeCodec;
                     }
                     break;
                 case TupleCodec tuple:
                     {
-                        var tupleTypes = DataTypes.TransientTuple.FlattenTypes(Context.Type);
+                        var tupleTypes = Context.Type.IsAssignableTo(typeof(ITuple)) && Context.Type != typeof(TransientTuple)
+                            ? TransientTuple.FlattenTypes(Context.Type)
+                            : null;
 
-                        if (tupleTypes.Length != tuple.InnerCodecs.Length)
+                        if (tupleTypes is not null && tupleTypes.Length != tuple.InnerCodecs.Length)
                             throw new NoTypeConverterException($"Cannot determine inner types of the tuple {Context.Type}");
+
+                        var type = typeof(object);
 
                         for (int i = 0; i != tuple.InnerCodecs.Length; i++)
                         {
+                            if (tupleTypes != null)
+                                type = tupleTypes[i];
+
                             var innerCodec = tuple.InnerCodecs[i];
-                            var type = tupleTypes[i];
                             using var elementHandle = EnterNewContext(type);
 
                             Visit(ref innerCodec);
@@ -166,7 +181,7 @@ namespace EdgeDB.Binary.Codecs
         {
             // if theres a concrete type def supplied by the
             // user, return their requested type.
-            if (!Context.IsDynamicResult)
+            if (!Context.IsDynamicResult && !Context.InnerRealType)
                 return Context.Type;
 
             if(codec is ITemporalCodec temporal)
