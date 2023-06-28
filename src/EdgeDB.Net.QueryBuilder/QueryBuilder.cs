@@ -16,122 +16,10 @@ using System.Threading.Tasks;
 namespace EdgeDB
 {
     /// <summary>
-    ///     A static class providing methods for building queries.
-    /// </summary>
-    public static class QueryBuilder
-    {
-        /// <inheritdoc cref="IQueryBuilder{TType, TContext}.With{TVariables}(TVariables)"/>
-        public static IQueryBuilder<dynamic, QueryContext<dynamic, TVariables>> With<TVariables>(TVariables variables)
-            => QueryBuilder<dynamic>.With(variables);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, TContext}.With{TVariables}(TVariables)"/>
-        public static IQueryBuilder<dynamic, QueryContext<dynamic, TVariables>> With<TVariables>(Expression<Func<QueryContext<dynamic>, TVariables>> variables)
-            => QueryBuilder<dynamic>.With(variables);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, TContext}.For(IEnumerable{TType}, Expression{Func{JsonCollectionVariable{TType}, IQueryBuilder}})"/>
-        public static IMultiCardinalityExecutable<TType> For<TType>(IEnumerable<TType> collection, 
-            Expression<Func<JsonCollectionVariable<TType>, IQueryBuilder>> iterator)
-            => new QueryBuilder<TType>().For(collection, iterator);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Select()"/>
-        public static ISelectQuery<TType, QueryContext<TType>> Select<TType>()
-            => new QueryBuilder<TType>().Select();
-
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Select{TResult}(Action{ShapeBuilder{TResult}})"/>
-        public static ISelectQuery<TType, QueryContext<TType>> Select<TType>(Action<ShapeBuilder<TType>> shape)
-            => new QueryBuilder<TType>().Select(shape);
-
-        /// <summary>
-        ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
-        /// </summary>
-        /// <typeparam name="TType">The resulting type of the expression.</typeparam>
-        /// <param name="expression">The expression on which to select.</param>
-        /// <returns>
-        ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
-        /// </returns>
-        public static ISelectQuery<TType, QueryContext<TType>> SelectExp<TType>(Expression<Func<TType?>> expression)
-            => new QueryBuilder<TType>().SelectExp(expression);
-
-        /// <summary>
-        ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
-        /// </summary>
-        /// <typeparam name="TType">The resulting type of the expression.</typeparam>
-        /// <param name="expression">The expression on which to select.</param>
-        /// <returns>
-        ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
-        /// </returns>
-        public static ISelectQuery<TType, QueryContext<TType>> SelectExp<TType>(Expression<Func<QueryContext, TType?>> expression)
-            => new QueryBuilder<TType>().SelectExp(expression);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(Expression{Func{QueryContext, TType}}, bool)"/>
-        public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(Expression<Func<QueryContext<TType>, TType>> value, bool returnInsertedValue)
-            => new QueryBuilder<TType>().Insert(value, returnInsertedValue);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(Expression{Func{QueryContext, TType}})"/>
-        public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(Expression<Func<QueryContext<TType>, TType>> value)
-            => new QueryBuilder<TType>().Insert(value);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(TType, bool)"/>
-        public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(TType value, bool returnInsertedValue)
-            => new QueryBuilder<TType>().Insert(value, returnInsertedValue);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(TType)"/>
-        public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(TType value)
-            where TType : class
-            => new QueryBuilder<TType>().Insert(value, false);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{TType, TType}}, bool)"/>
-        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(Expression<Func<TType, TType>> updateFunc, bool returnUpdatedValue)
-            => new QueryBuilder<TType>().Update(updateFunc, returnUpdatedValue);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{TType, TType}})"/>
-        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(Expression<Func<TType, TType>> updateFunc)
-            => new QueryBuilder<TType>().Update(updateFunc, false);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{QueryContext, TType, TType}}, bool)"/>
-        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(Expression<Func<QueryContext<TType>, TType, TType>> updateFunc, bool returnUpdatedValue)
-            => new QueryBuilder<TType>().Update(updateFunc, returnUpdatedValue);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{QueryContext, TType, TType}})"/>
-        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(Expression<Func<QueryContext<TType>, TType, TType>> updateFunc)
-            => new QueryBuilder<TType>().Update(updateFunc, false);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{QueryContext, TType}}, Expression{Func{QueryContext, TType, TType}}, bool)"/>
-        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(
-            Expression<Func<QueryContext<TType>, TType>> selector,
-            Expression<Func<QueryContext<TType>, TType, TType>> updateFunc,
-            bool returnUpdatedValue)
-            => new QueryBuilder<TType>().Update(selector, updateFunc, returnUpdatedValue);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{QueryContext, TType}}, Expression{Func{TType, TType}}, bool)"/>
-        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(
-            Expression<Func<QueryContext<TType>, TType>> selector,
-            Expression<Func<TType, TType>> updateFunc,
-            bool returnUpdatedValue)
-            => new QueryBuilder<TType>().Update(selector, updateFunc, returnUpdatedValue);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{QueryContext, TType}}, Expression{Func{TType, TType}})"/>
-        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(
-            Expression<Func<QueryContext<TType>, TType>> selector,
-            Expression<Func<TType, TType>> updateFunc)
-            => new QueryBuilder<TType>().Update(selector, updateFunc);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{QueryContext, TType}}, Expression{Func{QueryContext, TType, TType}})"/>
-        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(
-            Expression<Func<QueryContext<TType>, TType>> selector,
-            Expression<Func<QueryContext<TType>, TType, TType>> updateFunc)
-            => new QueryBuilder<TType>().Update(selector, updateFunc);
-
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Delete"/>
-        public static IDeleteQuery<TType, QueryContext<TType>> Delete<TType>()
-            => new QueryBuilder<TType>().Delete;
-    }
-
-    /// <summary>
     ///     Represents a query builder used to build queries against <typeparamref name="TType"/>.
     /// </summary>
     /// <typeparam name="TType">The type that this query builder is currently building queries for.</typeparam>
-    public class QueryBuilder<TType> : QueryBuilder<TType, QueryContext<TType>> 
+    public partial class QueryBuilder<TType> : QueryBuilder<TType, QueryContext<TType>> 
     {
         public QueryBuilder() : base() { }
 
@@ -139,12 +27,6 @@ namespace EdgeDB
 
         internal QueryBuilder(List<QueryNode> nodes, List<QueryGlobal> globals, Dictionary<string, object?> variables) 
             : base(nodes, globals, variables) { }
-
-        new public static IQueryBuilder<TType, QueryContext<TType, TVariables>> With<TVariables>(TVariables variables)
-            => new QueryBuilder<TType, TVariables>().With(variables);
-
-        new public static IQueryBuilder<TType, QueryContext<TType, TVariables>> With<TVariables>(Expression<Func<QueryContext<TType>, TVariables>> variables)
-            => new QueryBuilder<TType, TVariables>().With(variables);
     }
 
     /// <summary>
@@ -153,7 +35,7 @@ namespace EdgeDB
     /// </summary>
     /// <typeparam name="TType">The type that this query builder is currently building queries for.</typeparam>
     /// <typeparam name="TContext">The context type used for contextual expressions.</typeparam>
-    public class QueryBuilder<TType, TContext> : IQueryBuilder<TType, TContext>
+    public partial class QueryBuilder<TType, TContext> : IQueryBuilder<TType, TContext>
     {
         /// <summary>
         ///     A list of query nodes that make up the current query builder.
@@ -406,303 +288,26 @@ namespace EdgeDB
         internal BuiltQuery BuildWithGlobals(Action<QueryNode>? preFinalizerModifier = null)
             => InternalBuild(false, preFinalizerModifier);
 
-        #region Root nodes
-        public QueryBuilder<TType, QueryContext<TType, TVariables>> With<TVariables>(Expression<Func<QueryContext<TType>, TVariables>> variables)
-        {
-            if (variables is null)
-                throw new NullReferenceException("Variables cannot be null");
-
-            // check if TVariables is an anonymous type
-            if (!typeof(TVariables).IsAnonymousType())
-                throw new ArgumentException("Variables must be an anonymous type");
-
-            // pull the initialization expression
-            var initializations = InitializationTranslator.PullInitializationExpression(variables.Body);
-
-            // add each as a global
-            foreach(var initialization in initializations)
-            {
-                _queryGlobals.Add(new QueryGlobal(initialization.Key.Name, initialization.Value, variables));
-            }
-
-            return EnterNewContext<QueryContext<TType, TVariables>>();
-        }
-
-        public QueryBuilder<TType, QueryContext<TType, TVariables>> With<TVariables>(TVariables variables)
-        {
-            if (variables is null)
-                throw new NullReferenceException("Variables cannot be null");
-
-            // check if TVariables is an anonymous type
-            if (!typeof(TVariables).IsAnonymousType())
-                throw new ArgumentException("Variables must be an anonymous type");
-
-            // add the properties to our query variables & globals
-            foreach (var property in typeof(TVariables).GetProperties())
-            {
-                var value = property.GetValue(variables);
-                // if its scalar, just add it as a query variable
-                if (EdgeDBTypeUtils.TryGetScalarType(property.PropertyType, out var scalarInfo))
-                {
-                    var varName = QueryUtils.GenerateRandomVariableName();
-                    _queryVariables.Add(varName, value);
-                    _queryGlobals.Add(new QueryGlobal(property.Name, new SubQuery($"<{scalarInfo}>${varName}")));
-                }
-                else if (property.PropertyType.IsAssignableTo(typeof(IQueryBuilder)))
-                {
-                    // add it as a sub-query
-                    _queryGlobals.Add(new QueryGlobal(property.Name, value));
-                }
-                else if(
-                    EdgeDBTypeUtils.IsLink(property.PropertyType, out var isMultiLink, out var innerType) 
-                    && !isMultiLink
-                    && QueryObjectManager.TryGetObjectId(value, out var id))
-                {
-                    _queryGlobals.Add(new QueryGlobal(property.Name, new SubQuery($"(select {property.PropertyType.GetEdgeDBTypeName()} filter .id = <uuid>'{id}')")));
-                }
-                else if (ReflectionUtils.IsSubclassOfRawGeneric(typeof(JsonReferenceVariable<>), property.PropertyType))
-                {
-                    // serialize and add as global and variable
-                    var referenceValue = property.PropertyType.GetProperty("Value")!.GetValue(value);
-                    var jsonVarName = QueryUtils.GenerateRandomVariableName();
-                    _queryVariables.Add(jsonVarName, DataTypes.Json.Serialize(referenceValue));
-                    _queryGlobals.Add(new QueryGlobal(property.Name, new SubQuery($"<json>${jsonVarName}"), value));
-                }
-                else 
-                    throw new InvalidOperationException($"Cannot serialize {property.Name}: No serialization strategy found for {property.PropertyType}");
-            }
-
-            return EnterNewContext<QueryContext<TType, TVariables>>();
-        }
-
-        public IMultiCardinalityExecutable<TType> For(IEnumerable<TType> collection, Expression<Func<JsonCollectionVariable<TType>, IQueryBuilder>> iterator)
-        {
-            AddNode<ForNode>(new ForContext(typeof(TType))
-            {
-                Expression = iterator,
-                Set = collection
-            });
-
-            return this;
-        }
-        
-        /// <inheritdoc/>
-        public ISelectQuery<TType, TContext> Select()
-        {
-            AddNode<SelectNode>(new SelectContext(typeof(TType)));
-            return this;
-        }
-        
-        /// <inheritdoc/>
-        public ISelectQuery<TResult, TContext> Select<TResult>(Action<ShapeBuilder<TResult>> shape)
-        {
-            var shapeBuilder = new ShapeBuilder<TResult>();
-            shape(shapeBuilder);
-            AddNode<SelectNode>(new SelectContext(typeof(TResult)) 
-            { 
-                Shape = shapeBuilder,
-                IsFreeObject = typeof(TResult).IsAnonymousType()
-            });
-            return EnterNewType<TResult>();
-        }
-
         /// <summary>
-        ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
+        ///     Preforms introspection and then builds this query builder into a <see cref="BuiltQuery"/>.
         /// </summary>
-        /// <typeparam name="TNewType">The resulting type of the expression.</typeparam>
-        /// <param name="expression">The expression on which to select.</param>
+        /// <param name="edgedb">The client to preform introspection with.</param>
+        /// <param name="token">A cancellation token to cancel the introspection query.</param>
         /// <returns>
-        ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
+        ///     A ValueTask representing the (a)sync introspection and building operation.
+        ///     The result is the built form of this query builder.
         /// </returns>
-        public ISelectQuery<TNewType, TContext> SelectExp<TNewType>(Expression<Func<TNewType?>> expression)
+        private async ValueTask<BuiltQuery> IntrospectAndBuildAsync(IEdgeDBQueryable edgedb, CancellationToken token)
         {
-            AddNode<SelectNode>(new SelectContext(typeof(TType))
-            {
-                Expression = expression,
-                IncludeShape = false,
-                IsFreeObject = typeof(TNewType).IsAnonymousType(),
-            });
-            return EnterNewType<TNewType>();
+            if (_nodes.Any(x => x.RequiresIntrospection) || _queryGlobals.Any(x => x.Value is SubQuery subQuery && subQuery.RequiresIntrospection))
+                _schemaInfo ??= await SchemaIntrospector.GetOrCreateSchemaIntrospectionAsync(edgedb, token).ConfigureAwait(false);
+
+            var result = Build();
+            _nodes.Clear();
+            _queryGlobals.Clear();
+
+            return result;
         }
-
-        /// <summary>
-        ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
-        /// </summary>
-        /// <typeparam name="TNewType">The resulting type of the expression.</typeparam>
-        /// <param name="expression">The expression on which to select.</param>
-        /// <returns>
-        ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
-        /// </returns>
-        public ISelectQuery<TNewType, TContext> SelectExp<TNewType>(Expression<Func<TContext, TNewType?>> expression)
-        {
-            AddNode<SelectNode>(new SelectContext(typeof(TType))
-            {
-                Expression = expression,
-                IncludeShape = false,
-                IsFreeObject = typeof(TNewType).IsAnonymousType(),
-            });
-            return EnterNewType<TNewType>();
-        }
-
-
-        /// <summary>
-        ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
-        /// </summary>
-        /// <typeparam name="TNewType">The resulting type of the expression.</typeparam>
-        /// <typeparam name="TQuery">A query containing a result of <typeparamref name="TNewType"/></typeparam>
-        /// <param name="expression">The expression on which to select.</param>
-        /// <param name="shape">A optional delegate to build the shape for selecting <typeparamref name="TNewType"/>.</param>
-        /// <returns>
-        ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
-        /// </returns>
-        public ISelectQuery<TNewType, TContext> SelectExp<TQuery, TNewType>(
-            Expression<Func<TContext, TQuery?>> expression,
-            Action<ShapeBuilder<TNewType>>? shape = null
-        ) where TQuery : IQuery<TNewType>
-        {
-            var shapeBuilder = shape is not null ? new ShapeBuilder<TNewType>() : null;
-
-            if(shape is not null && shapeBuilder is not null)
-            {
-                shape(shapeBuilder);
-            }
-
-            AddNode<SelectNode>(new SelectContext(typeof(TType))
-            {
-                Expression = expression,
-                Shape = shapeBuilder,
-                IsFreeObject = typeof(TNewType).IsAnonymousType(),
-            });
-
-            return EnterNewType<TNewType>();
-        }
-
-
-        internal ISelectQuery<TNewType, TContext> SelectExp<TNewType, TInitContext>(Expression<Func<TInitContext, TNewType?>> expression)
-        {
-            AddNode<SelectNode>(new SelectContext(typeof(TType))
-            {
-                Expression = expression,
-                IncludeShape = false,
-                IsFreeObject = typeof(TNewType).IsAnonymousType(),
-            });
-            return EnterNewType<TNewType>();
-        }
-
-
-        /// <inheritdoc/>
-        public IInsertQuery<TType, TContext> Insert(TType value, bool returnInsertedValue = true)
-        {
-            var insertNode = AddNode<InsertNode>(new InsertContext(typeof(TType))
-            {
-                Value = value,
-            });
-
-            if (returnInsertedValue)
-            {
-                AddNode<SelectNode>(new SelectContext(typeof(TType)), true, insertNode);
-            }
-            
-            return this;
-        }
-
-        /// <inheritdoc/>
-        public IInsertQuery<TType, TContext> Insert(TType value)
-            => Insert(value, false);
-
-        /// <inheritdoc/>
-        public IInsertQuery<TType, TContext> Insert(Expression<Func<TContext, TType>> value, bool returnInsertedValue = true)
-        {
-            var insertNode = AddNode<InsertNode>(new InsertContext(typeof(TType))
-            {
-                Value = value,
-            });
-
-            if (returnInsertedValue)
-            {
-                AddNode<SelectNode>(new SelectContext(typeof(TType)), true, insertNode);
-            }
-
-            return this;
-        }
-
-        /// <inheritdoc/>
-        public IInsertQuery<TType, TContext> Insert(Expression<Func<TContext, TType>> value)
-            => Insert(value, false);
-
-        /// <inheritdoc/>
-        public IUpdateQuery<TType, TContext> Update(Expression<Func<TType, TType>> updateFunc, bool returnUpdatedValue)
-            => Update(updateFunc, null, returnUpdatedValue);
-
-        /// <inheritdoc/>
-        public IUpdateQuery<TType, TContext> Update(Expression<Func<TContext, TType, TType>> updateFunc, bool returnUpdatedValue)
-            => Update(updateFunc, null, returnUpdatedValue);
-
-        /// <inheritdoc/>
-        public IUpdateQuery<TType, TContext> Update(Expression<Func<TType, TType>> updateFunc)
-             => Update(updateFunc, null, false);
-
-        /// <inheritdoc/>
-        public IUpdateQuery<TType, TContext> Update(Expression<Func<TContext, TType, TType>> updateFunc)
-            => Update(updateFunc, null, false);
-
-        /// <inheritdoc/>
-        public IUpdateQuery<TType, TContext> Update(Expression<Func<TContext, TType>> selector, Expression<Func<TContext, TType, TType>> updateFunc, bool returnUpdatedValue)
-            => Update(updateFunc, selector, returnUpdatedValue);
-
-        /// <inheritdoc/>
-        public IUpdateQuery<TType, TContext> Update(Expression<Func<TContext, TType>> selector, Expression<Func<TType, TType>> updateFunc, bool returnUpdatedValue)
-            => Update(updateFunc, selector, returnUpdatedValue);
-
-        /// <inheritdoc/>
-        public IUpdateQuery<TType, TContext> Update(Expression<Func<TContext, TType>> selector, Expression<Func<TContext, TType, TType>> updateFunc)
-            => Update(updateFunc, selector, false);
-
-        /// <inheritdoc/>
-        public IUpdateQuery<TType, TContext> Update(Expression<Func<TContext, TType>> selector, Expression<Func<TType, TType>> updateFunc)
-            => Update(updateFunc, selector, false);
-
-        /// <summary>
-        ///     Adds a generic update node, with the specified update function and target selector.
-        /// </summary>
-        /// <param name="updateFunc">
-        ///     The callback used to update <typeparamref name="TType"/>.
-        /// </param>
-        /// <param name="selector">
-        ///     The expression that selects the object to update.
-        /// </param>
-        /// <param name="returnUpdatedValue">
-        ///     Whether or not to implicitly add a <c>SELECT</c> node that selects the result of the update,
-        ///     with a default shape.
-        /// </param>
-        /// <returns>A <see cref="IUpdateQuery{TType, TContext}"/>.</returns>
-        private IUpdateQuery<TType, TContext> Update(LambdaExpression updateFunc, LambdaExpression? selector, bool returnUpdatedValue)
-        {
-            var updateNode = AddNode<UpdateNode>(new UpdateContext(typeof(TType))
-            {
-                UpdateExpression = updateFunc,
-                Selector = selector,
-            });
-
-            if (returnUpdatedValue)
-            {
-                AddNode<SelectNode>(new SelectContext(typeof(TType)), true, updateNode);
-            }
-
-            return this;
-        }
-
-        /// <inheritdoc/>
-        [DebuggerHidden]
-        public IDeleteQuery<TType, TContext> Delete
-        {
-            get
-            {
-                AddNode<DeleteNode>(new DeleteContext(typeof(TType)));
-                return this;
-            }
-        }
-        #endregion
 
         #region Generic sub-query methods
         /// <summary>
@@ -944,120 +549,6 @@ namespace EdgeDB
 
         #endregion
 
-        #region ISelectQuery
-        ISelectQuery<TType, TContext> ISelectQuery<TType, TContext>.Filter(Expression<Func<TType, bool>> filter)
-            => Filter(filter);
-        ISelectQuery<TType, TContext> ISelectQuery<TType, TContext>.OrderBy(Expression<Func<TType, object?>> propertySelector, OrderByNullPlacement? nullPlacement)
-            => OrderBy(true, propertySelector, nullPlacement);
-        ISelectQuery<TType, TContext> ISelectQuery<TType, TContext>.OrderByDesending(Expression<Func<TType, object?>> propertySelector, OrderByNullPlacement? nullPlacement)
-            => OrderBy(false, propertySelector, nullPlacement);
-        ISelectQuery<TType, TContext> ISelectQuery<TType, TContext>.Offset(long offset)
-            => Offset(offset);
-        ISelectQuery<TType, TContext> ISelectQuery<TType, TContext>.Limit(long limit)
-            => Limit(limit);
-        ISelectQuery<TType, TContext> ISelectQuery<TType, TContext>.Filter(Expression<Func<TType, TContext, bool>> filter)
-            => Filter(filter);
-        ISelectQuery<TType, TContext> ISelectQuery<TType, TContext>.OrderBy(Expression<Func<TType, TContext, object?>> propertySelector, OrderByNullPlacement? nullPlacement)
-            => OrderBy(true, propertySelector, nullPlacement);
-        ISelectQuery<TType, TContext> ISelectQuery<TType, TContext>.OrderByDesending(Expression<Func<TType, TContext, object?>> propertySelector, OrderByNullPlacement? nullPlacement)
-        => OrderBy(false, propertySelector, nullPlacement);
-        ISelectQuery<TType, TContext> ISelectQuery<TType, TContext>.Offset(Expression<Func<TContext, long>> offset)
-            => OffsetExp(offset);
-        ISelectQuery<TType, TContext> ISelectQuery<TType, TContext>.Limit(Expression<Func<TContext, long>> limit)
-            => LimitExp(limit);
-        #endregion
-
-        #region IInsertQuery
-        IUnlessConflictOn<TType, TContext> IInsertQuery<TType, TContext>.UnlessConflict()
-            => UnlessConflict();
-        IUnlessConflictOn<TType, TContext> IInsertQuery<TType, TContext>.UnlessConflictOn(Expression<Func<TType, object?>> propertySelector)
-            => UnlessConflictOn(propertySelector);
-        IUnlessConflictOn<TType, TContext> IInsertQuery<TType, TContext>.UnlessConflictOn(Expression<Func<TType, TContext, object?>> propertySelector)
-            => UnlessConflictOn(propertySelector);
-        #endregion
-
-        #region IUpdateQuery
-        IMultiCardinalityExecutable<TType> IUpdateQuery<TType, TContext>.Filter(Expression<Func<TType, bool>> filter)
-            => Filter(filter);
-        IMultiCardinalityExecutable<TType> IUpdateQuery<TType, TContext>.Filter(Expression<Func<TType, TContext, bool>> filter)
-            => Filter(filter);
-        #endregion
-
-        #region IUnlessConflictOn
-        ISingleCardinalityExecutable<TType> IUnlessConflictOn<TType, TContext>.ElseReturn()
-            => ElseReturnDefault();
-        IQueryBuilder<object?, TContext> IUnlessConflictOn<TType, TContext>.Else<TQueryBuilder>(TQueryBuilder elseQuery)
-            => ElseJoint(elseQuery);
-        IMultiCardinalityExecutable<TType> IUnlessConflictOn<TType, TContext>.Else(Func<IQueryBuilder<TType, TContext>, IMultiCardinalityExecutable<TType>> elseQuery)
-            => Else(elseQuery);
-        ISingleCardinalityExecutable<TType> IUnlessConflictOn<TType, TContext>.Else(Func<IQueryBuilder<TType, TContext>, ISingleCardinalityExecutable<TType>> elseQuery)
-            => Else(elseQuery);
-        #endregion
-
-        #region IDeleteQuery
-        IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.Filter(Expression<Func<TType, bool>> filter)
-            => Filter(filter);
-        IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.OrderBy(Expression<Func<TType, object?>> propertySelector, OrderByNullPlacement? nullPlacement)
-            => OrderBy(true, propertySelector, nullPlacement);
-        IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.OrderByDesending(Expression<Func<TType, object?>> propertySelector, OrderByNullPlacement? nullPlacement)
-            => OrderBy(false, propertySelector, nullPlacement);
-        IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.Offset(long offset)
-            => Offset(offset);
-        IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.Limit(long limit)
-            => Limit(limit);
-        IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.Filter(Expression<Func<TType, TContext, bool>> filter)
-            => Filter(filter);
-        IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.OrderBy(Expression<Func<TType, TContext, object?>> propertySelector, OrderByNullPlacement? nullPlacement)
-            => OrderBy(true, propertySelector, nullPlacement);
-        IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.OrderByDesending(Expression<Func<TType, TContext, object?>> propertySelector, OrderByNullPlacement? nullPlacement)
-            => OrderBy(false, propertySelector, nullPlacement);
-        IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.Offset(Expression<Func<TContext, long>> offset)
-            => OffsetExp(offset);
-        IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.Limit(Expression<Func<TContext, long>> limit)
-            => LimitExp(limit);
-        #endregion
-
-        #region IGroupable
-        IGroupQuery<Group<TKey, TType>> IGroupable<TType>.GroupBy<TKey>(Expression<Func<TType, TKey>> propertySelector)
-        {
-            AddNode<GroupNode>(new GroupContext(typeof(TType))
-            {
-                PropertyExpression = propertySelector
-            });
-            return EnterNewType<Group<TKey, TType>>();
-        }
-
-        IGroupQuery<Group<TKey, TType>> IGroupable<TType>.Group<TKey>(Expression<Func<TType, GroupBuilder, KeyedGroupBuilder<TKey>>> groupBuilder)
-        {
-            AddNode<GroupNode>(new GroupContext(typeof(TType))
-            {
-                BuilderExpression = groupBuilder
-            });
-            return EnterNewType<Group<TKey, TType>>();
-        }
-        #endregion
-
-        /// <summary>
-        ///     Preforms introspection and then builds this query builder into a <see cref="BuiltQuery"/>.
-        /// </summary>
-        /// <param name="edgedb">The client to preform introspection with.</param>
-        /// <param name="token">A cancellation token to cancel the introspection query.</param>
-        /// <returns>
-        ///     A ValueTask representing the (a)sync introspection and building operation.
-        ///     The result is the built form of this query builder.
-        /// </returns>
-        private async ValueTask<BuiltQuery> IntrospectAndBuildAsync(IEdgeDBQueryable edgedb, CancellationToken token)
-        {
-            if(_nodes.Any(x => x.RequiresIntrospection) || _queryGlobals.Any(x => x.Value is SubQuery subQuery && subQuery.RequiresIntrospection))
-                _schemaInfo ??= await SchemaIntrospector.GetOrCreateSchemaIntrospectionAsync(edgedb, token).ConfigureAwait(false);
-
-            var result = Build();
-            _nodes.Clear();
-            _queryGlobals.Clear();
-
-            return result;
-        }
-
         /// <inheritdoc/>
         async Task<IReadOnlyCollection<TType?>> IMultiCardinalityExecutable<TType>.ExecuteAsync(IEdgeDBQueryable edgedb,
             Capabilities? capabilities, CancellationToken token)
@@ -1093,11 +584,7 @@ namespace EdgeDB
         IReadOnlyCollection<QueryNode> IQueryBuilder.Nodes => _nodes;
         IReadOnlyCollection<QueryGlobal> IQueryBuilder.Globals => _queryGlobals;
         IReadOnlyDictionary<string, object?> IQueryBuilder.Variables => _queryVariables;
-        IQueryBuilder<TType, QueryContext<TType, TVariables>> IQueryBuilder<TType, TContext>.With<TVariables>(TVariables variables) => With(variables);
-        IQueryBuilder<TType, QueryContext<TType, TVariables>> IQueryBuilder<TType, TContext>.With<TVariables>(Expression<Func<QueryContext<TType>, TVariables>> variables) => With(variables);
         BuiltQuery IQueryBuilder.BuildWithGlobals(Action<QueryNode>? preFinalizerModifier) => BuildWithGlobals(preFinalizerModifier);
-        ISelectQuery<TNewType, TContext> IQueryBuilder<TType, TContext>.SelectExp<TNewType, TQuery>(Expression<Func<TContext, TQuery?>> expression, Action<ShapeBuilder<TNewType>>? shape) where TQuery : default
-            => SelectExp(expression, shape);
         #endregion
     }
 
