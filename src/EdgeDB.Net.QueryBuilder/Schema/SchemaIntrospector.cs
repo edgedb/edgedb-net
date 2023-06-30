@@ -66,7 +66,7 @@ namespace EdgeDB.Schema
                         TargetId = ctx.UnsafeLocal<Guid>("target.id"),
                         IsLink = ctx.Raw<object>("[IS schema::Link]") != null,
                         IsExclusive = ctx.Raw<bool>("exists (select .constraints filter .name = 'std::exclusive')"),
-                        IsComputed = EdgeQL.Length(ctx.UnsafeLocal<object>("computed_fields")) != 0,
+                        IsComputed = EdgeQL.Len(ctx.UnsafeLocal<object[]>("computed_fields")) != 0,
                         IsReadonly = ctx.UnsafeLocal<bool>("readonly"),
                         HasDefault = ctx.Raw<bool>("EXISTS .default or (\"std::sequence\" in .target[IS schema::ScalarType].ancestors.name)")
                     })

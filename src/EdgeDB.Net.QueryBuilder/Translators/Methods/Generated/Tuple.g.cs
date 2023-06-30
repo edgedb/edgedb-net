@@ -1,25 +1,26 @@
+#nullable restore
 using EdgeDB;
 using EdgeDB.DataTypes;
 using System.Runtime.CompilerServices;
 
 namespace EdgeDB.Translators
 {
-    internal partial class Tuple : MethodTranslator<ITuple>
+    internal partial class TupleMethodTranslator : MethodTranslator<EdgeQL>
     {
-        [MethodName(EdgeQL.Enumerate)]
-        public string Enumerate(string? valsParam)
+        [MethodName(nameof(EdgeQL.Enumerate))]
+        public string EnumerateTranslator(string? valsParam)
         {
             return $"std::enumerate({valsParam})";
         }
 
-        [MethodName(EdgeQL.JsonObjectUnpack)]
-        public string JsonObjectUnpack(string? objParam)
+        [MethodName(nameof(EdgeQL.JsonObjectUnpack))]
+        public string JsonObjectUnpackTranslator(string? objParam)
         {
             return $"std::json_object_unpack({objParam})";
         }
 
-        [MethodName(EdgeQL.GetVersion)]
-        public string GetVersion()
+        [MethodName(nameof(EdgeQL.GetVersion))]
+        public string GetVersionTranslator()
         {
             return $"sys::get_version()";
         }

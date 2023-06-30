@@ -40,6 +40,8 @@ namespace EdgeDB.ExampleApp.Examples
 
         private static async Task QueryBuilderDemo(EdgeDBClient client)
         {
+            Grammar.ArrayConcat(null!, null);
+
             // Selecting a type with autogen shape
             var query = QueryBuilder.Select<Person>().Build().Prettify();
 

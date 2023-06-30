@@ -1,4 +1,5 @@
 using EdgeDB.DataTypes;
+using EdgeDB.StandardLibGenerator.Models;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -9,24 +10,29 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Type = System.Type;
 
 namespace EdgeDB.StandardLibGenerator
 {
-    public readonly struct TypeNode
+    public class TypeNode
     {
-        public readonly string DotnetTypeName
+        public string DotnetTypeName
             => DotnetType?.Name?.Replace("`1", "") ?? _dotnetName!;
+
+        public bool IsEnum { get; set; }
         
-        public readonly string EdgeDBName;
-        public readonly Type? DotnetType;
-        public readonly bool IsGeneric;
-        public readonly TypeNode[] Children;
+        public string EdgeDBName { get; }
+        public Type? DotnetType { get; }
+        public bool IsGeneric { get; }
+        public TypeNode[] Children { get; }
 
-        public readonly string? TupleElementName;
-        public readonly bool IsChildOfNamedTuple;
+        public string? TupleElementName { get; }
+        public bool IsChildOfNamedTuple { get; }
 
-        public readonly bool RequiresGeneration;
-        public readonly bool WasGenerated;
+        public bool RequiresGeneration { get; }
+        public bool WasGenerated { get; }
+
+
         private readonly string? _dotnetName;
 
         public TypeNode(string name, Type? dotnetType, bool isGeneric, params TypeNode[] children)
@@ -83,7 +89,7 @@ namespace EdgeDB.StandardLibGenerator
             if (Children is null || !Children.Any())
                 return DotnetTypeName;
 
-            return $"{DotnetTypeName.Replace("`1", "")}<{string.Join(", ", Children)}>";
+            return $"{DotnetTypeName.Replace("`1", "")}<{string.Join(", ", Children.Select(x => x.ToString()))}>";
         }
     }
 
@@ -92,6 +98,74 @@ namespace EdgeDB.StandardLibGenerator
         private static readonly Regex GenericRegex = new(@"(.+?)<(.+?)>$");
         private static readonly Regex NamedTupleRegex = new(@"(.*?[^:]):([^:].*?)$");
         internal static readonly Dictionary<string, string> GeneratedTypes = new();
+
+        public static async ValueTask<string> BuildType(
+            EdgeDBClient client, TypeNode node, TypeModifier modifier,
+            string outputPath,
+            bool shouldGenerate = true, bool allowGenerics = false, string? genericName = null)
+        {
+            var name = node.IsGeneric
+                ? allowGenerics && genericName is not null ? genericName : "object"
+                : node.DotnetType is null && node.RequiresGeneration && shouldGenerate
+                    ? await GenerateType(client, node, outputPath)
+                    : node.ToString() ?? "object";
+
+            return modifier switch
+            {
+                TypeModifier.OptionalType => $"{name}?",
+                TypeModifier.SingletonType => name,
+                TypeModifier.SetOfType => $"IEnumerable<{name}>",
+                _ => name
+            };
+        }
+
+        public static async ValueTask<string> GenerateType(EdgeDBClient client, TypeNode node, string outputPath)
+        {
+            var edgedbType = (await QueryBuilder.Select<Models.Type>().Filter(x => x.Name == node.EdgeDBName).ExecuteAsync(client!)).FirstOrDefault();
+
+            if (edgedbType is null)
+                throw new Exception($"Failde to find type {node.EdgeDBName}");
+
+            if (TypeUtils.GeneratedTypes.TryGetValue(edgedbType.Name, out var dotnetType))
+                return dotnetType;
+
+            var meta = await edgedbType.GetMetaInfoAsync(client!);
+            var writer = new CodeWriter();
+            string typeName = "";
+
+            using (_ = writer.BeginScope("namespace EdgeDB"))
+            {
+                switch (meta.Type)
+                {
+                    case MetaInfoType.Object:
+                        {
+
+                        }
+                        break;
+                    case MetaInfoType.Enum:
+                        {
+                            node.IsEnum = true;
+                            var moduleMatch = Regex.Match(edgedbType.Name, @"(.+)::(.*?)$");
+                            writer.AppendLine($"[EdgeDBType(ModuleName = \"{moduleMatch.Groups[1].Value}\")]");
+                            typeName = moduleMatch.Groups[2].Value!;
+                            using (_ = writer.BeginScope($"public enum {typeName}"))
+                            {
+                                foreach (var value in meta.EnumValues!)
+                                {
+                                    writer.AppendLine($"{value},");
+                                }
+                            }
+                        }
+                        break;
+                    default:
+                        throw new Exception($"Unknown stdlib builder for type {edgedbType.Id}");
+                }
+            }
+
+            File.WriteAllText(Path.Combine(outputPath, $"{typeName}.g.cs"), writer.ToString());
+            GeneratedTypes.Add(edgedbType.Name, typeName);
+            return typeName;
+        }
 
         public static bool TryGetType(string t, [MaybeNullWhen(false)] out TypeNode type)
         {
@@ -165,10 +239,10 @@ namespace EdgeDB.StandardLibGenerator
                     return new TypeNode(m.Groups[2].Value, type.DotnetType, m.Groups[1].Value, type.IsGeneric, type.Children);
                 });
 
-                if (wrapperType is null || innerTypes.Any(x => !x.HasValue))
+                if (wrapperType is null || innerTypes.Any(x => x is null))
                     throw new Exception($"Type {t} not found");
 
-                type = new(t, wrapperType, false, innerTypes.Select(x => x!.Value).ToArray());
+                type = new(t, wrapperType, false, innerTypes.ToArray()!);
             }
 
             return true;

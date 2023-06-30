@@ -11,15 +11,12 @@
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <WarningLevel>5</WarningLevel>
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="Translators\Methods\Generated\**" />
-    <EmbeddedResource Remove="Translators\Methods\Generated\**" />
-    <None Remove="Translators\Methods\Generated\**" />
-  </ItemGroup>
+  
   <ItemGroup>
     <ProjectReference Include="..\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="stdlib\" />
+    <Folder Include="Translators\Methods\Generated\" />
   </ItemGroup>
 </Project>

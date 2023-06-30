@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -27,12 +27,11 @@ namespace EdgeDB.Translators.Expressions
                 return $"{(expression.NodeType is ExpressionType.Equal ? "not exists" : "exists")} {(right == "{}" ? left : right)}";
             }
 
-            // Try to get a IEdgeQLOperator for the given binary operator
-            if (!TryGetExpressionOperator(expression.NodeType, out var op))
+            // try to build an operator for the given binary operator
+            if (!Grammar.TryBuildOperator(expression.NodeType, out var result, left, right))
                 throw new NotSupportedException($"Failed to find operator for node type {expression.NodeType}");
 
-            // build the operator
-            return op.Build(left, right);
+            return result;
         }
     }
 }

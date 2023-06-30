@@ -1,4 +1,4 @@
-﻿using EdgeDB.Operators;
+using EdgeDB.Operators;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +9,13 @@ namespace EdgeDB
 {
     public sealed partial class EdgeQL
     {
+        /// <summary>
+        ///     A function that represents the EdgeQL version of: <code>count(<paramref name="a"/>)</code>
+        /// </summary>
+        [EquivalentOperator(typeof(EdgeDB.Operators.SetsCount))]
+        public static long Count<TType>(EdgeDB.Interfaces.IMultiCardinalityExecutable<TType> a) { return default!; }
+
+
         public static JsonReferenceVariable<T> AsJson<T>(T value)
             => new JsonReferenceVariable<T>(value);
 
