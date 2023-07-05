@@ -83,11 +83,7 @@ namespace EdgeDB
         private static readonly ConcurrentDictionary<Type, ITypeArgumentBuilder> _builders = new();
 
         public static bool IsValidArgumentType(Type type)
-            => _builders.ContainsKey(type) ||
-                (
-                    type.GetCustomAttributes(typeof(CompilerGeneratedAttribute), false).Length > 0 &&
-                    type.FullName!.Contains("AnonymousType")
-                );
+            => _builders.ContainsKey(type) || type.IsAnonymousType();
 
         [return: NotNullIfNotNull(nameof(value))]
         public static IDictionary<string, object?>? CreateArguments(Type type, object? value)
