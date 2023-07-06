@@ -1,5 +1,5 @@
-using EdgeDB.Binary;
 using EdgeDB.Binary.Packets;
+using EdgeDB.Binary.Protocol;
 using System;
 using System.Collections.Generic;
 using System.Linq;

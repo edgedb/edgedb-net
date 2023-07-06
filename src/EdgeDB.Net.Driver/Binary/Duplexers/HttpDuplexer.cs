@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Protocol;
 using EdgeDB.Utils;
 using System;
 using System.Buffers;

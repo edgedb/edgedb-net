@@ -24,6 +24,13 @@ namespace EdgeDB
             return codec.Deserialize(ref reader, client.CodecContext);
         }
 
+        public static object? Deserialize(this ICodec codec, EdgeDBBinaryClient client, in ReadOnlyMemory<byte> buffer)
+        {
+            var reader = new PacketReader(buffer.Span);
+            return codec.Deserialize(ref reader, client.CodecContext);
+        }
+
+
 
         public static ReadOnlyMemory<byte> Serialize(this ICodec codec, EdgeDBBinaryClient client, object? value)
         {
@@ -43,6 +50,12 @@ namespace EdgeDB
         public static T? Deserialize<T>(this ICodec<T> codec, EdgeDBBinaryClient client, Span<byte> buffer)
         {
             var reader = new PacketReader(buffer);
+            return codec.Deserialize(ref reader, client.CodecContext);
+        }
+
+        public static T? Deserialize<T>(this ICodec<T> codec, EdgeDBBinaryClient client, in ReadOnlyMemory<byte> buffer)
+        {
+            var reader = new PacketReader(buffer.Span);
             return codec.Deserialize(ref reader, client.CodecContext);
         }
 

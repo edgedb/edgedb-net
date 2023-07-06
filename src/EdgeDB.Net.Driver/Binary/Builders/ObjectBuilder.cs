@@ -14,7 +14,7 @@ namespace EdgeDB
         private static readonly Dictionary<int, Guid> _codecVisitorStateTable = new();
         private static readonly object _visitorLock = new();
 
-        public static TType? BuildResult<TType>(EdgeDBBinaryClient client, ICodec codec, ref Data data)
+        public static TType? BuildResult<TType>(EdgeDBBinaryClient client, ICodec codec, in ReadOnlyMemory<byte> data)
         {
             // TO INVESTIGATE: since a codec can only be "visited" or "mutated" for
             // one type at a time, we have to ensure that the codec is ready to deserialize
@@ -48,10 +48,10 @@ namespace EdgeDB
 
             if (codec is ObjectCodec objectCodec)
             {
-                return (TType?)TypeBuilder.BuildObject(client, typeof(TType), objectCodec, ref data);
+                return (TType?)TypeBuilder.BuildObject(client, typeof(TType), objectCodec, in data);
             }
 
-            var value = codec.Deserialize(client, data.PayloadBuffer);
+            var value = codec.Deserialize(client, in data);
 
             return (TType?)ConvertTo(typeof(TType), value);
         }

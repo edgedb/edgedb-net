@@ -1,4 +1,4 @@
-using EdgeDB.Binary.Packets;
+using EdgeDB.Binary.Protocol.Common;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -17,6 +17,9 @@ namespace EdgeDB
         private const ushort ERROR_LINE_END = 0xFFF6;
         private const ushort ERROR_UTF16COLUMN_START = 0xFFF5;
         private const ushort ERROR_UTF16COLUMN_END = 0xFFF8;
+        private const ushort ERROR_DETAILS = 0x0002;
+        private const ushort ERROR_TRACEBACK = 0x0101;
+        private const ushort ERROR_HINT = 0x0001;
 
         /// <summary>
         ///     Gets the details related to the error.
@@ -44,43 +47,43 @@ namespace EdgeDB
         public ServerErrorCodes ErrorCode
             => ErrorResponse.ErrorCode;
 
-        internal ErrorResponse ErrorResponse;
+        internal IProtocolError ErrorResponse;
 
         /// <summary>
         ///     Constructs a new <see cref="EdgeDBErrorException"/> with the specified
-        ///     <see cref="Binary.Packets.ErrorResponse"/> packet.
+        ///     <see cref="IProtocolError"/>.
         /// </summary>
         /// <param name="error">
-        ///     The <see cref="Binary.Packets.ErrorResponse"/> packet which
+        ///     The <see cref="IProtocolError"/> which
         ///     caused this exception to be thrown.
         /// </param>
-        internal EdgeDBErrorException(ErrorResponse error)
+        internal EdgeDBErrorException(IProtocolError error)
             : base(error.Message,
                   typeof(ServerErrorCodes).GetField(error.ErrorCode.ToString())?.IsDefined(typeof(ShouldRetryAttribute), false) ?? false,
                   typeof(ServerErrorCodes).GetField(error.ErrorCode.ToString())?.IsDefined(typeof(ShouldReconnectAttribute), false) ?? false)
         {
-            if(error.Attributes.Any(x => x.Code == 0x0002))
-                Details = Encoding.UTF8.GetString(error.Attributes.FirstOrDefault(x => x.Code == 0x0002).Value);
+            if(error.TryGetAttribute(ERROR_DETAILS, out var kv))
+                Details = Encoding.UTF8.GetString(kv.Value);
 
-            if (error.Attributes.Any(x => x.Code == 0x0101))
-                ServerTraceBack = Encoding.UTF8.GetString(error.Attributes.FirstOrDefault(x => x.Code == 0x0101).Value);
+            if (error.TryGetAttribute(ERROR_TRACEBACK, out kv))
+                ServerTraceBack = Encoding.UTF8.GetString(kv.Value);
 
-            if (error.Attributes.Any(x => x.Code == 0x0001))
-                Hint = Encoding.UTF8.GetString(error.Attributes.FirstOrDefault(x => x.Code == 0x0001).Value);
+            if (error.TryGetAttribute(ERROR_HINT, out kv))
+                Hint = Encoding.UTF8.GetString(kv.Value);
 
             ErrorResponse = error;
         }
 
         /// <summary>
         ///     Constructs a new <see cref="EdgeDBErrorException"/> with the specified
-        ///     <see cref="Binary.Packets.ErrorResponse"/> packet and query string.
+        ///     <see cref="IProtocolError"/> and query string.
         /// </summary>
         /// <param name="error">
-        ///     The <see cref="Binary.Packets.ErrorResponse"/> packet which
+        ///     The <see cref="IProtocolError"/> which
         ///     caused this exception to be thrown.
         /// </param>
         /// <param name="query">The query that caused this error to be thrown.</param>
-        internal EdgeDBErrorException(ErrorResponse error, string? query)
+        internal EdgeDBErrorException(IProtocolError error, string? query)
             : this(error)
         {
             Query = query;

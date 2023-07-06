@@ -1,5 +1,5 @@
-using EdgeDB.Binary;
 using EdgeDB.Binary.Packets;
+using EdgeDB.Binary.Protocol;
 using EdgeDB.Utils;
 using System.Buffers;
 using System.Buffers.Binary;
@@ -135,7 +135,18 @@ namespace EdgeDB.Binary
 
                 _client.Logger.MessageReceived(_client.ClientId, header.Type, buffer.Length);
 
-                var packet = PacketSerializer.DeserializePacket(header.Type, ref buffer, header.Length, _client);
+                var packetFactory = _client.ProtocolProvider.GetPacketFactory(header.Type);
+
+                if(packetFactory is null)
+                {
+                    // unknow/unsupported packet
+                    _client.Logger.UnknownPacket($"{header.Type}{{0x{(byte)header.Type}}}:{header.Length}");
+
+                    await DisconnectInternalAsync();
+                    return null;
+                }
+
+                var packet = PacketSerializer.DeserializePacket(in packetFactory, in buffer);
 
                 // check for idle timeout
                 if(packet is ErrorResponse err && err.ErrorCode == ServerErrorCodes.IdleSessionTimeoutError)

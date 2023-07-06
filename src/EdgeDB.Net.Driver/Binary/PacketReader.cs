@@ -32,20 +32,20 @@ namespace EdgeDB.Binary
             }
         }
 
-        internal Span<byte> Data;
+        internal ReadOnlySpan<byte> Data;
         
         internal int Position;
 
         private int _limit;
 
-        public PacketReader(Span<byte> bytes, int position = 0)
+        public PacketReader(ReadOnlySpan<byte> bytes, int position = 0)
         {
             Data = bytes;
             Position = position;
             _limit = Data.Length;
         }
 
-        public PacketReader(ref Span<byte> bytes, int position = 0)
+        public PacketReader(in ReadOnlySpan<byte> bytes, int position = 0)
         {
             Data = bytes;
             Position = position;
@@ -64,7 +64,7 @@ namespace EdgeDB.Binary
         {
             VerifyInLimits(sizeof(T));
 
-            var ret = Unsafe.Read<T>(Unsafe.AsPointer(ref Data[Position]));
+            var ret = Unsafe.Read<T>(Unsafe.AsPointer(ref Unsafe.AsRef(in Data[Position])));
 
             BinaryUtils.CorrectEndianness(ref ret);
             Position += sizeof(T);
@@ -206,7 +206,7 @@ namespace EdgeDB.Binary
             return buffer.ToArray();
         }
 
-        public void ReadBytes(int length, out Span<byte> buff)
+        public void ReadBytes(int length, out ReadOnlySpan<byte> buff)
         {
             VerifyInLimits(length);
             buff = Data[Position..(Position + length)];
@@ -215,7 +215,6 @@ namespace EdgeDB.Binary
 
         public void Dispose()
         {
-            Data.Clear();
         }
     }
 }
