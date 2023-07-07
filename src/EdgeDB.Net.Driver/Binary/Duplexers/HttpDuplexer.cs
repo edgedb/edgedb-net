@@ -1,4 +1,5 @@
 using EdgeDB.Binary.Protocol;
+using EdgeDB.Binary.Protocol.Common;
 using EdgeDB.Utils;
 using System;
 using System.Buffers;
@@ -19,6 +20,9 @@ namespace EdgeDB.Binary.Duplexers
 
         public CancellationToken DisconnectToken
             => default;
+
+        public IProtocolProvider ProtocolProvider
+            => _client.ProtocolProvider;
 
         private readonly EdgeDBHttpClient _client;
         private readonly Queue<IReceiveable> _packetQueue;
@@ -150,11 +154,11 @@ namespace EdgeDB.Binary.Duplexers
             {
                 totalRead += await stream.ReadAsync(headerBuffer, token).ConfigureAwait(false);
 
-                StreamDuplexer.PacketHeader header;
+                PacketHeader header;
 
                 unsafe
                 {
-                    header = *(StreamDuplexer.PacketHeader*)pin.Pointer;
+                    header = *(PacketHeader*)pin.Pointer;
                 }
 
                 header.CorrectLength();
@@ -164,7 +168,17 @@ namespace EdgeDB.Binary.Duplexers
 
                 totalRead += await stream.ReadAsync(buffer, token).ConfigureAwait(false);
 
-                var packet = PacketSerializer.DeserializePacket(header.Type, ref buffer, header.Length, _client);
+                var packetFactory = ProtocolProvider.GetPacketFactory(header.Type);
+
+                if (packetFactory is null)
+                {
+                    // unknow/unsupported packet
+                    _client.Logger.UnknownPacket($"{header.Type}{{0x{(byte)header.Type}}}:{header.Length}");
+
+                    throw new UnexpectedMessageException($"Unknown/unsupported message type {header.Type}");
+                }
+
+                var packet = PacketSerializer.DeserializePacket(in packetFactory, in buffer);
 
                 if (packet is null)
                     throw new EdgeDBException($"Failed to deserialize packet type {header.Type}");

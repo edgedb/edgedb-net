@@ -26,13 +26,13 @@ namespace EdgeDB
         private int _pos;
 
         internal ObjectEnumerator(
-            ref Span<byte> data,
+            in ReadOnlySpan<byte> data,
             int position,
             string[] names,
             ICodec[] codecs,
             CodecContext context)
         {
-            Reader = new PacketReader(ref data, position);
+            Reader = new PacketReader(in data, position);
             Codecs = codecs;
             _names = names;
             _pos = 0;
@@ -94,7 +94,7 @@ namespace EdgeDB
 
             Reader.ReadBytes(length, out var buff);
 
-            var innerReader = new PacketReader(ref buff);
+            var innerReader = new PacketReader(in buff);
             name = _names[_pos];
             var codec = Codecs[_pos];
 

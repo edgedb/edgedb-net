@@ -1,4 +1,3 @@
-using EdgeDB.Binary.Packets;
 using EdgeDB.Binary.Codecs;
 using System.Collections;
 using System.Collections.Concurrent;

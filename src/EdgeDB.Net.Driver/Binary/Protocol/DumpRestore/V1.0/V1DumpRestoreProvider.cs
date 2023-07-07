@@ -1,8 +1,12 @@
 using EdgeDB.Binary.Protocol.V1._0.Packets;
-using EdgeDB.Dumps;
+using EdgeDB.Utils;
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.Arm;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -32,9 +36,38 @@ namespace EdgeDB.Binary.Protocol.DumpRestore.V1._0
 
         private readonly ProtocolVersion _version = (1, 0);
 
-        public Task DumpDatabaseAsync(EdgeDBBinaryClient client, Stream stream, CancellationToken token = default(CancellationToken))
+        public async Task DumpDatabaseAsync(EdgeDBBinaryClient client, Stream stream, CancellationToken token = default(CancellationToken))
         {
+            using var cmdLock = await client.AquireCommandLockAsync(token).ConfigureAwait(false);
 
+            try
+            {
+                var state = new DumpState(stream);
+
+                await foreach (var result in client.Duplexer.DuplexAndSyncAsync(new Dump(), token))
+                {
+                    switch (result.Packet)
+                    {
+                        case ReadyForCommand:
+                            result.Finish();
+                            break;
+                        case DumpHeader dumpHeader:
+                            await state.WriteHeaderAsync(in dumpHeader);
+                            break;
+                        case DumpBlock block:
+                            await state.WriteBlockAsync(in block);
+                            break;
+                        case ErrorResponse error:
+                            {
+                                throw new EdgeDBErrorException(error);
+                            }
+                    }
+                }
+            }
+            catch (Exception x) when (x is OperationCanceledException or TaskCanceledException)
+            {
+                throw new TimeoutException("Database dump timed out", x);
+            }
         }
 
         public async Task<string> RestoreDatabaseAsync(EdgeDBBinaryClient client, Stream stream, CancellationToken token)
@@ -87,66 +120,31 @@ namespace EdgeDB.Binary.Protocol.DumpRestore.V1._0
                         : complete.Status;
         }
 
-        private static byte[] Version
-            => BitConverter.GetBytes((long)1).Reverse().ToArray();
-
-        public static void WriteDumpHeader(ref PacketWriter writer, in DumpHeader header)
-        {
-            writer.Write('H');
-            writer.Write(header.Hash.ToArray());
-            writer.Write(header.Length);
-            writer.Write(header.Raw);
-        }
-
-        public void WriteDumpBlocks(ref PacketWriter writer, DumpBlock[] blocks)
-        {
-            for (int i = 0; i != blocks.Length; i++)
-            {
-                ref var block = ref blocks[i];
-
-                writer.Write('D');
-                writer.Write(block.HashBuffer);
-                writer.Write(block.Length);
-                writer.Write(block.Raw);
-            }
-        }
-
-        public static (Restore Restore, IEnumerable<RestoreBlock> Blocks) ReadDatabaseDump(Stream stream)
+        public unsafe (Restore Restore, IEnumerable<RestoreBlock> Blocks) ReadDatabaseDump(Stream stream)
         {
             if (!stream.CanRead)
                 throw new ArgumentException($"Cannot read from {nameof(stream)}");
 
             // read file format
-            var format = new byte[DUMP_FILE_FORMAT_LENGTH];
-            ThrowIfEndOfStream(stream.Read(format) == DUMP_FILE_FORMAT_LENGTH);
+            Span<byte> formatBuffer = stackalloc byte[DUMP_FILE_FORMAT_LENGTH];
 
-            if (!format.SequenceEqual(DUMP_FILE_FORMAT_BLOB))
+            ThrowIfEndOfStream(stream.Read(formatBuffer) == DUMP_FILE_FORMAT_LENGTH);
+
+            if (!formatBuffer.SequenceEqual(DUMP_FILE_FORMAT_BLOB))
                 throw new FormatException("Format of stream does not match the edgedb dump format");
 
             Restore? restore = null;
             List<RestoreBlock> blocks = new();
 
+            long version = 0;
 
-            // TODO: buffered reads
-            Span<byte> buff;
-            using (var ms = new MemoryStream())
-            {
-                stream.CopyTo(ms);
+            BinaryUtils.ReadPrimitive(stream, ref version);
 
-                if (ms.TryGetBuffer(out var arr))
-                    buff = arr;
-                else
-                    throw new EdgeDBException("Failed to get buffer from the stream");
-            }
-
-            var reader = new PacketReader(ref buff);
-
-            var version = reader.ReadInt64();
-
-            if (version > DumpWriter.DumpVersion)
+            
+            if (version > _version.Major)
                 throw new ArgumentException($"Unsupported dump version {version}");
 
-            var header = ReadPacket(ref reader);
+            var header = ReadPacket(stream);
 
             if (header is not DumpHeader dumpHeader)
                 throw new FormatException($"Expected dump header but got {header?.Type}");
@@ -158,7 +156,7 @@ namespace EdgeDB.Binary.Protocol.DumpRestore.V1._0
 
             while (stream.Position < stream.Length)
             {
-                var packet = ReadPacket(ref reader);
+                var packet = ReadPacket(stream);
 
                 if (packet is not DumpBlock dumpBlock)
                     throw new FormatException($"Expected dump block but got {header?.Type}");
@@ -172,31 +170,35 @@ namespace EdgeDB.Binary.Protocol.DumpRestore.V1._0
             return (restore!, blocks);
         }
 
-        private static IReceiveable ReadPacket(ref PacketReader reader)
+        private unsafe static IReceiveable ReadPacket(Stream stream)
         {
-            var type = reader.ReadChar();
+            scoped Span<byte> headerBuffer = stackalloc byte[sizeof(DumpSectionHeader)];
 
-            // read hash
-            reader.ReadBytes(20, out var hash);
+            stream.Read(headerBuffer);
 
-            var length = (int)reader.ReadUInt32();
+            ref var header = ref Unsafe.As<byte, DumpSectionHeader>(ref headerBuffer[0]);
 
-            reader.ReadBytes(length, out var packetData);
+            BinaryUtils.CorrectEndianness(ref header.Length);
+
+            // read packet data
+            var data = new byte[header.Length];
+
+            stream.Read(data);
 
             // check hash
-            using (var alg = SHA1.Create())
+            using(var alg = SHA1.Create())
             {
-                if (!alg.ComputeHash(packetData.ToArray()).SequenceEqual(hash.ToArray()))
+                if(!alg.ComputeHash(data).SequenceEqual(header.Hash.ToArray()))
                     throw new ArgumentException("Hash did not match");
             }
 
-            var innerReader = new PacketReader(ref packetData);
+            var reader = new PacketReader(data);
 
-            return type switch
+            return header.Type switch
             {
-                'H' => new DumpHeader(ref innerReader, length),
-                'D' => new DumpBlock(ref innerReader, length),
-                _ => throw new ArgumentException($"Unknown packet format {type}"),
+                'H' => new DumpHeader(ref reader, in header.Length),
+                'D' => new DumpBlock(ref reader, in header.Length),
+                _ => throw new ArgumentException($"Unknown packet format {header.Type}")
             };
         }
 

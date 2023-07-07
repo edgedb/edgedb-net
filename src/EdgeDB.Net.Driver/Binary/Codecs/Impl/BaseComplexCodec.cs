@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Protocol;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -95,7 +96,7 @@ namespace EdgeDB.Binary.Codecs
             collection.Add(converter);
         }
 
-        public void BuildRuntimeCodecs()
+        public void BuildRuntimeCodecs(IProtocolProvider provider)
         {
             if (Converters is null)
                 return;
@@ -107,7 +108,7 @@ namespace EdgeDB.Binary.Codecs
             {
                 var codecType = _runtimeCodecType.MakeGenericType(typeof(T), converter.Key);
 
-                var codecs = converter.Value.Select(x => CodecBuilder.CompiledCodecCache.GetOrAdd(
+                var codecs = converter.Value.Select(x => CodecBuilder.GetProviderCache(provider).CompiledCodecCache.GetOrAdd(
                         HashCode.Combine(codecType, x, this),
                         t => (ICodec)Activator.CreateInstance(codecType, this, x)!
                     )).ToList();
@@ -121,12 +122,12 @@ namespace EdgeDB.Binary.Codecs
             }
         }
 
-        public virtual ICodec GetCodecFor(Type type)
+        public virtual ICodec GetCodecFor(IProtocolProvider provider, Type type)
         {
             if (type == typeof(T))
                 return this;
 
-            BuildRuntimeCodecs();
+            BuildRuntimeCodecs(provider);
 
             ICodec? codec;
 

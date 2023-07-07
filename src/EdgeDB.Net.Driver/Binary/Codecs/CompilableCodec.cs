@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Protocol;
 using System;
 
 namespace EdgeDB.Binary.Codecs
@@ -18,7 +19,7 @@ namespace EdgeDB.Binary.Codecs
         }
 
         // to avoid state changes to this compilable, pass in the inner codec post-walk.
-        public ICodec Compile(Type type, ICodec? innerCodec = null)
+        public ICodec Compile(IProtocolProvider provider, Type type, ICodec? innerCodec = null)
         {
             innerCodec ??= InnerCodec;
 
@@ -26,13 +27,13 @@ namespace EdgeDB.Binary.Codecs
 
             var cacheKey = HashCode.Combine(type, genType, _id);
 
-            return CodecBuilder.CompiledCodecCache.GetOrAdd(cacheKey, (k) =>
+            return CodecBuilder.GetProviderCache(provider).CompiledCodecCache.GetOrAdd(cacheKey, (k) =>
             {
                 var codec = (ICodec)Activator.CreateInstance(genType, innerCodec)!;
 
                 if(codec is IComplexCodec complex)
                 {
-                    complex.BuildRuntimeCodecs();
+                    complex.BuildRuntimeCodecs(provider);
                 }
 
                 return codec;

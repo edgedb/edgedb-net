@@ -11,6 +11,13 @@ namespace EdgeDB.Utils
 {
     internal sealed unsafe class BinaryUtils
     {
+        public static unsafe void ReadPrimitive<T>(Stream stream, ref T target)
+            where T : unmanaged
+        {
+            stream.Read(new(Unsafe.AsPointer(ref target), sizeof(T)));
+            CorrectEndianness(ref target);
+        }
+
         internal static int SizeOfString(string? str)
             => str is null ? 4 : Encoding.UTF8.GetByteCount(str) + 4;
         internal static int SizeOfByteArray(byte[]? arr)

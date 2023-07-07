@@ -68,23 +68,11 @@ namespace EdgeDB.Binary
                 .Select(x => (IScalarCodec)Activator.CreateInstance(x)!)
             );
 
-            foreach(var complexCodecs in scalars.Where(x => x is IComplexCodec).Cast<IComplexCodec>().ToArray())
-            {
-                complexCodecs.BuildRuntimeCodecs();
-
-                foreach(var scalarComplex in complexCodecs.RuntimeCodecs
-                    .Where(x => x is IScalarCodec)
-                    .Cast<IScalarCodec>())
-                {
-                    _scalarCodecs.Add(scalarComplex);
-                }
-            }
-
             _scalarCodecMap = new(scalars.ToDictionary(x => x.ConverterType, x => x));
             _scalarCodecs.AddRange(scalars);
         }
 
-        private static CodecCache GetProviderCache(IProtocolProvider provider)
+        public static CodecCache GetProviderCache(IProtocolProvider provider)
             => CodecCaches.GetOrAdd(provider, p => new());
 
         public static bool ContainsScalarCodec(Type type)

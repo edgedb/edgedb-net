@@ -1,4 +1,4 @@
-﻿using EdgeDB.DataTypes;
+using EdgeDB.DataTypes;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -15,8 +15,6 @@ namespace EdgeDB.ExampleApp.Examples
         public async Task ExecuteAsync(EdgeDBClient client)
         {
             var range = await client.QuerySingleAsync<Range<long>>("select range(1, 10)");
-            
-            
         }
     }
 }

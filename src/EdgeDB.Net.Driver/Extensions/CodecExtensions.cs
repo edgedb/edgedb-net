@@ -6,13 +6,13 @@ namespace EdgeDB
     internal static class CodecExtensions
     {
         #region ICodec
-        public static object? Deserialize(this ICodec codec, EdgeDBBinaryClient client, Span<byte> buffer)
+        public static object? Deserialize(this ICodec codec, EdgeDBBinaryClient client, in ReadOnlySpan<byte> buffer)
         {
             var reader = new PacketReader(buffer);
             return codec.Deserialize(ref reader, client.CodecContext);
         }
 
-        public static object? Deserialize(this ICodec codec, CodecContext context, Span<byte> buffer)
+        public static object? Deserialize(this ICodec codec, CodecContext context, in ReadOnlySpan<byte> buffer)
         {
             var reader = new PacketReader(buffer);
             return codec.Deserialize(ref reader, context);
@@ -47,7 +47,7 @@ namespace EdgeDB
             return codec.Deserialize(ref reader, client.CodecContext);
         }
 
-        public static T? Deserialize<T>(this ICodec<T> codec, EdgeDBBinaryClient client, Span<byte> buffer)
+        public static T? Deserialize<T>(this ICodec<T> codec, EdgeDBBinaryClient client, in ReadOnlySpan<byte> buffer)
         {
             var reader = new PacketReader(buffer);
             return codec.Deserialize(ref reader, client.CodecContext);
@@ -59,7 +59,7 @@ namespace EdgeDB
             return codec.Deserialize(ref reader, client.CodecContext);
         }
 
-        public static T? Deserialize<T>(this ICodec<T> codec, CodecContext context, Span<byte> buffer)
+        public static T? Deserialize<T>(this ICodec<T> codec, CodecContext context, in ReadOnlySpan<byte> buffer)
         {
             var reader = new PacketReader(buffer);
             return codec.Deserialize(ref reader, context);

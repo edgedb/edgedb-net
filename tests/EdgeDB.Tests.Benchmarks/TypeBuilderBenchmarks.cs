@@ -1,8 +1,8 @@
 using BenchmarkDotNet.Attributes;
-using EdgeDB.Binary.Packets;
 using EdgeDB.Binary.Codecs;
 using EdgeDB.Binary;
 using Microsoft.Extensions.Logging.Abstractions;
+using EdgeDB.Binary.Protocol.V1._0.Packets;
 
 namespace EdgeDB.Tests.Benchmarks
 {
@@ -44,7 +44,7 @@ namespace EdgeDB.Tests.Benchmarks
         [Benchmark]
         public Person? DeserializePersonNew()
         {
-            return (Person?)TypeBuilder.BuildObject(client, typeof(Person), Codec, ref Data);
+            return (Person?)TypeBuilder.BuildObject(client, typeof(Person), Codec, Data.PayloadBuffer);
         }
     }
 }

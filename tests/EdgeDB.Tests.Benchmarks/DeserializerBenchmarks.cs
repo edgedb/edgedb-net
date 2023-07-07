@@ -53,11 +53,14 @@ namespace EdgeDB.Tests.Benchmarks
         [ParamsSource(nameof(ValuesForPacket))]
         public (ServerMessageType Type, byte[] Data) Packet { get; set; }
 
-        [Benchmark]
-        public IReceiveable? Deserialize()
-        {
-            var data = Packet.Data.AsMemory();
-            return PacketSerializer.DeserializePacket(Packet.Type, ref data, Packet.Data.Length, null!); // client as null is OK as its only used for logging unknown packet
-        }
+        //[Benchmark]
+        //public IReceiveable? Deserialize()
+        //{
+        //    var data = Packet.Data.AsMemory();
+
+        //    var factory = IProtocolProvider.
+
+        //    return PacketSerializer.DeserializePacket(Packet.Type, ref data, Packet.Data.Length, null!); // client as null is OK as its only used for logging unknown packet
+        //}
     }
 }

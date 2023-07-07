@@ -15,17 +15,10 @@ namespace EdgeDB.Binary.Codecs
         public ICodec[] InnerCodecs;
         public readonly string[] FieldNames;
 
-        internal SparceObjectCodec(InputShapeDescriptor descriptor, List<ICodec> codecs)
+        public SparceObjectCodec(ICodec[] innerCodecs, string[] fieldNames)
         {
-            InnerCodecs = new ICodec[descriptor.Shapes.Length];
-            FieldNames = new string[descriptor.Shapes.Length];
-
-            for (int i = 0; i != descriptor.Shapes.Length; i++)
-            {
-                var shape = descriptor.Shapes[i];
-                InnerCodecs[i] = codecs[shape.TypePos];
-                FieldNames[i] = shape.Name;
-            }
+            FieldNames = fieldNames;
+            InnerCodecs = innerCodecs;
         }
 
         public override object? Deserialize(ref PacketReader reader, CodecContext context)
@@ -57,7 +50,7 @@ namespace EdgeDB.Binary.Codecs
 
                 object? value;
 
-                value = InnerCodecs[i].Deserialize(context, innerData);
+                value = InnerCodecs[i].Deserialize(context, in innerData);
 
                 dataDictionary.Add(elementName, value);
             }

@@ -45,7 +45,6 @@ namespace EdgeDB.Binary.Protocol.V1._0
         private ReadOnlyMemory<byte> _serverKey;
         private Dictionary<string, object?> _rawServerConfig = new();
 
-
         public V1ProtocolProvider(EdgeDBBinaryClient client)
         {
             _client = client;
@@ -306,7 +305,7 @@ namespace EdgeDB.Binary.Protocol.V1._0
                             innerCodecs[i] = getRelativeCodec(element.TypePos);
                         }
 
-                        return new ObjectCodec(innerCodecs, names);
+                        return new SparceObjectCodec(innerCodecs, names);
                     }
                 case TupleTypeDescriptor tuple:
                     {
@@ -615,5 +614,10 @@ namespace EdgeDB.Binary.Protocol.V1._0
                 _client.UpdateTransactionState(rfc.Value.TransactionState);
             }
         }
+
+        public Sendable Terminate()
+            => new Terminate();
+        public Sendable Sync()
+            => new Sync();
     }
 }

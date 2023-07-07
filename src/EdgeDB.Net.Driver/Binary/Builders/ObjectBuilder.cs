@@ -1,4 +1,3 @@
-using EdgeDB.Binary.Packets;
 using EdgeDB.Binary.Codecs;
 using EdgeDB.DataTypes;
 using System.Collections;
@@ -11,7 +10,7 @@ namespace EdgeDB
 {
     internal sealed class ObjectBuilder
     {
-        private static readonly Dictionary<int, Guid> _codecVisitorStateTable = new();
+        private static readonly Dictionary<Type, (int Version, ICodec Codec)> _codecVisitorStateTable = new();
         private static readonly object _visitorLock = new();
 
         public static TType? BuildResult<TType>(EdgeDBBinaryClient client, ICodec codec, in ReadOnlyMemory<byte> data)
@@ -20,23 +19,36 @@ namespace EdgeDB
             // one type at a time, we have to ensure that the codec is ready to deserialize
             // TType, we can store the states of the codecs here for building result
             // to achieve this.
+            var typeCodec = codec;
+
             bool wasSkipped = false;
             lock(_visitorLock)
             {
-                // if TType is object, we *have* to walk since external factors (such as config changes) can influence
-                // the overall behaviour of the type visitor, therefor we cant guarantee the cached state is correct. 
-                wasSkipped = typeof(TType) != typeof(object) && _codecVisitorStateTable.TryGetValue(codec.GetHashCode(), out var typeId) && typeId == typeof(TType).GUID;
-
-                if (!wasSkipped)
+                // Since the supplied codec could be a template, we walk the codec and cache based on the supplied type
+                // if the codec hasn't been walked OR the result type is an object we walk it and cache it if its not an
+                // object codec.
+                if (typeof(TType) != typeof(object) && _codecVisitorStateTable.TryGetValue(typeof(TType), out var info))
                 {
+                    if(codec.GetHashCode() == info.Version)
+                    {
+                        typeCodec = info.Codec;
+                        wasSkipped = true;
+                    }
+                }
+                else
+                {
+                    var version = codec.GetHashCode();
+
                     var visitor = new TypeVisitor(client);
 
                     visitor.SetTargetType(typeof(TType));
 
                     visitor.Visit(ref codec);
 
-                    if(typeof(TType) != typeof(object))
-                        _codecVisitorStateTable[codec.GetHashCode()] = typeof(TType).GUID;
+                    if (typeof(TType) != typeof(object))
+                    _codecVisitorStateTable[typeof(TType)] = (version, codec);
+
+                    typeCodec = codec;
                 }
             }
 
@@ -46,12 +58,12 @@ namespace EdgeDB
             }
             
 
-            if (codec is ObjectCodec objectCodec)
+            if (typeCodec is ObjectCodec objectCodec)
             {
                 return (TType?)TypeBuilder.BuildObject(client, typeof(TType), objectCodec, in data);
             }
 
-            var value = codec.Deserialize(client, in data);
+            var value = typeCodec.Deserialize(client, in data);
 
             return (TType?)ConvertTo(typeof(TType), value);
         }

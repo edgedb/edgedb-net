@@ -1,4 +1,3 @@
-using EdgeDB.Binary.Packets;
 using EdgeDB.Binary.Protocol;
 using System;
 using System.Collections.Generic;
@@ -10,6 +9,7 @@ namespace EdgeDB.Binary
 {
     internal interface IBinaryDuplexer : IDisposable
     {
+        IProtocolProvider ProtocolProvider { get; }
         bool IsConnected { get; }
 
         CancellationToken DisconnectToken { get; }
@@ -33,7 +33,7 @@ namespace EdgeDB.Binary
 
         async Task<IReceiveable?> DuplexAndSyncSingleAsync(Sendable packet, CancellationToken token = default)
         {
-            await SendAsync(token, packet, new Sync()).ConfigureAwait(false);
+            await SendAsync(token, packet, ProtocolProvider.Sync()).ConfigureAwait(false);
             return await ReadNextAsync(token).ConfigureAwait(false);
         }
 
@@ -41,7 +41,7 @@ namespace EdgeDB.Binary
             => DuplexAsync(token, packet);
 
         IAsyncEnumerable<DuplexResult> DuplexAndSyncAsync(Sendable packet, CancellationToken token = default)
-            => DuplexAsync(token, packet, new Sync());
+            => DuplexAsync(token, packet, ProtocolProvider.Sync());
     }
 
     internal readonly struct DuplexResult

@@ -233,9 +233,11 @@ namespace EdgeDB
 
             var array = new TResult?[result.Data.Length];
 
+            var codec = result.OutCodecInfo.Codec;
+
             for(int i = 0; i != result.Data.Length; i++)
             {
-                var obj = ObjectBuilder.BuildResult<TResult>(this, result.OutCodecInfo.Codec, in result.Data[i]);
+                var obj = ObjectBuilder.BuildResult<TResult>(this, codec, in result.Data[i]);
                 array[i] = obj;
             }
 
@@ -297,9 +299,8 @@ namespace EdgeDB
             if (result.Data.Length is > 1 or 0)
                 throw new ResultCardinalityMismatchException(Cardinality.One, result.Data.Length > 1 ? Cardinality.Many : Cardinality.AtMostOne);
 
-            var queryResult = result.Data.FirstOrDefault();
             
-            return queryResult.Length != 1
+            return result.Data.Length != 1
                 ? throw new MissingRequiredException()
                 : ObjectBuilder.BuildResult<TResult>(this, result.OutCodecInfo.Codec, in result.Data[0])!;
         }
@@ -360,9 +361,8 @@ namespace EdgeDB
         {
             if(IProtocolProvider.Providers.TryGetValue((major, minor), out var provider))
             {
-                var newProvider = provider.Factory(this);
-                IProtocolProvider.UpdateProviderFor(this, newProvider, _protocolProvider);
-                _protocolProvider = newProvider;
+                _protocolProvider = provider.Factory(this);
+                IProtocolProvider.UpdateProviderFor(this, _protocolProvider);
                 return true;
             }
 

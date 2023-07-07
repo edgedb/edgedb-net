@@ -1,5 +1,5 @@
-using EdgeDB.Binary.Packets;
 using EdgeDB.Binary.Protocol;
+using EdgeDB.Binary.Protocol.Common;
 using EdgeDB.Utils;
 using System.Buffers;
 using System.Buffers.Binary;
@@ -29,6 +29,9 @@ namespace EdgeDB.Binary
         public CancellationToken DisconnectToken
             => _disconnectTokenSource.Token;
 
+        public IProtocolProvider ProtocolProvider
+            => _client.ProtocolProvider;
+
         private readonly EdgeDBBinaryClient _client;
         private readonly AsyncEvent<Func<ValueTask>> _onDisconnected = new();
         private readonly AsyncEvent<Func<IReceiveable, ValueTask>> _onMessage = new();
@@ -44,23 +47,6 @@ namespace EdgeDB.Binary
 
         private Stream? _stream;
         private CancellationTokenSource _disconnectTokenSource;
-
-        [StructLayout(LayoutKind.Explicit, Pack = 0, Size = 5)]
-        internal struct PacketHeader
-        {
-            [FieldOffset(0)]
-            public readonly ServerMessageType Type;
-
-            [FieldOffset(1)]
-            public int Length;
-
-            public void CorrectLength()
-            {
-                BinaryUtils.CorrectEndianness(ref Length);
-                // remove the length of "Length" from the length of the packet
-                Length -= 4;
-            }
-        }
 
         public unsafe StreamDuplexer(EdgeDBBinaryClient client)
         {
@@ -90,7 +76,7 @@ namespace EdgeDB.Binary
             try
             {
                 if (IsConnected)
-                    await SendAsync(token, packets: new Terminate()).ConfigureAwait(false);
+                    await SendAsync(token, packets: _client.ProtocolProvider.Terminate()).ConfigureAwait(false);
             }
             catch (EdgeDBException) { } // assume its because the connection is closed.
 
@@ -149,7 +135,7 @@ namespace EdgeDB.Binary
                 var packet = PacketSerializer.DeserializePacket(in packetFactory, in buffer);
 
                 // check for idle timeout
-                if(packet is ErrorResponse err && err.ErrorCode == ServerErrorCodes.IdleSessionTimeoutError)
+                if(packet is IProtocolError err && err.ErrorCode == ServerErrorCodes.IdleSessionTimeoutError)
                 {
                     // all connection state needs to be reset for the client here.
                     _client.Logger.IdleDisconnect();

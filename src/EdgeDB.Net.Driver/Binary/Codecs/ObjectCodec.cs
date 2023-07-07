@@ -42,7 +42,7 @@ namespace EdgeDB.Binary.Codecs
             // This method ensures we're not copying the packet in memory again but the downside is
             // our 'reader' variable isn't kept up to data with the reader in the object enumerator.
             var enumerator = new ObjectEnumerator(
-                ref reader.Data,
+                in reader.Data,
                 reader.Position,
                 PropertyNames,
                 InnerCodecs,
@@ -73,32 +73,6 @@ namespace EdgeDB.Binary.Codecs
 
         private ConcurrentDictionary<Type, TypeInitializedObjectCodec>? _typeCodecs;
 
-        internal ObjectCodec(ObjectShapeDescriptor descriptor, List<ICodec> codecs)
-        {
-            InnerCodecs = new ICodec[descriptor.Shapes.Length];
-            PropertyNames = new string[descriptor.Shapes.Length];
-
-            for(int i = 0; i != descriptor.Shapes.Length; i++)
-            {
-                var shape = descriptor.Shapes[i];
-                InnerCodecs[i] = codecs[shape.TypePos];
-                PropertyNames[i] = shape.Name;
-            }
-        }
-
-        internal ObjectCodec(NamedTupleTypeDescriptor descriptor, List<ICodec> codecs)
-        {
-            InnerCodecs = new ICodec[descriptor.Elements.Length];
-            PropertyNames = new string[descriptor.Elements.Length];
-
-            for (int i = 0; i != descriptor.Elements.Length; i++)
-            {
-                var shape = descriptor.Elements[i];
-                InnerCodecs[i] = codecs[shape.TypePos];
-                PropertyNames[i] = shape.Name;
-            }
-        }
-
         internal ObjectCodec(ICodec[] innerCodecs, string[] propertyNames)
         {
             InnerCodecs = innerCodecs;
@@ -115,7 +89,7 @@ namespace EdgeDB.Binary.Codecs
             // This method ensures we're not copying the packet in memory again but the downside is
             // our 'reader' variable isn't kept up to data with the reader in the object enumerator.
             var enumerator = new ObjectEnumerator(
-                ref reader.Data,
+                in reader.Data,
                 reader.Position,
                 PropertyNames,
                 InnerCodecs,
