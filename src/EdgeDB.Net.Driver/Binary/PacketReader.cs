@@ -215,9 +215,5 @@ namespace EdgeDB.Binary
             buff = Data[Position..(Position + length)];
             Position += length;
         }
-
-        public void Dispose()
-        {
-        }
     }
 }

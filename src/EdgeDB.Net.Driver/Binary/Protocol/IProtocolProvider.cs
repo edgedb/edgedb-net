@@ -11,6 +11,8 @@ namespace EdgeDB.Binary.Protocol
 {
     internal delegate IReceiveable PacketReadFactory(ref PacketReader reader, in int length);
     internal delegate IProtocolProvider ProtocolProviderFactory(EdgeDBBinaryClient client);
+    internal delegate ref ICodec? RelativeCodecDelegate(in int position);
+    internal delegate ref ITypeDescriptor RelativeDescriptorDelegate(in int position);
 
     internal interface IProtocolProvider
     {
@@ -45,7 +47,7 @@ namespace EdgeDB.Binary.Protocol
 
         ITypeDescriptor GetDescriptor(ref PacketReader reader);
 
-        ICodec BuildCodec<T>(in T descriptor, Func<int, ICodec> getRelativeCodec) where T : ITypeDescriptor;
+        ICodec? BuildCodec<T>(in T descriptor, RelativeCodecDelegate getRelativeCodec, RelativeDescriptorDelegate getRelativeDescriptor) where T : ITypeDescriptor;
 
         Task SendSyncMessageAsync(CancellationToken token);
 

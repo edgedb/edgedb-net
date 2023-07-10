@@ -1,4 +1,5 @@
 using EdgeDB.Binary;
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,8 @@ namespace EdgeDB.Binary.Codecs
         public ICodec[] InnerCodecs;
         public readonly string[] FieldNames;
 
-        public SparceObjectCodec(ICodec[] innerCodecs, string[] fieldNames)
+        public SparceObjectCodec(in Guid id, ICodec[] innerCodecs, string[] fieldNames, CodecMetadata? metadata = null)
+            : base(in id, metadata)
         {
             FieldNames = fieldNames;
             InnerCodecs = innerCodecs;

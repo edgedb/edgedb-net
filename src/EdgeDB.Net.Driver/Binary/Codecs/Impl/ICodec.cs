@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,6 +16,10 @@ namespace EdgeDB.Binary.Codecs
 
     internal interface ICodec
     {
+        Guid Id { get; }
+
+        CodecMetadata? Metadata { get; }
+
         bool CanConvert(Type t);
 
         Type ConverterType { get; }

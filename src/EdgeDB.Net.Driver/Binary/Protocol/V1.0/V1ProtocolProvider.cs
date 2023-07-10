@@ -50,7 +50,7 @@ namespace EdgeDB.Binary.Protocol.V1._0
             _client = client;
         }
 
-        public PacketReadFactory? GetPacketFactory(ServerMessageType type)
+        public virtual PacketReadFactory? GetPacketFactory(ServerMessageType type)
         {
             return type switch
             {
@@ -72,7 +72,7 @@ namespace EdgeDB.Binary.Protocol.V1._0
             };
         }
 
-        public async Task<ExecuteResult> ExecuteQueryAsync(QueryParameters queryParameters, ParseResult parseResult, CancellationToken token)
+        public virtual async Task<ExecuteResult> ExecuteQueryAsync(QueryParameters queryParameters, ParseResult parseResult, CancellationToken token)
         {
             if (parseResult.InCodecInfo.Codec is not IArgumentCodec argumentCodec)
                 throw new MissingCodecException($"Cannot encode arguments, {parseResult.InCodecInfo.Codec} is not a registered argument codec");
@@ -151,7 +151,7 @@ namespace EdgeDB.Binary.Protocol.V1._0
             return new ExecuteResult(receivedData.ToArray(), parseResult.OutCodecInfo);
         }
 
-        public async Task<ParseResult> ParseQueryAsync(QueryParameters queryParameters, CancellationToken token)
+        public virtual async Task<ParseResult> ParseQueryAsync(QueryParameters queryParameters, CancellationToken token)
         {
             ErrorResponse? error = null;
             var parseAttempts = 0;
@@ -255,13 +255,13 @@ namespace EdgeDB.Binary.Protocol.V1._0
             return new ParseResult(inCodecInfo, outCodecInfo, in stateBuf);
         }
 
-        public ICodec BuildCodec<T>(in T descriptor, Func<int, ICodec> getRelativeCodec)
+        public virtual ICodec? BuildCodec<T>(in T descriptor, RelativeCodecDelegate getRelativeCodec, RelativeDescriptorDelegate getRelativeDescriptor)
             where T : ITypeDescriptor
         {
             switch (descriptor)
             {
                 case EnumerationTypeDescriptor:
-                    return CodecBuilder.GetOrCreateCodec<TextCodec>(this);
+                    return CodecBuilder.GetOrCreateCodec<TextCodec>(this, _ => new TextCodec());
                 case NamedTupleTypeDescriptor namedTuple:
                     {
                         var names = new string[namedTuple.Elements.Length];
@@ -272,10 +272,10 @@ namespace EdgeDB.Binary.Protocol.V1._0
                             var element = namedTuple.Elements[i];
 
                             names[i] = element.Name;
-                            innerCodecs[i] = getRelativeCodec(element.TypePos);
+                            innerCodecs[i] = getRelativeCodec(element.TypePos)!;
                         }
 
-                        return new ObjectCodec(innerCodecs, names);
+                        return new ObjectCodec(in namedTuple.Id, innerCodecs, names);
                     }
                 case ObjectShapeDescriptor objectShape:
                     {
@@ -287,10 +287,10 @@ namespace EdgeDB.Binary.Protocol.V1._0
                             var element = objectShape.Shapes[i];
 
                             names[i] = element.Name;
-                            innerCodecs[i] = getRelativeCodec(element.TypePos);
+                            innerCodecs[i] = getRelativeCodec(element.TypePos)!;
                         }
 
-                        return new ObjectCodec(innerCodecs, names);
+                        return new ObjectCodec(in objectShape.Id, innerCodecs, names);
                     }
                 case InputShapeDescriptor input:
                     {
@@ -302,36 +302,36 @@ namespace EdgeDB.Binary.Protocol.V1._0
                             var element = input.Shapes[i];
 
                             names[i] = element.Name;
-                            innerCodecs[i] = getRelativeCodec(element.TypePos);
+                            innerCodecs[i] = getRelativeCodec(element.TypePos)!;
                         }
 
-                        return new SparceObjectCodec(innerCodecs, names);
+                        return new SparceObjectCodec(in input.Id, innerCodecs, names);
                     }
                 case TupleTypeDescriptor tuple:
                     {
                         var innerCodecs = new ICodec[tuple.ElementTypeDescriptorsIndex.Length];
                         for (int i = 0; i != tuple.ElementTypeDescriptorsIndex.Length; i++)
-                            innerCodecs[i] = getRelativeCodec(tuple.ElementTypeDescriptorsIndex[i]);
+                            innerCodecs[i] = getRelativeCodec(tuple.ElementTypeDescriptorsIndex[i])!;
 
-                        return new TupleCodec(innerCodecs);
+                        return new TupleCodec(in tuple.Id, innerCodecs);
                     }
                 case RangeTypeDescriptor range:
                     {
-                        var innerCodec = getRelativeCodec(range.TypePos);
+                        ref var innerCodec = ref getRelativeCodec(range.TypePos)!;
 
-                        return new CompilableWrappingCodec(descriptor.Id, innerCodec, typeof(RangeCodec<>));
+                        return new CompilableWrappingCodec(in range.Id, innerCodec, typeof(RangeCodec<>));
                     }
                 case ArrayTypeDescriptor array:
                     {
-                        var innerCodec = getRelativeCodec(array.TypePos);
+                        ref var innerCodec = ref getRelativeCodec(array.TypePos)!;
 
-                        return new CompilableWrappingCodec(descriptor.Id, innerCodec, typeof(ArrayCodec<>));
+                        return new CompilableWrappingCodec(in array.Id, innerCodec, typeof(ArrayCodec<>));
                     }
                 case SetTypeDescriptor set:
                     {
-                        var innerCodec = getRelativeCodec(set.TypePos);
+                        ref var innerCodec = ref getRelativeCodec(set.TypePos)!;
 
-                        return new CompilableWrappingCodec(descriptor.Id, innerCodec, typeof(SetCodec<>));
+                        return new CompilableWrappingCodec(in set.Id, innerCodec, typeof(SetCodec<>));
                     }
                 case BaseScalarTypeDescriptor scalar:
                     throw new MissingCodecException($"Could not find the scalar type {scalar.Id}. Please file a bug report with your query that caused this error.");
@@ -376,7 +376,7 @@ namespace EdgeDB.Binary.Protocol.V1._0
             return descriptor;
         }
 
-        public Sendable Handshake()
+        public virtual Sendable Handshake()
         {
             return new ClientHandshake()
             {
@@ -417,7 +417,7 @@ namespace EdgeDB.Binary.Protocol.V1._0
             };
         }
 
-        public ValueTask ProcessAsync<T>(in T message) where T : IReceiveable
+        public virtual ValueTask ProcessAsync<T>(in T message) where T : IReceiveable
         {
             switch (message)
             {
@@ -485,7 +485,7 @@ namespace EdgeDB.Binary.Protocol.V1._0
             return ValueTask.CompletedTask;
         }
 
-        private void ParseServerSettings(ParameterStatus status)
+        protected virtual void ParseServerSettings(ParameterStatus status)
         {
             try
             {
@@ -535,7 +535,7 @@ namespace EdgeDB.Binary.Protocol.V1._0
             }
         }
 
-        private async Task StartSASLAuthenticationAsync(string method)
+        protected virtual async Task StartSASLAuthenticationAsync(string method)
         {
             Phase = ProtocolPhase.Auth;
 
@@ -600,7 +600,7 @@ namespace EdgeDB.Binary.Protocol.V1._0
             }
         }
 
-        public async Task SendSyncMessageAsync(CancellationToken token)
+        public virtual async Task SendSyncMessageAsync(CancellationToken token)
         {
             // if the current client is not connected, reconnect it
             if (!Duplexer.IsConnected)
@@ -615,9 +615,9 @@ namespace EdgeDB.Binary.Protocol.V1._0
             }
         }
 
-        public Sendable Terminate()
+        public virtual Sendable Terminate()
             => new Terminate();
-        public Sendable Sync()
+        public virtual Sendable Sync()
             => new Sync();
     }
 }

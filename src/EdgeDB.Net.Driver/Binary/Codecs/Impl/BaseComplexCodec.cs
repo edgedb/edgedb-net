@@ -1,4 +1,5 @@
 using EdgeDB.Binary.Protocol;
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -71,11 +72,12 @@ namespace EdgeDB.Binary.Codecs
 
         private readonly Type _runtimeCodecType;
 
-        public BaseComplexCodec()
-            : this(typeof(RuntimeCodec<>))
+        public BaseComplexCodec(in Guid id, CodecMetadata? metadata)
+            : this(in id, metadata, typeof(RuntimeCodec<>))
         { }
 
-        public BaseComplexCodec(Type runtimeCodecType)
+        public BaseComplexCodec(in Guid id, CodecMetadata? metadata, Type runtimeCodecType)
+            : base(in id, metadata)
         {
             _runtimeCodecType = runtimeCodecType;
             Converters = new();
@@ -159,6 +161,7 @@ namespace EdgeDB.Binary.Codecs
             public RuntimeCodec(
                 BaseComplexCodec<T> codec,
                 Converter<U> converter)
+                : base(codec.Id, codec.Metadata)
             {
                 _codec = codec;
                 _converter = converter;

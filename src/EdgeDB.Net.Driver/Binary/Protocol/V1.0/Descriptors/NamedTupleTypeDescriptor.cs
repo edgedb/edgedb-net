@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,26 +23,12 @@ namespace EdgeDB.Binary.Protocol.V1._0.Descriptors
 
             for (int i = 0; i != count; i++)
             {
-                var name = reader.ReadString();
-                var typePos = reader.ReadInt16();
-
-                elements[i] = new TupleElement
-                {
-                    Name = name,
-                    TypePos = typePos
-                };
+                elements[i] = new TupleElement(ref reader);
             }
 
             Elements = elements;
         }
 
         Guid ITypeDescriptor.Id => Id;
-    }
-
-    internal readonly struct TupleElement
-    {
-        public readonly string Name { get; init; }
-
-        public readonly short TypePos { get; init; }
     }
 }

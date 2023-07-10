@@ -49,7 +49,7 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
 
             HashBuffer = SHA1.Create().ComputeHash(Raw);
 
-            using var r = new PacketReader(rawBuff);
+            var r = new PacketReader(rawBuff);
             _attributes = r.ReadKeyValues();
         }
     }

@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using EdgeDB.DataTypes;
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,9 @@ namespace EdgeDB.Binary.Codecs
         where T : struct
     {
         public ICodec<T> _innerCodec;
-        public RangeCodec(ICodec<T> innerCodec)
+
+        public RangeCodec(in Guid id, ICodec<T> innerCodec, CodecMetadata? metadata = null)
+            : base(in id, metadata)
         {
             _innerCodec = innerCodec;
 

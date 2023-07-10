@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using EdgeDB.Utils;
 using System.Numerics;
 
@@ -6,7 +7,13 @@ namespace EdgeDB.Binary.Codecs
     internal sealed class BigIntCodec
         : BaseScalarCodec<BigInteger>
     {
+        public new static readonly Guid Id = Guid.Parse("00000000-0000-0000-0000-000000000108");
+
         public static readonly BigInteger Base = 10000;
+
+        public BigIntCodec(CodecMetadata? metadata = null)
+            : base(in Id, metadata)
+        { }
 
         public override BigInteger Deserialize(ref PacketReader reader, CodecContext context)
         {

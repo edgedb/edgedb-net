@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,18 +22,7 @@ namespace EdgeDB.Binary.Protocol.V1._0.Descriptors
             ShapeElement[] shapes = new ShapeElement[elementCount];
             for (int i = 0; i != elementCount; i++)
             {
-                var flags = (ShapeElementFlags)reader.ReadUInt32();
-                var cardinality = (Cardinality)reader.ReadByte();
-                var name = reader.ReadString();
-                var typePos = reader.ReadUInt16();
-
-                shapes[i] = new ShapeElement
-                {
-                    Flags = flags,
-                    Cardinality = cardinality,
-                    Name = name,
-                    TypePos = typePos
-                };
+                shapes[i] = new ShapeElement(ref reader);
             }
 
             Shapes = shapes;
@@ -41,18 +31,5 @@ namespace EdgeDB.Binary.Protocol.V1._0.Descriptors
         Guid ITypeDescriptor.Id => Id;
     }
 
-    internal readonly struct ShapeElement
-    {
-        public readonly ShapeElementFlags Flags { get; init; }
-        public readonly Cardinality Cardinality { get; init; }
-        public readonly string Name { get; init; }
-        public readonly ushort TypePos { get; init; }
-    }
-
-    internal enum ShapeElementFlags : uint
-    {
-        Implicit = 1 << 0,
-        LinkProperty = 1 << 1,
-        Link = 1 << 2
-    }
+    
 }

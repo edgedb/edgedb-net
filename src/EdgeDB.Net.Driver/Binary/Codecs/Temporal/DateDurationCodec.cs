@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,10 @@ namespace EdgeDB.Binary.Codecs
 {
     internal sealed class DateDurationCodec : BaseTemporalCodec<DataTypes.DateDuration>
     {
-        public DateDurationCodec()
+        public new static Guid Id = Guid.Parse("00000000-0000-0000-0000-000000000112");
+
+        public DateDurationCodec(CodecMetadata? metadata = null)
+            : base(in Id, metadata)
         {
             AddConverter(From, To);
         }

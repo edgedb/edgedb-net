@@ -1,3 +1,5 @@
+using EdgeDB.Binary.Protocol.Common.Descriptors;
+
 namespace EdgeDB.Binary.Codecs
 {
     internal sealed class ArrayCodec<T>
@@ -14,7 +16,8 @@ namespace EdgeDB.Binary.Codecs
         
         internal ICodec<T> InnerCodec;
 
-        public ArrayCodec(ICodec<T> innerCodec)
+        public ArrayCodec(in Guid id, ICodec<T> innerCodec, CodecMetadata? metadata = null)
+            : base(in id, metadata)
         {
             InnerCodec = innerCodec;
         }

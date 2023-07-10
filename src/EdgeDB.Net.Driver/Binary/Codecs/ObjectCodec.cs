@@ -1,4 +1,5 @@
 using EdgeDB.Binary;
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using System.Collections;
@@ -26,7 +27,7 @@ namespace EdgeDB.Binary.Codecs
         private readonly ObjectCodec _codec;
 
         public TypeInitializedObjectCodec(Type target, ObjectCodec codec)
-            : base(codec.InnerCodecs, codec.PropertyNames)
+            : base(codec.Id, codec.InnerCodecs, codec.PropertyNames, codec.Metadata)
         {
             if (!TypeBuilder.TryGetTypeDeserializerInfo(target, out _deserializer!))
                 throw new NoTypeConverterException($"Failed to find type deserializer for {target}");
@@ -73,7 +74,8 @@ namespace EdgeDB.Binary.Codecs
 
         private ConcurrentDictionary<Type, TypeInitializedObjectCodec>? _typeCodecs;
 
-        internal ObjectCodec(ICodec[] innerCodecs, string[] propertyNames)
+        internal ObjectCodec(in Guid id, ICodec[] innerCodecs, string[] propertyNames, CodecMetadata? metadata = null)
+            : base(in id, metadata)
         {
             InnerCodecs = innerCodecs;
             PropertyNames = propertyNames;

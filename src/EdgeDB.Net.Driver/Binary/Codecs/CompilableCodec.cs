@@ -1,4 +1,5 @@
 using EdgeDB.Binary.Protocol;
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using System;
 
 namespace EdgeDB.Binary.Codecs
@@ -6,16 +7,24 @@ namespace EdgeDB.Binary.Codecs
     internal sealed class CompilableWrappingCodec
         : ICodec
     {
+        public Guid Id
+            => _id;
+
+        public CodecMetadata? Metadata
+            => _metadata;
+
         public ICodec InnerCodec { get; }
 
         private readonly Guid _id;
         private readonly Type _rootCodecType;
+        private readonly CodecMetadata? _metadata;
 
-        public CompilableWrappingCodec(Guid id, ICodec innerCodec, Type rootCodecType)
+        public CompilableWrappingCodec(in Guid id, ICodec innerCodec, Type rootCodecType, CodecMetadata? metadata = null)
         {
             _id = id;
             InnerCodec = innerCodec;
             _rootCodecType = rootCodecType;
+            _metadata = metadata;
         }
 
         // to avoid state changes to this compilable, pass in the inner codec post-walk.
@@ -29,7 +38,7 @@ namespace EdgeDB.Binary.Codecs
 
             return CodecBuilder.GetProviderCache(provider).CompiledCodecCache.GetOrAdd(cacheKey, (k) =>
             {
-                var codec = (ICodec)Activator.CreateInstance(genType, innerCodec)!;
+                var codec = (ICodec)Activator.CreateInstance(genType, _id, innerCodec, _metadata)!;
 
                 if(codec is IComplexCodec complex)
                 {

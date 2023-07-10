@@ -25,7 +25,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Binary\Packets\" />
-    <Folder Include="Binary\Protocol\Common\" />
     <Folder Include="ContractResolvers\" />
   </ItemGroup>
 </Project>

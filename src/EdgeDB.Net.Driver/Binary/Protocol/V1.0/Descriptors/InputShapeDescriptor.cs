@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,21 +19,10 @@ namespace EdgeDB.Binary.Protocol.V1._0.Descriptors
 
             var elementCount = reader.ReadUInt16();
 
-            ShapeElement[] shapes = new ShapeElement[elementCount];
+            var shapes = new ShapeElement[elementCount];
             for (int i = 0; i != elementCount; i++)
             {
-                var flags = (ShapeElementFlags)reader.ReadUInt32();
-                var cardinality = (Cardinality)reader.ReadByte();
-                var name = reader.ReadString();
-                var typePos = reader.ReadUInt16();
-
-                shapes[i] = new ShapeElement
-                {
-                    Flags = flags,
-                    Cardinality = cardinality,
-                    Name = name,
-                    TypePos = typePos
-                };
+                shapes[i] = new ShapeElement(ref reader);
             }
 
             Shapes = shapes;

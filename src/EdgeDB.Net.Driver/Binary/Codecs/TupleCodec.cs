@@ -1,4 +1,5 @@
 using EdgeDB.Binary;
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using EdgeDB.DataTypes;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -9,8 +10,9 @@ namespace EdgeDB.Binary.Codecs
         : BaseComplexCodec<TransientTuple>, IMultiWrappingCodec, ICacheableCodec
     {
         internal ICodec[] InnerCodecs;
-        
-        public TupleCodec(ICodec[] innerCodecs)
+
+        public TupleCodec(in Guid id, ICodec[] innerCodecs, CodecMetadata? metadata = null)
+            : base(in id, metadata)
         {
             InnerCodecs = innerCodecs;
 
