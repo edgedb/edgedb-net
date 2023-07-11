@@ -47,11 +47,8 @@ namespace EdgeDB
                 if (!ctorParams.Any())
                     emptyCtor = ctor;
 
-                if (ctorParams.Length == 1)
+                if (ctorParams.Length == 1 && ctor.GetCustomAttribute<EdgeDBDeserializerAttribute>() is not null)
                 {
-                    if (ctor.GetCustomAttribute<EdgeDBDeserializerAttribute>() is null)
-                        continue;
-
                     var param = ctorParams[0];
 
                     UpgradeInfo(ref info, new EdgeDBTypeConstructorInfo
