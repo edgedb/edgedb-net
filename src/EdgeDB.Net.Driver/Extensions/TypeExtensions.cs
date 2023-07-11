@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -8,6 +9,10 @@ namespace EdgeDB
 {
     internal static class TypeExtensions
     {
+        public static bool IsAnonymousType(this Type type)
+            => type.GetCustomAttributes(typeof(CompilerGeneratedAttribute), false).Length > 0 &&
+               type.FullName!.Contains("AnonymousType");
+
         public static bool IsRecord(this Type type)
             => type.GetMethods().Any(m => m.Name == "<Clone>$");
 

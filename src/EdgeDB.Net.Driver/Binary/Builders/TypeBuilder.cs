@@ -197,6 +197,7 @@ namespace EdgeDB
                 type.IsAssignableTo(typeof(ITuple)) ||
                 type.IsAbstract ||
                 type.IsRecord() ||
+                type.IsAnonymousType() ||
                 (type.IsClass || type.IsValueType)
                 && EdgeDBTypeConstructorInfo.TryGetConstructorInfo(type, out _);
         }
