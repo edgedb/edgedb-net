@@ -47,11 +47,8 @@ namespace EdgeDB
                 if (!ctorParams.Any())
                     emptyCtor = ctor;
 
-                if (ctorParams.Length == 1)
+                if (ctorParams.Length == 1 && ctor.GetCustomAttribute<EdgeDBDeserializerAttribute>() is not null)
                 {
-                    if (ctor.GetCustomAttribute<EdgeDBDeserializerAttribute>() is null)
-                        continue;
-
                     var param = ctorParams[0];
 
                     UpgradeInfo(ref info, new EdgeDBTypeConstructorInfo
@@ -72,9 +69,10 @@ namespace EdgeDB
                         Constructor = ctor
                     });
                 }
-                else if (ctorParams.Length == map.Properties.Length && ctorParams.Length != 0)
+
+                if (ctorParams.Length == map.Properties.Length && ctorParams.Length != 0)
                 {
-                    bool valid = true;
+                    var valid = true;
                     for (var i = 0; i != ctorParams.Length; i++)
                     {
                         var param = ctorParams[i];
