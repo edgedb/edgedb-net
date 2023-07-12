@@ -20,5 +20,8 @@ namespace EdgeDB.Binary.Codecs
         {
             writer.Write(value);
         }
+
+        public override string ToString()
+            => "std::int64";
     }
 }

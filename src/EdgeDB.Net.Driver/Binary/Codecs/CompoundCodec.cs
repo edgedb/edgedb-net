@@ -33,5 +33,8 @@ namespace EdgeDB.Binary.Codecs
         {
             // TODO
         }
+
+        public override string ToString()
+            => "compound";
     }
 }

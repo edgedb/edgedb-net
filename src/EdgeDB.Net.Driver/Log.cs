@@ -112,14 +112,14 @@ namespace EdgeDB
         [LoggerMessage(
             16,
             LogLevel.Trace,
-            "{pos}: Read type descriptor {Descriptor} with UUID {ID}. Size {Size}")]
-        public static partial void TraceTypeDescriptor(this ILogger logger, ITypeDescriptor descriptor, Guid id, int size, string pos);
+            "{pos}: {ID} | {Size}: {Descriptor}")]
+        public static partial void TraceTypeDescriptor(this ILogger logger, string descriptor, Guid id, string size, string pos);
 
         [LoggerMessage(
             17,
             LogLevel.Trace,
-            "Codec built: {Final} with tree size of {TreeSize}. Final cache size: {CacheSize}")]
-        public static partial void TraceCodecBuilderResult(this ILogger logger, ICodec final, int treeSize, int cacheSize);
+            "Codec built with tree size of {TreeSize}. Final cache size: {CacheSize}:\n{Final}")]
+        public static partial void TraceCodecBuilderResult(this ILogger logger, string final, int treeSize, int cacheSize);
 
         [LoggerMessage(
             18,
@@ -194,5 +194,23 @@ namespace EdgeDB
             LogLevel.Trace,
             "Codec {Id} added to cache with description {Codec}")]
         public static partial void CodecAddedToCache(this ILogger logger, Guid id, ICodec codec);
+
+        [LoggerMessage(
+            30,
+            LogLevel.Debug,
+            "Server asked for negotiation, ours: {Current} - theirs: {Server}")]
+        public static partial void BeginProtocolNegotiation(this ILogger logget, ProtocolVersion current, ProtocolVersion server);
+
+        [LoggerMessage(
+            31,
+            LogLevel.Debug,
+            "Binary protocol {Protocol} used, avaliable: [{Supported}]")]
+        public static partial void ClientProtocolInit(this ILogger logger, ProtocolVersion protocol, string supported);
+
+        [LoggerMessage(
+            32,
+            LogLevel.Debug,
+            "Codec visited in preperation for deserialization: {Codec}")]
+        public static partial void ObjectDeserializationPrep(this ILogger logger, string codec);
     }
 }

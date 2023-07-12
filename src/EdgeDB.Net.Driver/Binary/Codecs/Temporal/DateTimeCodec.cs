@@ -41,5 +41,8 @@ namespace EdgeDB.Binary.Codecs
 
         private DateTimeOffset ToDTO(ref DataTypes.DateTime value)
             => value.DateTimeOffset;
+
+        public override string ToString()
+            => "std::datetime";
     }
 }

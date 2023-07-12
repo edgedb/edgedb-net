@@ -41,5 +41,8 @@ namespace EdgeDB.Binary.Codecs
 
         private TimeOnly ToTO(ref DataTypes.LocalTime value)
             => value.TimeOnly;
+
+        public override string ToString()
+            => "cal::local_time";
     }
 }

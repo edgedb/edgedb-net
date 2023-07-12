@@ -87,6 +87,9 @@ namespace EdgeDB.Binary.Codecs
             }
         }
 
+        public override string ToString()
+            => "std::array";
+
         ICodec IWrappingCodec.InnerCodec
         {
             get => InnerCodec;

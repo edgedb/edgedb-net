@@ -20,5 +20,8 @@ namespace EdgeDB.Binary.Codecs
         {
             writer.Write(value.TotalBytes);
         }
+
+        public override string ToString()
+            => "cfg::memory";
     }
 }

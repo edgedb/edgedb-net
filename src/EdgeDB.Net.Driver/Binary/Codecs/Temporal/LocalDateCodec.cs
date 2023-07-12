@@ -34,5 +34,8 @@ namespace EdgeDB.Binary.Codecs
 
         private DateOnly To(ref DataTypes.LocalDate value)
             => value.DateOnly;
+
+        public override string ToString()
+            => "cal::local_date";
     }
 }

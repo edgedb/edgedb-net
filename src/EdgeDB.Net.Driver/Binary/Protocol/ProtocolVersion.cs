@@ -19,7 +19,7 @@ namespace EdgeDB
         /// <summary>
         ///     The default protocol version used for the edgedb binary protocol.
         /// </summary>
-        public static readonly ProtocolVersion EdgeDBBinaryDefaultVersion = (1, 0);
+        public static readonly ProtocolVersion EdgeDBBinaryDefaultVersion = (2, 0);
 
         /// <summary>
         ///     Gets the major component of the protocol.

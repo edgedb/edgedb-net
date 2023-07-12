@@ -108,6 +108,8 @@ namespace EdgeDB
             _codecContext = new(this);
 
             _protocolProvider = IProtocolProvider.GetProvider(this);
+
+            Logger.ClientProtocolInit(_protocolProvider.Version, string.Join(", ", IProtocolProvider.Providers.Keys));
         }
 
         #region Commands/queries
@@ -359,6 +361,8 @@ namespace EdgeDB
 
         internal bool TryNegotiateProtocol(in ushort major, in ushort minor)
         {
+            Logger.BeginProtocolNegotiation(_protocolProvider.Version, (major, minor));
+
             if(IProtocolProvider.Providers.TryGetValue((major, minor), out var provider))
             {
                 _protocolProvider = provider.Factory(this);

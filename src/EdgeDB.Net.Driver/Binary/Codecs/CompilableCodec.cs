@@ -55,9 +55,7 @@ namespace EdgeDB.Binary.Codecs
             : InnerCodec.ConverterType;
 
         public override string ToString()
-        {
-            return $"[{_id}] CompilableWrappingCodec{{{_rootCodecType.Name}<{InnerCodec}>}}";
-        }
+            => $"compilable({_rootCodecType.Name})";
 
         Type ICodec.ConverterType => throw new NotSupportedException();
         bool ICodec.CanConvert(Type t) => throw new NotSupportedException();

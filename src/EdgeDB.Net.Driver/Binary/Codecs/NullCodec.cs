@@ -30,5 +30,8 @@ namespace EdgeDB.Binary.Codecs
         }
 
         public void SerializeArguments(ref PacketWriter writer, object? value, CodecContext context) { }
+
+        public override string ToString()
+            => "null_codec";
     }
 }

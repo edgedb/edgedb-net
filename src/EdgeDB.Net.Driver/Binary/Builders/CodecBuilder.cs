@@ -133,7 +133,12 @@ namespace EdgeDB.Binary
                 var typeDescriptor = client.ProtocolProvider.GetDescriptor(ref reader);
                 var end = reader.Position;
 
-                client.Logger.TraceTypeDescriptor(typeDescriptor, typeDescriptor.Id, end - start, $"{end}/{reader.Data.Length}".PadRight(reader.Data.Length.ToString().Length * 2 + 2));
+                client.Logger.TraceTypeDescriptor(
+                    typeDescriptor.GetType().Name,
+                    typeDescriptor.Id,
+                    $"{(end - start)}b".PadRight(reader.Data.Length.ToString().Length),
+                    $"{end}/{reader.Data.Length}".PadRight(reader.Data.Length.ToString().Length * 2 + 2)
+                    );
 
                 descriptorsList.Add(typeDescriptor);
             }
@@ -170,9 +175,16 @@ namespace EdgeDB.Binary
                 }
             }
 
-            var finalCodec = codecs[^1] ?? throw new MissingCodecException("Failed to find end tail of codec tree");
+            ICodec? finalCodec = null;
 
-            client.Logger.TraceCodecBuilderResult(finalCodec, codecs.Length, providerCache.Cache.Count);
+            for(var i = 1; i != codecs.Length + 1 && finalCodec is null; i++)
+                finalCodec = codecs[^i];
+
+
+            if (finalCodec is null)
+                throw new MissingCodecException("Failed to find end tail of codec tree");
+
+            client.Logger.TraceCodecBuilderResult(CodecFormatter.Format(finalCodec).ToString(), codecs.Length, providerCache.Cache.Count);
 
             return finalCodec;
         }

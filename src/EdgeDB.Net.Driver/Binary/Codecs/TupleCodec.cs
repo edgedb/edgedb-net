@@ -91,11 +91,6 @@ namespace EdgeDB.Binary.Codecs
             }
         }
 
-        public override string ToString()
-        {
-            return $"TupleCodec<{string.Join(", ", this.InnerCodecs.Select(x => x.ToString()))}>";
-        }
-
         public Type CreateValueTupleType()
         {
             var typeArr = InnerCodecs.Select(x => x.ConverterType).ToArray();
@@ -131,5 +126,8 @@ namespace EdgeDB.Binary.Codecs
                 InnerCodecs = value;
             }
         }
+
+        public override string ToString()
+            => "tuple";
     }
 }

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using InputShapeElement = EdgeDB.Binary.Protocol.V1._0.Descriptors.ShapeElement;
 
 namespace EdgeDB.Binary.Protocol.V2._0.Descriptors
 {
@@ -11,18 +12,18 @@ namespace EdgeDB.Binary.Protocol.V2._0.Descriptors
     {
         public readonly Guid Id;
 
-        public readonly ShapeElement[] Elements;
+        public readonly InputShapeElement[] Elements;
 
         public InputShapeDescriptor(ref PacketReader reader, in Guid id)
         {
             Id = id;
 
             var elementCount = reader.ReadUInt16();
-            var elements = new ShapeElement[elementCount];
+            var elements = new InputShapeElement[elementCount];
 
             for (var i = 0; i != elementCount; i++)
             {
-                elements[i] = new ShapeElement(ref reader);
+                elements[i] = new InputShapeElement(ref reader);
             }
 
             Elements = elements;

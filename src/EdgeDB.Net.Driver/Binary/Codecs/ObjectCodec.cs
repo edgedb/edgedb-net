@@ -167,9 +167,7 @@ namespace EdgeDB.Binary.Codecs
         }
 
         public override string ToString()
-        {
-            return $"ObjectCodec<{string.Join(", ", InnerCodecs.Zip(PropertyNames).Select(x => $"[{x.Second}: {x.First}]"))}>";
-        }
+            => "object";
 
         ICodec[] IMultiWrappingCodec.InnerCodecs
         {

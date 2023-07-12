@@ -102,5 +102,8 @@ namespace EdgeDB.Binary.Codecs
             foreach (var digit in digits)
                 writer.Write(digit);
         }
+
+        public override string ToString()
+            => "std::decimal";
     }
 }

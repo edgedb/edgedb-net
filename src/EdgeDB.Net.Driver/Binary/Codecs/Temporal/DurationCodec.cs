@@ -39,5 +39,8 @@ namespace EdgeDB.Binary.Codecs
 
         private TimeSpan To(ref DataTypes.Duration value)
             => value.TimeSpan;
+
+        public override string ToString()
+            => "std::duration";
     }
 }

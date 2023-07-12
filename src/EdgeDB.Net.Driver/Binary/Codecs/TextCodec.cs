@@ -27,5 +27,8 @@ namespace EdgeDB.Binary.Codecs
             if (value is not null)
                 writer.Write(Encoding.UTF8.GetBytes(value));
         }
+
+        public override string ToString()
+            => "std::str";
     }
 }

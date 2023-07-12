@@ -20,7 +20,7 @@ namespace EdgeDB.Binary.Protocol.Common.Descriptors
             SchemaName = schemaName;
             IsSchemaDefined = isSchemaDefined;
             Ancestors = ancestors ?? Array.Empty<CodecAncestor>();
-        }   
+        }
     }
     internal struct CodecAncestor
     {

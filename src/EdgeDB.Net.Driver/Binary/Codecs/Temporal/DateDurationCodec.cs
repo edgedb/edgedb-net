@@ -38,5 +38,8 @@ namespace EdgeDB.Binary.Codecs
 
         private TimeSpan To(ref DataTypes.DateDuration value)
             => value.TimeSpan;
+
+        public override string ToString()
+            => "cal::date_duration";
     }
 }

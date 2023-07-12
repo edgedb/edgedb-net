@@ -76,5 +76,8 @@ namespace EdgeDB.Binary.Codecs
             for (int i = digits.Count - 1; i >= 0; i--)
                 writer.Write(digits[i]);
         }
+
+        public override string ToString()
+            => "std::bigint";
     }
 }

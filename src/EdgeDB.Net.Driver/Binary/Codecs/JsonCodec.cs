@@ -29,5 +29,8 @@ namespace EdgeDB.Binary.Codecs
             writer.Write((byte)0x01);
             writer.Write(jsonData);
         }
+
+        public override string ToString()
+            => "std::json";
     }
 }

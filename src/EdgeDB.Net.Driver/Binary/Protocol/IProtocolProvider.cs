@@ -1,5 +1,6 @@
 using EdgeDB.Binary.Codecs;
 using EdgeDB.Binary.Protocol.V1._0;
+using EdgeDB.Binary.Protocol.V2._0;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -30,7 +31,8 @@ namespace EdgeDB.Binary.Protocol
 
         public static readonly Dictionary<ProtocolVersion, (Type Type, ProtocolProviderFactory Factory)> Providers = new()
         {
-            { (1, 0), (typeof(V1ProtocolProvider), c => new V1ProtocolProvider(c)) }
+            { (1, 0), (typeof(V1ProtocolProvider), c => new V1ProtocolProvider(c)) },
+            { (2, 0), (typeof(V2ProtocolProvider), c => new V2ProtocolProvider(c)) }
         };
 
         ProtocolPhase Phase { get; }

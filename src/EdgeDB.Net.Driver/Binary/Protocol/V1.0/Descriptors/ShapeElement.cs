@@ -1,10 +1,11 @@
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EdgeDB.Binary.Protocol.Common.Descriptors
+namespace EdgeDB.Binary.Protocol.V1._0.Descriptors
 {
     internal readonly struct ShapeElement
     {
@@ -20,12 +21,5 @@ namespace EdgeDB.Binary.Protocol.Common.Descriptors
             Name = reader.ReadString();
             TypePos = reader.ReadUInt16();
         }
-    }
-
-    internal enum ShapeElementFlags : uint
-    {
-        Implicit = 1 << 0,
-        LinkProperty = 1 << 1,
-        Link = 1 << 2
     }
 }

@@ -41,5 +41,8 @@ namespace EdgeDB.Binary.Codecs
 
         private DateTimeOffset ToDTO(ref DataTypes.LocalDateTime value)
             => value.DateTimeOffset;
+
+        public override string ToString()
+            => "cal::local_datetime";
     }
 }

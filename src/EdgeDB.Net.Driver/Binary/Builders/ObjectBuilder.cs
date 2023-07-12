@@ -49,6 +49,8 @@ namespace EdgeDB
                     _codecVisitorStateTable[typeof(TType)] = (version, codec);
 
                     typeCodec = codec;
+
+                    client.Logger.ObjectDeserializationPrep(CodecFormatter.Format(typeCodec).ToString());
                 }
             }
 

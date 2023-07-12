@@ -38,5 +38,8 @@ namespace EdgeDB.Binary.Codecs
 
         private TimeSpan To(ref DataTypes.RelativeDuration value)
             => value.TimeSpan;
+
+        public override string ToString()
+            => "cal::relative_duration";
     }
 }

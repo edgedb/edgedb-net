@@ -21,5 +21,8 @@ namespace EdgeDB.Binary.Codecs
             if (value is not null)
                 writer.Write(value);
         }
+
+        public override string ToString()
+            => "std::bytes";
     }
 }

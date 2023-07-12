@@ -11,6 +11,8 @@ namespace EdgeDB.Binary.Protocol.V2._0
 {
     internal class V2ProtocolProvider : V1ProtocolProvider
     {
+        public override ProtocolVersion Version { get; } = (2, 0);
+
         public V2ProtocolProvider(EdgeDBBinaryClient client)
             : base(client)
         {
@@ -18,30 +20,41 @@ namespace EdgeDB.Binary.Protocol.V2._0
 
         public override ITypeDescriptor GetDescriptor(ref PacketReader reader)
         {
+            var length = reader.ReadUInt32();
+
+            reader.Limit = (int)length;
+
             var type = (DescriptorType)reader.ReadByte();
 
-            if (type is DescriptorType.TypeAnnotationText)
+            try
             {
-                return new TypeAnnotationTextDescriptor(ref reader);
+                if (type is DescriptorType.TypeAnnotationText)
+                {
+                    return new TypeAnnotationTextDescriptor(ref reader);
+                }
+
+                var id = reader.ReadGuid();
+
+                return type switch
+                {
+                    DescriptorType.Array => new ArrayTypeDescriptor(ref reader, in id),
+                    DescriptorType.Compound => new CompoundTypeDescriptor(ref reader, in id),
+                    DescriptorType.Enumeration => new EnumerationTypeDescriptor(ref reader, in id),
+                    DescriptorType.Input => new InputShapeDescriptor(ref reader, in id),
+                    DescriptorType.NamedTuple => new NamedTupleTypeDescriptor(ref reader, in id),
+                    DescriptorType.Object => new ObjectTypeDescriptor(ref reader, in id),
+                    DescriptorType.ObjectOutput => new ObjectOutputShapeDescriptor(ref reader, in id),
+                    DescriptorType.Range => new RangeTypeDescriptor(ref reader, in id),
+                    DescriptorType.Scalar => new ScalarTypeDescriptor(ref reader, in id),
+                    DescriptorType.Set => new SetDescriptor(ref reader, in id),
+                    DescriptorType.Tuple => new TupleTypeDescriptor(ref reader, in id),
+                    _ => throw new InvalidDataException($"No descriptor found for type {type}")
+                };
             }
-
-            var id = reader.ReadGuid();
-
-            return type switch
+            finally
             {
-                DescriptorType.Array => new ArrayTypeDescriptor(ref reader, in id),
-                DescriptorType.Compound => new CompoundTypeDescriptor(ref reader, in id),
-                DescriptorType.Enumeration => new EnumerationTypeDescriptor(ref reader, in id),
-                DescriptorType.Input => new InputShapeDescriptor(ref reader, in id),
-                DescriptorType.NamedTuple => new NamedTupleTypeDescriptor(ref reader, in id),
-                DescriptorType.Object => new ObjectTypeDescriptor(ref reader, in id),
-                DescriptorType.ObjectOutput => new ObjectOutputShapeDescriptor(ref reader, in id),
-                DescriptorType.Range => new RangeTypeDescriptor(ref reader, in id),
-                DescriptorType.Scalar => new ScalarTypeDescriptor(ref reader, in id),
-                DescriptorType.Set => new SetDescriptor(ref reader, in id),
-                DescriptorType.Tuple => new TupleTypeDescriptor(ref reader, in id),
-                _ => throw new InvalidDataException($"No descriptor found for type {type}")
-            };
+                reader.Limit = -1;
+            }
         }
 
         public override ICodec? BuildCodec<T>(

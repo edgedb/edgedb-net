@@ -31,15 +31,13 @@ namespace EdgeDB.Binary.Protocol.V1._0
 
         public ProtocolPhase Phase { get; private set; }
 
-        public ProtocolVersion Version => _version;
+        public virtual ProtocolVersion Version { get; } = (1, 0);
 
         private IBinaryDuplexer Duplexer
             => _client.Duplexer;
 
         private ILogger Logger
             => _client.Logger;
-
-        private readonly ProtocolVersion _version = (1, 0);
 
         private readonly EdgeDBBinaryClient _client;
         private ReadOnlyMemory<byte> _serverKey;

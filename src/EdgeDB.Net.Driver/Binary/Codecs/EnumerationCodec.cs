@@ -34,5 +34,8 @@ namespace EdgeDB.Binary.Codecs
 
             return value;
         }
+
+        public override string ToString()
+            => "std::enum";
     }
 }
