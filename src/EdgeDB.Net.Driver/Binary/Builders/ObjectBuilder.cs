@@ -35,7 +35,8 @@ namespace EdgeDB
                         wasSkipped = true;
                     }
                 }
-                else
+
+                if (!wasSkipped)
                 {
                     var version = codec.GetHashCode();
 
@@ -46,7 +47,7 @@ namespace EdgeDB
                     visitor.Visit(ref codec);
 
                     if (typeof(TType) != typeof(object))
-                    _codecVisitorStateTable[typeof(TType)] = (version, codec);
+                        _codecVisitorStateTable[typeof(TType)] = (version, codec);
 
                     typeCodec = codec;
 
