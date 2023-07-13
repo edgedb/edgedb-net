@@ -406,7 +406,12 @@ connectionDefinition:
             if (!ConfigUtils.TryResolveInstanceCloudProfile(projectDir, out string? profile, out string? inst) || inst is null)
                 throw new FileNotFoundException($"Could not find instance name under project directory {projectDir}");
 
-            return FromInstanceName(inst, profile);
+            var connection = FromInstanceName(inst, profile);
+
+            if (ConfigUtils.TryResolveProjectDatabase(projectDir, out var database))
+                connection.Database = database;
+
+            return connection;
         }
 
         /// <summary>

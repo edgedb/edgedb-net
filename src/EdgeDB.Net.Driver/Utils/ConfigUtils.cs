@@ -96,7 +96,9 @@ namespace EdgeDB.Utils
             return false;
         }
 
-        public static bool TryResolveInstanceCLoudProfile(out string? profile, out string? linkedInstanceName)
+        public static bool TryResolveDatabase()
+
+        public static bool TryResolveInstanceCloudProfile(out string? profile, out string? linkedInstanceName)
         {
             profile = null;
             linkedInstanceName = null;
