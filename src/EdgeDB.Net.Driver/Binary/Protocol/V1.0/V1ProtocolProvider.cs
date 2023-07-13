@@ -442,8 +442,8 @@ namespace EdgeDB.Binary.Protocol.V1._0
 
                         if(negotiated)
                         {
-                            // reconnect
-                            return new ValueTask(_client.ReconnectAsync());
+                            // this provider is basically dead now, do nothing.
+                            return ValueTask.CompletedTask;
                         }
                     }
                     break;

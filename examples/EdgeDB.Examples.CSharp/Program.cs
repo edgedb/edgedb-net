@@ -20,11 +20,7 @@ using var host = Host.CreateDefaultBuilder()
             loggingBuilder.AddSerilog(dispose: true);
         });
 
-        services.AddEdgeDB(new EdgeDBConnection
-        {
-            Port = 5656,
-            TLSSecurity = TLSSecurityMode.Insecure,
-        }, clientConfig: clientConfig =>
+        services.AddEdgeDB(clientConfig: clientConfig =>
         {
             clientConfig.SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy;
             clientConfig.ClientType = EdgeDBClientType.Tcp;

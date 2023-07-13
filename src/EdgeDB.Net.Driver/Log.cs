@@ -210,7 +210,7 @@ namespace EdgeDB
         [LoggerMessage(
             32,
             LogLevel.Debug,
-            "Codec visited in preperation for deserialization: {Codec}")]
+            "Codec visited in preperation for deserialization: \n{Codec}")]
         public static partial void ObjectDeserializationPrep(this ILogger logger, string codec);
     }
 }
