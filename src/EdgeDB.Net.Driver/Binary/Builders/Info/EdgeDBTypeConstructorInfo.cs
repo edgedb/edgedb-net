@@ -69,9 +69,10 @@ namespace EdgeDB
                         Constructor = ctor
                     });
                 }
-                else if (ctorParams.Length == map.Properties.Length && ctorParams.Length != 0)
+
+                if (ctorParams.Length == map.Properties.Length && ctorParams.Length != 0)
                 {
-                    bool valid = true;
+                    var valid = true;
                     for (var i = 0; i != ctorParams.Length; i++)
                     {
                         var param = ctorParams[i];
