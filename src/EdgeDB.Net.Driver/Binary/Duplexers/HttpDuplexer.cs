@@ -7,13 +7,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace EdgeDB.Binary.Duplexers
 {
     internal sealed class HttpDuplexer : IBinaryDuplexer
     {
-        public const string HTTP_BINARY_CONTENT_TYPE = "application/x.edgedb.v_1_0.binary";
+        private static readonly Regex _contentTypeRegex = new(@"application\/x\.edgedb\.v_(\d+)_(\d+)\.binary");
 
         public bool IsConnected
             => _client.IsConnected;
@@ -23,6 +24,9 @@ namespace EdgeDB.Binary.Duplexers
 
         public IProtocolProvider ProtocolProvider
             => _client.ProtocolProvider;
+
+        public string ContentTypeHeader
+            => $"application/x.edgedb.v_{ProtocolProvider.Version.Major}_{ProtocolProvider.Version.Minor}.binary";
 
         private readonly EdgeDBHttpClient _client;
         private readonly Queue<IReceiveable> _packetQueue;
@@ -94,6 +98,22 @@ namespace EdgeDB.Binary.Duplexers
             }
         }
 
+        private Task<HttpResponseMessage> SendInternalAsync(CancellationToken token = default, params Sendable[] packets)
+        {
+            var data = BinaryUtils.BuildPackets(packets);
+
+            var message = new HttpRequestMessage(HttpMethod.Post, _client.Connection.GetExecUri())
+            {
+                Content = new ReadOnlyMemoryContent(data)
+            };
+
+            message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _client.AuthorizationToken);
+            message.Content.Headers.ContentType = new(ContentTypeHeader);
+            message.Headers.TryAddWithoutValidation("X-EdgeDB-User", _client.Connection.Username);
+
+            return _client.HttpClient.SendAsync(message, token);
+        }
+
         public async ValueTask SendAsync(CancellationToken token = default, params Sendable[] packets)
         {
             if (!IsConnected)
@@ -103,18 +123,7 @@ namespace EdgeDB.Binary.Duplexers
 
             try
             {
-                var data = BinaryUtils.BuildPackets(packets);
-
-                var message = new HttpRequestMessage(HttpMethod.Post, _client.Connection.GetExecUri())
-                {
-                    Content = new ReadOnlyMemoryContent(data)
-                };
-
-                message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _client.AuthorizationToken);
-                message.Content.Headers.ContentType = new(HTTP_BINARY_CONTENT_TYPE);
-                message.Headers.TryAddWithoutValidation("X-EdgeDB-User", _client.Connection.Username);
-
-                var result = await _client.HttpClient.SendAsync(message, token).ConfigureAwait(false);
+                var result = await SendInternalAsync(token, packets).ConfigureAwait(false);
 
                 // only perform second iteration if debug log enabled.
                 if (_client.Logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Debug))
@@ -125,10 +134,40 @@ namespace EdgeDB.Binary.Duplexers
                     }
                 }
 
+                var attempts = 0;
+
+            process_result:
+
                 result.EnsureSuccessStatusCode();
 
-                if (result.Content.Headers.ContentType is null || result.Content.Headers.ContentType.MediaType != HTTP_BINARY_CONTENT_TYPE)
-                    throw new EdgeDBException($"HTTP response content type is not {HTTP_BINARY_CONTENT_TYPE}");
+                if (result.Content.Headers.ContentType?.MediaType is null)
+                    throw new EdgeDBException($"HTTP response content type is not present");
+
+                if (result.Content.Headers.ContentType.MediaType != ContentTypeHeader)
+                {
+                    var match = _contentTypeRegex.Match(result.Content.Headers.ContentType.MediaType);
+
+                    if(match.Success)
+                    {
+                        var major = ushort.Parse(match.Groups[1].Value);
+                        var minor = ushort.Parse(match.Groups[2].Value);
+
+                        if (!_client.TryNegotiateProtocol(in major, in minor))
+                            throw new EdgeDBException($"The protocol requirements of the server cannot be met, theirs: {major}.{minor}, ours: {ProtocolProvider.Version}");
+
+                        // resend with new provider
+                        attempts++;
+
+                        if (attempts > _client.ClientConfig.MaxConnectionRetries)
+                            throw new EdgeDBException($"Failed to negotiate with server after {attempts} attempts");
+
+                        result = await SendInternalAsync(token, packets);
+                        goto process_result;
+                    }
+                    else
+                        throw new EdgeDBException($"HTTP response content type is unknown/unsupported: {result.Content.Headers.ContentType.MediaType}");
+                }
+                    
 
                 var stream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
                 var length = result.Content.Headers.ContentLength;
