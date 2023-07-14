@@ -362,8 +362,10 @@ namespace EdgeDB
 
                         async ValueTask OnConnect(BaseEdgeDBClient _)
                         {
-                            _poolSize = client.SuggestedPoolConcurrency;
-                            await _poolHolder.ResizeAsync(_poolSize).ConfigureAwait(false);
+                            if(client.SuggestedPoolConcurrency.HasValue && !_poolConfig.HasCustomPoolSize)
+                            {
+                                await _poolHolder.ResizeAsync(_poolSize).ConfigureAwait(false);
+                            }
 
                             if (
                                 _edgedbConfig is null ||

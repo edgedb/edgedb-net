@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Packets;
 using EdgeDB.Utils;
 using System.Buffers.Binary;
 using System.Numerics;
@@ -10,28 +11,59 @@ namespace EdgeDB.Binary
     internal unsafe ref struct PacketReader
     {
         public bool Empty
-            => Position >= Data.Length || Data.IsEmpty;
+            => Position >= _limit || Data.IsEmpty;
+
+        internal int Limit
+        {
+            get => _limit;
+            set
+            {
+                if(value < 0)
+                {
+                    // reset limit
+                    _limit = Data.Length;
+                    return;
+                }
+
+                if (Position + value > Data.Length)
+                    throw new InternalBufferOverflowException($"Setting the buffer limit to {value} would overflow the internal buffer");
+
+                _limit = Position + value;
+            }
+        }
 
         internal Span<byte> Data;
         
         internal int Position;
-        
+
+        private int _limit;
+
         public PacketReader(Span<byte> bytes, int position = 0)
         {
             Data = bytes;
             Position = position;
+            _limit = Data.Length;
         }
 
         public PacketReader(ref Span<byte> bytes, int position = 0)
         {
             Data = bytes;
             Position = position;
+            _limit = Data.Length;
+        }
+
+        private void VerifyInLimits(int sz)
+        {
+            if (Position + sz > _limit)
+                throw new InternalBufferOverflowException("The requested read operation would overflow the buffer");
         }
 
 #region Unmanaged basic reads & endianness correction
         private T UnsafeReadAs<T>()
             where T : unmanaged
         {
+            VerifyInLimits(sizeof(T));
+
             var ret = Unsafe.Read<T>(Unsafe.AsPointer(ref Data[Position]));
 
             BinaryUtils.CorrectEndianness(ref ret);
@@ -75,21 +107,28 @@ namespace EdgeDB.Binary
 
         public void Skip(int count)
         {
+            VerifyInLimits(count);
             Position += count;
         }
 
         public byte[] ConsumeByteArray()
         {
-            return Data[Position..].ToArray();
+            var data =  Data[Position.._limit].ToArray();
+            Position = _limit;
+            return data;
         }
 
         public string ConsumeString()
         {
-            return Encoding.UTF8.GetString(Data[Position..]);
+            var str = Encoding.UTF8.GetString(Data[Position.._limit]);
+            Position = _limit;
+            return str;
         }
 
         public Guid ReadGuid()
         {
+            VerifyInLimits(sizeof(Guid));
+
             var a = ReadInt32();
             var b = ReadInt16();
             var c = ReadInt16();
@@ -102,6 +141,7 @@ namespace EdgeDB.Binary
         
         public KeyValue[] ReadKeyValues()
         {
+            VerifyInLimits(sizeof(ushort));
             var count = ReadUInt16();
             var arr = new KeyValue[count];
 
@@ -115,6 +155,8 @@ namespace EdgeDB.Binary
 
         public KeyValue ReadKeyValue()
         {
+            VerifyInLimits(sizeof(ushort));
+
             var code = ReadUInt16();
             var value = ReadByteArray();
 
@@ -123,7 +165,9 @@ namespace EdgeDB.Binary
 
         public string ReadString()
         {
+            VerifyInLimits(sizeof(int));
             var strLength = (int)ReadUInt32();
+            VerifyInLimits(strLength);
             var str = Encoding.UTF8.GetString(Data[Position..(strLength + Position)]);
             Position += strLength;
             return str;
@@ -131,6 +175,7 @@ namespace EdgeDB.Binary
 
         public Annotation[] ReadAnnotations()
         {
+            VerifyInLimits(sizeof(ushort));
             var count = ReadUInt16();
 
             Annotation[] arr = new Annotation[count];
@@ -153,7 +198,9 @@ namespace EdgeDB.Binary
 
         public byte[] ReadByteArray()
         {
+            VerifyInLimits(sizeof(int));
             var length = (int)ReadUInt32();
+            VerifyInLimits(length);
             var buffer = Data[Position..(Position + length)];
             Position += length;
             return buffer.ToArray();
@@ -161,6 +208,7 @@ namespace EdgeDB.Binary
 
         public void ReadBytes(int length, out Span<byte> buff)
         {
+            VerifyInLimits(length);
             buff = Data[Position..(Position + length)];
             Position += length;
         }

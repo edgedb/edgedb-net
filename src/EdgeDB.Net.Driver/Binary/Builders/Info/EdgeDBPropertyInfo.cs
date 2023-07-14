@@ -10,6 +10,9 @@ namespace EdgeDB
 {
     internal sealed class EdgeDBPropertyInfo
     {
+        public PropertyInfo PropertyInfo
+            => _property;
+
         public string PropertyName
             => _property.Name;
 

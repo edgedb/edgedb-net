@@ -46,7 +46,7 @@ Using a naming strategy
 -----------------------
 
 Naming strategies can be forced in EdgeDB.Net by using the
-``EdgeDBClientConfig.SchemaNamingStrategy`` property. Changing its value will
+``EdgeDBClientPoolConfig.SchemaNamingStrategy`` property. Changing its value will
 result in all property names being implicitly converted to what is chosen:
 
 Each property in a custom type will automatically have their property
@@ -57,7 +57,7 @@ in this example.
   
   .. code-tab:: cs
     
-    var config = new EdgeDBClientConfig
+    var config = new EdgeDBClientPoolConfig
     {
         SchemaNamingStrategy = INamingStrategy.SnakeCase
     };
@@ -66,10 +66,11 @@ in this example.
   
   .. code-tab:: fsharp
     
-    let mutable config = new EdgeDBClientConfig()
-    config.SchemaNamingStrategy <- INamingStrategy.SnakeCase
+    let config = EdgeDBClientPoolConfig(
+      SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy
+    )
 
-    let client = new EdgeDBClient(config)
+    let client = EdgeDBClient(config)
 
 .. _edgedb-dotnet-polymorphism:
 
@@ -120,13 +121,13 @@ attribute on a class instead for specification.
   .. code-tab:: fsharp
 
     type Movie = {
-        ReleaseYear: int;
-        Title: string;
+        ReleaseYear: int
+        Title: string
     }
     
     type TVShow = {
-        Seasons: int64;
-        Title: string;
+        Seasons: int64
+        Title: string
     }
     
     type Content =

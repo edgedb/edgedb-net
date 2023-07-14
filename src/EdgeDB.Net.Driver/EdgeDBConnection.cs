@@ -1,7 +1,11 @@
+using EdgeDB.Models;
 using EdgeDB.Utils;
 using Newtonsoft.Json;
+using System.Buffers.Text;
+using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -20,6 +24,9 @@ namespace EdgeDB
         private const string EDGEDB_DATABASE_ENV_NAME = "EDGEDB_DATABASE";
         private const string EDGEDB_HOST_ENV_NAME = "EDGEDB_HOST";
         private const string EDGEDB_PORT_ENV_NAME = "EDGEDB_PORT";
+        private const string EDGEDB_CLOUD_PROFILE_ENV_NAME = "EDGEDB_CLOUD_PROFILE";
+        private const string EDGEDB_SECRET_KEY_ENV_NAME = "EDGEDB_SECRET_KEY";
+        private const int DOMAIN_NAME_MAX_LEN = 62;
 
         #region Main connection args
         /// <summary>
@@ -126,6 +133,31 @@ namespace EdgeDB
             get => _tlsSecurity ?? TLSSecurityMode.Strict;
             set => _tlsSecurity = value;
         }
+
+        /// <summary>
+        ///     Gets or sets the secret key used to authenticate with cloud instances.
+        /// </summary>
+        public string? SecretKey { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the name of the cloud profile to use to resolve the <see cref="SecretKey"/>.
+        /// </summary>
+        /// <remarks>
+        ///     The default cloud profile is called 'default'
+        /// </remarks>
+        public string CloudProfile
+        {
+            get => _cloudProfile ?? "default";
+            set
+            {
+                if(value is null)
+                {
+                    throw new ArgumentNullException(nameof(value), "Cloud Profile must not be null");
+                }
+
+                _cloudProfile = value;
+            }
+        }
         #endregion
 
         #region Backing fields
@@ -133,6 +165,7 @@ namespace EdgeDB
         private string? _password;
         private string? _database;
         private string? _hostname;
+        private string? _cloudProfile;
         private int? _port;
         private string? _tlsca;
         private TLSSecurityMode? _tlsSecurity;
@@ -278,25 +311,25 @@ connectionDefinition:
                         break;
                     case "host":
                         if (host is not null)
-                            throw new ArgumentException("Port ambiguity mismatch");
+                            throw new ArgumentException("Host ambiguity mismatch");
 
                         conn.Hostname = value;
                         break;
                     case "database":
                         if (database is not null)
-                            throw new ArgumentException("Port ambiguity mismatch");
+                            throw new ArgumentException("Database ambiguity mismatch");
 
                         conn.Database = value;
                         break;
                     case "user":
                         if (username is not null)
-                            throw new ArgumentException("Port ambiguity mismatch");
+                            throw new ArgumentException("User ambiguity mismatch");
 
                         conn.Username = value;
                         break;
                     case "password":
                         if (password is not null)
-                            throw new ArgumentException("Port ambiguity mismatch");
+                            throw new ArgumentException("Password ambiguity mismatch");
 
                         conn.Password = value;
                         break;
@@ -370,25 +403,51 @@ connectionDefinition:
             if (!Directory.Exists(projectDir))
                 throw new DirectoryNotFoundException($"Couldn't find project directory for {path}: {projectDir}");
 
-            var instanceName = File.ReadAllText(Path.Combine(projectDir, "instance-name"));
+            if (!ConfigUtils.TryResolveInstanceCloudProfile(projectDir, out string? profile, out string? inst) || inst is null)
+                throw new FileNotFoundException($"Could not find instance name under project directory {projectDir}");
 
-            // get credentials
-            return FromInstanceName(instanceName);
+            var connection = FromInstanceName(inst, profile);
+
+            if (ConfigUtils.TryResolveProjectDatabase(projectDir, out var database))
+                connection.Database = database;
+
+            return connection;
         }
 
         /// <summary>
         ///     Creates a new <see cref="EdgeDBConnection"/> from an instance name.
         /// </summary>
+        /// <remarks>
+        ///     This method supports both local instances and cloud instances. Environment
+        ///     variables will not be applied to the returned <see cref="EdgeDBConnection"/>,
+        ///     instead, use <see cref="Parse(string?, string?, Action{EdgeDBConnection}?, bool)"/> to
+        ///     apply environment variables.
+        /// </remarks>
         /// <param name="name">The name of the instance.</param>
+        /// <param name="cloudProfile">The optional cloud profile if the instance name is a cloud instance.</param>
         /// <returns>A <see cref="EdgeDBConnection"/> containing connection details for the specific instance.</returns>
         /// <exception cref="FileNotFoundException">The instances config file couldn't be found.</exception>
-        public static EdgeDBConnection FromInstanceName(string name)
+        /// <exception cref="ConfigurationException">The configuration is invalid.</exception>
+        public static EdgeDBConnection FromInstanceName(string name, string? cloudProfile = null)
         {
-            var configPath = Path.Combine(ConfigUtils.GetCredentialsDir(), $"{name}.json");
+            if (Regex.IsMatch(name, @"^\w(-?\w)*$"))
+            {
+                var configPath = Path.Combine(ConfigUtils.GetCredentialsDir(), $"{name}.json");
 
-            return !File.Exists(configPath)
-                ? throw new FileNotFoundException($"Config file couldn't be found at {configPath}")
-                : JsonConvert.DeserializeObject<EdgeDBConnection>(File.ReadAllText(configPath))!;
+                return !File.Exists(configPath)
+                    ? throw new FileNotFoundException($"Config file couldn't be found at {configPath}")
+                    : JsonConvert.DeserializeObject<EdgeDBConnection>(File.ReadAllText(configPath))!;
+            }
+            else if (Regex.IsMatch(name, @"^([A-Za-z0-9](-?[A-Za-z0-9])*)\/([A-Za-z0-9](-?[A-Za-z0-9])*)$"))
+            {
+                var conn = new EdgeDBConnection();
+                conn.ParseCloudInstanceName(name, cloudProfile);
+                return conn;
+            }
+            else
+            {
+                throw new ConfigurationException($"Invalid instance name '{name}'");
+            }
         }
 
         /// <summary>
@@ -415,13 +474,67 @@ connectionDefinition:
             }
         }
 
+        private void ParseCloudInstanceName(string name, string? cloudProfile = null)
+        {
+            if(name.Length > DOMAIN_NAME_MAX_LEN)
+            {
+                throw new ConfigurationException($"Cloud instance name must be {DOMAIN_NAME_MAX_LEN} characters or less");
+            }
+
+            string? secretKey = SecretKey;
+
+            if(secretKey is null)
+            {
+                var profile = ConfigUtils.ReadCloudProfile(cloudProfile ?? CloudProfile);
+
+                if (profile.SecretKey is null)
+                {
+                    throw new ConfigurationException("Secret key cannot be null");
+                }
+
+                secretKey = profile.SecretKey;
+            }
+
+            var spl = secretKey.Split('.');
+
+            if(spl.Length < 2)
+            {
+                throw new ConfigurationException("Invalid secret key: does not contain payload");
+            }
+
+            var json = Convert.FromBase64String(spl[1]);
+
+            var jsonData = JsonConvert.DeserializeObject<Dictionary<string, object?>>(Encoding.UTF8.GetString(json))!;
+
+            if(!jsonData.TryGetValue("iss", out var dnsZone))
+            {
+                throw new ConfigurationException("Invalid secret key: payload does not contain 'iss' value");
+            }
+
+            name = name.ToLowerInvariant();
+
+            // safe: checks name length above to be less than DOMAIN_NAME_MAX_LEN
+            Span<byte> instanceNameBuffer = stackalloc byte[name.Length];
+
+            Encoding.UTF8.GetBytes(name, instanceNameBuffer);
+
+            var dnsBucket = (CRCHQX.CRCHqx(instanceNameBuffer, 0) % 100)
+                .ToString()
+                .PadLeft(2, '0');
+
+            spl = name.Split("/");
+
+            Hostname = $"{spl[1]}--{spl[0]}.c-{dnsBucket}.i.{dnsZone}";
+            SecretKey ??= secretKey;
+        }
+
         /// <summary>
         ///     Parses the provided arguments to build an <see cref="EdgeDBConnection"/> class; Parse logic follows
         ///     the <see href="https://www.edgedb.com/docs/reference/connection#ref-reference-connection-priority">Priority levels</see>
         ///     of arguments.
         /// </summary>
         /// <param name="instance">The instance name to connect to.</param>
-        /// <param name="dsn">The DSN string to use to connect.</param>
+        /// <param name="dsn">A DSN string or cloud instance name.</param>
         /// <param name="configure">A configuration delegate.</param>
         /// <param name="autoResolve">Whether or not to autoresolve a connection using <see cref="ResolveEdgeDBTOML"/>.</param>
         /// <returns>
@@ -435,8 +548,8 @@ connectionDefinition:
         {
             EdgeDBConnection? connection = null;
 
-            // try to resolve the toml
-            if (autoResolve)
+            // try to resolve the toml, don't do this for cloud-like conn params.
+            if (autoResolve && !((instance is not null && instance.Contains('/')) || (dsn is not null && !dsn.StartsWith("edgedb://"))))
             {
                 try
                 {
@@ -450,6 +563,18 @@ connectionDefinition:
 
             #region Env
             var env = Environment.GetEnvironmentVariables();
+
+            if (env.Contains(EDGEDB_CLOUD_PROFILE_ENV_NAME))
+            {
+                connection ??= new();
+                connection.CloudProfile = (string)env[EDGEDB_CLOUD_PROFILE_ENV_NAME]!;
+            }
+
+            if(env.Contains(EDGEDB_SECRET_KEY_ENV_NAME))
+            {
+                connection ??= new();
+                connection.SecretKey = (string)env[EDGEDB_SECRET_KEY_ENV_NAME]!;
+            }
 
             if (env.Contains(EDGEDB_INSTANCE_ENV_NAME))
             {
@@ -530,8 +655,17 @@ connectionDefinition:
 
             if (dsn is not null)
             {
-                var fromDSN = FromDSN(dsn);
-                connection = connection?.MergeInto(fromDSN) ?? fromDSN;
+                if(Regex.IsMatch(dsn, @"^([A-Za-z0-9](-?[A-Za-z0-9])*)\/([A-Za-z0-9](-?[A-Za-z0-9])*)$"))
+                {
+                    // cloud
+                    connection ??= new();
+                    connection.ParseCloudInstanceName(dsn);
+                }
+                else
+                {
+                    var fromDSN = FromDSN(dsn);
+                    connection = connection?.MergeInto(fromDSN) ?? fromDSN;
+                }
             }    
             
             if (configure is not null)

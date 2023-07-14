@@ -55,7 +55,9 @@ namespace EdgeDB
         ///     caused this exception to be thrown.
         /// </param>
         internal EdgeDBErrorException(ErrorResponse error)
-            : base(error.Message, typeof(ServerErrorCodes).GetField(error.ErrorCode.ToString())?.IsDefined(typeof(ShouldRetryAttribute), false) ?? false)
+            : base(error.Message,
+                  typeof(ServerErrorCodes).GetField(error.ErrorCode.ToString())?.IsDefined(typeof(ShouldRetryAttribute), false) ?? false,
+                  typeof(ServerErrorCodes).GetField(error.ErrorCode.ToString())?.IsDefined(typeof(ShouldReconnectAttribute), false) ?? false)
         {
             if(error.Attributes.Any(x => x.Code == 0x0002))
                 Details = Encoding.UTF8.GetString(error.Attributes.FirstOrDefault(x => x.Code == 0x0002).Value);

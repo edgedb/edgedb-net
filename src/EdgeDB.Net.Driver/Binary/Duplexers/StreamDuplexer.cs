@@ -4,6 +4,8 @@ using EdgeDB.Utils;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Net.Security;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -37,6 +39,8 @@ namespace EdgeDB.Binary
         private readonly Memory<byte> _packetHeaderBuffer;
         private readonly MemoryHandle _packetHeaderHandle;
         private unsafe readonly PacketHeader* _packetHeader;
+
+        private readonly object _connectivityLock = new();
 
         private Stream? _stream;
         private CancellationTokenSource _disconnectTokenSource;
@@ -85,7 +89,7 @@ namespace EdgeDB.Binary
         {
             try
             {
-                if(IsConnected)
+                if (IsConnected)
                     await SendAsync(token, packets: new Terminate()).ConfigureAwait(false);
             }
             catch (EdgeDBException) { } // assume its because the connection is closed.
@@ -129,8 +133,31 @@ namespace EdgeDB.Binary
                     return null;
                 }
 
-                _client.Logger.MessageReceived(_client.ClientId, header.Type);
-                return PacketSerializer.DeserializePacket(header.Type, ref buffer, header.Length, _client);
+                _client.Logger.MessageReceived(_client.ClientId, header.Type, buffer.Length);
+
+                var packet = PacketSerializer.DeserializePacket(header.Type, ref buffer, header.Length, _client);
+
+                // check for idle timeout
+                if(packet is ErrorResponse err && err.ErrorCode == ServerErrorCodes.IdleSessionTimeoutError)
+                {
+                    // all connection state needs to be reset for the client here.
+                    _client.Logger.IdleDisconnect();
+
+                    await DisconnectInternalAsync();
+                    throw new EdgeDBErrorException(err);
+                }
+
+                return packet;
+            }
+            catch (EndOfStreamException)
+            {
+                // disconnect
+                await DisconnectInternalAsync();
+                return null;
+            }
+            catch(EdgeDBErrorException)
+            {
+                throw;
             }
             catch (Exception x) when (x is not OperationCanceledException or TaskCanceledException)
             {
@@ -142,26 +169,43 @@ namespace EdgeDB.Binary
                 _readLock.Release();
             }
         }
-        
+
         public async ValueTask SendAsync(CancellationToken token = default, params Sendable[] packets)
         {
+            if (_stream == null || !IsConnected)
+            {
+                await _client.ReconnectAsync(); //don't pass token here, it may be cancelled due to the disconnect token.
+            }
+
+            // check stream after reconnect
+            if (_stream is null)
+            {
+                throw new EdgeDBException("Cannot send message to a force-closed connection");
+            }
+
             using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectTokenSource.Token);
 
-            if (_stream == null || !IsConnected)
-                throw new EdgeDBException("Cannot send message to a closed connection");
-
             await _stream.WriteAsync(BinaryUtils.BuildPackets(packets), linkedToken.Token).ConfigureAwait(false);
+
+            // only perform second iteration if debug log enabled.
+            if(_client.Logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Debug))
+            {
+                foreach(var packet in packets)
+                {
+                    _client.Logger.MessageSent(_client.ClientId, packet.Type, packet.Size);
+                }
+            }
         }
-        
+
         public async IAsyncEnumerable<DuplexResult> DuplexAsync(
             [EnumeratorCancellation] CancellationToken token = default,
             params Sendable[] packets)
         {
             await SendAsync(token, packets).ConfigureAwait(false);
-            
+
             using var enumerationFinishToken = new CancellationTokenSource();
 
-            while(!enumerationFinishToken.IsCancellationRequested && !token.IsCancellationRequested)
+            while (!enumerationFinishToken.IsCancellationRequested && !token.IsCancellationRequested)
             {
                 var result = await ReadNextAsync(token).ConfigureAwait(false);
 
@@ -173,28 +217,52 @@ namespace EdgeDB.Binary
 
             yield break;
         }
-        
+
         private async ValueTask<int> ReadExactAsync(Memory<byte> buffer, CancellationToken token)
         {
-            var targetLength = buffer.Length;
+            var sw = Stopwatch.StartNew();
 
-            int numRead = 0;
-
-            while (numRead < targetLength)
+            try
             {
-                var buff = numRead == 0
-                    ? buffer
-                    : buffer[numRead..];
+#if NET7_0_OR_GREATER
+                await _stream!.ReadExactlyAsync(buffer, token).ConfigureAwait(false);
+                return buffer.Length;
+#else
+                var targetLength = buffer.Length;
 
-                var read = await _stream!.ReadAsync(buff, token);
+                int numRead = 0;
 
-                if (read == 0) // disconnected
-                    return 0;
+                while (numRead < targetLength)
+                {
+                    var buff = numRead == 0
+                        ? buffer
+                        : buffer[numRead..];
 
-                numRead += read;
+                    var read = await _stream!.ReadAsync(buff, token);
+
+                    if (read == 0) // disconnected
+                        return 0;
+
+                    numRead += read;
+                }
+
+                return numRead;
+#endif
+            }
+            finally
+            {
+                sw.Stop();
+
+                var delta = sw.ElapsedMilliseconds / _client.MessageTimeout.TotalMilliseconds;
+                if (delta >= 0.75)
+                {
+                    if (delta < 1)
+                        _client.Logger.MessageTimeoutDeltaWarning((int)(delta * 100), (int)_client.MessageTimeout.TotalMilliseconds);
+                    else
+                        _client.Logger.MessageTimeoutDeltaError((int)(delta * 100), (int)_client.MessageTimeout.TotalMilliseconds);
+                }
             }
 
-            return numRead;
         }
         
         private CancellationTokenSource GetTimeoutToken()

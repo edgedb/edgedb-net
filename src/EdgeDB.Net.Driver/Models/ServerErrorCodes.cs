@@ -92,6 +92,7 @@ namespace EdgeDB
         #region Timeout errors (0x0406)
         SessionTimeoutError = 0x_04_06_00_00,
 
+        [ShouldReconnect]
         IdleSessionTimeoutError = 0x_04_06_01_00,
         
         QueryTimeoutError = 0x_04_06_02_00,
@@ -116,7 +117,9 @@ namespace EdgeDB
         TransactionError = 0x_05_03_00_00,
         [ShouldRetry]
         TransactionConflictError = 0x_05_03_01_00,
+        [ShouldRetry]
         TransactionSerializationError = 0x_05_03_01_01,
+        [ShouldRetry]
         TransactionDeadlockError = 0x_05_03_01_02,
         #endregion
 

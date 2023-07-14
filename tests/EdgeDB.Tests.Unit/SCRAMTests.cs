@@ -13,6 +13,8 @@ namespace EdgeDB.Tests.Unit
     [TestClass]
     public class SCRAMTests
     {
+        private static readonly EdgeDBBinaryClient _client = new EdgeDBTcpClient(new(), new(), null!);
+
         public const string SCRAM_METHOD = "SCRAM-SHA-256";
         public const string SCRAM_USERNAME = "user";
         public const string SCRAM_PASSWORD = "pencil";
@@ -25,11 +27,11 @@ namespace EdgeDB.Tests.Unit
         {
             var scram = new Scram(Convert.FromBase64String(SCRAM_CLIENT_NONCE));
 
-            var clientFirst = scram.BuildInitialMessagePacket(SCRAM_USERNAME, SCRAM_METHOD);
+            var clientFirst = scram.BuildInitialMessagePacket(_client, SCRAM_USERNAME, SCRAM_METHOD);
             Assert.AreEqual($"{SCRAM_METHOD} n,,n={SCRAM_USERNAME},r={SCRAM_CLIENT_NONCE}", clientFirst.ToString());
 
             var serverFirst = CreateServerFirstMessage();
-            var clientFinal = scram.BuildFinalMessagePacket(in serverFirst, SCRAM_PASSWORD);
+            var clientFinal = scram.BuildFinalMessagePacket(_client, in serverFirst, SCRAM_PASSWORD);
 
             Assert.AreEqual("6rriTRBi23WpRR/wtup+mMhUZUn/dB5nLTJRsjl95G4=", Convert.ToBase64String(clientFinal.ExpectedSig));
             Assert.AreEqual($"c=biws,r={SCRAM_SERVER_NONCE},p=dHzbZapWIk4jUhN+Ute9ytag9zjfMHgsqmmiz7AndVQ=", clientFinal.FinalMessage.ToString());

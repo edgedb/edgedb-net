@@ -1,5 +1,6 @@
 using EdgeDB.Binary;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -115,8 +116,6 @@ namespace EdgeDB.Tests.Integration
         {
             await EnsurePersonIsAddedAsync();
             
-            bool customDeserializerCalled = false;
-
             TypeDeserializerFactory customBuilder = (ref ObjectEnumerator enumerator) =>
             {
                 var person = new PersonClass();
@@ -134,7 +133,7 @@ namespace EdgeDB.Tests.Integration
                     }
                 }
 
-                customDeserializerCalled = true;
+                person.CustomDeserializer = true;
 
                 return person;
             };
@@ -151,13 +150,16 @@ namespace EdgeDB.Tests.Integration
 
             Assert.IsNotNull(person);
 
-            Assert.IsTrue(customDeserializerCalled);
+            Assert.IsTrue(person.All(x => x?.CustomDeserializer ?? true));
         }
 
         public class PersonClass
         {
             public string? Name { get; set; }
             public string? Email { get; set; }
+
+            [EdgeDBIgnore]
+            public bool CustomDeserializer { get; set; }
         }
 
         public class PersonMethodBuilder
