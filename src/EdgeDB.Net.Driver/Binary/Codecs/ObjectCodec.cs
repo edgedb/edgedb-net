@@ -1,5 +1,6 @@
 using EdgeDB.Binary;
 using EdgeDB.Binary.Protocol.Common.Descriptors;
+using EdgeDB.Utils.FSharp;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using System.Collections;
@@ -141,6 +142,17 @@ namespace EdgeDB.Binary.Codecs
 
                 // reserved
                 writer.Write(0);
+
+                if (FSharpOptionInterop.TryGet(element, out var option))
+                {
+                    if(!option.HasValue)
+                    {
+                        writer.Write(-1);
+                        continue;
+                    }
+
+                    element = option.Value;
+                }
 
                 // encode
                 if (element is null)

@@ -96,7 +96,25 @@ namespace EdgeDB.Utils
             return false;
         }
 
-        public static bool TryResolveInstanceCLoudProfile(out string? profile, out string? linkedInstanceName)
+        public static bool TryResolveProjectDatabase(string stashDir, [NotNullWhen(true)] out string? database)
+        {
+            database = null;
+
+            if (!Directory.Exists(stashDir))
+                return false;
+
+            var databasePath = Path.Combine(stashDir, "database");
+
+            if (File.Exists(databasePath))
+            {
+                database = File.ReadAllText(databasePath);
+                return true;
+            }
+
+            return false;
+        }
+
+        public static bool TryResolveInstanceCloudProfile(out string? profile, out string? linkedInstanceName)
         {
             profile = null;
             linkedInstanceName = null;

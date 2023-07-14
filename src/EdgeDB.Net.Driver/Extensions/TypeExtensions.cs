@@ -37,7 +37,13 @@ namespace EdgeDB
 
             if (type.IsGenericType)
             {
+                if (type.IsFSharpOption() || type.IsFSharpValueOption())
+                {
+                    return type.GenericTypeArguments[0];
+                }
+
                 var genDef = type.GetGenericTypeDefinition();
+
                 if (genDef == typeof(DataTypes.Range<>))
                 {
                     return type.GenericTypeArguments[0];
