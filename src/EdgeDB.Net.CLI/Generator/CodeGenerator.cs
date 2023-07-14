@@ -1,4 +1,5 @@
 using EdgeDB.Binary.Codecs;
+using EdgeDB.Binary.Protocol;
 using EdgeDB.CLI;
 using EdgeDB.CLI.Generator.Models;
 using EdgeDB.CLI.Generator.Results;
@@ -59,11 +60,13 @@ namespace EdgeDB.CLI.Generator
         /// <returns>A tuple containing information about the query.</returns>
         public static async Task<(IQueryResult Result, Cardinality ResultCardinality, Capabilities Capabilities, IArgumentCodec Args)> ParseAsync(EdgeDBTcpClient client, string outputDir, GenerationTargetInfo targetInfo)
         {
-            var parseResult = await client.ParseAsync(targetInfo.EdgeQL!, Cardinality.Many, IOFormat.Binary, Capabilities.All, false, default);
+            var queryParameters = new QueryParameters(targetInfo.EdgeQL!, null, Capabilities.All, Cardinality.Many, IOFormat.Binary, false);
 
-            var codecInfo = GetTypeInfoFromCodec(parseResult.OutCodec.Codec, $"{targetInfo.EdgeQLFileNameWithoutExtension}Result");
+            var parseResult = await client.ProtocolProvider.ParseQueryAsync(queryParameters, default);
 
-            return (codecInfo.Build(targetInfo.EdgeQLFilePath!), parseResult.Cardinality, parseResult.Capabilities, (IArgumentCodec)parseResult.InCodec.Codec);
+            var codecInfo = GetTypeInfoFromCodec(parseResult.OutCodecInfo.Codec, $"{targetInfo.EdgeQLFileNameWithoutExtension}Result");
+
+            return (codecInfo.Build(targetInfo.EdgeQLFilePath!), parseResult.Cardinality, parseResult.Capabilities, (IArgumentCodec)parseResult.InCodecInfo.Codec);
         }
 
         /// <summary>
@@ -187,7 +190,7 @@ namespace EdgeDB.CLI.Generator
                 methodArgs = Array.Empty<string>();
                 argParameters = Array.Empty<string>();
             }
-            else if (target.Arguments is Binary.Codecs.Object argCodec)
+            else if (target.Arguments is ObjectCodec argCodec)
             {
                 argParameters = argParameters = argCodec.PropertyNames.Select((x, i) =>
                 {
@@ -267,7 +270,7 @@ namespace EdgeDB.CLI.Generator
 
             switch (codec)
             {
-                case Binary.Codecs.Object obj:
+                case Binary.Codecs.ObjectCodec obj:
                     {
                         info = new CodecTypeInfo
                         {
@@ -286,7 +289,7 @@ namespace EdgeDB.CLI.Generator
                             .Where(x => x is not null)!;
                     }
                     break;
-                case ICodec set when ReflectionUtils.IsSubclassOfRawGeneric(typeof(Set<>), set.GetType()):
+                case ICodec set when ReflectionUtils.IsSubclassOfRawGeneric(typeof(SetCodec<>), set.GetType()):
                     {
                         var innerType = ((IWrappingCodec)set).InnerCodec;
 
@@ -301,7 +304,7 @@ namespace EdgeDB.CLI.Generator
                         };
                     }
                     break;
-                case ICodec array when ReflectionUtils.IsSubclassOfRawGeneric(typeof(Array<>), array.GetType()):
+                case ICodec array when ReflectionUtils.IsSubclassOfRawGeneric(typeof(ArrayCodec<>), array.GetType()):
                     {
                         var innerType = ((IWrappingCodec)array).InnerCodec;
 
@@ -315,7 +318,7 @@ namespace EdgeDB.CLI.Generator
                         };
                     }
                     break;
-                case Binary.Codecs.Tuple tuple:
+                case TupleCodec tuple:
                     {
                         info = new CodecTypeInfo
                         {

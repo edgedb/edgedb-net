@@ -1,4 +1,5 @@
 using CommandLine;
+using EdgeDB.Binary;
 using EdgeDB.CLI.Arguments;
 using EdgeDB.CLI.Generator;
 using EdgeDB.CLI.Generator.Models;
@@ -121,10 +122,12 @@ public class Generate : ConnectionArguments, ICommand
                 }
                 catch (EdgeDBErrorException error)
                 {
+                    KeyValue kv = default;
+
                     logger.Error(error, "Skipping {@File}: Failed to parse: at line {@Line} column {@Column}",
                         target.Info.EdgeQLFilePath,
-                        error.ErrorResponse.Attributes.FirstOrDefault(x => x.Code == 65523).ToString() ?? "??",
-                        error.ErrorResponse.Attributes.FirstOrDefault(x => x.Code == 65524).ToString() ?? "??");
+                        error.ErrorResponse.TryGetAttribute(65523, out kv) ? kv.ToString() : "??",
+                        error.ErrorResponse.TryGetAttribute(65524, out kv) ? kv.ToString() : "??");
                     continue;
                 }
             }

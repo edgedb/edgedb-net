@@ -160,6 +160,9 @@ namespace EdgeDB.Binary.Protocol.V1._0
 
             var stateBuf = _client.SerializeState();
 
+            var parseCardinality = queryParameters.Cardinality;
+            var parseCapabilities = queryParameters.Capabilities;
+
             if (!CodecBuilder.TryGetCodecs(this, cacheKey, out var inCodecInfo, out var outCodecInfo))
             {
                 while (!successfullyParsed)
@@ -173,7 +176,7 @@ namespace EdgeDB.Binary.Protocol.V1._0
 
                     await foreach (var result in Duplexer.DuplexAndSyncAsync(new Parse
                     {
-                        Capabilities = queryParameters.Capabilities,
+                        Capabilities = parseCapabilities,
                         Query = queryParameters.Query,
                         Format = queryParameters.Format,
                         ExpectedCardinality = queryParameters.Cardinality,
@@ -213,6 +216,9 @@ namespace EdgeDB.Binary.Protocol.V1._0
                                         CodecBuilder.BuildCodec(_client, descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer));
 
                                     CodecBuilder.UpdateKeyMap(cacheKey, descriptor.InputTypeDescriptorId, descriptor.OutputTypeDescriptorId);
+
+                                    parseCardinality = descriptor.Cardinality;
+                                    parseCapabilities = descriptor.Capabilities;
                                 }
                                 break;
                             case StateDataDescription stateDescriptor:
@@ -250,7 +256,7 @@ namespace EdgeDB.Binary.Protocol.V1._0
             if (inCodecInfo.Codec is not IArgumentCodec)
                 throw new MissingCodecException($"Cannot encode arguments, {inCodecInfo.Codec} is not a registered argument codec");
 
-            return new ParseResult(inCodecInfo, outCodecInfo, in stateBuf);
+            return new ParseResult(inCodecInfo, outCodecInfo, in stateBuf, parseCardinality, parseCapabilities);
         }
 
         public virtual ICodec? BuildCodec<T>(in T descriptor, RelativeCodecDelegate getRelativeCodec, RelativeDescriptorDelegate getRelativeDescriptor)
