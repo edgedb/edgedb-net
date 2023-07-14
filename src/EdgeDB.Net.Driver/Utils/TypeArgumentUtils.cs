@@ -30,7 +30,32 @@ namespace EdgeDB
             {
                 _type = typeof(T);
 
-                var param = Expression.Parameter(_type, "value");
+                if (RuntimeFeature.IsDynamicCodeCompiled)
+                    _factory = CompileExpressionBuilder(_type);
+                else
+                    _factory = GetReflectionBuilder(_type);
+            }
+
+            private static Func<T, IDictionary<string, object?>> GetReflectionBuilder(Type type)
+            {
+                var propMap = EdgeDBPropertyMapInfo.Create(type);
+
+                return value =>
+                {
+                    var dict = new Dictionary<string, object?>();
+
+                    foreach(var prop in propMap.Map)
+                    {
+                        dict.Add(prop.Key, prop.Value.PropertyInfo.GetValue(value));
+                    }
+
+                    return dict;
+                };
+            }
+
+            private static Func<T, IDictionary<string, object?>> CompileExpressionBuilder(Type type)
+            {
+                var param = Expression.Parameter(type, "value");
                 var dictExp = Expression.Variable(typeof(Dictionary<string, object?>), "dict");
 
                 var body = new List<Expression>()
@@ -38,23 +63,27 @@ namespace EdgeDB
                      Expression.Assign(dictExp, Expression.New(typeof(Dictionary<string, object?>)))
                 };
 
-                var propMap = EdgeDBPropertyMapInfo.Create(_type);
+                var propMap = EdgeDBPropertyMapInfo.Create(type);
 
-                foreach(var prop in propMap.Map)
+                foreach (var prop in propMap.Map)
                 {
+                    Expression value = prop.Value.Type.IsValueType
+                        ? Expression.TypeAs(Expression.MakeMemberAccess(param, prop.Value.PropertyInfo), typeof(object))
+                        : Expression.MakeMemberAccess(param, prop.Value.PropertyInfo);
+
                     body.Add(
                         Expression.Call(
                             dictExp,
                             _dictAddMethod,
                             Expression.Constant(prop.Key),
-                            Expression.MakeMemberAccess(param, prop.Value.PropertyInfo)
+                            value
                         )
                     );
                 }
 
                 body.Add(dictExp);
 
-                _factory = Expression.Lambda<Func<T, IDictionary<string, object?>>>(
+                return Expression.Lambda<Func<T, IDictionary<string, object?>>>(
                     Expression.Block(
                         typeof(IDictionary<string, object?>),
                         new ParameterExpression[] { dictExp },
