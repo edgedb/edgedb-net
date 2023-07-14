@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,16 @@ namespace EdgeDB.Binary.Codecs
 {
     internal abstract class BaseCodec<T> : ICodec<T>
     {
+        public virtual Guid Id { get; }
         public virtual Type ConverterType => typeof(T);
+        public virtual CodecMetadata? Metadata { get; }
+
+
+        protected BaseCodec(in Guid id, CodecMetadata? metadata)
+        {
+            Metadata = metadata;
+            Id = id;
+        }
 
         public abstract void Serialize(ref PacketWriter writer, T? value, CodecContext context);
         public abstract T? Deserialize(ref PacketReader reader, CodecContext context);

@@ -1,10 +1,9 @@
-using EdgeDB.Binary.Packets;
-
 namespace EdgeDB
 {
     /// <summary>
     ///     Represents a generic execution result of a command.
     /// </summary>
+    [Obsolete("This class is no longer used anywhere within the binding and will be removed in a future version.")]
     public readonly struct ExecuteResult : IExecuteResult
     {
         /// <inheritdoc/>
@@ -23,13 +22,14 @@ namespace EdgeDB
             ExecutedQuery = executedQuery;
         }
 
-        IExecuteError? IExecuteResult.ExecutionError => Exception is EdgeDBErrorException x ? x.ErrorResponse : null;
+        IExecuteError? IExecuteResult.ExecutionError => null;
 
     }
 
     /// <summary>
     ///     An interface representing a generic execution result.
     /// </summary>
+    [Obsolete("This interface is no longer used anywhere within the binding and will be removed in a future version.")]
     public interface IExecuteResult
     {
         /// <summary>
@@ -56,6 +56,7 @@ namespace EdgeDB
     /// <summary>
     ///     Represents a generic execution error.
     /// </summary>
+    [Obsolete("This interface is no longer used anywhere within the binding and will be removed in a future version.")]
     public interface IExecuteError
     {
         /// <summary>

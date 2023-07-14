@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace EdgeDB
 {
     /// <summary>
-    ///     Represents the log message severity within a <see cref="Binary.Packets.LogMessage"/>
+    ///     Represents the log message severity
     /// </summary>
     internal enum MessageSeverity : byte
     {

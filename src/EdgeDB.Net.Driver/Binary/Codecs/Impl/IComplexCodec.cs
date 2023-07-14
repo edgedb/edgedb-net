@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Protocol;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,9 +11,9 @@ namespace EdgeDB.Binary.Codecs
     {
         IEnumerable<ICodec> RuntimeCodecs { get; }
 
-        void BuildRuntimeCodecs();
+        void BuildRuntimeCodecs(IProtocolProvider provider);
 
-        ICodec GetCodecFor(Type type);
+        ICodec GetCodecFor(IProtocolProvider provider, Type type);
     }
 
     internal interface IRuntimeCodec : ICodec

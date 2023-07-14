@@ -1,5 +1,4 @@
 using EdgeDB.Binary;
-using EdgeDB.Binary.Packets;
 using EdgeDB.Binary.Codecs;
 using System.Security.Cryptography;
 using System.Text;
@@ -45,12 +44,6 @@ namespace EdgeDB.Utils
             return $"n,,{_rawFirstMessage}";
         }
 
-
-        public AuthenticationSASLInitialResponse BuildInitialMessagePacket(EdgeDBBinaryClient client, string username, string method)
-            => new(
-                _stringCodec.Serialize(client, BuildInitialMessage(username)),
-                method);
-
         public (string final, byte[] expectedSig) BuildFinalMessage(string initialResponse, string password)
         {
             var parsedMessage = ParseServerMessage(initialResponse);
@@ -83,22 +76,9 @@ namespace EdgeDB.Utils
             return ($"{final},p={Convert.ToBase64String(clientProof)}", serverProof);
         }
 
-        public (AuthenticationSASLResponse FinalMessage, byte[] ExpectedSig) BuildFinalMessagePacket(
-            EdgeDBBinaryClient client,
-            in AuthenticationStatus status,
-            string password)
+        public static byte[] ParseServerSig(string data)
         {
-            var (final, sig) = BuildFinalMessage(_stringCodec.Deserialize(client, status.SASLDataBuffer)!, password);
-
-            return (new AuthenticationSASLResponse(_stringCodec.Serialize(client, final)), sig);
-        }
-
-        public static byte[] ParseServerFinalMessage(EdgeDBBinaryClient client, in AuthenticationStatus status)
-        {
-            var msg = _stringCodec.Deserialize(client, status.SASLDataBuffer)!;
-
-            var parsed = ParseServerMessage(msg);
-
+            var parsed = ParseServerMessage(data);
             return Convert.FromBase64String(parsed["v"]);
         }
 

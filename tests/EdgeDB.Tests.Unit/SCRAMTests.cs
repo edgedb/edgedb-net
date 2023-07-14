@@ -1,5 +1,4 @@
 using EdgeDB.Binary;
-using EdgeDB.Binary.Packets;
 using EdgeDB.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
@@ -27,22 +26,18 @@ namespace EdgeDB.Tests.Unit
         {
             var scram = new Scram(Convert.FromBase64String(SCRAM_CLIENT_NONCE));
 
-            var clientFirst = scram.BuildInitialMessagePacket(_client, SCRAM_USERNAME, SCRAM_METHOD);
-            Assert.AreEqual($"{SCRAM_METHOD} n,,n={SCRAM_USERNAME},r={SCRAM_CLIENT_NONCE}", clientFirst.ToString());
+            var clientFirst = scram.BuildInitialMessage(SCRAM_USERNAME);
+            Assert.AreEqual($"n,,n={SCRAM_USERNAME},r={SCRAM_CLIENT_NONCE}", clientFirst);
 
             var serverFirst = CreateServerFirstMessage();
-            var clientFinal = scram.BuildFinalMessagePacket(_client, in serverFirst, SCRAM_PASSWORD);
+            var clientFinal = scram.BuildFinalMessage(serverFirst, SCRAM_PASSWORD);
 
-            Assert.AreEqual("6rriTRBi23WpRR/wtup+mMhUZUn/dB5nLTJRsjl95G4=", Convert.ToBase64String(clientFinal.ExpectedSig));
-            Assert.AreEqual($"c=biws,r={SCRAM_SERVER_NONCE},p=dHzbZapWIk4jUhN+Ute9ytag9zjfMHgsqmmiz7AndVQ=", clientFinal.FinalMessage.ToString());
+            Assert.AreEqual($"c=biws,r={SCRAM_SERVER_NONCE},p=dHzbZapWIk4jUhN+Ute9ytag9zjfMHgsqmmiz7AndVQ=", clientFinal.final);
         }
 
-        private static AuthenticationStatus CreateServerFirstMessage()
+        private static string CreateServerFirstMessage()
         {
-            var inner = Encoding.UTF8.GetBytes($"r={SCRAM_SERVER_NONCE},s={SCRAM_SALT},i=4096");
-            var data = new byte[] { 0x00, 0x00, 0x00, 0x0b }.Concat(BitConverter.GetBytes(inner.Length).Reverse()).Concat(inner).ToArray();
-            var reader = new PacketReader(data);
-            return new AuthenticationStatus(ref reader);
+            return $"r={SCRAM_SERVER_NONCE},s={SCRAM_SALT},i=4096";
         }
     }
 }

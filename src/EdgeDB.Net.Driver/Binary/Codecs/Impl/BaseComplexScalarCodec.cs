@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,11 +11,9 @@ namespace EdgeDB.Binary.Codecs
     internal abstract class BaseComplexScalarCodec<T>
         : BaseComplexCodec<T>, IScalarCodec<T>
     {
-        public BaseComplexScalarCodec()
-            : base(typeof(RuntimeScalarCodec<>))
-        {
-
-        }
+        public BaseComplexScalarCodec(in Guid id, CodecMetadata? metadata)
+            : base(in id, metadata, typeof(RuntimeScalarCodec<>))
+        { }
 
         private sealed class RuntimeScalarCodec<U>
             : BaseScalarCodec<U>, IRuntimeCodec
@@ -24,6 +23,7 @@ namespace EdgeDB.Binary.Codecs
             public RuntimeScalarCodec(
                 BaseComplexScalarCodec<T> codec,
                 Converter<U> converter)
+                : base (codec.Id, codec.Metadata)
             {
                 _codec = codec;
                 _converter = converter;

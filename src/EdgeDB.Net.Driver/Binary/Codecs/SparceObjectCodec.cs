@@ -1,4 +1,5 @@
 using EdgeDB.Binary;
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -15,17 +16,11 @@ namespace EdgeDB.Binary.Codecs
         public ICodec[] InnerCodecs;
         public readonly string[] FieldNames;
 
-        internal SparceObjectCodec(InputShapeDescriptor descriptor, List<ICodec> codecs)
+        public SparceObjectCodec(in Guid id, ICodec[] innerCodecs, string[] fieldNames, CodecMetadata? metadata = null)
+            : base(in id, metadata)
         {
-            InnerCodecs = new ICodec[descriptor.Shapes.Length];
-            FieldNames = new string[descriptor.Shapes.Length];
-
-            for (int i = 0; i != descriptor.Shapes.Length; i++)
-            {
-                var shape = descriptor.Shapes[i];
-                InnerCodecs[i] = codecs[shape.TypePos];
-                FieldNames[i] = shape.Name;
-            }
+            FieldNames = fieldNames;
+            InnerCodecs = innerCodecs;
         }
 
         public override object? Deserialize(ref PacketReader reader, CodecContext context)
@@ -57,7 +52,7 @@ namespace EdgeDB.Binary.Codecs
 
                 object? value;
 
-                value = InnerCodecs[i].Deserialize(context, innerData);
+                value = InnerCodecs[i].Deserialize(context, in innerData);
 
                 dataDictionary.Add(elementName, value);
             }
@@ -111,9 +106,7 @@ namespace EdgeDB.Binary.Codecs
         }
 
         public override string ToString()
-        {
-            return $"SparseObjectCodec<{string.Join(", ", InnerCodecs.Zip(FieldNames).Select(x => $"[{x.Second}: {x.First}]"))}>";
-        }
+            => "sparce_object";
 
         ICodec[] IMultiWrappingCodec.InnerCodecs
         {

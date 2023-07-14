@@ -1,3 +1,5 @@
+using EdgeDB.Binary.Protocol;
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -70,11 +72,12 @@ namespace EdgeDB.Binary.Codecs
 
         private readonly Type _runtimeCodecType;
 
-        public BaseComplexCodec()
-            : this(typeof(RuntimeCodec<>))
+        public BaseComplexCodec(in Guid id, CodecMetadata? metadata)
+            : this(in id, metadata, typeof(RuntimeCodec<>))
         { }
 
-        public BaseComplexCodec(Type runtimeCodecType)
+        public BaseComplexCodec(in Guid id, CodecMetadata? metadata, Type runtimeCodecType)
+            : base(in id, metadata)
         {
             _runtimeCodecType = runtimeCodecType;
             Converters = new();
@@ -95,7 +98,7 @@ namespace EdgeDB.Binary.Codecs
             collection.Add(converter);
         }
 
-        public void BuildRuntimeCodecs()
+        public void BuildRuntimeCodecs(IProtocolProvider provider)
         {
             if (Converters is null)
                 return;
@@ -107,7 +110,7 @@ namespace EdgeDB.Binary.Codecs
             {
                 var codecType = _runtimeCodecType.MakeGenericType(typeof(T), converter.Key);
 
-                var codecs = converter.Value.Select(x => CodecBuilder.CompiledCodecCache.GetOrAdd(
+                var codecs = converter.Value.Select(x => CodecBuilder.GetProviderCache(provider).CompiledCodecCache.GetOrAdd(
                         HashCode.Combine(codecType, x, this),
                         t => (ICodec)Activator.CreateInstance(codecType, this, x)!
                     )).ToList();
@@ -121,12 +124,12 @@ namespace EdgeDB.Binary.Codecs
             }
         }
 
-        public virtual ICodec GetCodecFor(Type type)
+        public virtual ICodec GetCodecFor(IProtocolProvider provider, Type type)
         {
             if (type == typeof(T))
                 return this;
 
-            BuildRuntimeCodecs();
+            BuildRuntimeCodecs(provider);
 
             ICodec? codec;
 
@@ -158,6 +161,7 @@ namespace EdgeDB.Binary.Codecs
             public RuntimeCodec(
                 BaseComplexCodec<T> codec,
                 Converter<U> converter)
+                : base(codec.Id, codec.Metadata)
             {
                 _codec = codec;
                 _converter = converter;

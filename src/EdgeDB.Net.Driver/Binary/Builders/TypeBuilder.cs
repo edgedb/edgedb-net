@@ -1,4 +1,3 @@
-using EdgeDB.Binary.Packets;
 using EdgeDB.Binary.Codecs;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -142,7 +141,7 @@ namespace EdgeDB
             return info is not null;
         }
         
-        internal static object? BuildObject(EdgeDBBinaryClient client, Type type, Binary.Codecs.ObjectCodec codec, ref Data data)
+        internal static object? BuildObject(EdgeDBBinaryClient client, Type type, Binary.Codecs.ObjectCodec codec, in ReadOnlyMemory<byte> data)
         {
             if (!IsValidObjectType(type))
                 throw new InvalidOperationException($"Cannot deserialize data to {type.Name}");
@@ -156,7 +155,7 @@ namespace EdgeDB
             if (codec is not TypeInitializedObjectCodec typeCodec)
                 codec = codec.GetOrCreateTypeCodec(type);
 
-            var reader = new PacketReader(data.PayloadBuffer);
+            var reader = new PacketReader(data.Span);
             return codec.Deserialize(ref reader, client.CodecContext);
         }
 

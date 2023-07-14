@@ -121,7 +121,7 @@ namespace EdgeDB
             return ValueTask.CompletedTask;
         }
 
-        protected override void UpdateTransactionState(TransactionState state)
+        internal override void UpdateTransactionState(TransactionState state)
         {
             TransactionState = state;
         }
