@@ -116,6 +116,10 @@ namespace EdgeDB
 
         public async Task SyncAsync(CancellationToken token = default)
         {
+            // if the current client is not connected, reconnect it
+            if (!Duplexer.IsConnected)
+                await ReconnectAsync(token);
+
             using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, DisconnectCancelToken);
 
             await _semaphore.WaitAsync(linkedToken.Token).ConfigureAwait(false);

@@ -80,6 +80,12 @@ namespace EdgeDB
         public override int GetHashCode()
             => HashCode.Combine(Major, Minor);
 
+        internal void Deconstruct(out int major, out int minor)
+        {
+            major = Major;
+            minor = Minor;
+        }
+
         public static bool operator ==(ProtocolVersion left, ProtocolVersion right)
         {
             if (left is null)

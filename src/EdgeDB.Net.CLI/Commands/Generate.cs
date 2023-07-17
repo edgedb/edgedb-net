@@ -1,10 +1,8 @@
 using CommandLine;
 using EdgeDB.Binary;
 using EdgeDB.CLI.Arguments;
-using EdgeDB.CLI.Generator;
-using EdgeDB.CLI.Generator.Models;
-using EdgeDB.CLI.Generator.Results;
 using EdgeDB.CLI.Utils;
+using EdgeDB.Generator;
 using Newtonsoft.Json;
 using Serilog;
 using System.Diagnostics;
@@ -49,12 +47,6 @@ public class Generate : ConnectionArguments, ICommand
         // get connection info
         var connection = GetConnection();
 
-        // create the client
-        var client = new EdgeDBTcpClient(connection, new() { Logger = logger.CreateClientLogger() }, ClientPoolHolder.Empty);
-
-        logger.Information("Connecting to {@Host}:{@Port}...", connection.Hostname, connection.Port);
-        await client.ConnectAsync();
-
         var projectRoot = ProjectUtils.GetProjectRoot();
 
         OutputDirectory ??= Environment.CurrentDirectory;
@@ -84,55 +76,14 @@ public class Generate : ConnectionArguments, ICommand
 
             return;
         }
-        
+
+        var generator = new CodeGenerator(connection);
+        var context = new GeneratorContext(OutputDirectory, GeneratedProjectName);
+
         logger.Information("Generating {@FileCount} files...", edgeqlFiles.Length);
 
-        
-        using (var generationHandle = CodeGenerator.GetGenerationHandle(OutputDirectory))
-        {
-            for (int i = 0; i != edgeqlFiles.Length; i++)
-            {
-                var file = edgeqlFiles[i];
-                var info = CodeGenerator.GetTargetInfo(file, OutputDirectory, projectRoot);
+        await generator.GenerateAsync(edgeqlFiles, context, default);
 
-                if(string.IsNullOrEmpty(info.EdgeQL))
-                {
-                    logger.Warning("Skipping {@File}: No contents", info.EdgeQLFilePath);
-                    continue;
-                }
-
-                var parsed = await CodeGenerator.ParseAsync(client, OutputDirectory, info);
-
-                var target = new TransientTargetInfo(parsed, info);
-
-                TypeGenerator.UpdateResultInfo(info.EdgeQLFileNameWithoutExtension!, parsed.Result);
-
-                try
-                {
-                    var result = await CodeGenerator.GenerateAsync(OutputDirectory, GeneratedProjectName, target);
-
-                    foreach (var f in result.GeneratedTypeFiles)
-                    {
-                        generationHandle.Track(f);
-                    }
-
-                    File.WriteAllText(target.Info.TargetFilePath!, result.Code);
-
-                    generationHandle.Track(target.Info.TargetFilePath!);
-                }
-                catch (EdgeDBErrorException error)
-                {
-                    KeyValue kv = default;
-
-                    logger.Error(error, "Skipping {@File}: Failed to parse: at line {@Line} column {@Column}",
-                        target.Info.EdgeQLFilePath,
-                        error.ErrorResponse.TryGetAttribute(65523, out kv) ? kv.ToString() : "??",
-                        error.ErrorResponse.TryGetAttribute(65524, out kv) ? kv.ToString() : "??");
-                    continue;
-                }
-            }
-        }
-        
         logger.Information("Generation complete!");
 
         if(Watch)

@@ -1,4 +1,4 @@
-﻿using CommandLine;
+using CommandLine;
 using CommandLine.Text;
 using EdgeDB.CLI;
 using EdgeDB.CLI.Arguments;
