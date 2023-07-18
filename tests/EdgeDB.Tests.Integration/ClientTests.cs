@@ -23,6 +23,19 @@ namespace EdgeDB.Tests.Integration
         }
 
         [TestMethod]
+        public async Task TestNullableReturns()
+        {
+            var result = await EdgeDB.QuerySingleAsync<long?>("select <optional int64>$arg", new { arg = 1L });
+
+            Assert.IsTrue(result.HasValue);
+            Assert.AreEqual(1L, result.Value);
+
+            result = await EdgeDB.QuerySingleAsync<long?>("select <optional int64>$arg", new { arg = (long?)null });
+
+            Assert.IsFalse(result.HasValue);
+        }
+
+        [TestMethod]
         public async Task TestCommandLocks()
         {
             await using var client = await EdgeDB.GetOrCreateClientAsync<EdgeDBBinaryClient>(token: _getToken());
