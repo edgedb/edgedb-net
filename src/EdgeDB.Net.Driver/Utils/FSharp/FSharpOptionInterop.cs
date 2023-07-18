@@ -32,10 +32,18 @@ namespace EdgeDB.Utils.FSharp
             if (!(_type.IsFSharpOption() || _type.IsFSharpValueOption()))
                 throw new InvalidOperationException($"The provided type {_type} is not an F# option");
 
-            _hasValue = (bool)GetIsSomeProperty(_type).GetValue(obj)!;
+            _hasValue = (bool)GetIsSomeProperty(_type).GetValue(obj,
+                _isSomeProperty!.GetIndexParameters().Length > 0
+                    ? new object?[] { obj }
+                    : null
+            )!;
 
             _value = HasValue
-                ? GetValueProperty(_type).GetValue(obj)
+                ? GetValueProperty(_type).GetValue(obj,
+                    _getValueProperty!.GetIndexParameters().Length > 0
+                        ? new object?[] { obj }
+                        : null
+                    )
                 : null;
         }
 
