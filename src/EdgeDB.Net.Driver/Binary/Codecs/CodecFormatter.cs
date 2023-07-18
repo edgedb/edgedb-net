@@ -47,7 +47,7 @@ namespace EdgeDB.Binary.Codecs
                 case IMultiWrappingCodec multiWrapping:
                     var names = multiWrapping switch
                     {
-                        ObjectCodec obj => obj.PropertyNames,
+                        ObjectCodec obj => obj.Properties.Select(x => x.Name),
                         SparceObjectCodec sparse => sparse.FieldNames,
                         _ => null
                     };
@@ -78,7 +78,7 @@ namespace EdgeDB.Binary.Codecs
                             Process(multiWrapping.InnerCodecs[i], ref builder, in spacing, ref depth);
 
                             if (names is not null)
-                                builder.Insert(pos + depth, $"{names[i]}: ");
+                                builder.Insert(pos + depth, $"{names.ElementAt(i)}: ");
                         }
                         depth -= codec.Metadata is not null ? spacing * 2 : spacing;
                         builder.AppendLine(Padding(in depth, "]"));

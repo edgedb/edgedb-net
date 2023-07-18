@@ -175,7 +175,7 @@ namespace EdgeDB.DataTypes
 
             for(int i = 0; enumerator.Next(out _, out var value); i++)
             {
-                types[i] = value?.GetType() ?? enumerator.Codecs[i].ConverterType;
+                types[i] = value?.GetType() ?? enumerator.Properties[i].Codec.ConverterType;
                 values[i] = value;
             }
 

@@ -28,7 +28,7 @@ namespace EdgeDB.Binary.Codecs
         private readonly ObjectCodec _codec;
 
         public TypeInitializedObjectCodec(Type target, ObjectCodec codec)
-            : base(codec.Id, codec.InnerCodecs, codec.PropertyNames, codec.Metadata)
+            : base(codec.Id, codec.Properties, codec.Metadata)
         {
             if (!TypeBuilder.TryGetTypeDeserializerInfo(target, out _deserializer!))
                 throw new NoTypeConverterException($"Failed to find type deserializer for {target}");
@@ -46,8 +46,7 @@ namespace EdgeDB.Binary.Codecs
             var enumerator = new ObjectEnumerator(
                 in reader.Data,
                 reader.Position,
-                PropertyNames,
-                InnerCodecs,
+                Properties,
                 context
             );
 
@@ -67,19 +66,40 @@ namespace EdgeDB.Binary.Codecs
         }
     }
 
+    internal struct ObjectProperty
+    {
+        public readonly Cardinality Cardinality;
+        public readonly string Name;
+        public ICodec Codec;
+
+        public ObjectProperty(Cardinality cardinality, ref ICodec codec, string name)
+        {
+            Cardinality = cardinality;
+            Codec = codec;
+            Name = name;
+        }
+    }
+
     internal class ObjectCodec
         : BaseArgumentCodec<object>, IMultiWrappingCodec, ICacheableCodec
     {
-        public ICodec[] InnerCodecs;
-        public readonly string[] PropertyNames;
+        public ICodec[] InnerCodecs
+            => _codecs;
+
+        public readonly ObjectProperty[] Properties;
 
         private ConcurrentDictionary<Type, TypeInitializedObjectCodec>? _typeCodecs;
 
-        internal ObjectCodec(in Guid id, ICodec[] innerCodecs, string[] propertyNames, CodecMetadata? metadata = null)
+        private ICodec[] _codecs;
+
+        internal ObjectCodec(in Guid id, ObjectProperty[] properties, CodecMetadata? metadata = null)
             : base(in id, metadata)
         {
-            InnerCodecs = innerCodecs;
-            PropertyNames = propertyNames;
+            Properties = properties;
+
+            _codecs = new ICodec[properties.Length];
+            for (var i = 0; i != properties.Length; i++)
+                _codecs[i] = properties[i].Codec;
         }
 
         public TypeInitializedObjectCodec GetOrCreateTypeCodec(Type type)
@@ -94,8 +114,7 @@ namespace EdgeDB.Binary.Codecs
             var enumerator = new ObjectEnumerator(
                 in reader.Data,
                 reader.Position,
-                PropertyNames,
-                InnerCodecs,
+                Properties,
                 context
             );
             
@@ -122,7 +141,7 @@ namespace EdgeDB.Binary.Codecs
             object?[]? values = null;
 
             if (value is IDictionary<string, object?> dict)
-                values = PropertyNames.Select(x => dict[x]).ToArray();
+                values = Properties.Select(x => dict[x.Name]).ToArray();
             else if (value is object?[] arr)
                 value = arr;
 
@@ -161,7 +180,7 @@ namespace EdgeDB.Binary.Codecs
                 }
                 else
                 {
-                    var innerCodec = InnerCodecs[i];
+                    var innerCodec = Properties[i].Codec;
 
                     // special case for enums
                     if (element.GetType().IsEnum && innerCodec is TextCodec)
@@ -186,7 +205,12 @@ namespace EdgeDB.Binary.Codecs
             get => InnerCodecs;
             set
             {
-                InnerCodecs = value;
+                if (value.Length != Properties.Length)
+                    throw new InvalidOperationException("Array length mismatch");
+
+                _codecs = value;
+                for (var i = 0; i != _codecs.Length; i++)
+                    Properties[i].Codec = _codecs[i];
             }
         }
     }

@@ -104,16 +104,20 @@ namespace EdgeDB.Binary.Protocol.V2._0
                     }
                 case NamedTupleTypeDescriptor namedTuple:
                     {
-                        var names = new string[namedTuple.Elements.Length];
-                        var innerCodecs = new ICodec[namedTuple.Elements.Length];
+                        var elements = new ObjectProperty[namedTuple.Elements.Length];
 
                         for (var i = 0; i != namedTuple.Elements.Length; i++)
                         {
-                            names[i] = namedTuple.Elements[i].Name;
-                            innerCodecs[i] = getRelativeCodec(namedTuple.Elements[i].TypePos)!;
+                            ref var element = ref namedTuple.Elements[i];
+
+                            elements[i] = new ObjectProperty(
+                                Cardinality.Many,
+                                ref getRelativeCodec(element.TypePos)!,
+                                element.Name
+                            );
                         }
 
-                        return new ObjectCodec(in namedTuple.Id, innerCodecs, names, metadata);
+                        return new ObjectCodec(in namedTuple.Id, elements, metadata);
                     }
                 case ObjectTypeDescriptor:
                     return null;
@@ -129,16 +133,20 @@ namespace EdgeDB.Binary.Protocol.V2._0
                             metadata = objectTypeDescriptor.GetMetadata(getRelativeCodec, getRelativeDescriptor);
                         }
 
-                        var names = new string[objectOutput.Elements.Length];
-                        var innerCodecs = new ICodec[objectOutput.Elements.Length];
+                        var elements = new ObjectProperty[objectOutput.Elements.Length];
 
                         for (var i = 0; i != objectOutput.Elements.Length; i++)
                         {
-                            names[i] = objectOutput.Elements[i].Name;
-                            innerCodecs[i] = getRelativeCodec(objectOutput.Elements[i].TypePos)!;
+                            ref var element = ref objectOutput.Elements[i];
+
+                            elements[i] = new ObjectProperty(
+                                Cardinality.Many,
+                                ref getRelativeCodec(element.TypePos)!,
+                                element.Name
+                            );
                         }
 
-                        return new ObjectCodec(in objectOutput.Id, innerCodecs, names, metadata);
+                        return new ObjectCodec(in objectOutput.Id, elements, metadata);
                     }
                 case RangeTypeDescriptor range:
                     {

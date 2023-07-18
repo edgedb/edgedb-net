@@ -76,7 +76,7 @@ namespace EdgeDB.Binary.Codecs
                         for (int i = 0; i != obj.InnerCodecs.Length; i++)
                         {
                             ref var innerCodec = ref obj.InnerCodecs[i];
-                            var name = obj.PropertyNames[i];
+                            var name = obj.Properties[i].Name;
 
                             // use the defined type, if not found, use the codecs type
                             // if the inner is compilable, use its inner type and set the real

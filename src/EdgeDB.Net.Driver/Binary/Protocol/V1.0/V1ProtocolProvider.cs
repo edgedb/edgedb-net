@@ -268,33 +268,33 @@ namespace EdgeDB.Binary.Protocol.V1._0
                     return CodecBuilder.GetOrCreateCodec<TextCodec>(this, _ => new TextCodec());
                 case NamedTupleTypeDescriptor namedTuple:
                     {
-                        var names = new string[namedTuple.Elements.Length];
-                        var innerCodecs = new ICodec[namedTuple.Elements.Length];
+                        var elements = new ObjectProperty[namedTuple.Elements.Length];
 
                         for (int i = 0; i != namedTuple.Elements.Length; i++)
                         {
-                            var element = namedTuple.Elements[i];
+                            ref var element = ref namedTuple.Elements[i];
 
-                            names[i] = element.Name;
-                            innerCodecs[i] = getRelativeCodec(element.TypePos)!;
+                            elements[i] = new ObjectProperty(Cardinality.Many, ref getRelativeCodec(element.TypePos)!, element.Name);
                         }
 
-                        return new ObjectCodec(in namedTuple.Id, innerCodecs, names);
+                        return new ObjectCodec(in namedTuple.Id, elements);
                     }
                 case ObjectShapeDescriptor objectShape:
                     {
-                        var names = new string[objectShape.Shapes.Length];
-                        var innerCodecs = new ICodec[objectShape.Shapes.Length];
+                        var elements = new ObjectProperty[objectShape.Shapes.Length];
 
                         for (int i = 0; i != objectShape.Shapes.Length; i++)
                         {
-                            var element = objectShape.Shapes[i];
+                            ref var element = ref objectShape.Shapes[i];
 
-                            names[i] = element.Name;
-                            innerCodecs[i] = getRelativeCodec(element.TypePos)!;
+                            elements[i] = new ObjectProperty(
+                                element.Cardinality,
+                                ref getRelativeCodec(element.TypePos)!,
+                                element.Name
+                            );
                         }
 
-                        return new ObjectCodec(in objectShape.Id, innerCodecs, names);
+                        return new ObjectCodec(in objectShape.Id, elements);
                     }
                 case InputShapeDescriptor input:
                     {
@@ -303,7 +303,7 @@ namespace EdgeDB.Binary.Protocol.V1._0
 
                         for (int i = 0; i != input.Shapes.Length; i++)
                         {
-                            var element = input.Shapes[i];
+                            ref var element = ref input.Shapes[i];
 
                             names[i] = element.Name;
                             innerCodecs[i] = getRelativeCodec(element.TypePos)!;

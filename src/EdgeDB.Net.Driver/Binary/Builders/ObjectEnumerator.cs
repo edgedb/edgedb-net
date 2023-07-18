@@ -17,24 +17,25 @@ namespace EdgeDB
     {
         internal static readonly Type RefType = typeof(ObjectEnumerator).MakeByRefType();
 
-        public int Length => _names.Length;
-        internal PacketReader Reader;
-        internal readonly ICodec[] Codecs;
-        private readonly string[] _names;
+        public readonly int Length
+            => Properties.Length;
+
+        internal readonly ObjectProperty[] Properties;
+
         private readonly int _numElements;
         private readonly CodecContext _context;
+
+        internal PacketReader Reader;
         private int _pos;
 
         internal ObjectEnumerator(
             in ReadOnlySpan<byte> data,
             int position,
-            string[] names,
-            ICodec[] codecs,
+            ObjectProperty[] properties,
             CodecContext context)
         {
             Reader = new PacketReader(in data, position);
-            Codecs = codecs;
-            _names = names;
+            Properties = properties;
             _pos = 0;
             _context = context;
 
@@ -86,7 +87,7 @@ namespace EdgeDB
 
             if (length == -1)
             {
-                name = _names[_pos];
+                name = Properties[_pos].Name;
                 value = null;
                 _pos++;
                 return true;
@@ -95,10 +96,11 @@ namespace EdgeDB
             Reader.ReadBytes(length, out var buff);
 
             var innerReader = new PacketReader(in buff);
-            name = _names[_pos];
-            var codec = Codecs[_pos];
+            ref var property = ref Properties[_pos];
 
-            value = codec.Deserialize(ref innerReader, _context);
+            name = property.Name;
+            value = property.Codec.Deserialize(ref innerReader, _context);
+
             _pos++;
             return true;
         }

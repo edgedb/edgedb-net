@@ -140,7 +140,7 @@ namespace EdgeDB.Generator
                 for (int i = 0; i != objCodec.InnerCodecs.Length; i++)
                 {
                     var codec = objCodec.InnerCodecs[i];
-                    var name = objCodec.PropertyNames[i];
+                    var name = objCodec.Properties[i].Name;
 
                     var type = await typeGenerator.GetTypeAsync(codec, target, typeGeneratorContext);
 
