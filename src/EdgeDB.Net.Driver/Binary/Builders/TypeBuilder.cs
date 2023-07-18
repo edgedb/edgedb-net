@@ -11,6 +11,7 @@ using EdgeDB.DataTypes;
 using System;
 using EdgeDB.Binary;
 using System.Diagnostics;
+using EdgeDB.Binary.Builders.Wrappers;
 
 namespace EdgeDB
 {
@@ -183,6 +184,10 @@ namespace EdgeDB
             // if its a scalar, defently don't try to use it.
             if (CodecBuilder.ContainsScalarCodec(type))
                 return false;
+
+            // if its a wrapping type we support, validate the inner type
+            if (IWrapper.TryGetWrapper(type, out var wrapper))
+                return IsValidObjectType(wrapper.GetInnerType(type));
 
             if (
                 type.IsAssignableTo(typeof(IEnumerable)) &&
