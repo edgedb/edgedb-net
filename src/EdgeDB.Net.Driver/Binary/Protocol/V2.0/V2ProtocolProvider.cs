@@ -140,7 +140,7 @@ namespace EdgeDB.Binary.Protocol.V2._0
                             ref var element = ref objectOutput.Elements[i];
 
                             elements[i] = new ObjectProperty(
-                                Cardinality.Many,
+                                element.Cardinality,
                                 ref getRelativeCodec(element.TypePos)!,
                                 element.Name
                             );

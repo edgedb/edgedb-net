@@ -8,6 +8,6 @@ namespace EdgeDB.Generator.TypeGenerators
 {
     internal interface ITypeGeneratorContext
     {
-        IEnumerable<Task> FileGenerationTasks { get; }
+
     }
 }

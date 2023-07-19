@@ -24,8 +24,10 @@ namespace EdgeDB.Generator.TypeGenerators
         /// <param name="codec">The codec to derive the type from.</param>
         /// <param name="target">The target information if this is for the result of the target; othewise <see langword="null"/>.</param>
         /// <param name="context">The context of this generator</param>
-        /// <returns></returns>
+        /// <returns>The dotnet type name of the codec.</returns>
         ValueTask<string> GetTypeAsync(ICodec codec, GeneratorTargetInfo? target, TContext context);
+
+        ValueTask PostProcessAsync(TContext context);
 
         ValueTask<string> ITypeGenerator.GetTypeAsync(ICodec codec, GeneratorTargetInfo? target, ITypeGeneratorContext context)
             => context is TContext tc
@@ -34,6 +36,12 @@ namespace EdgeDB.Generator.TypeGenerators
 
         ITypeGeneratorContext ITypeGenerator.CreateContext(GeneratorContext generatorContext)
             => CreateContext(generatorContext);
+
+        ValueTask ITypeGenerator.PostProcessAsync(ITypeGeneratorContext context)
+            => context is TContext tc
+                ? PostProcessAsync(tc)
+                : throw new InvalidCastException("Mismatched context");
+
     }
 
     internal interface ITypeGenerator
@@ -41,5 +49,7 @@ namespace EdgeDB.Generator.TypeGenerators
         ITypeGeneratorContext CreateContext(GeneratorContext generatorContext);
 
         ValueTask<string> GetTypeAsync(ICodec codec, GeneratorTargetInfo? target, ITypeGeneratorContext context);
+
+        ValueTask PostProcessAsync(ITypeGeneratorContext context);
     }
 }

@@ -76,11 +76,13 @@ namespace EdgeDB.Generator
                 _ => throw new NotSupportedException($"Cannot determine the generator to use for the protocol version {protocolVersion}")
             };
 
+            _logger.Information("Chosing type generator {@Generator} for protocol {@Protocol}", typeGenerator, protocolVersion);
+
             var typeGenerationContext = typeGenerator.CreateContext(context);
 
             foreach (var target in targetInfos)
             {
-                _logger.Debug("Parsing {@Target}...", target);
+                _logger.Information("Parsing {@Target}...", target);
 
                 ParseResult parsed;
 
@@ -99,14 +101,17 @@ namespace EdgeDB.Generator
 
                 var code = await GenerateCSharpFileAsync(resultTypeDef, parsed, target, context, typeGenerator, typeGenerationContext);
 
-                await File.WriteAllTextAsync(Path.Combine(context.OutputDirectory, $"{target.FileName}.g.cs"), code, token);
+                var path = Path.Combine(context.OutputDirectory, $"{target.FileName}.g.cs");
+                _logger.Information("Writing {@target}... to {@Path}", target, path);
+
+                _logger.Debug("Codec structure:\n{@Codec}", CodecFormatter.Format(parsed.OutCodecInfo.Codec).ToString());
+                _logger.Debug("Generated Code:\n{Code}", code);
+
+                await File.WriteAllTextAsync(path, code, token);
             }
 
-            foreach(var task in typeGenerationContext.FileGenerationTasks)
-            {
-                _logger.Debug("Invoking type generator task {@Task}", task);
-                await task;
-            }
+            _logger.Information("Running post-process...");
+            await typeGenerator.PostProcessAsync(typeGenerationContext);
         }
 
         private async Task<string> GenerateCSharpFileAsync(
@@ -137,14 +142,21 @@ namespace EdgeDB.Generator
                 methodParametersArray = new string[objCodec.InnerCodecs.Length];
                 dictParamsArray = new string[objCodec.InnerCodecs.Length];
 
-                for (int i = 0; i != objCodec.InnerCodecs.Length; i++)
+                // order by cardinality
+                var oderedProps = objCodec.Properties.OrderByDescending(x => x.Cardinality, CardinalityComparer.Instance).ToArray();
+
+                for (int i = 0; i != oderedProps.Length; i++)
                 {
-                    var codec = objCodec.InnerCodecs[i];
-                    var name = objCodec.Properties[i].Name;
+                    var codec = oderedProps[i].Codec;
+                    var name = oderedProps[i].Name;
 
                     var type = await typeGenerator.GetTypeAsync(codec, target, typeGeneratorContext);
 
-                    methodParametersArray[i] = $"{type} {TextUtils.ToCamelCase(name)}";
+                    methodParametersArray[i] = $"{ApplyCardinality(type, oderedProps[i].Cardinality)} {TextUtils.ToCamelCase(name)}";
+
+                    if (oderedProps[i].Cardinality is Cardinality.AtMostOne)
+                        methodParametersArray[i] += " = null";
+
                     dictParamsArray[i] = $"{{ \"{name}\", {TextUtils.ToCamelCase(name)} }}";
                 }
             }
@@ -215,6 +227,31 @@ public static class {{target.FileName}}
             await binaryClient.SyncAsync(token);
 
             return binaryClient.ProtocolProvider.Version;
+        }
+
+        public static string ApplyCardinality(string type, Cardinality cardinality)
+        {
+            if (cardinality is Cardinality.AtMostOne or Cardinality.Many or Cardinality.NoResult)
+                type += "?";
+
+            return type;
+        }
+
+        private readonly struct CardinalityComparer : IComparer<Cardinality>
+        {
+            public static readonly CardinalityComparer Instance = new();
+
+            private static readonly Dictionary<Cardinality, int> _map = new()
+            {
+                {Cardinality.NoResult, 0 },
+                {Cardinality.AtMostOne, 1 },
+                {Cardinality.One, 2 },
+                {Cardinality.AtLeastOne, 3 },
+                {Cardinality.Many, 4 }
+            };
+
+            public int Compare(Cardinality x, Cardinality y)
+                => _map[x] - _map[y];
         }
     }
 }

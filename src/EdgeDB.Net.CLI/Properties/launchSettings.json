@@ -2,7 +2,7 @@
   "profiles": {
     "EdgeDB.Net.CLI": {
       "commandName": "Project",
-      "commandLineArgs": "generate -I edgedb_dotnet",
+      "commandLineArgs": "generate -I local_dev --loglevel Debug",
       "workingDirectory": "C:\\Users\\lynch\\source\\repos\\EdgeDB\\examples\\EdgeDB.Examples.GenerationExample"
     }
   }

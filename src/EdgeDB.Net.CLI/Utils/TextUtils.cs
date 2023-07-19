@@ -51,5 +51,16 @@ namespace EdgeDB.CLI.Utils
         {
             return x.Replace(">", "&gt;").Replace("<", "&lt;");
         }
+
+        public static string? CleanTypeName(string? s)
+        {
+            if (string.IsNullOrEmpty(s))
+                return s;
+
+            if (!s.Contains("::"))
+                return s;
+
+            return ToPascalCase(s.Replace("::", "_"));
+        }
     }
 }

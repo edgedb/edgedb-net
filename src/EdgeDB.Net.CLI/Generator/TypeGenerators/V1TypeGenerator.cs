@@ -18,14 +18,6 @@ namespace EdgeDB.Generator.TypeGenerators
 
         public string GetSubtypeName()
             => $"{RootName}SubType{_subtypeCount++}";
-
-        public IEnumerable<Task> FileGenerationTasks
-            => _work;
-
-        private readonly List<Task> _work = new();
-
-        public void QueueWork(Task task)
-            => _work.Add(task);
     }
 
     internal sealed class V1TypeGenerator : ITypeGenerator<V1TypeGeneratorContext>
@@ -127,6 +119,8 @@ public sealed class {{name}}
 #pragma warning restore CS8618
 """";
             await File.WriteAllTextAsync(Path.Combine(context.GeneratorContext.OutputDirectory, "Results", $"{name}.g.cs"), code);
-        } 
+        }
+
+        public ValueTask PostProcessAsync(V1TypeGeneratorContext _) => ValueTask.CompletedTask;
     }
 }

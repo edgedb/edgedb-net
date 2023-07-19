@@ -1,6 +1,6 @@
 WITH 
-    new_name := <str>$name,
-    new_email := <str>$email
+    new_name := <optional str>$name,
+    new_email := <optional str>$email
 UPDATE Person
 FILTER .id = <uuid>$id
 SET {

@@ -10,4 +10,8 @@
     <PackageReference Include="EdgeDB.Net.Driver" Version="1.2.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Results\" />
+  </ItemGroup>
+
 </Project>
