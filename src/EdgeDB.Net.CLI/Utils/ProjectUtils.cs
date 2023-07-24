@@ -149,7 +149,7 @@ namespace EdgeDB.CLI.Utils
         public static async Task CreateGeneratedProjectAsync(string root, string name)
         {
             var result = await Cli.Wrap("dotnet")
-                .WithArguments($"new classlib --framework \"net7.0\" -n {name}")
+                .WithArguments($"new classlib --framework \"net6.0\" -n {name}")
                 .WithWorkingDirectory(root)
                 .WithStandardErrorPipe(PipeTarget.ToStream(Console.OpenStandardError()))
                 .WithStandardOutputPipe(PipeTarget.ToStream(Console.OpenStandardOutput()))
@@ -169,7 +169,8 @@ namespace EdgeDB.CLI.Utils
                 throw new IOException($"Failed to create new project");
 
             // remove default file
-            File.Delete(Path.Combine(root, name, "Class1.cs"));
+            if(File.Exists(Path.Combine(root, name, "Class1.cs")))
+                File.Delete(Path.Combine(root, name, "Class1.cs"));
         }
 
         /// <summary>

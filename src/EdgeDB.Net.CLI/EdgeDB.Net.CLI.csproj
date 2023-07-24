@@ -10,6 +10,7 @@
     <Description>A CLI tool to generate C# files from edgeql files</Description>
     <ToolCommandName>edgedb-net</ToolCommandName>
     <PackAsTool>true</PackAsTool>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

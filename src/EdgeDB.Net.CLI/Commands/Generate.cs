@@ -38,8 +38,14 @@ public class Generate : ConnectionArguments, ICommand
     /// <summary>
     ///     Gets or sets whether or not to start a watch process post-generate.
     /// </summary>
-    [Option('w', "watch", HelpText = "Listens for any changes or new edgeql files and (re)generates them automatically")]
+    [Option('w', "watch", HelpText = "Listens for any changes or new edgeql files and (re)generates them automatically.")]
     public bool Watch { get; set; }
+
+    /// <summary>
+    ///     Gets or sets whether or not to force regenerate.
+    /// </summary>
+    [Option('f', "force", HelpText = "Force regeneration of all query files.")]
+    public bool Force { get; set; }
 
     /// <inheritdoc/>
     public async Task ExecuteAsync(ILogger logger)
@@ -62,6 +68,22 @@ public class Generate : ConnectionArguments, ICommand
         if(GenerateProject)
             OutputDirectory = Path.Combine(OutputDirectory, GeneratedProjectName);
 
+        if (Watch)
+        {
+            var existing = ProjectUtils.GetWatcherProcess(projectRoot);
+
+            if (existing is not null)
+            {
+                logger.Warning("Watching already running");
+                return;
+            }
+
+            logger.Information("Starting file watcher...");
+            var pid = ProjectUtils.StartBackgroundWatchProcess(connection, projectRoot, OutputDirectory, GeneratedProjectName);
+            logger.Information("File watcher process started, PID: {@PID}", pid);
+            return;
+        }
+
         // find edgeql files
         var edgeqlFiles = ProjectUtils.GetTargetEdgeQLFiles(projectRoot).ToArray();
 
@@ -82,23 +104,8 @@ public class Generate : ConnectionArguments, ICommand
 
         logger.Information("Generating {@FileCount} files...", edgeqlFiles.Length);
 
-        await generator.GenerateAsync(edgeqlFiles, context, default);
+        await generator.GenerateAsync(edgeqlFiles, context, default, Force);
 
         logger.Information("Generation complete!");
-
-        if(Watch)
-        {
-            var existing = ProjectUtils.GetWatcherProcess(projectRoot);
-
-            if(existing is not null)
-            {
-                logger.Warning("Watching already running");
-                return;
-            }
-
-            logger.Information("Starting file watcher...");
-            var pid = ProjectUtils.StartBackgroundWatchProcess(connection, projectRoot, OutputDirectory, GeneratedProjectName);
-            logger.Information("File watcher process started, PID: {@PID}", pid);
-        }
     }
 }

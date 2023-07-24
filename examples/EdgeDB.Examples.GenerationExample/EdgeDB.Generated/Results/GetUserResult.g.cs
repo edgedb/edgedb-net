@@ -1,11 +1,14 @@
 using EdgeDB;
-
-namespace EdgeDB.Generated;
+using EdgeDB.DataTypes;
+using System;
 
 #nullable enable
 #pragma warning disable CS8618 // nullablility is controlled by EdgeDB
 
-public class GetUserDefaultPerson : IPerson
+namespace EdgeDB.Generated;
+
+[EdgeDBType]
+public sealed class GetUserResult
 {
     [EdgeDBProperty("id")]
     public Guid Id { get; set; }
@@ -16,9 +19,6 @@ public class GetUserDefaultPerson : IPerson
     [EdgeDBProperty("email")]
     public String Email { get; set; }
 
-    // IPerson
-    Optional<String> IPerson.Name => Name;
-    Optional<String> IPerson.Email => Email;
 }
 
 #nullable restore

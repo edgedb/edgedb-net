@@ -44,12 +44,20 @@ namespace EdgeDB.CLI.Utils
 
         public static string EscapeToSourceCode(string x, bool isExactStr = false)
         {
-            return x.Replace("\"", isExactStr ? "\"\"" :"\\\"");
+            return x.Replace("\"", isExactStr ? "\"\"" : "\\\"").ReplaceLineEndings(string.Empty);
         }
 
         public static string EscapeToXMLComment(string x)
         {
             return x.Replace(">", "&gt;").Replace("<", "&lt;");
+        }
+
+        public static string? NameWithoutModule(string? s)
+        {
+            if (string.IsNullOrEmpty(s))
+                return s;
+
+            return s.Contains("::") ? s.Split("::")[1] : s;
         }
 
         public static string? CleanTypeName(string? s)
