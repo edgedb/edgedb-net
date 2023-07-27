@@ -9,7 +9,7 @@ namespace EdgeDB.Binary.Codecs
 {
     internal sealed class LocalDateTimeCodec : BaseTemporalCodec<DataTypes.LocalDateTime>
     {
-        public new static Guid Id = Guid.Parse("00000000-0000-0000-0000-000000000112");
+        public new static Guid Id = Guid.Parse("00000000-0000-0000-0000-00000000010B");
 
         public LocalDateTimeCodec(CodecMetadata? metadata = null)
             : base(in Id, metadata)

@@ -9,7 +9,7 @@ namespace EdgeDB.Binary.Codecs
 {
     internal sealed class RelativeDurationCodec : BaseTemporalCodec<DataTypes.RelativeDuration>
     {
-        public new static Guid Id = Guid.Parse("00000000-0000-0000-0000-000000000112");
+        public new static Guid Id = Guid.Parse("00000000-0000-0000-0000-000000000111");
 
         public RelativeDurationCodec(CodecMetadata? metadata = null)
             : base(in Id, metadata)

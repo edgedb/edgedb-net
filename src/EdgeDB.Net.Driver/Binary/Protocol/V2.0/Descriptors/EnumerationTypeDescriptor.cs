@@ -22,6 +22,7 @@ namespace EdgeDB.Binary.Protocol.V2._0.Descriptors
 
         public EnumerationTypeDescriptor(ref PacketReader reader, in Guid id)
         {
+            Id = id;
             Name = reader.ReadString();
             IsSchemaDefined = reader.ReadBoolean();
 
