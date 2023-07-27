@@ -17,8 +17,8 @@ namespace EdgeDB.Binary.Protocol.V2._0.Descriptors
             for (var i = 0; i != ancestors.Length; i++)
             {
                 codecAncestors[i] = new CodecAncestor(
-                    ref relativeCodec(in i),
-                    ref relativeDescriptor(in i)
+                    ref relativeCodec(ancestors[i]),
+                    ref relativeDescriptor(ancestors[i])
                 );
             }
 
