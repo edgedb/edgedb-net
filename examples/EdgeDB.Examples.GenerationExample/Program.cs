@@ -5,14 +5,14 @@ using EdgeDB.Generated;
 var client = new EdgeDBClient();
 
 // create a user
-IPerson? result = await client.CreateUserAsync(name: "example", email: "example@example.com");
+var result1 = await client.CreateUserAsync(name: "example", email: "example@example.com");
 
 // Get a user based on email
-result = await client.GetUserAsync(email: "example@example.com");
+var result2 = await client.GetUserAsync(email: "example@example.com");
 
 // update a users name
-result = await client.UpdateUserAsync(id: result!.Id, name: "new name", email: null);
+var result3 = await client.UpdateUserAsync(id: result2!.Id, name: "new name", email: null);
 
 // delete a user
-result = await client.DeleteUserAsync(email: "example@example.com");
+var result4 = await client.DeleteUserAsync(email: "example@example.com");
 
