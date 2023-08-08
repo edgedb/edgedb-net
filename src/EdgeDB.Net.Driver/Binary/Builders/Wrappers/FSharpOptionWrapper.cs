@@ -10,9 +10,6 @@ namespace EdgeDB.Binary.Builders.Wrappers
 {
     internal sealed class FSharpOptionWrapper : IWrapper
     {
-        private static ConstructorInfo? _valueOptionConstructor;
-        private static ConstructorInfo? _referenceOptionConstructor;
-
         public Type GetInnerType(Type wrapperType)
             => wrapperType.GenericTypeArguments[0];
 
@@ -35,7 +32,7 @@ namespace EdgeDB.Binary.Builders.Wrappers
                 return null;
 
             return (
-                _referenceOptionConstructor ??= target.GetConstructor(new Type[] { value.GetType() })
+               target.GetConstructor(new Type[] { value.GetType() })
                     ?? throw new EdgeDBException($"Failed to find constructor for {target}")
             ).Invoke(new object?[] { value });
         }
@@ -46,7 +43,7 @@ namespace EdgeDB.Binary.Builders.Wrappers
                 return ReflectionUtils.GetDefault(target);
 
             return (
-                _valueOptionConstructor ??= target.GetConstructor(new Type[] { value.GetType() })
+               target.GetConstructor(new Type[] { value.GetType() })
                     ?? throw new EdgeDBException($"Failed to find constructor for {target}")
             ).Invoke(new object?[] { value });
         }
