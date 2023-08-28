@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +12,10 @@ namespace EdgeDB.Binary.Codecs
         : BaseComplexScalarCodec<T>, ITemporalCodec
         where T : unmanaged
     {
+        public BaseTemporalCodec(in Guid id, CodecMetadata? metadata)
+            : base(in id, metadata)
+        { }
+
         Type ITemporalCodec.ModelType => typeof(T);
 
         IEnumerable<Type> ITemporalCodec.SystemTypes => Converters is null ? Array.Empty<Type>() : Converters.Keys;

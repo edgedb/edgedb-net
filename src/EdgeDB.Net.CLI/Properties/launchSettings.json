@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "EdgeDB.Net.CLI": {
+      "commandName": "Project",
+      "commandLineArgs": "watch --loglevel Debug",
+      "workingDirectory": "C:\\Users\\lynch\\source\\repos\\EdgeDB\\examples\\EdgeDB.Examples.GenerationExample"
+    }
+  }
+}

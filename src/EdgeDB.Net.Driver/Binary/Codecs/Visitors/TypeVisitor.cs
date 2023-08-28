@@ -76,7 +76,7 @@ namespace EdgeDB.Binary.Codecs
                         for (int i = 0; i != obj.InnerCodecs.Length; i++)
                         {
                             ref var innerCodec = ref obj.InnerCodecs[i];
-                            var name = obj.PropertyNames[i];
+                            var name = obj.Properties[i].Name;
 
                             // use the defined type, if not found, use the codecs type
                             // if the inner is compilable, use its inner type and set the real
@@ -126,7 +126,7 @@ namespace EdgeDB.Binary.Codecs
                             tuple.InnerCodecs[i] = innerCodec;
                         }
 
-                        codec = tuple.GetCodecFor(GetContextualTypeForComplexCodec(tuple));
+                        codec = tuple.GetCodecFor(_client.ProtocolProvider, GetContextualTypeForComplexCodec(tuple));
                         _logger.CodecVisitorComplexCodecFlattened(Depth, tuple, codec, Context.Type);
                     }
                     break;
@@ -143,7 +143,7 @@ namespace EdgeDB.Binary.Codecs
                         {
                             VisitCodec(ref tmp);
 
-                            codec = compilable.Compile(Context.Type, tmp);
+                            codec = compilable.Compile(_client.ProtocolProvider, Context.Type, tmp);
 
                             _logger.CodecVisitorCompiledCodec(Depth, compilable, codec, Context.Type);
                         }
@@ -156,7 +156,7 @@ namespace EdgeDB.Binary.Codecs
                     break;
                 case IComplexCodec complex:
                     {
-                        codec = complex.GetCodecFor(GetContextualTypeForComplexCodec(complex));
+                        codec = complex.GetCodecFor(_client.ProtocolProvider, GetContextualTypeForComplexCodec(complex));
                         _logger.CodecVisitorComplexCodecFlattened(Depth, complex, codec, Context.Type);
                     }
                     break;
@@ -169,7 +169,7 @@ namespace EdgeDB.Binary.Codecs
 
                         // ask the broker of the runtime codec for
                         // the correct one.
-                        codec = runtime.Broker.GetCodecFor(GetContextualTypeForComplexCodec(runtime.Broker));
+                        codec = runtime.Broker.GetCodecFor(_client.ProtocolProvider, GetContextualTypeForComplexCodec(runtime.Broker));
 
                         _logger.CodecVisitorRuntimeCodecBroker(Depth, runtime, runtime.Broker, codec, Context.Type);
                     }

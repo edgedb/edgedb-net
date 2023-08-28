@@ -1,3 +1,5 @@
+using EdgeDB.Binary.Protocol.Common.Descriptors;
+
 namespace EdgeDB.Binary.Codecs
 {
     internal sealed class ArrayCodec<T>
@@ -14,7 +16,8 @@ namespace EdgeDB.Binary.Codecs
         
         internal ICodec<T> InnerCodec;
 
-        public ArrayCodec(ICodec<T> innerCodec)
+        public ArrayCodec(in Guid id, ICodec<T> innerCodec, CodecMetadata? metadata = null)
+            : base(in id, metadata)
         {
             InnerCodec = innerCodec;
         }
@@ -47,7 +50,7 @@ namespace EdgeDB.Binary.Codecs
             {
                 var elementLength = reader.ReadInt32();
                 reader.ReadBytes(elementLength, out var innerData);
-                array[i] = InnerCodec.Deserialize(context, innerData);
+                array[i] = InnerCodec.Deserialize(context, in innerData);
             }
 
             return array;
@@ -83,6 +86,9 @@ namespace EdgeDB.Binary.Codecs
                 }
             }
         }
+
+        public override string ToString()
+            => "std::array";
 
         ICodec IWrappingCodec.InnerCodec
         {

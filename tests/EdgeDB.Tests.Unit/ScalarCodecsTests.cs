@@ -57,10 +57,10 @@ namespace EdgeDB.Tests.Unit
         [TestMethod]
         public void TestDatetimeCodec()
         {
-            var codec = CodecBuilder.GetScalarCodec<DateTimeOffset>();
+            var codec = CodecBuilder.GetScalarCodec<DataTypes.DateTime>();
 
             var data = new byte[] { 0x00, 0x02, 0x2b, 0x35, 0x9b, 0xc4, 0x10, 0x00, };
-            var expected = DateTimeOffset.Parse("2019-05-06T12:00+00:00");
+            var expected = new DataTypes.DateTime(DateTimeOffset.Parse("2019-05-06T12:00+00:00"));
 
             TestCodec(codec, expected, data);
         }

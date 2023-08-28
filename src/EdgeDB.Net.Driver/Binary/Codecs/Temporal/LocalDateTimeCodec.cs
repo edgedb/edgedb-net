@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,10 @@ namespace EdgeDB.Binary.Codecs
 {
     internal sealed class LocalDateTimeCodec : BaseTemporalCodec<DataTypes.LocalDateTime>
     {
-        public LocalDateTimeCodec()
+        public new static Guid Id = Guid.Parse("00000000-0000-0000-0000-00000000010B");
+
+        public LocalDateTimeCodec(CodecMetadata? metadata = null)
+            : base(in Id, metadata)
         {
             AddConverter(FromDT, ToDT);
             AddConverter(FromDTO, ToDTO);
@@ -37,5 +41,8 @@ namespace EdgeDB.Binary.Codecs
 
         private DateTimeOffset ToDTO(ref DataTypes.LocalDateTime value)
             => value.DateTimeOffset;
+
+        public override string ToString()
+            => "cal::local_datetime";
     }
 }

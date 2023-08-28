@@ -3,6 +3,8 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+**/.DS_Store
+
 # test coverage
 tests/EdgeDB.Tests.Integration/coveragereports
 CoverageReport
@@ -380,3 +382,6 @@ MigrationBackup/
 FodyWeavers.xsd
 src/EdgeDB.ExampleApp/dump.db
 docs/tmp/*
+
+# EdgeDB.Net CLI watcher info file
+edgeql.dotnet.watcher.process

@@ -8,6 +8,7 @@ using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -15,10 +16,10 @@ namespace EdgeDB.Binary
 {
     internal unsafe ref struct PacketWriter
     {
-        public long Index
+        public readonly long Index
             => _trackedPointer - _basePointer;
 
-        public bool CanWrite
+        public readonly bool CanWrite
             => _canWrite;
         
         internal int Size;
@@ -76,6 +77,10 @@ namespace EdgeDB.Binary
             Free();
             return buffer;
         }
+
+        public ReadOnlyMemory<byte> GetRetainedBytes()
+            => _rawBuffer[..(_isDynamic ? (int)Index : Size)];
+
         #endregion
 
         private void ThrowIfCantWrite()
@@ -270,6 +275,12 @@ namespace EdgeDB.Binary
                 Write((uint)buffer.Length);
                 Write(buffer);
             }
+        }
+
+        public void Reset()
+        {
+            _rawBuffer.Span.Clear();
+            _trackedPointer = _basePointer;
         }
 
         /// <summary>

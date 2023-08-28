@@ -1,4 +1,5 @@
 using EdgeDB.Binary;
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using EdgeDB.Utils.FSharp;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
@@ -27,7 +28,7 @@ namespace EdgeDB.Binary.Codecs
         private readonly ObjectCodec _codec;
 
         public TypeInitializedObjectCodec(Type target, ObjectCodec codec)
-            : base(codec.InnerCodecs, codec.PropertyNames)
+            : base(codec.Id, codec.Properties, codec.Metadata)
         {
             if (!TypeBuilder.TryGetTypeDeserializerInfo(target, out _deserializer!))
                 throw new NoTypeConverterException($"Failed to find type deserializer for {target}");
@@ -43,10 +44,9 @@ namespace EdgeDB.Binary.Codecs
             // This method ensures we're not copying the packet in memory again but the downside is
             // our 'reader' variable isn't kept up to data with the reader in the object enumerator.
             var enumerator = new ObjectEnumerator(
-                ref reader.Data,
+                in reader.Data,
                 reader.Position,
-                PropertyNames,
-                InnerCodecs,
+                Properties,
                 context
             );
 
@@ -66,44 +66,40 @@ namespace EdgeDB.Binary.Codecs
         }
     }
 
+    internal struct ObjectProperty
+    {
+        public readonly Cardinality Cardinality;
+        public readonly string Name;
+        public ICodec Codec;
+
+        public ObjectProperty(Cardinality cardinality, ref ICodec codec, string name)
+        {
+            Cardinality = cardinality;
+            Codec = codec;
+            Name = name;
+        }
+    }
+
     internal class ObjectCodec
         : BaseArgumentCodec<object>, IMultiWrappingCodec, ICacheableCodec
     {
-        public ICodec[] InnerCodecs;
-        public readonly string[] PropertyNames;
+        public ICodec[] InnerCodecs
+            => _codecs;
+
+        public readonly ObjectProperty[] Properties;
 
         private ConcurrentDictionary<Type, TypeInitializedObjectCodec>? _typeCodecs;
 
-        internal ObjectCodec(ObjectShapeDescriptor descriptor, List<ICodec> codecs)
+        private ICodec[] _codecs;
+
+        internal ObjectCodec(in Guid id, ObjectProperty[] properties, CodecMetadata? metadata = null)
+            : base(in id, metadata)
         {
-            InnerCodecs = new ICodec[descriptor.Shapes.Length];
-            PropertyNames = new string[descriptor.Shapes.Length];
+            Properties = properties;
 
-            for(int i = 0; i != descriptor.Shapes.Length; i++)
-            {
-                var shape = descriptor.Shapes[i];
-                InnerCodecs[i] = codecs[shape.TypePos];
-                PropertyNames[i] = shape.Name;
-            }
-        }
-
-        internal ObjectCodec(NamedTupleTypeDescriptor descriptor, List<ICodec> codecs)
-        {
-            InnerCodecs = new ICodec[descriptor.Elements.Length];
-            PropertyNames = new string[descriptor.Elements.Length];
-
-            for (int i = 0; i != descriptor.Elements.Length; i++)
-            {
-                var shape = descriptor.Elements[i];
-                InnerCodecs[i] = codecs[shape.TypePos];
-                PropertyNames[i] = shape.Name;
-            }
-        }
-
-        internal ObjectCodec(ICodec[] innerCodecs, string[] propertyNames)
-        {
-            InnerCodecs = innerCodecs;
-            PropertyNames = propertyNames;
+            _codecs = new ICodec[properties.Length];
+            for (var i = 0; i != properties.Length; i++)
+                _codecs[i] = properties[i].Codec;
         }
 
         public TypeInitializedObjectCodec GetOrCreateTypeCodec(Type type)
@@ -116,10 +112,9 @@ namespace EdgeDB.Binary.Codecs
             // This method ensures we're not copying the packet in memory again but the downside is
             // our 'reader' variable isn't kept up to data with the reader in the object enumerator.
             var enumerator = new ObjectEnumerator(
-                ref reader.Data,
+                in reader.Data,
                 reader.Position,
-                PropertyNames,
-                InnerCodecs,
+                Properties,
                 context
             );
             
@@ -146,7 +141,7 @@ namespace EdgeDB.Binary.Codecs
             object?[]? values = null;
 
             if (value is IDictionary<string, object?> dict)
-                values = PropertyNames.Select(x => dict[x]).ToArray();
+                values = Properties.Select(x => dict[x.Name]).ToArray();
             else if (value is object?[] arr)
                 value = arr;
 
@@ -185,7 +180,7 @@ namespace EdgeDB.Binary.Codecs
                 }
                 else
                 {
-                    var innerCodec = InnerCodecs[i];
+                    var innerCodec = Properties[i].Codec;
 
                     // special case for enums
                     if (element.GetType().IsEnum && innerCodec is TextCodec)
@@ -203,16 +198,19 @@ namespace EdgeDB.Binary.Codecs
         }
 
         public override string ToString()
-        {
-            return $"ObjectCodec<{string.Join(", ", InnerCodecs.Zip(PropertyNames).Select(x => $"[{x.Second}: {x.First}]"))}>";
-        }
+            => "object";
 
         ICodec[] IMultiWrappingCodec.InnerCodecs
         {
             get => InnerCodecs;
             set
             {
-                InnerCodecs = value;
+                if (value.Length != Properties.Length)
+                    throw new InvalidOperationException("Array length mismatch");
+
+                _codecs = value;
+                for (var i = 0; i != _codecs.Length; i++)
+                    Properties[i].Codec = _codecs[i];
             }
         }
     }

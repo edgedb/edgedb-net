@@ -1,5 +1,3 @@
-using EdgeDB.Binary.Packets;
-
 namespace EdgeDB
 {
     public static class ClientPoolExtensions
