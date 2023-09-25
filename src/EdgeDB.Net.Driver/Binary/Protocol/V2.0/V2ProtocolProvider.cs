@@ -72,7 +72,7 @@ namespace EdgeDB.Binary.Protocol.V2._0
                     {
                         ref var innerCodec = ref getRelativeCodec(array.Type)!;
 
-                        return new CompilableWrappingCodec(descriptor.Id, innerCodec, typeof(ArrayCodec<>), metadata);
+                        return new CompilableWrappingCodec(in array.Id, innerCodec, typeof(ArrayCodec<>), metadata);
                     }
                 case CompoundTypeDescriptor compound:
                     {

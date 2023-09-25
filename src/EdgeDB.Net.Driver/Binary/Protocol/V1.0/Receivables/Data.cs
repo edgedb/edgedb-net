@@ -13,12 +13,9 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
             => ServerMessageType.Data;
 
         /// <summary>
-        ///     Gets the payload of this data packet
+        ///     The payload of this data packet
         /// </summary>
-        public IReadOnlyCollection<byte> PayloadData
-            => PayloadBuffer.ToImmutableArray();
-
-        internal readonly byte[] PayloadBuffer;
+        public readonly byte[] PayloadBuffer;
 
         internal Data(byte[] buff)
         {
@@ -26,7 +23,7 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
         }
         public Data()
         {
-            PayloadBuffer = new byte[] { };
+            PayloadBuffer = Array.Empty<byte>();
         }
 
         internal Data(ref PacketReader reader)

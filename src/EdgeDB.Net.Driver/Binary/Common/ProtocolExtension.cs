@@ -13,30 +13,28 @@ namespace EdgeDB.Binary
     internal readonly struct ProtocolExtension
     {
         internal int Size
-            => Encoding.UTF8.GetByteCount(Name) + _annotations.Sum(x => x.Size);
+            => Encoding.UTF8.GetByteCount(Name) + Annotations.Sum(x => x.Size);
 
         /// <summary>
-        ///     Gets the name of the protocol extension.
+        ///     The name of the protocol extension.
         /// </summary>
         public readonly string Name;
 
         /// <summary>
-        ///     Gets a collection of headers for this protocol extension.
+        ///     A collection of headers for this protocol extension.
         /// </summary>
-        public readonly IReadOnlyCollection<Annotation> Headers
-            => _annotations.ToImmutableArray();
+        public readonly Annotation[] Annotations;
 
-        private readonly Annotation[] _annotations;
         internal ProtocolExtension(ref PacketReader reader)
         {
             Name = reader.ReadString();
-            _annotations = reader.ReadAnnotations();
+            Annotations = reader.ReadAnnotations();
         }
 
         internal void Write(ref PacketWriter writer)
         {
             writer.Write(Name);
-            writer.Write(_annotations);
+            writer.Write(Annotations);
         }
     }
 }

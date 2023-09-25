@@ -2,6 +2,7 @@ using EdgeDB.Binary.Protocol.Common.Descriptors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -36,8 +37,15 @@ namespace EdgeDB.Binary.Protocol.V2._0.Descriptors
 
             Components = components;
         }
-
-        Guid ITypeDescriptor.Id => Id;
+        
+        unsafe ref readonly Guid ITypeDescriptor.Id
+        {
+            get
+            {
+                fixed (Guid* ptr = &Id)
+                    return ref *ptr;
+            }
+        }
 
         public CodecMetadata? GetMetadata(RelativeCodecDelegate relativeCodec, RelativeDescriptorDelegate relativeDescriptor)
             => new(Name, IsSchmeaDefined);

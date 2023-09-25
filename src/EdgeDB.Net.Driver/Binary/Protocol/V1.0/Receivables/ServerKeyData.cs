@@ -20,12 +20,9 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
             => ServerMessageType.ServerKeyData;
 
         /// <summary>
-        ///     Gets the key data.
+        ///     The key data buffer.
         /// </summary>
-        public IReadOnlyCollection<byte> Key
-            => KeyBuffer.ToImmutableArray();
-
-        internal readonly byte[] KeyBuffer { get; }
+        internal readonly byte[] KeyBuffer;
 
         internal ServerKeyData(ref PacketReader reader)
         {

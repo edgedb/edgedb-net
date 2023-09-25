@@ -22,35 +22,35 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
             => ServerMessageType.ErrorResponse;
 
         /// <summary>
-        ///     Gets the severity of the error.
+        ///     The severity of the error.
         /// </summary>
-        public ErrorSeverity Severity { get; }
+        public readonly ErrorSeverity Severity;
 
         /// <summary>
-        ///     Gets the error code.
+        ///     The error code.
         /// </summary>
-        public ServerErrorCodes ErrorCode { get; }
+        public readonly ServerErrorCodes ErrorCode;
 
         /// <summary>
-        ///     Gets the message of the error.
+        ///     The message of the error.
         /// </summary>
-        public string Message { get; }
+        public readonly string Message;
 
-        private readonly KeyValue[] _attributes;
+        public readonly KeyValue[] Attributes;
 
         internal ErrorResponse(ref PacketReader reader)
         {
             Severity = (ErrorSeverity)reader.ReadByte();
             ErrorCode = (ServerErrorCodes)reader.ReadUInt32();
             Message = reader.ReadString();
-            _attributes = reader.ReadKeyValues();
+            Attributes = reader.ReadKeyValues();
         }
 
         public bool TryGetAttribute(in ushort code, out KeyValue kv)
         {
-            for(int i = 0; i != _attributes.Length; i++)
+            for(int i = 0; i != Attributes.Length; i++)
             {
-                ref var attr = ref _attributes[i];
+                ref var attr = ref Attributes[i];
 
                 if (attr.Code == code)
                 {
@@ -62,5 +62,15 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
             kv = default;
             return false;
         }
+
+        ErrorSeverity IProtocolError.Severity => Severity;
+
+        ServerErrorCodes IProtocolError.ErrorCode => ErrorCode;
+
+        string IProtocolError.Message => Message;
+
+        string? IExecuteError.Message => Message;
+
+        ServerErrorCodes IExecuteError.ErrorCode => ErrorCode;
     }
 }

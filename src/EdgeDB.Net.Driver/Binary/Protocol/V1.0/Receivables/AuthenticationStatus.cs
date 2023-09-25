@@ -21,22 +21,19 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
             => ServerMessageType.Authentication;
 
         /// <summary>
-        ///     Gets the authentication state. 
+        ///     The authentication state. 
         /// </summary>
-        public AuthStatus AuthStatus { get; }
+        public readonly AuthStatus AuthStatus;
 
         /// <summary>
-        ///     Gets a collection of supported authentication methods.
+        ///     A collection of supported authentication methods.
         /// </summary>
-        public string[]? AuthenticationMethods { get; }
+        public readonly string[]? AuthenticationMethods;
 
         /// <summary>
-        ///     Gets the SASL data.
+        ///     The SASL data.
         /// </summary>
-        public IReadOnlyCollection<byte>? SASLData
-            => SASLDataBuffer?.ToImmutableArray();
-
-        internal byte[] SASLDataBuffer { get; }
+        internal readonly byte[] SASLDataBuffer;
 
         internal AuthenticationStatus(ref PacketReader reader)
         {

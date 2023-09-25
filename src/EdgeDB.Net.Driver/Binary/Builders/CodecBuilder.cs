@@ -107,19 +107,19 @@ namespace EdgeDB.Binary
             return false;
         }
 
-        public static void UpdateKeyMap(ulong hash, Guid inCodec, Guid outCodec)
+        public static void UpdateKeyMap(ulong hash, in Guid inCodec, in Guid outCodec)
             => _codecKeyMap[hash] = (inCodec, outCodec);
 
         public static ICodec? GetCodec(IProtocolProvider provider, in Guid id)
             => GetProviderCache(provider).Cache.TryGetValue(id, out var codec) ? codec : GetScalarCodec(provider, id);
 
-        public static ICodec BuildCodec(EdgeDBBinaryClient client, Guid id, byte[] buff)
+        public static ICodec BuildCodec(EdgeDBBinaryClient client, in Guid id, byte[] buff)
         {
             var reader = new PacketReader(buff.AsSpan());
-            return BuildCodec(client, id, ref reader);
+            return BuildCodec(client, in id, ref reader);
         }
 
-        public static ICodec BuildCodec(EdgeDBBinaryClient client, Guid id, ref PacketReader reader)
+        public static ICodec BuildCodec(EdgeDBBinaryClient client, in Guid id, ref PacketReader reader)
         {
             if (id == NullCodec)
                 return GetOrCreateCodec<NullCodec>(client.ProtocolProvider);
@@ -151,7 +151,7 @@ namespace EdgeDB.Binary
                 ref var descriptor = ref descriptors[i];
 
                 if (!providerCache.Cache.TryGetValue(descriptor.Id, out var codec))
-                    codec = GetScalarCodec(client.ProtocolProvider, descriptor.Id);
+                    codec = GetScalarCodec(client.ProtocolProvider, in descriptor.Id);
 
                 if (codec is not null)
                     codecs[i] = codec;
@@ -189,7 +189,7 @@ namespace EdgeDB.Binary
             return finalCodec;
         }
 
-        public static ICodec? GetScalarCodec(IProtocolProvider provider, Guid typeId)
+        public static ICodec? GetScalarCodec(IProtocolProvider provider, in Guid typeId)
         {
             if (_scalarCodecTypeMap.TryGetValue(typeId, out var codecType))
             {

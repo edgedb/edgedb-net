@@ -18,27 +18,21 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
             => ServerMessageType.DumpBlock;
 
         /// <summary>
-        ///     Gets the sha1 hash of this packets data, used when writing a dump file.
-        /// </summary>
-        public IReadOnlyCollection<byte> Hash
-            => HashBuffer.ToImmutableArray();
-
-        /// <summary>
         ///     Gets the length of this packets data, used when writing a dump file.
         /// </summary>
-        public int Length { get; }
+        public readonly int Length;
+        
+        public readonly byte[] Raw;
+        
+        /// <summary>
+        ///     Gets the sha1 hash of this packets data, used when writing a dump file.
+        /// </summary>
+        public readonly byte[] HashBuffer;
 
         /// <summary>
         ///     Gets a collection of attributes for this packet.
         /// </summary>
-        public IReadOnlyCollection<KeyValue> Attributes
-            => _attributes.ToImmutableArray();
-
-        internal byte[] Raw { get; }
-
-        internal byte[] HashBuffer { get; }
-
-        private readonly KeyValue[] _attributes;
+        public readonly KeyValue[] Attributes;
 
         internal DumpBlock(ref PacketReader reader, in int length)
         {
@@ -50,7 +44,7 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
             HashBuffer = SHA1.Create().ComputeHash(Raw);
 
             var r = new PacketReader(rawBuff);
-            _attributes = r.ReadKeyValues();
+            Attributes = r.ReadKeyValues();
         }
     }
 }

@@ -23,7 +23,14 @@ namespace EdgeDB.Binary.Protocol.V2._0.Descriptors
             IsSchemaDefined = reader.ReadBoolean();
         }
 
-        Guid ITypeDescriptor.Id => Id;
+        unsafe ref readonly Guid ITypeDescriptor.Id
+        {
+            get
+            {
+                fixed (Guid* ptr = &Id)
+                    return ref *ptr;
+            }
+        }
 
         public CodecMetadata? GetMetadata(RelativeCodecDelegate relativeCodec, RelativeDescriptorDelegate relativeDescriptor)
             => new(Name, IsSchemaDefined);

@@ -19,34 +19,28 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
         public ServerMessageType Type 
             => ServerMessageType.CommandComplete;
 
-        public IReadOnlyCollection<Annotation> Annotations
-            => _annotations.ToImmutableArray();
+        /// <summary>
+        ///     The used capabilities within the completed command.
+        /// </summary>
+        public readonly Capabilities UsedCapabilities;
+
+        public readonly Guid StateTypeDescriptorId;
 
         /// <summary>
-        ///     Gets the used capabilities within the completed command.
+        ///     The status of the completed command.
         /// </summary>
-        public Capabilities UsedCapabilities { get; }
+        public readonly string Status;
 
-        public Guid StateTypeDescriptorId { get; }
-
-        public IReadOnlyCollection<byte> StateData
-            => _stateData.ToImmutableArray();
-
-        /// <summary>
-        ///     Gets the status of the completed command.
-        /// </summary>
-        public string Status { get; }
-
-        private readonly Annotation[] _annotations;
-        private readonly byte[] _stateData;
+        public readonly Annotation[] Annotations;
+        public readonly byte[] StateData;
 
         internal CommandComplete(ref PacketReader reader)
         {
-            _annotations = reader.ReadAnnotations();
+            Annotations = reader.ReadAnnotations();
             UsedCapabilities = (Capabilities)reader.ReadUInt64();
             Status = reader.ReadString();
             StateTypeDescriptorId = reader.ReadGuid();
-            _stateData = reader.ReadByteArray();
+            StateData = reader.ReadByteArray();
         }
     }
 }

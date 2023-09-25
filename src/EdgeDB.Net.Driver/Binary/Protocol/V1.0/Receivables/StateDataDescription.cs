@@ -15,11 +15,8 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
     {
         public ServerMessageType Type => ServerMessageType.StateDataDescription;
 
-        public Guid TypeDescriptorId { get; }
-
-        public IReadOnlyCollection<byte> TypeDescriptor
-            => TypeDescriptorBuffer.ToImmutableArray();
-
+        public readonly Guid TypeDescriptorId;
+        
         internal readonly byte[] TypeDescriptorBuffer;
 
         internal StateDataDescription(ref PacketReader reader)

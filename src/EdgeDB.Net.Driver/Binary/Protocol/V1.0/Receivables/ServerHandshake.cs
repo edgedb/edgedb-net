@@ -18,22 +18,19 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
             => ServerMessageType.ServerHandshake;
 
         /// <summary>
-        ///     Gets the major version of the server.
+        ///     The major version of the server.
         /// </summary>
         public readonly ushort MajorVersion;
 
         /// <summary>
-        ///     Gets the minor version of the server.
+        ///     The minor version of the server.
         /// </summary>
         public readonly ushort MinorVersion;
 
         /// <summary>
-        ///     Gets a collection of <see cref="ProtocolExtension"/>s used by the server.
+        ///     A collection of <see cref="ProtocolExtension"/>s used by the server.
         /// </summary>
-        public IReadOnlyCollection<ProtocolExtension> Extensions
-            => _extensions.ToImmutableArray();
-
-        private readonly ProtocolExtension[] _extensions;
+        public readonly ProtocolExtension[] Extensions;
 
         internal ServerHandshake(ref PacketReader reader)
         {
@@ -48,7 +45,7 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
                 extensions[i] = new ProtocolExtension(ref reader);
             }
 
-            _extensions = extensions;
+            Extensions = extensions;
         }
     }
 }

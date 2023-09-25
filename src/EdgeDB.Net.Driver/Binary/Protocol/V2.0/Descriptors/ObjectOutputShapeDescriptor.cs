@@ -34,6 +34,13 @@ namespace EdgeDB.Binary.Protocol.V2._0.Descriptors
             Elements = elements;
         }
 
-        Guid ITypeDescriptor.Id => Id;
+        unsafe ref readonly Guid ITypeDescriptor.Id
+        {
+            get
+            {
+                fixed (Guid* ptr = &Id)
+                    return ref *ptr;
+            }
+        }
     }
 }

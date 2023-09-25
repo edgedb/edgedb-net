@@ -18,21 +18,18 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
             => ServerMessageType.RestoreReady;
 
         /// <summary>
-        ///     Gets a collection of annotations that was sent with this packet.
+        ///     The number of jobs that the restore will use.
         /// </summary>
-        public IReadOnlyCollection<Annotation> Annotations
-            => _annotations.ToImmutableArray();
+        public readonly ushort Jobs;
 
         /// <summary>
-        ///     Gets the number of jobs that the restore will use.
+        ///     A collection of annotations that was sent with this packet.
         /// </summary>
-        public ushort Jobs { get; }
-
-        private readonly Annotation[] _annotations;
+        public readonly Annotation[] Annotations;
 
         internal RestoreReady(ref PacketReader reader)
         {
-            _annotations = reader.ReadAnnotations();
+            Annotations = reader.ReadAnnotations();
             Jobs = reader.ReadUInt16();
         }
     }

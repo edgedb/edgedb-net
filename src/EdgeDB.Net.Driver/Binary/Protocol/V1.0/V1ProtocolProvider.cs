@@ -109,9 +109,8 @@ namespace EdgeDB.Binary.Protocol.V1._0
                             break;
                         case StateDataDescription stateDescriptor:
                             {
-                                var stateCodec = CodecBuilder.BuildCodec(_client, stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
-                                var stateCodecId = stateDescriptor.TypeDescriptorId;
-                                _client.UpdateStateCodec(stateCodec, stateCodecId);
+                                var stateCodec = CodecBuilder.BuildCodec(_client, in stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                                _client.UpdateStateCodec(stateCodec, in stateDescriptor.TypeDescriptorId);
                                 gotStateDescriptor = true;
                                 stateBuf = _client.SerializeState();
                             }
@@ -207,19 +206,18 @@ namespace EdgeDB.Binary.Protocol.V1._0
                             case CommandDataDescription descriptor:
                                 {
                                     outCodecInfo = new(descriptor.OutputTypeDescriptorId,
-                                        CodecBuilder.BuildCodec(_client, descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer));
+                                        CodecBuilder.BuildCodec(_client, in descriptor.OutputTypeDescriptorId, descriptor.OutputTypeDescriptorBuffer));
 
                                     inCodecInfo = new(descriptor.InputTypeDescriptorId,
-                                        CodecBuilder.BuildCodec(_client, descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer));
+                                        CodecBuilder.BuildCodec(_client, in descriptor.InputTypeDescriptorId, descriptor.InputTypeDescriptorBuffer));
 
-                                    CodecBuilder.UpdateKeyMap(cacheKey, descriptor.InputTypeDescriptorId, descriptor.OutputTypeDescriptorId);
+                                    CodecBuilder.UpdateKeyMap(cacheKey, in descriptor.InputTypeDescriptorId, in descriptor.OutputTypeDescriptorId);
                                 }
                                 break;
                             case StateDataDescription stateDescriptor:
                                 {
-                                    var stateCodec = CodecBuilder.BuildCodec(_client, stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
-                                    var stateCodecId = stateDescriptor.TypeDescriptorId;
-                                    _client.UpdateStateCodec(stateCodec, stateCodecId);
+                                    var stateCodec = CodecBuilder.BuildCodec(_client, in stateDescriptor.TypeDescriptorId, stateDescriptor.TypeDescriptorBuffer);
+                                    _client.UpdateStateCodec(stateCodec, in stateDescriptor.TypeDescriptorId);
                                     gotStateDescriptor = true;
                                     stateBuf = _client.SerializeState();
                                 }

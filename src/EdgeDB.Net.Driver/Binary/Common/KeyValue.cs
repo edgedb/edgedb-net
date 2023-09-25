@@ -15,12 +15,12 @@ namespace EdgeDB.Binary
         /// <summary>
         ///     Gets the key code.
         /// </summary>
-        public ushort Code { get; init; }
+        public readonly ushort Code;
 
         /// <summary>
         ///     Gets the value stored within this keyvalue.
         /// </summary>
-        public byte[] Value { get; init; }
+        public readonly byte[] Value;
 
         internal KeyValue(ushort code, byte[] value)
         {

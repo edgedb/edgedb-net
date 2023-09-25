@@ -17,34 +17,31 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
         public ServerMessageType Type => ServerMessageType.LogMessage;
 
         /// <summary>
-        ///     Gets the severity of the log message.
+        ///     The severity of the log message.
         /// </summary>
-        public MessageSeverity Severity { get; }
+        public readonly MessageSeverity Severity;
 
         /// <summary>
-        ///     Gets the error code related to the log message.
+        ///     The error code related to the log message.
         /// </summary>
-        public ServerErrorCodes Code { get; }
+        public readonly ServerErrorCodes Code;
 
         /// <summary>
-        ///     Gets the content of the log message.
+        ///     The content of the log message.
         /// </summary>
-        public string Content { get; }
+        public readonly string Content;
 
         /// <summary>
-        ///     Gets a read-only collection of annotations.
+        ///     A collection of annotations.
         /// </summary>
-        public IReadOnlyCollection<Annotation> Annotations
-            => _annotations.ToImmutableArray();
-
-        private readonly Annotation[] _annotations;
+        public readonly Annotation[] Annotations;
 
         internal LogMessage(ref PacketReader reader)
         {
             Severity = (MessageSeverity)reader.ReadByte();
             Code = (ServerErrorCodes)reader.ReadUInt32();
             Content = reader.ReadString();
-            _annotations = reader.ReadAnnotations();
+            Annotations = reader.ReadAnnotations();
         }
     }
 }

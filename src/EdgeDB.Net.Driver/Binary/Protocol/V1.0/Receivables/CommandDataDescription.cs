@@ -17,48 +17,42 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
         public ServerMessageType Type 
             => ServerMessageType.CommandDataDescription;
 
-        /// <summary>
-        ///     Gets a read-only collection of annotations.
-        /// </summary>
-        public IReadOnlyCollection<Annotation> Annotations
-            => _annotations.ToImmutableArray();
-
-        public Capabilities Capabilities { get; }
+        public readonly Capabilities Capabilities;
 
         /// <summary>
-        ///     Gets the cardinality of the command.
+        ///     The cardinality of the command.
         /// </summary>
-        public Cardinality Cardinality { get; }
+        public readonly Cardinality Cardinality;
 
         /// <summary>
-        ///     Gets the input type descriptor id.
+        ///     The input type descriptor id.
         /// </summary>
-        public Guid InputTypeDescriptorId { get; }
+        public readonly Guid InputTypeDescriptorId;
 
         /// <summary>
-        ///     Gets the complete input type descriptor.
+        ///     The complete input type descriptor.
         /// </summary>
-        public IReadOnlyCollection<byte> InputTypeDescriptor
-            => InputTypeDescriptorBuffer.ToImmutableArray();
+
+        /// <summary>
+        ///     The output type descriptor id.
+        /// </summary>
+        public readonly Guid OutputTypeDescriptorId;
         
-        /// <summary>
-        ///     Gets the output type descriptor id.
-        /// </summary>
-        public Guid OutputTypeDescriptorId { get; }
+        public readonly Annotation[] Annotations;
 
         /// <summary>
-        ///     Gets the complete output type descriptor.
+        ///     The complete input type descriptor.
         /// </summary>
-        public IReadOnlyCollection<byte> OutputTypeDescriptor
-            => OutputTypeDescriptorBuffer.ToImmutableArray();
+        public readonly byte[] InputTypeDescriptorBuffer;
 
-        private readonly Annotation[] _annotations;
-        internal byte[] InputTypeDescriptorBuffer { get; }
-        internal byte[] OutputTypeDescriptorBuffer { get; }
+        /// <summary>
+        ///     The complete output type descriptor.
+        /// </summary>
+        public readonly byte[] OutputTypeDescriptorBuffer;
 
         internal CommandDataDescription(ref PacketReader reader)
         {
-            _annotations = reader.ReadAnnotations();
+            Annotations = reader.ReadAnnotations();
             Capabilities = (Capabilities)reader.ReadUInt64();
             Cardinality = (Cardinality)reader.ReadByte();
             InputTypeDescriptorId = reader.ReadGuid();

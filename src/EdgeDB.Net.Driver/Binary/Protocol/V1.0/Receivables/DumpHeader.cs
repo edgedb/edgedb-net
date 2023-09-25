@@ -20,51 +20,46 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
             => ServerMessageType.DumpHeader;
 
         /// <summary>
-        ///     Gets the sha1 hash of this packets data, used when writing a dump file.
+        ///     The length of this packets data, used when writing a dump file.
         /// </summary>
-        public IReadOnlyCollection<byte> Hash
-            => RawHash.ToImmutableArray();
+        public readonly int Length;
+        
+        /// <summary>
+        ///     The EdgeDB major version.
+        /// </summary>
+        public readonly ushort MajorVersion;
 
         /// <summary>
-        ///     Gets the length of this packets data, used when writing a dump file.
+        ///     The EdgeDB minor version.
         /// </summary>
-        public int Length { get; }
+        public readonly ushort MinorVersion;
 
         /// <summary>
-        ///     Gets a collection of attributes sent with this packet.
+        ///     The schema currently within the database.
         /// </summary>
-        public IReadOnlyCollection<KeyValue> Attributes
-            => _attributes.ToImmutableArray();
+        public readonly string? SchemaDDL;
 
         /// <summary>
-        ///     Gets the EdgeDB major version.
+        ///     A collection of types within the database.
         /// </summary>
-        public ushort MajorVersion { get; }
+        public readonly DumpTypeInfo[] Types;
 
         /// <summary>
-        ///     Gets the EdgeDB minor version.
+        ///     A collection of descriptors used to define the types in <see cref="Types"/>.
         /// </summary>
-        public ushort MinorVersion { get; }
+        public readonly DumpObjectDescriptor[] Descriptors;
+
+        public readonly byte[] Raw;
+        
+        /// <summary>
+        ///     The sha1 hash of this packets data, used when writing a dump file.
+        /// </summary>
+        public readonly byte[] Hash;
 
         /// <summary>
-        ///     Gets the schema currently within the database.
+        ///     A collection of attributes sent with this packet.
         /// </summary>
-        public string? SchemaDDL { get; }
-
-        /// <summary>
-        ///     Gets a collection of types within the database.
-        /// </summary>
-        public IReadOnlyCollection<DumpTypeInfo> Types { get; }
-
-        /// <summary>
-        ///     Gets a collection of descriptors used to define the types in <see cref="Types"/>.
-        /// </summary>
-        public IReadOnlyCollection<DumpObjectDescriptor> Descriptors { get; }
-
-        internal byte[] Raw { get; }
-        internal byte[] RawHash { get; }
-
-        private readonly KeyValue[] _attributes;
+        public readonly KeyValue[] Attributes;
 
         internal DumpHeader(ref PacketReader reader, in int length)
         {
@@ -73,11 +68,11 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
 
             Raw = rawBuffer.ToArray();
 
-            RawHash = SHA1.Create().ComputeHash(Raw);
+            Hash = SHA1.Create().ComputeHash(Raw);
 
             var r = new PacketReader(rawBuffer);
 
-            _attributes = r.ReadKeyValues();
+            Attributes = r.ReadKeyValues();
             MajorVersion = r.ReadUInt16();
             MinorVersion = r.ReadUInt16();
             SchemaDDL = r.ReadString();
@@ -105,19 +100,19 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
     internal readonly struct DumpTypeInfo
     {
         /// <summary>
-        ///     Gets the name of this type info.
+        ///     The name of this type info.
         /// </summary>
-        public string Name { get; }
+        public readonly string Name;
 
         /// <summary>
-        ///     Gets the class of this type info.
+        ///     The class of this type info.
         /// </summary>
-        public string Class { get; }
+        public readonly string Class;
 
         /// <summary>
-        ///     Gets the Id of the type info.
+        ///     The Id of the type info.
         /// </summary>
-        public Guid Id { get; }
+        public readonly Guid Id;
 
         internal DumpTypeInfo(ref PacketReader reader)
         {
@@ -133,19 +128,19 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
     internal readonly struct DumpObjectDescriptor
     {
         /// <summary>
-        ///     Gets the object Id that the descriptor describes.
+        ///     The object Id that the descriptor describes.
         /// </summary>
-        public Guid ObjectId { get; }
+        public readonly Guid ObjectId;
 
         /// <summary>
-        ///     Gets the description of the object.
+        ///     The description of the object.
         /// </summary>
-        public IReadOnlyCollection<byte> Description { get; }
+        public readonly byte[] Description;
 
         /// <summary>
         ///     Gets a collection of dependencies that this descriptor relies on.
         /// </summary>
-        public IReadOnlyCollection<Guid> Dependencies { get; }
+        public readonly Guid[] Dependencies;
 
         internal DumpObjectDescriptor(ref PacketReader reader)
         {

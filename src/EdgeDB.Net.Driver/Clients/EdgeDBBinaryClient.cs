@@ -398,7 +398,7 @@ namespace EdgeDB
             return _stateCodec.Serialize(this, data);
         }
 
-        internal void UpdateStateCodec(ICodec codec, Guid stateCodecId)
+        internal void UpdateStateCodec(ICodec codec, in Guid stateCodecId)
         {
             _stateCodec = codec;
             _stateDescriptorId = stateCodecId;

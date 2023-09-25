@@ -18,17 +18,14 @@ namespace EdgeDB.Binary.Protocol.V1._0.Packets
             => ServerMessageType.ParameterStatus;
 
         /// <summary>
-        ///     Gets the name of the parameter.
+        ///     The name of the parameter.
         /// </summary>
-        public string Name { get; }
+        public readonly string Name;
 
         /// <summary>
-        ///     Gets the value of the parameter.
+        ///     The value of the parameter.
         /// </summary>
-        public IReadOnlyCollection<byte> Value
-            => ValueBuffer.ToImmutableArray();
-
-        internal byte[] ValueBuffer { get; }
+        public readonly byte[] ValueBuffer;
 
         internal ParameterStatus(ref PacketReader reader)
         {
