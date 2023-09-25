@@ -27,11 +27,11 @@ namespace EdgeDB
         ///     using this naming strategy, the naming convention of the dotnet type will be preserved.
         /// </remarks>
         /// <remarks>
-        ///     If the naming strategy doesn't find a match, the 
+        ///     If the naming strategy doesn't find a match, the
         ///     <see cref="AttributeNamingStrategy"/> will be used.
         /// </remarks>
         public static INamingStrategy SchemaNamingStrategy { get; set; }
-        
+
         internal readonly static ConcurrentDictionary<Type, EdgeDBTypeDeserializeInfo> TypeInfo = new();
         internal readonly static ConcurrentDictionary<Type, IEdgeDBTypeConverter> TypeConverters = new();
         internal static readonly INamingStrategy AttributeNamingStrategy;
@@ -56,7 +56,7 @@ namespace EdgeDB
             if(!EdgeDBTypeConstructorInfo.TryGetConstructorInfo(typeof(TType), out var ctorInfo) || ctorInfo.EmptyConstructor is null)
                 throw new TargetInvocationException($"Cannot create an instance of {typeof(TType).Name}: no empty constructor found", null);
 
-            object Factory(ref ObjectEnumerator enumerator)
+            object? Factory(ref ObjectEnumerator enumerator)
             {
                 var instance = (TType)ctorInfo.EmptyConstructor.Invoke(Array.Empty<object>());
 
@@ -127,7 +127,7 @@ namespace EdgeDB
         internal static bool TryGetTypeDeserializerInfo(Type type, [MaybeNullWhen(false)] out EdgeDBTypeDeserializeInfo info)
         {
             info = null;
-            
+
             if (!IsValidObjectType(type))
                 return false;
 
@@ -138,15 +138,15 @@ namespace EdgeDB
             }
             else
                 info = typeInfo;
-            
+
             return info is not null;
         }
-        
+
         internal static object? BuildObject(EdgeDBBinaryClient client, Type type, Binary.Codecs.ObjectCodec codec, in ReadOnlyMemory<byte> data)
         {
             if (!IsValidObjectType(type))
                 throw new InvalidOperationException($"Cannot deserialize data to {type.Name}");
-            
+
             if (!TypeInfo.TryGetValue(type, out EdgeDBTypeDeserializeInfo? info))
             {
                 info = TypeInfo.AddOrUpdate(type, new EdgeDBTypeDeserializeInfo(type), (_, v) => v);
@@ -197,7 +197,7 @@ namespace EdgeDB
             }
 
             return
-                type == typeof(object) || 
+                type == typeof(object) ||
                 type.IsAssignableTo(typeof(ITuple)) ||
                 type.IsAbstract ||
                 type.IsRecord() ||
@@ -226,7 +226,7 @@ namespace EdgeDB
 
             return inst;
         }
-        
+
         internal static bool TryGetCustomBuilder(this Type objectType, out MethodInfo? info)
         {
             info = null;

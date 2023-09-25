@@ -10,66 +10,62 @@ namespace EdgeDB
 {
     internal sealed class ObjectBuilder
     {
-        private static readonly Dictionary<Type, (int Version, ICodec Codec)> _codecVisitorStateTable = new();
+        private static readonly ConcurrentDictionary<Type, (int Version, ICodec Codec)> _codecVisitorStateTable = new();
         private static readonly object _visitorLock = new();
 
-        public static TType? BuildResult<TType>(EdgeDBBinaryClient client, ICodec codec, in ReadOnlyMemory<byte> data)
+        public readonly struct PreheatedCodec
         {
-            // TO INVESTIGATE: since a codec can only be "visited" or "mutated" for
-            // one type at a time, we have to ensure that the codec is ready to deserialize
-            // TType, we can store the states of the codecs here for building result
-            // to achieve this.
-            var typeCodec = codec;
+            public readonly ICodec Codec;
 
-            bool wasSkipped = false;
-            lock(_visitorLock)
+            public PreheatedCodec(ICodec codec)
             {
-                // Since the supplied codec could be a template, we walk the codec and cache based on the supplied type
-                // if the codec hasn't been walked OR the result type is an object we walk it and cache it if its not an
-                // object codec.
-                if (typeof(TType) != typeof(object) && _codecVisitorStateTable.TryGetValue(typeof(TType), out var info))
-                {
-                    if(codec.GetHashCode() == info.Version)
-                    {
-                        typeCodec = info.Codec;
-                        wasSkipped = true;
-                    }
-                }
-
-                if (!wasSkipped)
-                {
-                    var version = codec.GetHashCode();
-
-                    var visitor = new TypeVisitor(client);
-
-                    visitor.SetTargetType(typeof(TType));
-
-                    visitor.Visit(ref codec);
-
-                    if (typeof(TType) != typeof(object))
-                        _codecVisitorStateTable[typeof(TType)] = (version, codec);
-
-                    typeCodec = codec;
-
-                    client.Logger.ObjectDeserializationPrep(CodecFormatter.Format(typeCodec).ToString());
-                }
+                Codec = codec;
             }
-
-            if(wasSkipped)
-            {
-                client.Logger.SkippingCodecVisiting(typeof(TType), codec);
-            }
-            
-
-            if (typeCodec is ObjectCodec objectCodec)
-            {
-                return (TType?)TypeBuilder.BuildObject(client, typeof(TType), objectCodec, in data);
-            }
-
-            var value = typeCodec.Deserialize(client, in data);
-
-            return (TType?)ConvertTo(typeof(TType), value);
         }
+
+        public static PreheatedCodec PreheatCodec<T>(EdgeDBBinaryClient client, ICodec codec)
+        {
+            // if the codec has been visited before and we have the most up-to-date version, return it.
+            if (
+                typeof(T) != typeof(object) &&
+                _codecVisitorStateTable.TryGetValue(typeof(T), out var info) &&
+                codec.GetHashCode() == info.Version)
+            {
+                client.Logger.SkippingCodecVisiting(typeof(T), codec);
+                return new(info.Codec);
+            }
+
+            var version = codec.GetHashCode();
+
+            var visitor = new TypeVisitor(client);
+            visitor.SetTargetType(typeof(T));
+            visitor.Visit(ref codec);
+
+            if (typeof(T) != typeof(object))
+                _codecVisitorStateTable[typeof(T)] = (version, codec);
+
+            if (client.Logger.IsEnabled(LogLevel.Debug))
+            {
+                client.Logger.ObjectDeserializationPrep(CodecFormatter.Format(codec).ToString());
+            }
+
+            return new(codec);
+        }
+
+        public static T? BuildResult<T>(EdgeDBBinaryClient client, in PreheatedCodec preheated, in ReadOnlyMemory<byte> data)
+        {
+            if (preheated.Codec is ObjectCodec objectCodec)
+            {
+                return (T?)TypeBuilder.BuildObject(client, typeof(T), objectCodec, in data);
+            }
+
+            var value = preheated.Codec.Deserialize(client, in data);
+
+            return (T?)ConvertTo(typeof(T), value);
+        }
+
+        public static T? BuildResult<T>(EdgeDBBinaryClient client, ICodec codec, in ReadOnlyMemory<byte> data)
+            => BuildResult<T>(client, PreheatCodec<T>(client, codec), data);
 
         public static object? ConvertTo(Type type, object? value)
         {
@@ -102,7 +98,7 @@ namespace EdgeDB
             {
                 return ConvertCollection(type, valueType, value);
             }
-            
+
             // check for edgeql types
             //if (TypeBuilder.IsValidObjectType(type) && value is IDictionary<string, object?> dict)
             //    return TypeBuilder.BuildObject(type, dict);
@@ -162,13 +158,13 @@ namespace EdgeDB
             foreach (var val in (IEnumerable)value)
             {
                 converted.Add(strongInnerType is not null ? ConvertTo(strongInnerType, val) : val);
-                
+
                 //if (val is IDictionary<string, object?> raw)
                 //{
                 //    converted.Add(strongInnerType is not null ? TypeBuilder.BuildObject(strongInnerType, raw) : val);
                 //}
                 //else
-                    
+
 
             }
 
