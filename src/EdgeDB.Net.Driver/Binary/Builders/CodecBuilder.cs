@@ -1,4 +1,5 @@
 using EdgeDB.Binary.Codecs;
+using EdgeDB.Binary.Protocol;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Concurrent;
@@ -7,6 +8,7 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -24,22 +26,24 @@ namespace EdgeDB.Binary
         }
     }
 
-    internal sealed class CodecBuilder
+    internal sealed class CodecCache
     {
-        public static ICollection<ICodec> CachedCodecs
-            => CodecCache.Values;
-
         /// <summary>
         ///     The codec cache mapped to result types.
         /// </summary>
-        public static readonly ConcurrentDictionary<Guid, ICodec> CodecCache = new();
+        public readonly ConcurrentDictionary<Guid, ICodec> Cache = new();
 
         /// <summary>
         ///     The codec cached mapped to the type of codec, storing instances.
         /// </summary>
-        public static readonly ConcurrentDictionary<Type, ICodec> CodecInstanceCache = new();
+        public readonly ConcurrentDictionary<Type, ICodec> CodecInstanceCache = new();
 
-        public static readonly ConcurrentDictionary<int, ICodec> CompiledCodecCache = new();
+        public readonly ConcurrentDictionary<int, ICodec> CompiledCodecCache = new();
+    }
+
+    internal sealed class CodecBuilder
+    {
+        public static readonly ConcurrentDictionary<IProtocolProvider, CodecCache> CodecCaches = new();
 
         public static readonly Guid NullCodec = Guid.Empty;
         public static readonly Guid InvalidCodec = Guid.Parse("ffffffffffffffffffffffffffffffff");
@@ -54,34 +58,16 @@ namespace EdgeDB.Binary
             _scalarCodecs = new();
             _scalarCodecMap = new();
 
-            var codecs = Assembly.GetExecutingAssembly()
-                .GetTypes()
-                .Where(x => x
-                    .GetInterfaces()
-                    .Any(x => x.Name == "ICodec") && !(x.IsAbstract || x.IsInterface) && x.Name != "RuntimeCodec`1" && x.Name != "RuntimeScalarCodec`1");
-
-            var scalars = new List<IScalarCodec>(codecs
-                .Where(x => x.IsAssignableTo(typeof(IScalarCodec)) && x.IsAssignableTo(typeof(ICacheableCodec)))
-                .Select(x => (IScalarCodec)Activator.CreateInstance(x)!)
-            );
-
-            CodecInstanceCache = new(scalars.ToDictionary(x => x.GetType(), x => (ICodec)x));
-
-            foreach(var complexCodecs in scalars.Where(x => x is IComplexCodec).Cast<IComplexCodec>().ToArray())
-            {
-                complexCodecs.BuildRuntimeCodecs();
-
-                foreach(var scalarComplex in complexCodecs.RuntimeCodecs
-                    .Where(x => x is IScalarCodec)
-                    .Cast<IScalarCodec>())
-                {
-                    _scalarCodecs.Add(scalarComplex);
-                }
-            }
+            var scalars = _scalarCodecTypeMap
+                .Where(x => x.Value.IsAssignableTo(typeof(IScalarCodec)))
+                .Select(x => (IScalarCodec)Activator.CreateInstance(x.Value, args: new object?[] { null })!);
 
             _scalarCodecMap = new(scalars.ToDictionary(x => x.ConverterType, x => x));
             _scalarCodecs.AddRange(scalars);
         }
+
+        public static CodecCache GetProviderCache(IProtocolProvider provider)
+            => CodecCaches.GetOrAdd(provider, p => new());
 
         public static bool ContainsScalarCodec(Type type)
             => _scalarCodecs.Any(x => x.ConverterType == type);
@@ -95,10 +81,14 @@ namespace EdgeDB.Binary
         public static ulong GetCacheHashKey(string query, Cardinality cardinality, IOFormat format)
             => unchecked(CalculateKnuthHash(query) * (ulong)cardinality * (ulong)format);
         
-        public static bool TryGetCodecs(ulong hash,
+        public static bool TryGetCodecs(
+            IProtocolProvider provider,
+            ulong hash,
             [MaybeNullWhen(false)] out CodecInfo inCodecInfo,
             [MaybeNullWhen(false)] out CodecInfo outCodecInfo)
         {
+            var providerCache = GetProviderCache(provider);
+
             inCodecInfo = null;
             outCodecInfo = null;
 
@@ -106,8 +96,8 @@ namespace EdgeDB.Binary
             ICodec? outCodec;
 
             if (_codecKeyMap.TryGetValue(hash, out var codecIds)
-                && (CodecCache.TryGetValue((codecIds.InCodec), out inCodec) || ((inCodec = GetScalarCodec(codecIds.InCodec)) != null))
-                && (CodecCache.TryGetValue((codecIds.OutCodec), out outCodec) || ((outCodec = GetScalarCodec(codecIds.OutCodec)) != null)))
+                && (providerCache.Cache.TryGetValue((codecIds.InCodec), out inCodec) || ((inCodec = GetScalarCodec(provider, codecIds.InCodec)) != null))
+                && (providerCache.Cache.TryGetValue((codecIds.OutCodec), out outCodec) || ((outCodec = GetScalarCodec(provider, codecIds.OutCodec)) != null)))
             {
                 inCodecInfo = new(codecIds.InCodec, inCodec);
                 outCodecInfo = new(codecIds.OutCodec, outCodec);
@@ -117,86 +107,116 @@ namespace EdgeDB.Binary
             return false;
         }
 
-        public static void UpdateKeyMap(ulong hash, Guid inCodec, Guid outCodec)
+        public static void UpdateKeyMap(ulong hash, in Guid inCodec, in Guid outCodec)
             => _codecKeyMap[hash] = (inCodec, outCodec);
 
-        public static ICodec? GetCodec(Guid id)
-            => CodecCache.TryGetValue(id, out var codec) ? codec : GetScalarCodec(id);
+        public static ICodec? GetCodec(IProtocolProvider provider, in Guid id)
+            => GetProviderCache(provider).Cache.TryGetValue(id, out var codec) ? codec : GetScalarCodec(provider, id);
 
-        public static ICodec BuildCodec(EdgeDBBinaryClient client, Guid id, byte[] buff)
+        public static ICodec BuildCodec(EdgeDBBinaryClient client, in Guid id, byte[] buff)
         {
             var reader = new PacketReader(buff.AsSpan());
-            return BuildCodec(client, id, ref reader);
+            return BuildCodec(client, in id, ref reader);
         }
 
-        public static ICodec BuildCodec(EdgeDBBinaryClient client, Guid id, ref PacketReader reader)
+        public static ICodec BuildCodec(EdgeDBBinaryClient client, in Guid id, ref PacketReader reader)
         {
             if (id == NullCodec)
-                return GetOrCreateCodec<NullCodec>();
+                return GetOrCreateCodec<NullCodec>(client.ProtocolProvider);
 
-            List<ICodec> codecs = new();
-
+            var providerCache = GetProviderCache(client.ProtocolProvider);
+            
+            List<ITypeDescriptor> descriptorsList = new();
             while (!reader.Empty)
             {
                 var start = reader.Position;
-                var typeDescriptor = ITypeDescriptor.GetDescriptor(ref reader);
+                var typeDescriptor = client.ProtocolProvider.GetDescriptor(ref reader);
                 var end = reader.Position;
 
-                client.Logger.TraceTypeDescriptor(typeDescriptor, typeDescriptor.Id, end - start, $"{end}/{reader.Data.Length}".PadRight(reader.Data.Length.ToString().Length *2 + 2));
+                client.Logger.TraceTypeDescriptor(
+                    typeDescriptor.GetType().Name,
+                    typeDescriptor.Id,
+                    $"{(end - start)}b".PadRight(reader.Data.Length.ToString().Length),
+                    $"{end}/{reader.Data.Length}".PadRight(reader.Data.Length.ToString().Length * 2 + 2)
+                    );
 
-                if (!CodecCache.TryGetValue(typeDescriptor.Id, out var codec))
-                    codec = GetScalarCodec(typeDescriptor.Id);
+                descriptorsList.Add(typeDescriptor);
+            }
+
+            var descriptors = descriptorsList.ToArray();
+            var codecs = new ICodec?[descriptors.Length];
+
+            for(var i = 0; i != descriptors.Length; i++)
+            {
+                ref var descriptor = ref descriptors[i];
+
+                if (!providerCache.Cache.TryGetValue(descriptor.Id, out var codec))
+                    codec = GetScalarCodec(client.ProtocolProvider, in descriptor.Id);
 
                 if (codec is not null)
-                    codecs.Add(codec);
+                    codecs[i] = codec;
                 else
                 {
-                    codec = typeDescriptor switch
+                    codec = client.ProtocolProvider.BuildCodec(
+                        in descriptor,
+                        (in int i) => ref codecs[i],
+                        (in int i) => ref descriptors[i]
+                    );
+
+                    codecs[i] = codec;
+
+                    if(codec is not null)
                     {
-                        EnumerationTypeDescriptor enumeration => GetOrCreateCodec<TextCodec>(),
-                        NamedTupleTypeDescriptor  namedTuple  => new ObjectCodec(namedTuple, codecs),
-                        ObjectShapeDescriptor     @object     => new ObjectCodec(@object, codecs),
-                        InputShapeDescriptor      input       => new SparceObjectCodec(input, codecs),
-                        TupleTypeDescriptor       tuple       => new TupleCodec(tuple.ElementTypeDescriptorsIndex.Select(x => codecs[x]).ToArray()),
-                        RangeTypeDescriptor       range       => new CompilableWrappingCodec(typeDescriptor.Id, codecs[range.TypePos], typeof(RangeCodec<>)), // (ICodec)Activator.CreateInstance(typeof(RangeCodec<>).MakeGenericType(codecs[range.TypePos].ConverterType), codecs[range.TypePos])!,
-                        ArrayTypeDescriptor       array       => new CompilableWrappingCodec(typeDescriptor.Id, codecs[array.TypePos], typeof(ArrayCodec<>)), //(ICodec)Activator.CreateInstance(typeof(Array<>).MakeGenericType(codecs[array.TypePos].ConverterType), codecs[array.TypePos])!,
-                        SetTypeDescriptor         set         => new CompilableWrappingCodec(typeDescriptor.Id, codecs[set.TypePos], typeof(SetCodec<>)), //(ICodec)Activator.CreateInstance(typeof(Set<>).MakeGenericType(codecs[set.TypePos].ConverterType), codecs[set.TypePos])!,
-                        BaseScalarTypeDescriptor  scalar      => throw new MissingCodecException($"Could not find the scalar type {scalar.Id}. Please file a bug report with your query that caused this error."),
-                        _ => throw new MissingCodecException($"Could not find a type descriptor with type {typeDescriptor.Id}. Please file a bug report with your query that caused this error.")
-                    };
-
-                    codecs.Add(codec);
-
-                    if (!CodecCache.TryAdd(typeDescriptor.Id, codec))
-                        client.Logger.CodecCouldntBeCached(codec, id);
-                    else
-                        client.Logger.CodecAddedToCache(id, codec);
+                        if (!providerCache.Cache.TryAdd(descriptor.Id, codec))
+                            client.Logger.CodecCouldntBeCached(codec, id);
+                        else
+                            client.Logger.CodecAddedToCache(id, codec);
+                    }
                 }
             }
 
-            var finalCodec = codecs.Last();
+            ICodec? finalCodec = null;
 
-            client.Logger.TraceCodecBuilderResult(finalCodec, codecs.Count, CodecCache.Count);
+            for(var i = 1; i != codecs.Length + 1 && finalCodec is null; i++)
+                finalCodec = codecs[^i];
+
+
+            if (finalCodec is null)
+                throw new MissingCodecException("Failed to find end tail of codec tree");
+
+            client.Logger.TraceCodecBuilderResult(CodecFormatter.Format(finalCodec).ToString(), codecs.Length, providerCache.Cache.Count);
 
             return finalCodec;
         }
 
-        public static ICodec? GetScalarCodec(Guid typeId)
+        public static ICodec? GetScalarCodec(IProtocolProvider provider, in Guid typeId)
         {
-            if (_defaultCodecs.TryGetValue(typeId, out var codecType))
+            if (_scalarCodecTypeMap.TryGetValue(typeId, out var codecType))
             {
-                var codec = CodecInstanceCache.GetOrAdd(codecType, t => (ICodec)Activator.CreateInstance(t)!);
+                if (_scalarCodecMap.TryGetValue(codecType, out var scalar))
+                    return scalar;
 
-                CodecCache[typeId] = codec;
+                var codec = GetProviderCache(provider)
+                    .CodecInstanceCache
+                    .GetOrAdd(
+                        codecType,
+                        t => (ICodec)Activator.CreateInstance(t, args: new object?[] { null })!
+                    );
+
+                GetProviderCache(provider).Cache[typeId] = codec;
                 return codec;
             }
 
             return null;
         }
 
-        private static ICodec GetOrCreateCodec<T>()
+        internal static ICodec GetOrCreateCodec<T>(IProtocolProvider provider)
             where T : ICodec, new()
-            => CodecInstanceCache.GetOrAdd(typeof(T), _ => new T());
+            => GetProviderCache(provider).CodecInstanceCache.GetOrAdd(typeof(T), _ => new T());
+
+        internal static ICodec GetOrCreateCodec<T>(IProtocolProvider provider, Func<Type, ICodec> factory)
+            where T : ICodec
+            => GetProviderCache(provider).CodecInstanceCache.GetOrAdd(typeof(T), factory);
 
         private static ulong CalculateKnuthHash(string content)
         {
@@ -209,7 +229,7 @@ namespace EdgeDB.Binary
             return hashedValue;
         }
         
-        private static readonly Dictionary<Guid, Type> _defaultCodecs = new()
+        private static readonly Dictionary<Guid, Type> _scalarCodecTypeMap = new()
         {
             { NullCodec, typeof(NullCodec) },
             { new Guid("00000000-0000-0000-0000-000000000100"), typeof(Codecs.UUIDCodec) },

@@ -156,7 +156,10 @@ namespace EdgeDB.BinaryDebugger
             {
                 var memory = copyBuffer.AsMemory()[..read];
                 var raw = HexConverter.ToHex(memory.ToArray());
-                var packet = PacketSerializer.DeserializePacket(Header.Value.Type, ref memory, Header.Value.Length, this);
+
+                var factory = ProtocolProvider.GetPacketFactory(Header.Value.Type)!;
+
+                var packet = PacketSerializer.DeserializePacket(in factory, in memory);
 
                 Writer.WriteLine($"READING\n" +
                                 $"=======\n" +

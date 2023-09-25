@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace EdgeDB
 {
     /// <summary>
-    ///     An enum representing the error severity of a <see cref="Binary.Packets.ErrorResponse"/>.
+    ///     An enum representing the error severity of a <see cref="Binary.Protocol.Common.IProtocolError"/>.
     /// </summary>
     public enum ErrorSeverity : byte
     {

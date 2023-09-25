@@ -1,3 +1,5 @@
+using EdgeDB.Binary.Protocol.Common.Descriptors;
+
 namespace EdgeDB.Binary.Codecs
 {
     internal sealed class SetCodec<T>
@@ -6,7 +8,8 @@ namespace EdgeDB.Binary.Codecs
         internal ICodec<T> InnerCodec;
         private readonly bool _isSetOfArray;
 
-        public SetCodec(ICodec<T> innerCodec)
+        public SetCodec(in Guid id, ICodec<T> innerCodec, CodecMetadata? metadata = null)
+            : base(in id, metadata)
         {
             InnerCodec = innerCodec;
             var codecType = innerCodec.GetType();
@@ -110,9 +113,7 @@ namespace EdgeDB.Binary.Codecs
         }
 
         public override string ToString()
-        {
-            return $"SetCodec<{InnerCodec}>";
-        }
+            => "set";
 
         ICodec IWrappingCodec.InnerCodec
         {

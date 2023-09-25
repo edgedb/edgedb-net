@@ -51,6 +51,9 @@ namespace EdgeDB
 
         private async Task AuthenticateAsync()
         {
+            if (Connection.Password is null)
+                throw new ConfigurationException("A password is required for HTTP authentication");
+
             using var scram = new Scram();
 
             var first = scram.BuildInitialMessage(Connection.Username);
@@ -72,7 +75,7 @@ namespace EdgeDB
 
             var keys = ParseKeys(authenticate);
             
-            var (final, sig) = scram.BuildFinalMessage(Encoding.UTF8.GetString(Convert.FromBase64String(keys["data"])), Connection.Password!);
+            var (final, sig) = scram.BuildFinalMessage(Encoding.UTF8.GetString(Convert.FromBase64String(keys["data"])), Connection.Password);
 
             var finalMessage = new HttpRequestMessage(HttpMethod.Get, Connection.GetAuthUri());
 

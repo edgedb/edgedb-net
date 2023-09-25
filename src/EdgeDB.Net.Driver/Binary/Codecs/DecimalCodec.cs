@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using EdgeDB.Utils;
 using System.Globalization;
 
@@ -8,6 +9,12 @@ namespace EdgeDB.Binary.Codecs
         : BaseScalarCodec<decimal>
     {
         public const int NBASE = 10000;
+
+        public new static readonly Guid Id = Guid.Parse("00000000-0000-0000-0000-000000000108");
+
+        public DecimalCodec(CodecMetadata? metadata = null)
+            : base(in Id, metadata)
+        { }
 
         public override decimal Deserialize(ref PacketReader reader, CodecContext context)
         {
@@ -95,5 +102,8 @@ namespace EdgeDB.Binary.Codecs
             foreach (var digit in digits)
                 writer.Write(digit);
         }
+
+        public override string ToString()
+            => "std::decimal";
     }
 }

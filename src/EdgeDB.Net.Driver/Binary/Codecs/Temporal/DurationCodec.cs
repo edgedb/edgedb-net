@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,10 @@ namespace EdgeDB.Binary.Codecs
 {
     internal sealed class DurationCodec : BaseTemporalCodec<DataTypes.Duration>
     {
-        public DurationCodec()
+        public new static Guid Id = Guid.Parse("00000000-0000-0000-0000-000000000112");
+
+        public DurationCodec(CodecMetadata? metadata = null)
+            : base(in Id, metadata)
         {
             AddConverter(From, To);
         }
@@ -35,5 +39,8 @@ namespace EdgeDB.Binary.Codecs
 
         private TimeSpan To(ref DataTypes.Duration value)
             => value.TimeSpan;
+
+        public override string ToString()
+            => "std::duration";
     }
 }

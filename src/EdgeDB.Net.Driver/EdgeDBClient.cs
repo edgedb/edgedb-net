@@ -13,10 +13,11 @@ namespace EdgeDB
         /// <summary>
         ///     Fired when a client in the client pool executes a query.
         /// </summary>
+        [Obsolete("This event will no longer be triggered by the binding, and will be removed in a later version.")]
         public event Func<IExecuteResult, ValueTask> QueryExecuted
         {
-            add => _queryExecuted.Add(value);
-            remove => _queryExecuted.Remove(value);
+            add { }
+            remove { }
         }
         
         /// <summary>
@@ -41,8 +42,8 @@ namespace EdgeDB
         public int AvailableClients
             => _availableClients.Count(x =>
             {
-                if (x is EdgeDBBinaryClient binaryCliet)
-                    return binaryCliet.IsIdle;
+                if (x is EdgeDBBinaryClient binaryClient)
+                    return binaryClient.IsIdle;
                 return x.IsConnected;
             });
 
@@ -78,12 +79,11 @@ namespace EdgeDB
         ///     or the clients don't support getting a server config.
         /// </remarks>
         public IReadOnlyDictionary<string, object?> ServerConfig
-            => _edgedbConfig.ToImmutableDictionary();
+            => _edgedbConfig;
 
         internal EdgeDBClientType ClientType
             => _poolConfig.ClientType;
 
-        private readonly AsyncEvent<Func<IExecuteResult, ValueTask>> _queryExecuted = new();
         private readonly EdgeDBConnection _connection;
         private readonly EdgeDBClientPoolConfig _poolConfig;
         private readonly ConcurrentDictionary<ulong, BaseEdgeDBClient> _clients; 
@@ -93,7 +93,7 @@ namespace EdgeDB
         private readonly Session _session;
         private readonly Func<ulong, EdgeDBConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? _clientFactory;
 
-        private Dictionary<string, object?> _edgedbConfig;
+        private IReadOnlyDictionary<string, object?> _edgedbConfig;
         private ConcurrentStack<BaseEdgeDBClient> _availableClients;
         private int _poolSize;
         private ulong _clientIndex;
@@ -369,17 +369,15 @@ namespace EdgeDB
 
                             if (
                                 _edgedbConfig is null ||
-                                (_edgedbConfig.Count != client.RawServerConfig.Count || _edgedbConfig.Except(client.RawServerConfig).Any()))
+                                (_edgedbConfig.Count != client.ServerConfig.Count || _edgedbConfig.Except(client.ServerConfig).Any()))
                             {
-                                _edgedbConfig = client.RawServerConfig;
+                                _edgedbConfig = client.ServerConfig;
                             }
 
                             client.OnConnect -= OnConnect;
                         }
 
                         client.OnConnect += OnConnect;
-
-                        client.QueryExecuted += (i) => _queryExecuted.InvokeAsync(i);
 
                         client.OnDisposed += (c) =>
                         {
@@ -402,9 +400,9 @@ namespace EdgeDB
 
                         if (
                             _edgedbConfig is null ||
-                            (_edgedbConfig.Count != client.RawServerConfig.Count || _edgedbConfig.Except(client.RawServerConfig).Any()))
+                            (_edgedbConfig.Count != client.ServerConfig.Count || _edgedbConfig.Except(client.ServerConfig).Any()))
                         {
-                            _edgedbConfig = client.RawServerConfig;
+                            _edgedbConfig = client.ServerConfig;
                         }
 
                         client.OnDisposed += (c) =>
