@@ -1,8 +1,11 @@
 using EdgeDB.Binary;
+using EdgeDB.Binary.Builders.Wrappers;
 using EdgeDB.DataTypes;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -45,22 +48,52 @@ namespace EdgeDB
 
         private TypeDeserializerFactory _factory;
 
+        private IWrapper? _wrapper;
+
         public EdgeDBTypeDeserializeInfo(Type type)
         {
-            _type = type;
+            IWrapper.TryGetWrapper(type, out _wrapper);
 
-            _factory = CreateDefaultFactory();
+            _type = _wrapper?.GetInnerType(type) ?? type;
+
+            var factory = CreateDefaultFactory();
 
             EdgeDBTypeName = _type.GetCustomAttribute<EdgeDBTypeAttribute>()?.Name ?? _type.Name;
+
+            if(_wrapper is not null)
+            {
+                _factory = (ref ObjectEnumerator enumerator) =>
+                {
+                    var value = factory(ref enumerator);
+                    return _wrapper.Wrap(type, value);
+                };
+            }
+            else
+            {
+                _factory = factory;
+            }
         }
 
         public EdgeDBTypeDeserializeInfo(Type type, TypeDeserializerFactory factory)
         {
-            _type = type;
+            IWrapper.TryGetWrapper(type, out _wrapper);
 
-            _factory = factory;
+            _type = _wrapper?.GetInnerType(type) ?? type;
 
             EdgeDBTypeName = _type.GetCustomAttribute<EdgeDBTypeAttribute>()?.Name ?? _type.Name;
+
+            if (_wrapper is not null)
+            {
+                _factory = (ref ObjectEnumerator enumerator) =>
+                {
+                    var value = factory(ref enumerator);
+                    return _wrapper.Wrap(type, value);
+                };
+            }
+            else
+            {
+                _factory = factory;
+            }
         }
 
         private ObjectActivator? CreateActivator()
@@ -71,7 +104,12 @@ namespace EdgeDB
             if (!ConstructorInfo.HasValue || ConstructorInfo.Value.EmptyConstructor is null)
                 return null;
 
-            return Expression.Lambda<ObjectActivator>(Expression.New(ConstructorInfo.Value.EmptyConstructor)).Compile();
+            Expression newExp = Expression.New(ConstructorInfo.Value.EmptyConstructor);
+
+            if (_type.IsValueType)
+                newExp = Expression.TypeAs(newExp, typeof(object));
+
+            return Expression.Lambda<ObjectActivator>(newExp).Compile();
         }
 
         public void AddOrUpdateChildren(EdgeDBTypeDeserializeInfo child)

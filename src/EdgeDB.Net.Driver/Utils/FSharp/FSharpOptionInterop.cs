@@ -9,9 +9,6 @@ namespace EdgeDB.Utils.FSharp
 {
     internal readonly ref struct FSharpOptionInterop
     {
-        private static PropertyInfo? _isSomeProperty;
-        private static PropertyInfo? _getValueProperty;
-
         public object? Value
             => _value;
 
@@ -32,10 +29,22 @@ namespace EdgeDB.Utils.FSharp
             if (!(_type.IsFSharpOption() || _type.IsFSharpValueOption()))
                 throw new InvalidOperationException($"The provided type {_type} is not an F# option");
 
-            _hasValue = (bool)GetIsSomeProperty(_type).GetValue(obj)!;
+            var isSomeProperty = GetIsSomeProperty(_type);
+
+            _hasValue = (bool)isSomeProperty.GetValue(obj,
+                isSomeProperty!.GetIndexParameters().Length > 0
+                    ? new object?[] { obj }
+                    : null
+            )!;
+
+            var getValueProperty = GetValueProperty(_type);
 
             _value = HasValue
-                ? GetValueProperty(_type).GetValue(obj)
+                ? getValueProperty.GetValue(obj,
+                    getValueProperty!.GetIndexParameters().Length > 0
+                        ? new object?[] { obj }
+                        : null
+                    )
                 : null;
         }
 
@@ -60,9 +69,9 @@ namespace EdgeDB.Utils.FSharp
         }
 
         private static PropertyInfo GetIsSomeProperty(Type type)
-            => _isSomeProperty ??= type.GetProperty("IsSome") ?? throw new MissingMethodException($"Can't find 'IsSome' property on {type}");
+            => type.GetProperty("IsSome") ?? throw new MissingMethodException($"Can't find 'IsSome' property on {type}");
 
         private static PropertyInfo GetValueProperty(Type type)
-            => _getValueProperty ??= type.GetProperty("Value") ?? throw new MissingMethodException($"Can't find 'GetValue' property on {type}");
+            => type.GetProperty("Value") ?? throw new MissingMethodException($"Can't find 'GetValue' property on {type}");
     }
 }
