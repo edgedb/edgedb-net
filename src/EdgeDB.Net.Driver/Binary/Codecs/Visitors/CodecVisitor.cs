@@ -1,14 +1,8 @@
-using System;
-namespace EdgeDB.Binary.Codecs
+namespace EdgeDB.Binary.Codecs;
+
+internal abstract class CodecVisitor
 {
-    internal abstract class CodecVisitor
-    {
-        public void Visit(ref ICodec codec)
-        {
-            VisitCodec(ref codec);
-        }
+    public void Visit(ref ICodec codec) => VisitCodec(ref codec);
 
-        protected abstract void VisitCodec(ref ICodec codec);
-    }
+    protected abstract void VisitCodec(ref ICodec codec);
 }
-

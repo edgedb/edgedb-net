@@ -1,21 +1,13 @@
-using EdgeDB.Binary.Codecs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace EdgeDB.Binary.Protocol;
 
-namespace EdgeDB.Binary.Protocol
+internal class ExecuteResult
 {
-    internal class ExecuteResult
+    public ExecuteResult(ReadOnlyMemory<byte>[] data, CodecInfo outCodecInfo)
     {
-        public CodecInfo OutCodecInfo { get; }
-        public ReadOnlyMemory<byte>[] Data { get; }
-
-        public ExecuteResult(ReadOnlyMemory<byte>[] data, CodecInfo outCodecInfo)
-        {
-            Data = data;
-            OutCodecInfo = outCodecInfo;
-        }
+        Data = data;
+        OutCodecInfo = outCodecInfo;
     }
+
+    public CodecInfo OutCodecInfo { get; }
+    public ReadOnlyMemory<byte>[] Data { get; }
 }

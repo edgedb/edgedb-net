@@ -1,45 +1,37 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
+namespace EdgeDB.Binary.Protocol.V1._0.Descriptors;
 
-namespace EdgeDB.Binary.Protocol.V1._0.Descriptors
+internal readonly struct ArrayTypeDescriptor : ITypeDescriptor
 {
-    internal readonly struct ArrayTypeDescriptor : ITypeDescriptor
+    public readonly Guid Id;
+
+    public readonly ushort TypePos;
+
+    public readonly uint[] Dimensions;
+
+    public ArrayTypeDescriptor(scoped in Guid id, scoped ref PacketReader reader)
     {
-        public readonly Guid Id; 
+        Id = id;
 
-        public readonly ushort TypePos;
+        TypePos = reader.ReadUInt16();
 
-        public readonly uint[] Dimensions;
+        var count = reader.ReadUInt16();
 
-        public ArrayTypeDescriptor(scoped in Guid id, scoped ref PacketReader reader)
+        var dimensions = new uint[count];
+
+        for (var i = 0; i != count; i++)
         {
-            Id = id;
-
-            TypePos = reader.ReadUInt16();
-
-            var count = reader.ReadUInt16();
-
-            uint[] dimensions = new uint[count];
-
-            for (int i = 0; i != count; i++)
-            {
-                dimensions[i] = reader.ReadUInt32();
-            }
-
-            Dimensions = dimensions;
+            dimensions[i] = reader.ReadUInt32();
         }
 
-        unsafe ref readonly Guid ITypeDescriptor.Id
+        Dimensions = dimensions;
+    }
+
+    unsafe ref readonly Guid ITypeDescriptor.Id
+    {
+        get
         {
-            get
-            {
-                fixed (Guid* ptr = &Id)
-                    return ref *ptr;
-            }
+            fixed (Guid* ptr = &Id)
+                return ref *ptr;
         }
     }
 }

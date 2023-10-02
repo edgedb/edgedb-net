@@ -1,62 +1,57 @@
-using EdgeDB.Binary.Codecs;
 using EdgeDB.Binary.Protocol.Common.Descriptors;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace EdgeDB.Binary.Protocol.V2._0.Descriptors
+namespace EdgeDB.Binary.Protocol.V2._0.Descriptors;
+
+internal readonly struct NamedTupleTypeDescriptor : ITypeDescriptor, IMetadataDescriptor
 {
-    internal readonly struct NamedTupleTypeDescriptor : ITypeDescriptor, IMetadataDescriptor
+    public readonly Guid Id;
+
+    public readonly string Name;
+
+    public readonly bool IsSchemaDefined;
+
+    public readonly ushort[] Ancestors;
+
+    public readonly TupleElement[] Elements;
+
+    public NamedTupleTypeDescriptor(ref PacketReader reader, in Guid id)
     {
-        public readonly Guid Id;
+        Id = id;
+        Name = reader.ReadString();
+        IsSchemaDefined = reader.ReadBoolean();
 
-        public readonly string Name;
+        var ancestorsCount = reader.ReadUInt16();
+        var ancestors = new ushort[ancestorsCount];
 
-        public readonly bool IsSchemaDefined;
-
-        public readonly ushort[] Ancestors;
-
-        public readonly TupleElement[] Elements;
-
-        public NamedTupleTypeDescriptor(ref PacketReader reader, in Guid id)
+        for (var i = 0; i != ancestorsCount; i++)
         {
-            Id = id;
-            Name = reader.ReadString();
-            IsSchemaDefined = reader.ReadBoolean();
-
-            var ancestorsCount = reader.ReadUInt16();
-            var ancestors = new ushort[ancestorsCount];
-
-            for (var i = 0; i != ancestorsCount; i++)
-            {
-                ancestors[i] = reader.ReadUInt16();
-            }
-
-            Ancestors = ancestors;
-
-            var elementCount = reader.ReadUInt16();
-            var elements = new TupleElement[elementCount];
-
-            for (int i = 0; i != elementCount; i++)
-            {
-                elements[i] = new TupleElement(ref reader);
-            }
-
-            Elements = elements;
+            ancestors[i] = reader.ReadUInt16();
         }
 
-        unsafe ref readonly Guid ITypeDescriptor.Id
+        Ancestors = ancestors;
+
+        var elementCount = reader.ReadUInt16();
+        var elements = new TupleElement[elementCount];
+
+        for (var i = 0; i != elementCount; i++)
         {
-            get
-            {
-                fixed (Guid* ptr = &Id)
-                    return ref *ptr;
-            }
+            elements[i] = new TupleElement(ref reader);
         }
 
-        public CodecMetadata? GetMetadata(RelativeCodecDelegate relativeCodec, RelativeDescriptorDelegate relativeDescriptor)
-            => new(Name, IsSchemaDefined, IMetadataDescriptor.ConstructAncestors(Ancestors, relativeCodec, relativeDescriptor));
+        Elements = elements;
     }
+
+    unsafe ref readonly Guid ITypeDescriptor.Id
+    {
+        get
+        {
+            fixed (Guid* ptr = &Id)
+                return ref *ptr;
+        }
+    }
+
+    public CodecMetadata? GetMetadata(RelativeCodecDelegate relativeCodec,
+        RelativeDescriptorDelegate relativeDescriptor)
+        => new(Name, IsSchemaDefined,
+            IMetadataDescriptor.ConstructAncestors(Ancestors, relativeCodec, relativeDescriptor));
 }

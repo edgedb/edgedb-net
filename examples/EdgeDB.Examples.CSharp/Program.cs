@@ -12,7 +12,7 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 using var host = Host.CreateDefaultBuilder()
-    .ConfigureServices((services) =>
+    .ConfigureServices(services =>
     {
         services.AddLogging(loggingBuilder =>
         {

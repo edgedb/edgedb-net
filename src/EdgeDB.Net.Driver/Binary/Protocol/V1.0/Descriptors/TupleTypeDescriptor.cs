@@ -1,42 +1,35 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace EdgeDB.Binary.Protocol.V1._0.Descriptors;
 
-namespace EdgeDB.Binary.Protocol.V1._0.Descriptors
+internal readonly struct TupleTypeDescriptor : ITypeDescriptor
 {
-    internal readonly struct TupleTypeDescriptor : ITypeDescriptor
+    public readonly Guid Id;
+
+    public bool IsEmpty
+        => Id.ToString() == "00000000-0000-0000-0000-0000000000FF";
+
+    public readonly ushort[] ElementTypeDescriptorsIndex;
+
+    public TupleTypeDescriptor(scoped in Guid id, scoped ref PacketReader reader)
     {
-        public readonly Guid Id;
+        Id = id;
+        var count = reader.ReadUInt16();
 
-        public bool IsEmpty 
-            => Id.ToString() == "00000000-0000-0000-0000-0000000000FF";
+        var elements = new ushort[count];
 
-        public readonly ushort[] ElementTypeDescriptorsIndex;
-
-        public TupleTypeDescriptor(scoped in Guid id, scoped ref PacketReader reader)
+        for (var i = 0; i != count; i++)
         {
-            Id = id;
-            var count = reader.ReadUInt16();
-
-            ushort[] elements = new ushort[count];
-
-            for (int i = 0; i != count; i++)
-            {
-                elements[i] = reader.ReadUInt16();
-            }
-
-            ElementTypeDescriptorsIndex = elements;
+            elements[i] = reader.ReadUInt16();
         }
 
-        unsafe ref readonly Guid ITypeDescriptor.Id
+        ElementTypeDescriptorsIndex = elements;
+    }
+
+    unsafe ref readonly Guid ITypeDescriptor.Id
+    {
+        get
         {
-            get
-            {
-                fixed (Guid* ptr = &Id)
-                    return ref *ptr;
-            }
+            fixed (Guid* ptr = &Id)
+                return ref *ptr;
         }
     }
 }

@@ -16,7 +16,7 @@ try
         .WithValidation(CommandResultValidation.ZeroExitCode)
         .ExecuteAsync();
 }
-catch(Exception x)
+catch (Exception x)
 {
     Console.Error.WriteLine("Build failed");
     Console.Error.WriteLine(x.Message);
@@ -35,7 +35,7 @@ try
     var generator = new Generator(Path.Combine(path, "docs"), data);
     generator.Generate();
 }
-catch(Exception)
+catch (Exception)
 {
     Directory.Delete(docsTemp, true);
     throw;

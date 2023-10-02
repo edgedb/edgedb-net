@@ -90,7 +90,7 @@ string:
     operator: "{0}[{1}]"
     return: string?
     name: Index
-    functions: 
+    functions:
       - name: Index
         parameters:
           - string?
@@ -118,7 +118,7 @@ string:
         parameters:
           - string?
           - string?
-  
+
   - operator: "{0} like {1}"
     return: bool
     name: Like
@@ -136,7 +136,7 @@ string:
         parameters:
           - string?
           - string?
-  
+
   - operator: "to_str({0})"
     return: string?
     name: ToString
@@ -144,25 +144,25 @@ string:
       - name: ToString
         parameters:
           - object?
-  
+
   - operator: "len({0})"
     return: long
     name: Length
     functions:
       - parameters:
           - string?
-  
+
   - operator: "contains({0}, {1})"
     return: bool
     name: Contains
-    functions: 
+    functions:
       - parameters:
           - string?
           - string?
       - parameters:
           - string?
           - char
-  
+
   - operator: "find({0}, {1})"
     name: Find
     return: long
@@ -173,7 +173,7 @@ string:
       - parameters:
           - string?
           - char
-  
+
   - operator: "str_lower({0})"
     return: string?
     name: ToLower
@@ -181,9 +181,9 @@ string:
       - String.ToLower
     functions:
       - name: ToLower
-        parameters: 
+        parameters:
           - string?
-  
+
   - operator: "str_upper({0})"
     return: string?
     name: ToUpper
@@ -200,7 +200,7 @@ string:
     functions:
       - parameters:
           - string?
-  
+
   - operator: "str_pad_start({0}, {1}, {2?})"
     name: PadLeft
     return: string?
@@ -212,7 +212,7 @@ string:
           - string?
           - long count
           - string? fill
-  
+
   - operator: "str_pad_end({0}, {1}, {2?})"
     name: PadRight
     return: string?
@@ -224,17 +224,17 @@ string:
           - string?
           - long count
           - string? fill
-  
+
   - operator: "str_trim({0}, {1?})"
     name: Trim
     return: string?
-    functions: 
+    functions:
       - parameters:
           - string?
       - parameters:
           - string?
           - string? trimCharacters
-  
+
   - operator: "str_trim_start({0}, {1?})"
     name: TrimStart
     return: string?
@@ -254,7 +254,7 @@ string:
       - parameters:
           - string?
           - string? trimCharacters
-  
+
   - operator: "str_repeat({0}, {1})"
     name: Repeat
     return: string?
@@ -262,7 +262,7 @@ string:
       - parameters:
           - string?
           - long count
-  
+
   - operator: "str_split({0}, {1})"
     name: Split
     return: string?[]
@@ -273,7 +273,7 @@ string:
       - parameters:
           - string?
           - char delimiter
-  
+
   - operator: "re_match({0}, {1})"
     name: Match
     return: string?[]
@@ -281,7 +281,7 @@ string:
       - parameters:
           - string? pattern
           - string? input
-  
+
   - operator: "re_match_all({0}, {1})"
     name: MatchAll
     return: IEnumerable<string[]>
@@ -289,7 +289,7 @@ string:
       - parameters:
           - string? pattern
           - string? input
-  
+
   - operator: "re_replace({0}, {1}, {2}, <flags := {3?}>)"
     name: Replace
     return: string?
@@ -305,8 +305,8 @@ string:
     return: bool
     functions:
       - parameters:
-        - string? pattern
-        - string? input
+          - string? pattern
+          - string? input
 
 boolean:
   - expression: Or
@@ -326,7 +326,7 @@ boolean:
       - parameters:
           - bool
           - bool
-  
+
   - expression: Not
     operator: "not {0}"
     name: Not
@@ -339,16 +339,16 @@ boolean:
     name: All
     return: bool
     functions:
-      - parameters: 
+      - parameters:
           - IEnumerable<bool>
-  
+
   - operator: "any({0})"
     name: Any
     return: bool
     functions:
-      - parameters: 
+      - parameters:
           - IEnumerable<bool>
-  
+
 numbers:
   - expression: Add
     operator: "{0} + {1}"
@@ -416,7 +416,7 @@ numbers:
           - byte
           - byte
         return: byte
-  
+
   - expression: Negate
     operator: "-{0}"
     name: Negative
@@ -450,7 +450,7 @@ numbers:
           - byte
           - byte
         return: byte
-  
+
   - expression: Multiply
     operator: "{0} * {1}"
     name: Multiply
@@ -484,7 +484,7 @@ numbers:
           - byte
           - byte
         return: byte
-  
+
   - expression: Divide
     operator: "{0} / {1}"
     name: Divide
@@ -518,11 +518,11 @@ numbers:
           - byte
           - byte
         return: byte
-  
+
   - operator: "{0} // {1}"
     name: Floor
     return: long
-    functions: 
+    functions:
       - parameters:
           - long
           - long
@@ -551,12 +551,12 @@ numbers:
           - byte
           - byte
         return: byte
-  
+
   - expression: Modulo
     operator: "{0} % {1}"
     name: Modulo
     return: long
-    functions: 
+    functions:
       - parameters:
           - long
           - long
@@ -585,11 +585,11 @@ numbers:
           - byte
           - byte
         return: byte
-  
+
   - operator: "{0} ^ {1}"
     name: Power
     return: long
-    functions: 
+    functions:
       - parameters:
           - long
           - long
@@ -618,32 +618,32 @@ numbers:
           - byte
           - byte
         return: byte
-  
+
   - operator: "sum({0})"
     name: Sum
     return: long
     functions:
       - parameters:
-          -  IEnumerable<long>
+          - IEnumerable<long>
       - parameters:
-          -  IEnumerable<int>
+          - IEnumerable<int>
       - parameters:
-          -  IEnumerable<decimal>
+          - IEnumerable<decimal>
         return: decimal
       - parameters:
-          -  IEnumerable<float>
+          - IEnumerable<float>
         return: float
       - parameters:
-          -  IEnumerable<double>
+          - IEnumerable<double>
         return: double
       - parameters:
-          -  IEnumerable<BigInteger>
+          - IEnumerable<BigInteger>
         return: BigInteger
-  
+
   - operator: "round({0}, {1?})"
     name: Round
     return: long
-    functions: 
+    functions:
       - parameters:
           - long
       - parameters:
@@ -655,7 +655,7 @@ numbers:
       - parameters:
           - decimal
           - long decimalPoint
-  
+
   - operator: "random()"
     name: Random
     return: double
@@ -671,7 +671,7 @@ numbers:
       - parameters:
           - string?
           - string? format
-  
+
   - operator: "to_decimal({0}, {1?})"
     name: ToDecimal
     return: decimal
@@ -691,7 +691,7 @@ numbers:
       - parameters:
           - string?
           - string? format
-  
+
   - operator: "to_int32({0}, {1?})"
     name: ToInt
     return: int
@@ -701,7 +701,7 @@ numbers:
       - parameters:
           - string?
           - string? format
-  
+
   - operator: "to_int64({0}, {1?})"
     name: ToLong
     return: long
@@ -711,7 +711,7 @@ numbers:
       - parameters:
           - string?
           - string? format
-  
+
   - operator: "to_float32({0}, {1?})"
     name: ToFloat
     return: float
@@ -741,7 +741,7 @@ json:
       - parameters:
           - Json
           - long index
-  
+
   - operator: "{0}[{1}:{2?}]"
     name: Slice
     return: Json
@@ -753,7 +753,7 @@ json:
           - Json
           - long
           - long
-  
+
   - operator: "{0} ++ {1}"
     name: Concat
     return: Json
@@ -761,7 +761,7 @@ json:
       - parameters:
           - Json
           - Json
-  
+
   - operator: "{0}[{1}]"
     name: Index
     return: Json
@@ -769,21 +769,21 @@ json:
       - parameters:
           - Json
           - string?
-  
+
   - operator: "to_json({0})"
     name: ToJson
     return: Json
-    functions: 
+    functions:
       - parameters:
           - string?
-  
+
   - operator: "json_array_unpack({0})"
     name: UnpackJsonArray
     return: IEnumerable<Json>
     functions:
       - parameters:
           - Json
-  
+
   - operator: "json_get({0}, {1})"
     name: JsonGet
     return: Json?
@@ -791,14 +791,14 @@ json:
       - parameters:
           - Json
           - params string[] path
-  
+
   - operator: "json_object_unpack({0})"
     name: UnpackJsonObject
     return: IEnumerable<Tuple<string, Json>>
     functions:
       - parameters:
           - Json
-  
+
   - operator: "json_typeof({0})"
     name: JsonTypeof
     return: string?
@@ -822,7 +822,7 @@ temporal:
       - parameters:
           - DateTimeOffset
           - TimeSpan
-  
+
   - expression: Subtract
     operator: "{0} - {1}"
     name: Subtract
@@ -847,19 +847,19 @@ temporal:
           - DateTime
           - DateTime
         return: DateTimeOffset
-  
+
   - operator: "std::datetime_current()"
     name: GetCurrentDateTime
     return: DateTimeOffset
     functions:
       - name: GetCurrentDateTime
-  
+
   - operator: "std::datetime_of_transaction()"
     name: GetTransactionDateTime
     return: DateTimeOffset
     functions:
       - name: GetTransactionDateTime
-  
+
   - operator: "std::datetime_of_statement()"
     name: GetStatementDateTime
     return: DateTimeOffset
@@ -881,7 +881,7 @@ temporal:
       - parameters:
           - TimeSpan
           - TimeSpanElement
-  
+
   - operator: "cal::date_get({0}, {1})"
     name: GetLocalDateElement
     return: double
@@ -897,7 +897,7 @@ temporal:
       - parameters:
           - DateTimeOffset
           - DateTimeTruncateUnit
-  
+
   - operator: "duration_truncate({0}, {1})"
     name: TruncateTimeSpan
     return: TimeSpan
@@ -930,7 +930,7 @@ temporal:
           - double unixSeconds
       - parameters:
           - long unixSeconds
-  
+
   - operator: "cal::to_local_datetime({0}, {1?}, {2?}, {3?}, {4?}, {5?})"
     name: ToDateTime
     return: DateTime
@@ -948,7 +948,7 @@ temporal:
           - long hour
           - long min
           - long sec
-      
+
   - operator: "cal::to_local_date({0}, {1?}, {2?})"
     name: ToLocalDate
     return: DateTime
@@ -963,7 +963,7 @@ temporal:
           - long year
           - long month
           - long day
-  
+
   - operator: "cal::to_local_time({0}, {1?}, {2?})"
     name: ToLocalTime
     return: TimeSpan
@@ -988,14 +988,14 @@ temporal:
           - long? minutes = null
           - double? seconds = null
           - double? microseconds = null
-  
+
   - operator: "std::duration_to_seconds({0})"
     name: TimeSpanToSeconds
     return: decimal
     functions:
       - parameters:
           - TimeSpan
-  
+
   - operator: "cal::to_relative_duration(<years := {0?}>, <months := {1?}>, <days := {2?}>, <hours := {3?}>, <minutes := {4?}>, <seconds := {5?}>, <microseconds := {6?}>)"
     name: ToRelativeDuration
     return: TimeSpan
@@ -1008,7 +1008,7 @@ temporal:
           - long? minutes = null
           - long? seconds = null
           - long? microseconds = null
-  
+
 bytes:
   - expression: Index
     operator: "{0}[{1}]"
@@ -1018,7 +1018,7 @@ bytes:
       - parameters:
           - byte[]
           - long index
-  
+
   - operator: "{0}[{1}:{2?}]"
     name: Slice
     return: byte[]
@@ -1030,7 +1030,7 @@ bytes:
           - byte[]
           - long startIndex
           - long endIndex
-  
+
   - operator: "{0} ++ {1}"
     name: Concat
     return: byte[]
@@ -1038,7 +1038,7 @@ bytes:
       - parameters:
           - byte[]
           - byte[]
-  
+
   - operator: "bytes_get_bit({0}, {1})"
     name: GetBit
     return: long
@@ -1046,7 +1046,7 @@ bytes:
       - parameters:
           - byte[]
           - long bitIndex
-  
+
 sequence:
   - operator: "sequence_next(<introspect typeof {0}>)"
     name: IncrementSequence
@@ -1054,7 +1054,7 @@ sequence:
     functions:
       - parameters:
           - long seq
-  
+
   - operator: "sequence_reset(<introspect typeof {0}>, {1?})"
     name: ResetSequence
     return: long
@@ -1074,7 +1074,7 @@ array:
       - parameters:
           - IEnumerable<TType>
           - long index
-  
+
   - operator: "{0}[{1}:{2?}]"
     name: Slice<TType>
     return: IEnumerable<TType>
@@ -1086,7 +1086,7 @@ array:
           - IEnumerable<TType>
           - long startIndex
           - long endIndex
-  
+
   - operator: "{0} ++ {1}"
     name: Concat<TType>
     return: IEnumerable<TType>
@@ -1094,14 +1094,14 @@ array:
       - parameters:
           - IEnumerable<TType>
           - IEnumerable<TType>
-  
+
   - operator: "array_agg({0})"
     name: Aggregate<TType>
     return: IEnumerable<TType>
     functions:
       - parameters:
           - IEnumerable<TType>
-  
+
   - operator: "array_get({0}, {1}, <default := {2?}>)"
     name: IndexOrDefault<TType>
     return: TType?
@@ -1110,7 +1110,7 @@ array:
           - IEnumerable<TType>
           - long index
           - TType? defaultValue = default
-  
+
   - operator: "array_unpack({0})"
     name: UnpackArray<TType>
     return: IEnumerable<TType>
@@ -1133,7 +1133,7 @@ sets:
     functions:
       - parameters:
           - IEnumerable<TType>
-  
+
   - operator: "{1} in {0}"
     name: Contains<TType>
     return: bool
@@ -1141,7 +1141,7 @@ sets:
       - parameters:
           - IEnumerable<TType>
           - TType element
-  
+
   - operator: "{0} union {1}"
     name: Union<TType>
     return: IEnumerable<TType>
@@ -1151,7 +1151,7 @@ sets:
       - parameters:
           - IEnumerable<TType>
           - IEnumerable<TType>
-          
+
   - expression: Conditional
     operator: "{1} if {0} else {2}"
     name: Conditional<TType>
@@ -1161,7 +1161,7 @@ sets:
           - bool condition
           - TType trueReturn
           - TType falseReturn
-  
+
   - expression: Coalesce
     operator: "{0} ?? {1}"
     name: Coalesce<TType>
@@ -1170,21 +1170,21 @@ sets:
       - parameters:
           - TType?
           - TType
-  
-  - operator: "detached {0}" 
+
+  - operator: "detached {0}"
     name: Detached<TType>
     return: TType
     functions:
       - parameters:
           - TType
-  
+
   - operator: "exists {0}"
     name: NotNull<TType>
     return: bool
     functions:
       - parameters:
           - TType value
-  
+
   - expression: TypeIs
     operator: "{0}[is {1}]"
     name: CastIfTypeIs<TDesired>
@@ -1194,14 +1194,14 @@ sets:
     functions:
       - parameters:
           - object?
-  
+
   - operator: "assert_distinct({0})"
     name: AssertDistinct<TType>
     return: IEnumerable<TType>
     functions:
       - parameters:
           - IEnumerable<TType>
-  
+
   - operator: "assert_single({0})"
     name: AssertSingle<TType>
     return: TType
@@ -1215,7 +1215,7 @@ sets:
     functions:
       - parameters:
           - TType?
-  
+
   - operator: "count({0})"
     name: Count<TType>
     return: long
@@ -1236,7 +1236,7 @@ sets:
     functions:
       - parameters:
           - IEnumerable<TType>
-  
+
   - operator: "max({0})"
     name: Max<TType>
     return: TType
@@ -1253,7 +1253,7 @@ types:
     functions:
       - parameters:
           - object?
-          
+
   - operator: "{0} is {1}"
     name: Is
     return: bool
@@ -1270,7 +1270,7 @@ types:
     functions:
       - parameters:
           - object?
-  
+
   - operator: "({0} | {1} { | :2+})"
     name: TypeUnion
     return: Type
@@ -1279,7 +1279,7 @@ types:
           - Type
           - Type
           - params Type[] additional
-  
+
   - expression: Convert
     operator: "<{0}>{1}"
     name: Cast<TType>
@@ -1289,14 +1289,14 @@ types:
     functions:
       - parameters:
           - object?
-  
+
   - operator: "introspect (typeof {0})"
     name: GetType
     return: Type
     functions:
       - parameters:
           - object?
-  
+
   - operator: "{0} is typeof {1}"
     name: IsTypeOf
     return: bool
@@ -1342,7 +1342,7 @@ math:
       - parameters:
           - decimal
         return: decimal
-  
+
   - operator: "math::floor({0})"
     name: Floor
     functions:
@@ -1371,7 +1371,7 @@ math:
       - parameters:
           - decimal
         return: decimal
-  
+
   - operator: "math::lg({0})"
     name: Logarithm
     functions:
@@ -1384,7 +1384,7 @@ math:
       - parameters:
           - decimal
         return: decimal
-  
+
   - operator: "math::log({0} <base := {1}>)"
     name: Logarithm
     return: decimal
@@ -1392,7 +1392,7 @@ math:
       - parameters:
           - decimal
           - decimal numericBase
-  
+
   - operator: "math::mean({0})"
     name: Mean
     return: double
@@ -1404,7 +1404,7 @@ math:
       - parameters:
           - IEnumerable<decimal>
         return: decimal
-  
+
   - operator: "math::stddev({0})"
     name: StandardDeviation
     return: double
@@ -1416,7 +1416,7 @@ math:
       - parameters:
           - IEnumerable<decimal>
         return: decimal
-  
+
   - operator: "math::stddev_pop({0})"
     name: StandardDeviationPop
     return: double
@@ -1440,7 +1440,7 @@ math:
       - parameters:
           - IEnumerable<decimal>
         return: decimal
-  
+
   - operator: "math::var_pop({0})"
     name: VariancePop
     return: double
@@ -1474,7 +1474,7 @@ links:
 variables:
   - operator: "{0}"
     name: Reference
-  
+
 
 enums:
   - name: DurationTruncateUnit

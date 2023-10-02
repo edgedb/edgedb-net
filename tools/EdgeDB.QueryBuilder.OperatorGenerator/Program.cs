@@ -1,9 +1,9 @@
 ﻿// This project generates the edgeql operators as functions within the edgeql class and operators folder
 
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 using EdgeDB.QueryBuilder.OperatorGenerator;
 using System.Text.RegularExpressions;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 const string OperatorsOutputDir = "../../../../EdgeDB.Net.QueryBuilder/Operators";
 const string EdgeQLOutput = "../../../../../src/EdgeDB.Net.QueryBuilder";
@@ -11,12 +11,12 @@ const string OperatorDefinitionFile = "../../../operators.yml";
 const string ParamaterNames = "abcdefghijklmnopqrstuvwxyz";
 
 var deserializer = new DeserializerBuilder()
-                .WithNamingConvention(UnderscoredNamingConvention.Instance)
-                .Build();
+    .WithNamingConvention(UnderscoredNamingConvention.Instance)
+    .Build();
 
 var content = File.ReadAllText(OperatorDefinitionFile);
 
-var sections = deserializer!.Deserialize<Dictionary<string, EdgeQLOperator[]>>(content!.ToString());
+var sections = deserializer!.Deserialize<Dictionary<string, EdgeQLOperator[]>>(content!);
 
 var writer = new CodeWriter();
 
@@ -71,36 +71,38 @@ using (var _ = writer.BeginScope("namespace EdgeDB"))
 
                         foreach (var func in funcs)
                         {
-                            var serializedExpression = Regex.Replace(op.Operator!.Replace("<", "&lt;").Replace(">", "&gt;"), @"({\d+})", m =>
-                            {
-                                var index = int.Parse(m.Groups[1].Value.Replace("{", "").Replace("}", ""));
-                                string param;
-                                if (index >= func.Parameters.Count)
+                            var serializedExpression = Regex.Replace(
+                                op.Operator!.Replace("<", "&lt;").Replace(">", "&gt;"), @"({\d+})", m =>
                                 {
-                                    var map = op.ParameterMap.FirstOrDefault(x => x.StartsWith(index.ToString()));
-
-                                    if (map == null)
+                                    var index = int.Parse(m.Groups[1].Value.Replace("{", "").Replace("}", ""));
+                                    string param;
+                                    if (index >= func.Parameters.Count)
                                     {
-                                        // offset by param map length
-                                        index -= op.ParameterMap.Count;
+                                        var map = op.ParameterMap.FirstOrDefault(x => x.StartsWith(index.ToString()));
 
-                                        param = func.Parameters[index];
+                                        if (map == null)
+                                        {
+                                            // offset by param map length
+                                            index -= op.ParameterMap.Count;
+
+                                            param = func.Parameters[index];
+                                        }
+                                        else
+                                        {
+                                            param = map.Split(':')[1];
+
+                                            return $"<typeparamref name=\"{param}\"/>";
+                                        }
                                     }
-                                    else
-                                    {
-                                        param = map.Split(':')[1];
+                                    else param = func.Parameters[index];
 
-                                        return $"<typeparamref name=\"{param}\"/>";
-                                    }
-                                }
-                                else param = func.Parameters[index];
-
-                                var name = param.Contains(' ') ? param.Split(' ')[1] : $"{ParamaterNames[index]}";
-                                return $"<paramref name=\"{name}\"/>";
-                            });
+                                    var name = param.Contains(' ') ? param.Split(' ')[1] : $"{ParamaterNames[index]}";
+                                    return $"<paramref name=\"{name}\"/>";
+                                });
 
                             writer.AppendLine("/// <summary>");
-                            writer.AppendLine($"///     A function that represents the EdgeQL version of: <code>{serializedExpression}</code>");
+                            writer.AppendLine(
+                                $"///     A function that represents the EdgeQL version of: <code>{serializedExpression}</code>");
                             writer.AppendLine("/// </summary>");
 
                             writer.AppendLine($"[EquivalentOperator(typeof(EdgeDB.Operators.{operatorName}))]");
@@ -110,14 +112,17 @@ using (var _ = writer.BeginScope("namespace EdgeDB"))
 
                                 writer.AppendLine($"[ParameterMap({split[0]}, \"{split[1]}\")]");
                             }
-                            writer.AppendLine($"public static {func.Return ?? op.Return} {func.Name ?? op.Name}({string.Join(", ", func.Parameters.Select((x, i) => $"{x.Split(' ')[0]} {(x.Split(' ').Length > 1 ? string.Join(" ", x.Split(' ').Skip(1)) : ParamaterNames[i])}"))}){(func.Filter != null ? $" {func.Filter}" : "")} {{ return default!; }}");
-                        }
 
+                            writer.AppendLine(
+                                $"public static {func.Return ?? op.Return} {func.Name ?? op.Name}({string.Join(", ", func.Parameters.Select((x, i) => $"{x.Split(' ')[0]} {(x.Split(' ').Length > 1 ? string.Join(" ", x.Split(' ').Skip(1)) : ParamaterNames[i])}"))}){(func.Filter != null ? $" {func.Filter}" : "")} {{ return default!; }}");
+                        }
                     }
+
                     writer.AppendLine("#endregion");
                     writer.AppendLine();
                 }
             }
+
             writer.AppendLine($"#endregion {section.Key}");
             writer.AppendLine();
         }
@@ -125,20 +130,24 @@ using (var _ = writer.BeginScope("namespace EdgeDB"))
         // write the property and function map
         if (propertyMap.Any())
         {
-            using (var ___ = writer.BeginScope("internal static Dictionary<string, IEdgeQLOperator> PropertyOperators = new()"))
+            using (var ___ = writer.BeginScope(
+                       "internal static Dictionary<string, IEdgeQLOperator> PropertyOperators = new()"))
             {
                 propertyMap.ForEach(x => writer.AppendLine($"{{ \"{x.CSName}\", new {x.OperatorName}()}}"));
             }
+
             writer.AppendLine(";");
         }
 
         if (functionMap.Any())
         {
-            using (var ___ = writer.BeginScope("internal static Dictionary<string, IEdgeQLOperator> FunctionOperators = new()"))
+            using (var ___ = writer.BeginScope(
+                       "internal static Dictionary<string, IEdgeQLOperator> FunctionOperators = new()"))
             {
                 functionMap.ForEach(x => writer.AppendLine($"{{ \"{x.CSName}\", new {x.OperatorName}()}},"));
                 //writer.AppendLine(string.Join(",\n", functionMap.Select(x => $"{new string(' ', writer.IndentLevel)}{{ \"{x.CSName}\", new {x.OperatorName}()}}")));
             }
+
             writer.Append(";\n");
         }
     }
@@ -196,7 +205,8 @@ void BuildSingleOperator(string section, EdgeQLOperator op)
     }
 
     Directory.CreateDirectory(Path.Combine(OperatorsOutputDir, $"{FirstCharToUpper(section)}"));
-    File.WriteAllText(Path.Combine(OperatorsOutputDir, $"{FirstCharToUpper(section)}", $"{cleanedName}.g.cs"), writer.ToString());
+    File.WriteAllText(Path.Combine(OperatorsOutputDir, $"{FirstCharToUpper(section)}", $"{cleanedName}.g.cs"),
+        writer.ToString());
 }
 
 string FirstCharToUpper(string input)
@@ -211,10 +221,7 @@ string FirstCharToUpper(string input)
 
 List<string> Replace(string r, int i, List<string> arr)
 {
-    var l = new List<string>(arr)
-    {
-        [i] = r
-    };
+    var l = new List<string>(arr) {[i] = r};
 
     return l;
 }
@@ -225,31 +232,72 @@ List<EdgeQLFunction> GenerateFunctions(EdgeQLFunction func)
 {
     var ret = new List<EdgeQLFunction>();
 
-    for (int i = 0; i != func.Parameters.Count; i++)
+    for (var i = 0; i != func.Parameters.Count; i++)
     {
         var param = func.Parameters[i];
         if (param == "anyint")
         {
-            ret.Add(new EdgeQLFunction { Name = func.Name, Return = func.Return ?? "short", Parameters = Replace("short", i, func.Parameters) });
-            ret.Add(new EdgeQLFunction { Name = func.Name, Return = func.Return ?? "int", Parameters = Replace("int", i, func.Parameters) });
-            ret.Add(new EdgeQLFunction { Name = func.Name, Return = func.Return ?? "long", Parameters = Replace("long", i, func.Parameters) });
+            ret.Add(new EdgeQLFunction
+            {
+                Name = func.Name, Return = func.Return ?? "short", Parameters = Replace("short", i, func.Parameters)
+            });
+            ret.Add(new EdgeQLFunction
+            {
+                Name = func.Name, Return = func.Return ?? "int", Parameters = Replace("int", i, func.Parameters)
+            });
+            ret.Add(new EdgeQLFunction
+            {
+                Name = func.Name, Return = func.Return ?? "long", Parameters = Replace("long", i, func.Parameters)
+            });
 
             ret.AddRange(ret.Select(x => GenerateFunctions(x)).SelectMany(x => x));
         }
+
         if (param == "anyfloat")
         {
-            ret.Add(new EdgeQLFunction { Name = func.Name, Return = func.Return ?? "float", Parameters = Replace("float", i, func.Parameters) });
-            ret.Add(new EdgeQLFunction { Name = func.Name, Return = func.Return ?? "double", Parameters = Replace("double", i, func.Parameters) });
+            ret.Add(new EdgeQLFunction
+            {
+                Name = func.Name, Return = func.Return ?? "float", Parameters = Replace("float", i, func.Parameters)
+            });
+            ret.Add(new EdgeQLFunction
+            {
+                Name = func.Name,
+                Return = func.Return ?? "double",
+                Parameters = Replace("double", i, func.Parameters)
+            });
             ret.AddRange(ret.Select(x => GenerateFunctions(x)).SelectMany(x => x));
         }
+
         if (param == "anyreal")
         {
-            ret.Add(new EdgeQLFunction { Name = func.Name, Return = func.Return ?? "short", Parameters = Replace("short", i, func.Parameters) });
-            ret.Add(new EdgeQLFunction { Name = func.Name, Return = func.Return ?? "int", Parameters = Replace("int", i, func.Parameters) });
-            ret.Add(new EdgeQLFunction { Name = func.Name, Return = func.Return ?? "long", Parameters = Replace("long", i, func.Parameters) });
-            ret.Add(new EdgeQLFunction { Name = func.Name, Return = func.Return ?? "float", Parameters = Replace("float", i, func.Parameters) });
-            ret.Add(new EdgeQLFunction { Name = func.Name, Return = func.Return ?? "double", Parameters = Replace("double", i, func.Parameters) });
-            ret.Add(new EdgeQLFunction { Name = func.Name, Return = func.Return ?? "decimal", Parameters = Replace("decimal", i, func.Parameters) });
+            ret.Add(new EdgeQLFunction
+            {
+                Name = func.Name, Return = func.Return ?? "short", Parameters = Replace("short", i, func.Parameters)
+            });
+            ret.Add(new EdgeQLFunction
+            {
+                Name = func.Name, Return = func.Return ?? "int", Parameters = Replace("int", i, func.Parameters)
+            });
+            ret.Add(new EdgeQLFunction
+            {
+                Name = func.Name, Return = func.Return ?? "long", Parameters = Replace("long", i, func.Parameters)
+            });
+            ret.Add(new EdgeQLFunction
+            {
+                Name = func.Name, Return = func.Return ?? "float", Parameters = Replace("float", i, func.Parameters)
+            });
+            ret.Add(new EdgeQLFunction
+            {
+                Name = func.Name,
+                Return = func.Return ?? "double",
+                Parameters = Replace("double", i, func.Parameters)
+            });
+            ret.Add(new EdgeQLFunction
+            {
+                Name = func.Name,
+                Return = func.Return ?? "decimal",
+                Parameters = Replace("decimal", i, func.Parameters)
+            });
             ret.AddRange(ret.ToArray().Select(x => GenerateFunctions(x)).SelectMany(x => x));
         }
     }

@@ -8,15 +8,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="operators.yml" />
+    <None Remove="operators.yml"/>
   </ItemGroup>
 
   <ItemGroup>
-    <AdditionalFiles Include="operators.yml" />
+    <AdditionalFiles Include="operators.yml"/>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="YamlDotNet" Version="11.2.1" />
+    <PackageReference Include="YamlDotNet" Version="11.2.1"/>
   </ItemGroup>
 
 </Project>

@@ -1,61 +1,50 @@
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace EdgeDB.ExampleApp.Examples
+namespace EdgeDB.ExampleApp.Examples;
+
+internal class LinksExample : IExample
 {
-    internal class LinksExample : IExample
+    public ILogger? Logger { get; set; }
+
+    public async Task ExecuteAsync(EdgeDBClient client)
     {
-        public ILogger? Logger { get; set; }
+        // create a new movie
+        var createMovieQuery = "with" +
+                               "  cnolan:= (insert Person { name:= \"Christopher Nolan\", email:= \"cnolan@imdb.com\"}" +
+                               "    unless conflict on.email else (select Person))," +
+                               "  leonardo:= (insert Person { name:= \"Leonardo DiCaprio\", email:= \"ldicaprio@imdb.com\" }" +
+                               "    unless conflict on.email else (select Person))," +
+                               "  joseph:= (insert Person { name:= \"Joseph Gordon-Levitt\", email:= \"jgordonlevitt @imdb.com\"}" +
+                               "    unless conflict on.email else (select Person))" +
+                               "insert Movie { title:= \"Inception\", year:= 2010, director:= cnolan, actors:= { leonardo, joseph} }" +
+                               "  unless conflict on.title else (select Movie);";
 
-        public class Person
-        {
-            [EdgeDBProperty("name")]
-            public string? Name { get; set; }
+        var selectMovieQuery =
+            "select Movie {title, year, director: {name, email}, actors: {name, email}} filter .title = 'Inception'";
 
-            [EdgeDBProperty("email")]
-            public string? Email { get; set; }
-        }
+        await client.ExecuteAsync(createMovieQuery).ConfigureAwait(false);
 
-        public class Movie
-        {
-            [EdgeDBProperty("title")]
-            public string? Title { get; set; }
+        // select it
+        var movie = await client.QueryRequiredSingleAsync<Movie>(selectMovieQuery).ConfigureAwait(false);
 
-            [EdgeDBProperty("year")]
-            public int Year { get; set; }
+        Logger?.LogInformation("Movie: {@Movie}", movie);
+    }
 
-            [EdgeDBProperty("director")]
-            public Person? Director { get; set; } // single link
+    public class Person
+    {
+        [EdgeDBProperty("name")] public string? Name { get; set; }
 
-            [EdgeDBProperty("actors")]
-            public Person[]? Actors { get; set; } // multi link, can also use List<Person> here
-        }
+        [EdgeDBProperty("email")] public string? Email { get; set; }
+    }
 
-        public async Task ExecuteAsync(EdgeDBClient client)
-        {
-            // create a new movie
-            var createMovieQuery = "with" + 
-                                   "  cnolan:= (insert Person { name:= \"Christopher Nolan\", email:= \"cnolan@imdb.com\"}" +
-                                   "    unless conflict on.email else (select Person))," + 
-                                   "  leonardo:= (insert Person { name:= \"Leonardo DiCaprio\", email:= \"ldicaprio@imdb.com\" }" +
-                                   "    unless conflict on.email else (select Person))," +
-                                   "  joseph:= (insert Person { name:= \"Joseph Gordon-Levitt\", email:= \"jgordonlevitt @imdb.com\"}" +
-                                   "    unless conflict on.email else (select Person))" +
-                                   "insert Movie { title:= \"Inception\", year:= 2010, director:= cnolan, actors:= { leonardo, joseph} }" +
-                                   "  unless conflict on.title else (select Movie);";
+    public class Movie
+    {
+        [EdgeDBProperty("title")] public string? Title { get; set; }
 
-            var selectMovieQuery = "select Movie {title, year, director: {name, email}, actors: {name, email}} filter .title = 'Inception'";
+        [EdgeDBProperty("year")] public int Year { get; set; }
 
-            await client.ExecuteAsync(createMovieQuery).ConfigureAwait(false);
-            
-            // select it
-            var movie = await client.QueryRequiredSingleAsync<Movie>(selectMovieQuery).ConfigureAwait(false);
-            
-            Logger?.LogInformation("Movie: {@Movie}", movie);
-        }
+        [EdgeDBProperty("director")] public Person? Director { get; set; } // single link
+
+        [EdgeDBProperty("actors")] public Person[]? Actors { get; set; } // multi link, can also use List<Person> here
     }
 }

@@ -1,33 +1,25 @@
-using EdgeDB.Binary.Protocol;
-using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace EdgeDB.Binary.Protocol.V1._0.Packets;
 
-namespace EdgeDB.Binary.Protocol.V1._0.Packets
+/// <summary>
+///     Represents the
+///     <see href="https://www.edgedb.com/docs/reference/protocol/messages#serverkeydata">Server Key Data</see> packet.
+/// </summary>
+internal readonly struct ServerKeyData : IReceiveable
 {
+    public const int SERVER_KEY_LENGTH = 32;
+
+    /// <inheritdoc />
+    public ServerMessageType Type
+        => ServerMessageType.ServerKeyData;
+
     /// <summary>
-    ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#serverkeydata">Server Key Data</see> packet.
+    ///     The key data buffer.
     /// </summary>
-    internal readonly struct ServerKeyData : IReceiveable
+    internal readonly byte[] KeyBuffer;
+
+    internal ServerKeyData(ref PacketReader reader)
     {
-        public const int SERVER_KEY_LENGTH = 32;
-
-        /// <inheritdoc/>
-        public ServerMessageType Type 
-            => ServerMessageType.ServerKeyData;
-
-        /// <summary>
-        ///     The key data buffer.
-        /// </summary>
-        internal readonly byte[] KeyBuffer;
-
-        internal ServerKeyData(ref PacketReader reader)
-        {
-            reader.ReadBytes(SERVER_KEY_LENGTH, out var buff);
-            KeyBuffer = buff.ToArray();
-        }
+        reader.ReadBytes(SERVER_KEY_LENGTH, out var buff);
+        KeyBuffer = buff.ToArray();
     }
 }

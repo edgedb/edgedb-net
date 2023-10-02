@@ -1,22 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace EdgeDB.Binary.Protocol;
 
-namespace EdgeDB.Binary.Protocol
+internal sealed class ParseResult
 {
-    internal sealed class ParseResult
+    public ParseResult(CodecInfo inCodecInfo, CodecInfo outCodecInfo, scoped in ReadOnlyMemory<byte>? stateData)
     {
-        public CodecInfo InCodecInfo { get; }
-        public CodecInfo OutCodecInfo { get; }
-        public ReadOnlyMemory<byte>? StateData { get; }
-
-        public ParseResult(CodecInfo inCodecInfo, CodecInfo outCodecInfo, scoped in ReadOnlyMemory<byte>? stateData)
-        {
-            InCodecInfo = inCodecInfo;
-            OutCodecInfo = outCodecInfo;
-            StateData = stateData;
-        }
+        InCodecInfo = inCodecInfo;
+        OutCodecInfo = outCodecInfo;
+        StateData = stateData;
     }
+
+    public CodecInfo InCodecInfo { get; }
+    public CodecInfo OutCodecInfo { get; }
+    public ReadOnlyMemory<byte>? StateData { get; }
 }

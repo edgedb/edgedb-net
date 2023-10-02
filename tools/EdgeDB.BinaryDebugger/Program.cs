@@ -18,7 +18,7 @@ try
 {
     await debugClient.QueryAsync<string>("select \"Hello, World!\"");
 }
-catch (Exception x )
+catch (Exception x)
 {
     Console.WriteLine(x);
 }

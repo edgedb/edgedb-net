@@ -3,18 +3,22 @@ module CustomDeserializer
 open Examples
 open EdgeDB
 open Microsoft.Extensions.Logging
-open System.Threading.Tasks
-open System.Threading
 open System
 open System.Collections.Generic
 
 type PersonConstructor() =
     let mutable name = ""
     let mutable email = ""
-    member this.Name with get() = name and set(v) = name <- v
-    member this.Email with get() = email and set(v) = email <- v
 
-    [<EdgeDBDeserializer()>]
+    member this.Name
+        with get () = name
+        and set (v) = name <- v
+
+    member this.Email
+        with get () = email
+        and set (v) = email <- v
+
+    [<EdgeDBDeserializer>]
     new(raw: IDictionary<string, obj>) as this =
         PersonConstructor()
         then
@@ -25,7 +29,7 @@ type PersonMethod() =
     member val Name = "" with get, set
     member val Email = "" with get, set
 
-    [<EdgeDBDeserializer()>]
+    [<EdgeDBDeserializer>]
     member this.Deserialize(raw: IDictionary<string, obj>) =
         this.Name <- raw.["name"] :?> string
         this.Email <- raw.["email"] :?> string
@@ -43,27 +47,33 @@ type PersonImpl() =
     member val Email = String.Empty with get, set
 
     interface IPerson with
-        member self.Name with get() = self.Name and set v = self.Name <- v
-        member self.Email with get() = self.Email and set v = self.Email <- v
+        member self.Name
+            with get () = self.Name
+            and set v = self.Name <- v
+
+        member self.Email
+            with get () = self.Email
+            and set v = self.Email <- v
 
 type CustomDeserializer() =
     interface IExample with
         member this.ExecuteAsync(client: EdgeDBClient, logger: ILogger) =
             task {
-                 // Define our queries
-                let insertQuery = "insert Person { name := \"example\", email := \"example@example.com\" } unless conflict on .email";
-                let selectQuery = "select Person { name, email } filter .email = \"example@example.com\"";
+                // Define our queries
+                let insertQuery =
+                    "insert Person { name := \"example\", email := \"example@example.com\" } unless conflict on .email"
+
+                let selectQuery =
+                    "select Person { name, email } filter .email = \"example@example.com\""
 
                 // Insert john
-                client.ExecuteAsync(insertQuery)
-                |> Async.AwaitTask |> Async.Ignore |> ignore
+                client.ExecuteAsync(insertQuery) |> Async.AwaitTask |> Async.Ignore |> ignore
 
                 // Define a custom deserializer for the 'PersonGlobal' type
                 TypeBuilder.AddOrUpdateTypeBuilder<PersonGlobal>(fun person data ->
                     logger.LogInformation("Custom deserializer was called")
                     person.Name <- data.["name"] :?> string
-                    person.Email <- data.["email"] :?> string
-                )
+                    person.Email <- data.["email"] :?> string)
 
                 // Define a custom creator for the 'PersonImmutable' type
                 TypeBuilder.AddOrUpdateTypeFactory<IPerson>(fun enumerator ->
@@ -75,8 +85,7 @@ type CustomDeserializer() =
                     person.Name <- data.["name"] :?> string
                     person.Email <- data.["email"] :?> string
 
-                    person
-                )
+                    person)
 
                 let! exampleConstructor = client.QueryRequiredSingleAsync<PersonConstructor>(selectQuery)
                 let! exampleMethod = client.QueryRequiredSingleAsync<PersonMethod>(selectQuery)

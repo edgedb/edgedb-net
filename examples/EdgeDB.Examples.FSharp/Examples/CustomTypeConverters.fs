@@ -18,26 +18,22 @@ type DiscordSnowflakeId =
         val Increment: int16
         val Snowflake: uint64
 
-        new(value: uint64) = {
-            Increment = int16 (value &&& 0xFFFUL);
-            ProcessId = byte ((value >>> 12) &&& 0x1FUL);
-            WorkerId = byte ((value >>> 17) &&& 0x1FUL);
-            Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(int64 ((value >>> 22) + 1420070400000UL));
-            Snowflake = value
-        }
+        new(value: uint64) =
+            { Increment = int16 (value &&& 0xFFFUL)
+              ProcessId = byte ((value >>> 12) &&& 0x1FUL)
+              WorkerId = byte ((value >>> 17) &&& 0x1FUL)
+              Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(int64 ((value >>> 22) + 1420070400000UL))
+              Snowflake = value }
     end
 
 type DiscordSnowflakeConverter() =
     inherit EdgeDBTypeConverter<DiscordSnowflakeId, string>()
-    override this.ConvertFrom(value: string) =
-        DiscordSnowflakeId(uint64 value)
-    override this.ConvertTo(value: DiscordSnowflakeId) =
-        value.Snowflake.ToString()
+    override this.ConvertFrom(value: string) = DiscordSnowflakeId(uint64 value)
+    override this.ConvertTo(value: DiscordSnowflakeId) = value.Snowflake.ToString()
 
-type UserWithSnowflakeId = {
-    UserId: DiscordSnowflakeId
-    Username: string
-}
+type UserWithSnowflakeId =
+    { UserId: DiscordSnowflakeId
+      Username: string }
 
 type CustomTypeConverters() =
     interface IExample with
@@ -45,7 +41,10 @@ type CustomTypeConverters() =
             task {
                 TypeBuilder.AddOrUpdateTypeConverter<DiscordSnowflakeConverter>()
 
-                let! user = client.QueryAsync<UserWithSnowflakeId>("with u := (insert UserWithSnowflakeId { user_id := \"841451783728529451\", username := \"example\" } unless conflict on .user_id else (select UserWithSnowflakeId)) select u { user_id, username }")
+                let! user =
+                    client.QueryAsync<UserWithSnowflakeId>(
+                        "with u := (insert UserWithSnowflakeId { user_id := \"841451783728529451\", username := \"example\" } unless conflict on .user_id else (select UserWithSnowflakeId)) select u { user_id, username }"
+                    )
 
                 logger.LogInformation("User with snowflake id: {@User}", user)
             }

@@ -1,30 +1,24 @@
-using EdgeDB.Binary.Codecs;
 using EdgeDB.Binary.Protocol.Common.Descriptors;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace EdgeDB.Binary.Protocol.V2._0.Descriptors
+namespace EdgeDB.Binary.Protocol.V2._0.Descriptors;
+
+internal interface IMetadataDescriptor
 {
-    internal interface IMetadataDescriptor
+    static CodecAncestor[] ConstructAncestors(ushort[] ancestors, RelativeCodecDelegate relativeCodec,
+        RelativeDescriptorDelegate relativeDescriptor)
     {
-        static CodecAncestor[] ConstructAncestors(ushort[] ancestors, RelativeCodecDelegate relativeCodec, RelativeDescriptorDelegate relativeDescriptor)
+        var codecAncestors = new CodecAncestor[ancestors.Length];
+
+        for (var i = 0; i != ancestors.Length; i++)
         {
-            var codecAncestors = new CodecAncestor[ancestors.Length];
-
-            for (var i = 0; i != ancestors.Length; i++)
-            {
-                codecAncestors[i] = new CodecAncestor(
-                    ref relativeCodec(in i),
-                    ref relativeDescriptor(in i)
-                );
-            }
-
-            return codecAncestors;
+            codecAncestors[i] = new CodecAncestor(
+                ref relativeCodec(in i),
+                ref relativeDescriptor(in i)
+            );
         }
 
-        CodecMetadata? GetMetadata(RelativeCodecDelegate relativeCodec, RelativeDescriptorDelegate relativeDescriptor);
+        return codecAncestors;
     }
+
+    CodecMetadata? GetMetadata(RelativeCodecDelegate relativeCodec, RelativeDescriptorDelegate relativeDescriptor);
 }

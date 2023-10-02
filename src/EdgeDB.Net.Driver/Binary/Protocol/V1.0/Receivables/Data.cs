@@ -1,43 +1,41 @@
-using EdgeDB.Binary.Protocol;
-using System.Collections.Immutable;
+namespace EdgeDB.Binary.Protocol.V1._0.Packets;
 
-namespace EdgeDB.Binary.Protocol.V1._0.Packets
+/// <summary>
+///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#data">Data</see> packet
+/// </summary>
+internal readonly struct Data : IReceiveable
 {
+    /// <inheritdoc />
+    public ServerMessageType Type
+        => ServerMessageType.Data;
+
     /// <summary>
-    ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#data">Data</see> packet
+    ///     The payload of this data packet
     /// </summary>
-    internal readonly struct Data : IReceiveable
+    public readonly byte[] PayloadBuffer;
+
+    internal Data(byte[] buff)
     {
-        /// <inheritdoc/>
-        public ServerMessageType Type 
-            => ServerMessageType.Data;
+        PayloadBuffer = buff;
+    }
 
-        /// <summary>
-        ///     The payload of this data packet
-        /// </summary>
-        public readonly byte[] PayloadBuffer;
+    public Data()
+    {
+        PayloadBuffer = Array.Empty<byte>();
+    }
 
-        internal Data(byte[] buff)
+    internal Data(ref PacketReader reader)
+    {
+        // skip arary since its always one, errr should be one
+        var numElements = reader.ReadUInt16();
+        if (numElements != 1)
         {
-            PayloadBuffer = buff;
-        }
-        public Data()
-        {
-            PayloadBuffer = Array.Empty<byte>();
+            throw new ArgumentOutOfRangeException(nameof(reader),
+                $"Expected one element array for data, got {numElements}");
         }
 
-        internal Data(ref PacketReader reader)
-        {
-            // skip arary since its always one, errr should be one
-            var numElements = reader.ReadUInt16();
-            if (numElements != 1)
-            {
-                throw new ArgumentOutOfRangeException(nameof(reader), $"Expected one element array for data, got {numElements}");
-            }
-
-            var payloadLength = reader.ReadUInt32();
-            reader.ReadBytes((int)payloadLength, out var buff);
-            PayloadBuffer = buff.ToArray();
-        }
+        var payloadLength = reader.ReadUInt32();
+        reader.ReadBytes((int)payloadLength, out var buff);
+        PayloadBuffer = buff.ToArray();
     }
 }

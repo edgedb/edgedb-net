@@ -1,66 +1,62 @@
 using EdgeDB.Binary.Protocol;
 using EdgeDB.Binary.Protocol.Common.Descriptors;
-using System;
 
-namespace EdgeDB.Binary.Codecs
+namespace EdgeDB.Binary.Codecs;
+
+internal sealed class CompilableWrappingCodec
+    : ICodec
 {
-    internal sealed class CompilableWrappingCodec
-        : ICodec
+    private readonly Type _rootCodecType;
+
+    public CompilableWrappingCodec(in Guid id, ICodec innerCodec, Type rootCodecType, CodecMetadata? metadata = null)
     {
-        public Guid Id
-            => _id;
+        Id = id;
+        InnerCodec = innerCodec;
+        _rootCodecType = rootCodecType;
+        Metadata = metadata;
+    }
 
-        public CodecMetadata? Metadata
-            => _metadata;
+    public ICodec InnerCodec { get; }
 
-        public ICodec InnerCodec { get; }
+    public Guid Id { get; }
 
-        private readonly Guid _id;
-        private readonly Type _rootCodecType;
-        private readonly CodecMetadata? _metadata;
+    public CodecMetadata? Metadata { get; }
 
-        public CompilableWrappingCodec(in Guid id, ICodec innerCodec, Type rootCodecType, CodecMetadata? metadata = null)
+    Type ICodec.ConverterType => throw new NotSupportedException();
+    bool ICodec.CanConvert(Type t) => throw new NotSupportedException();
+
+    void ICodec.Serialize(ref PacketWriter writer, object? value, CodecContext context) =>
+        throw new NotSupportedException();
+
+    object? ICodec.Deserialize(ref PacketReader reader, CodecContext context) => throw new NotSupportedException();
+
+    // to avoid state changes to this compilable, pass in the inner codec post-walk.
+    public ICodec Compile(IProtocolProvider provider, Type type, ICodec? innerCodec = null)
+    {
+        innerCodec ??= InnerCodec;
+
+        var genType = _rootCodecType.MakeGenericType(innerCodec.ConverterType);
+
+        var cacheKey = HashCode.Combine(type, genType, Id);
+
+        return CodecBuilder.GetProviderCache(provider).CompiledCodecCache.GetOrAdd(cacheKey, k =>
         {
-            _id = id;
-            InnerCodec = innerCodec;
-            _rootCodecType = rootCodecType;
-            _metadata = metadata;
-        }
+            var codec = (ICodec)Activator.CreateInstance(genType, Id, innerCodec, Metadata)!;
 
-        // to avoid state changes to this compilable, pass in the inner codec post-walk.
-        public ICodec Compile(IProtocolProvider provider, Type type, ICodec? innerCodec = null)
-        {
-            innerCodec ??= InnerCodec;
-
-            var genType = _rootCodecType.MakeGenericType(innerCodec.ConverterType);
-
-            var cacheKey = HashCode.Combine(type, genType, _id);
-
-            return CodecBuilder.GetProviderCache(provider).CompiledCodecCache.GetOrAdd(cacheKey, (k) =>
+            if (codec is IComplexCodec complex)
             {
-                var codec = (ICodec)Activator.CreateInstance(genType, _id, innerCodec, _metadata)!;
+                complex.BuildRuntimeCodecs(provider);
+            }
 
-                if(codec is IComplexCodec complex)
-                {
-                    complex.BuildRuntimeCodecs(provider);
-                }
+            return codec;
+        });
+    }
 
-                return codec;
-            }); 
-        }
-
-        public Type GetInnerType()
-            => InnerCodec is CompilableWrappingCodec compilable
+    public Type GetInnerType()
+        => InnerCodec is CompilableWrappingCodec compilable
             ? compilable.GetInnerType()
             : InnerCodec.ConverterType;
 
-        public override string ToString()
-            => $"compilable({_rootCodecType.Name})";
-
-        Type ICodec.ConverterType => throw new NotSupportedException();
-        bool ICodec.CanConvert(Type t) => throw new NotSupportedException();
-        void ICodec.Serialize(ref PacketWriter writer, object? value, CodecContext context) => throw new NotSupportedException();
-        object? ICodec.Deserialize(ref PacketReader reader, CodecContext context) => throw new NotSupportedException();
-    }
+    public override string ToString()
+        => $"compilable({_rootCodecType.Name})";
 }
-

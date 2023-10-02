@@ -1,108 +1,101 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Globalization;
 
-namespace EdgeDB.DotnetTool.Lexer
+namespace EdgeDB.DotnetTool.Lexer;
+
+internal class SchemaBuffer
 {
-    internal class SchemaBuffer
+    private readonly string _buffer;
+    private int _bufferPos;
+
+    public SchemaBuffer(string schema)
     {
-        readonly string _buffer;
-        int _bufferPos;
+        _buffer = schema;
+        _bufferPos = 0;
+        Column = 1;
+        Line = 1;
+    }
 
-        public int Column { get; private set; }
-        public int Line { get; private set; }
+    public int Column { get; private set; }
+    public int Line { get; private set; }
 
-        public SchemaBuffer(string schema)
+    public string Peek(int count)
+    {
+        var ret = "";
+        while (count > 0)
         {
-            _buffer = schema;
-            _bufferPos = 0;
-            Column = 1;
-            Line = 1;
-
+            ret += GetNextTextElement(ret.Length);
+            count--;
         }
 
-        public string Peek(int count)
+        return ret;
+    }
+
+    public string Read(int count) => MovePosition(Peek(count));
+
+    public string PeekUntil(string str)
+    {
+        var ret = "";
+        while (!ret.Contains(str))
         {
-            string ret = "";
-            while (count > 0)
+            var temp = GetNextTextElement(ret.Length);
+            if (temp.Length == 0)
             {
-                ret += GetNextTextElement(ret.Length);
-                count--;
+                break;
             }
-            return ret;
+
+            ret += temp;
         }
 
-        public string Read(int count)
-        {
-            return MovePosition(Peek(count));
-        }
+        return ret;
+    }
 
-        public string PeekUntil(string str)
+    public string ReadUntil(string str) => MovePosition(PeekUntil(str));
+
+    public string ReadWhile(Predicate<string> pred)
+    {
+        var ret = "";
+        while (true)
         {
-            string ret = "";
-            while (!ret.Contains(str))
+            var temp = GetNextTextElement(ret.Length);
+            if (temp.Length == 0 || !pred(temp))
             {
-                string temp = GetNextTextElement(ret.Length);
-                if (temp.Length == 0)
-                {
-                    break;
-                }
-                ret += temp;
+                break;
             }
-            return ret;
+
+            ret += temp;
         }
 
-        public string ReadUntil(string str)
+        return MovePosition(ret);
+    }
+
+    private string MovePosition(string portion)
+    {
+        _bufferPos += portion.Length;
+        var index = portion.LastIndexOf('\n');
+        if (index >= 0)
         {
-            return MovePosition(PeekUntil(str));
+            Column = new StringInfo(portion[(index + 1)..]).LengthInTextElements + 1;
+            Line += portion.Count(ch => ch == '\n');
+        }
+        else
+        {
+            Column += new StringInfo(portion).LengthInTextElements;
         }
 
-        public string ReadWhile(Predicate<string> pred)
-        {
-            string ret = "";
-            while (true)
-            {
-                string temp = GetNextTextElement(ret.Length);
-                if (temp.Length == 0 || !pred(temp))
-                {
-                    break;
-                }
-                ret += temp;
-            }
-            return MovePosition(ret);
-        }
+        return portion;
+    }
 
-        private string MovePosition(string portion)
+    private string GetNextTextElement(int offset)
+    {
+        while (true)
         {
-            _bufferPos += portion.Length;
-            int index = portion.LastIndexOf('\n');
-            if (index >= 0)
+            var elem = StringInfo.GetNextTextElement(_buffer, _bufferPos + offset);
+            if (_bufferPos + offset + elem.Length < _buffer.Length)
             {
-                Column = new StringInfo(portion[(index + 1)..]).LengthInTextElements + 1;
-                Line += portion.Count((ch) => ch == '\n');
-            }
-            else
-            {
-                Column += new StringInfo(portion).LengthInTextElements;
-            }
-            return portion;
-        }
-
-        private string GetNextTextElement(int offset)
-        {
-            while (true)
-            {
-                string elem = StringInfo.GetNextTextElement(_buffer, _bufferPos + offset);
-                if (_bufferPos + offset + elem.Length < _buffer.Length)
-                {
-                    return elem;
-                }
                 return elem;
             }
-        }
 
+            return elem;
+        }
     }
 }

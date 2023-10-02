@@ -1,30 +1,23 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace EdgeDB.Binary.Protocol.V2._0.Descriptors;
 
-namespace EdgeDB.Binary.Protocol.V2._0.Descriptors
+internal readonly struct SetDescriptor : ITypeDescriptor
 {
-    internal readonly struct SetDescriptor : ITypeDescriptor
+    public readonly Guid Id;
+
+    public readonly ushort Type;
+
+    public SetDescriptor(ref PacketReader reader, in Guid id)
     {
-        public readonly Guid Id;
+        Id = id;
+        Type = reader.ReadUInt16();
+    }
 
-        public readonly ushort Type;
-
-        public SetDescriptor(ref PacketReader reader, in Guid id)
+    unsafe ref readonly Guid ITypeDescriptor.Id
+    {
+        get
         {
-            Id = id;
-            Type = reader.ReadUInt16();
-        }
-
-        unsafe ref readonly Guid ITypeDescriptor.Id
-        {
-            get
-            {
-                fixed (Guid* ptr = &Id)
-                    return ref *ptr;
-            }
+            fixed (Guid* ptr = &Id)
+                return ref *ptr;
         }
     }
 }

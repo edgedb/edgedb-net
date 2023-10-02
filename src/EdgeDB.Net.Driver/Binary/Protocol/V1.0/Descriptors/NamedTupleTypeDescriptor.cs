@@ -1,41 +1,35 @@
 using EdgeDB.Binary.Protocol.Common.Descriptors;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace EdgeDB.Binary.Protocol.V1._0.Descriptors
+namespace EdgeDB.Binary.Protocol.V1._0.Descriptors;
+
+internal readonly struct NamedTupleTypeDescriptor : ITypeDescriptor
 {
-    internal readonly struct NamedTupleTypeDescriptor : ITypeDescriptor
+    public readonly Guid Id;
+
+    public readonly TupleElement[] Elements;
+
+    public NamedTupleTypeDescriptor(scoped in Guid id, scoped ref PacketReader reader)
     {
-        public readonly Guid Id;
+        Id = id;
 
-        public readonly TupleElement[] Elements;
+        var count = reader.ReadUInt16();
 
-        public NamedTupleTypeDescriptor(scoped in Guid id, scoped ref PacketReader reader)
+        var elements = new TupleElement[count];
+
+        for (var i = 0; i != count; i++)
         {
-            Id = id;
-
-            var count = reader.ReadUInt16();
-
-            var elements = new TupleElement[count];
-
-            for (int i = 0; i != count; i++)
-            {
-                elements[i] = new TupleElement(ref reader);
-            }
-
-            Elements = elements;
+            elements[i] = new TupleElement(ref reader);
         }
 
-        unsafe ref readonly Guid ITypeDescriptor.Id
+        Elements = elements;
+    }
+
+    unsafe ref readonly Guid ITypeDescriptor.Id
+    {
+        get
         {
-            get
-            {
-                fixed (Guid* ptr = &Id)
-                    return ref *ptr;
-            }
+            fixed (Guid* ptr = &Id)
+                return ref *ptr;
         }
     }
 }

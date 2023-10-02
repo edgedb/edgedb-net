@@ -1,13 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace EdgeDB.DotnetTool;
 
-namespace EdgeDB.DotnetTool
+internal interface ICommand
 {
-    internal interface ICommand
-    {
-        void Execute();
-    }
+    void Execute();
 }

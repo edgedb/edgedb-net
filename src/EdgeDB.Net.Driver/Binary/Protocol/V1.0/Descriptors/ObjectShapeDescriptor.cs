@@ -1,40 +1,32 @@
-using EdgeDB.Binary.Protocol.Common.Descriptors;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace EdgeDB.Binary.Protocol.V1._0.Descriptors;
 
-namespace EdgeDB.Binary.Protocol.V1._0.Descriptors
+internal readonly struct ObjectShapeDescriptor : ITypeDescriptor
 {
-    internal readonly struct ObjectShapeDescriptor : ITypeDescriptor
+    public readonly Guid Id;
+
+    public readonly ShapeElement[] Shapes;
+
+    public ObjectShapeDescriptor(scoped in Guid id, scoped ref PacketReader reader)
     {
-        public readonly Guid Id;
+        Id = id;
 
-        public readonly ShapeElement[] Shapes;
+        var elementCount = reader.ReadUInt16();
 
-        public ObjectShapeDescriptor(scoped in Guid id, scoped ref PacketReader reader)
+        var shapes = new ShapeElement[elementCount];
+        for (var i = 0; i != elementCount; i++)
         {
-            Id = id;
-
-            var elementCount = reader.ReadUInt16();
-
-            ShapeElement[] shapes = new ShapeElement[elementCount];
-            for (int i = 0; i != elementCount; i++)
-            {
-                shapes[i] = new ShapeElement(ref reader);
-            }
-
-            Shapes = shapes;
+            shapes[i] = new ShapeElement(ref reader);
         }
 
-        unsafe ref readonly Guid ITypeDescriptor.Id
+        Shapes = shapes;
+    }
+
+    unsafe ref readonly Guid ITypeDescriptor.Id
+    {
+        get
         {
-            get
-            {
-                fixed (Guid* ptr = &Id)
-                    return ref *ptr;
-            }
+            fixed (Guid* ptr = &Id)
+                return ref *ptr;
         }
     }
 }

@@ -1,41 +1,34 @@
 using EdgeDB.Binary.Protocol.Common.Descriptors;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using EdgeDB.DataTypes;
 
-namespace EdgeDB.Binary.Codecs
+namespace EdgeDB.Binary.Codecs;
+
+internal sealed class LocalDateCodec : BaseTemporalCodec<LocalDate>
 {
-    internal sealed class LocalDateCodec : BaseTemporalCodec<DataTypes.LocalDate>
+    public new static Guid Id = Guid.Parse("00000000-0000-0000-0000-000000000112");
+
+    public LocalDateCodec(CodecMetadata? metadata = null)
+        : base(in Id, metadata)
     {
-        public new static Guid Id = Guid.Parse("00000000-0000-0000-0000-000000000112");
-
-        public LocalDateCodec(CodecMetadata? metadata = null)
-            : base(in Id, metadata)
-        {
-            AddConverter(From, To);
-        }
-
-        public override DataTypes.LocalDate Deserialize(ref PacketReader reader, CodecContext context)
-        {
-            var days = reader.ReadInt32();
-
-            return new DataTypes.LocalDate(days);
-        }
-
-        public override void Serialize(ref PacketWriter writer, DataTypes.LocalDate value, CodecContext context)
-        {
-            writer.Write(value.Days);
-        }
-
-        private DataTypes.LocalDate From(ref DateOnly value)
-            => new(value);
-
-        private DateOnly To(ref DataTypes.LocalDate value)
-            => value.DateOnly;
-
-        public override string ToString()
-            => "cal::local_date";
+        AddConverter(From, To);
     }
+
+    public override LocalDate Deserialize(ref PacketReader reader, CodecContext context)
+    {
+        var days = reader.ReadInt32();
+
+        return new LocalDate(days);
+    }
+
+    public override void Serialize(ref PacketWriter writer, LocalDate value, CodecContext context) =>
+        writer.Write(value.Days);
+
+    private LocalDate From(ref DateOnly value)
+        => new(value);
+
+    private DateOnly To(ref LocalDate value)
+        => value.DateOnly;
+
+    public override string ToString()
+        => "cal::local_date";
 }

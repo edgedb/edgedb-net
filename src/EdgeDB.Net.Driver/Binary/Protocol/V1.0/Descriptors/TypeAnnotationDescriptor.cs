@@ -1,31 +1,24 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace EdgeDB.Binary.Protocol.V1._0.Descriptors;
 
-namespace EdgeDB.Binary.Protocol.V1._0.Descriptors
+internal readonly struct TypeAnnotationDescriptor : ITypeDescriptor
 {
-    internal readonly struct TypeAnnotationDescriptor : ITypeDescriptor
+    public readonly DescriptorType Type;
+    public readonly Guid Id;
+    public readonly string Annotation;
+
+    public TypeAnnotationDescriptor(scoped in DescriptorType type, scoped in Guid id, scoped ref PacketReader reader)
     {
-        public readonly DescriptorType Type;
-        public readonly Guid Id;
-        public readonly string Annotation;
+        Type = type;
+        Id = id;
+        Annotation = reader.ReadString();
+    }
 
-        public TypeAnnotationDescriptor(scoped in DescriptorType type, scoped in Guid id, scoped ref PacketReader reader)
+    unsafe ref readonly Guid ITypeDescriptor.Id
+    {
+        get
         {
-            Type = type;
-            Id = id;
-            Annotation = reader.ReadString();
-        }
-
-        unsafe ref readonly Guid ITypeDescriptor.Id
-        {
-            get
-            {
-                fixed (Guid* ptr = &Id)
-                    return ref *ptr;
-            }
+            fixed (Guid* ptr = &Id)
+                return ref *ptr;
         }
     }
 }

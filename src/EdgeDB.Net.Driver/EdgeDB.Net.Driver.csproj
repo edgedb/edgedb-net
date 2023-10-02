@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../EdgeDB.Net.targets" />
+  <Import Project="../../EdgeDB.Net.targets"/>
   <PropertyGroup>
     <AssemblyName>EdgeDB.Net.Driver</AssemblyName>
     <RootNamespace>EdgeDB</RootNamespace>
@@ -15,22 +15,22 @@
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0"/>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0"/>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1"/>
   </ItemGroup>
   <ItemGroup>
-    <None Remove="ContractResolvers\" />
-    <None Remove="Binary\Codecs\Visitors\" />
-    <None Remove="Binary\Packets\**" />
+    <None Remove="ContractResolvers\"/>
+    <None Remove="Binary\Codecs\Visitors\"/>
+    <None Remove="Binary\Packets\**"/>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="ContractResolvers\" />
+    <Folder Include="ContractResolvers\"/>
   </ItemGroup>
   <ItemGroup>
-    <Compile Remove="Binary\Packets\**" />
+    <Compile Remove="Binary\Packets\**"/>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Remove="Binary\Packets\**" />
+    <EmbeddedResource Remove="Binary\Packets\**"/>
   </ItemGroup>
 </Project>

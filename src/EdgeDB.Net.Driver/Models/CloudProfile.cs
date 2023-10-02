@@ -1,15 +1,8 @@
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace EdgeDB.Models
+namespace EdgeDB.Models;
+
+internal sealed class CloudProfile
 {
-    internal sealed class CloudProfile
-    {
-        [JsonProperty("secret_key")]
-        public string? SecretKey { get; set; }
-    }
+    [JsonProperty("secret_key")] public string? SecretKey { get; set; }
 }

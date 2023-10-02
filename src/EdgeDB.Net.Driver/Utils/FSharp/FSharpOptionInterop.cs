@@ -1,77 +1,67 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace EdgeDB.Utils.FSharp
+namespace EdgeDB.Utils.FSharp;
+
+internal readonly ref struct FSharpOptionInterop
 {
-    internal readonly ref struct FSharpOptionInterop
+    public object? Value { get; }
+
+    public bool HasValue { get; }
+
+    private readonly Type _type;
+
+    private FSharpOptionInterop(object? obj)
     {
-        public object? Value
-            => _value;
+        _type = obj?.GetType() ?? typeof(object);
 
-        public bool HasValue
-            => _hasValue;
+        if (obj is null)
+            return;
 
-        private readonly object? _value;
-        private readonly bool _hasValue;
-        private readonly Type _type;
+        if (!(_type.IsFSharpOption() || _type.IsFSharpValueOption()))
+            throw new InvalidOperationException($"The provided type {_type} is not an F# option");
 
-        private FSharpOptionInterop(object? obj)
-        {
-            _type = obj?.GetType() ?? typeof(object);
+        var isSomeProperty = GetIsSomeProperty(_type);
 
-            if (obj is null)
-                return;
+        HasValue = (bool)isSomeProperty.GetValue(obj,
+            isSomeProperty!.GetIndexParameters().Length > 0
+                ? new[] {obj}
+                : null
+        )!;
 
-            if (!(_type.IsFSharpOption() || _type.IsFSharpValueOption()))
-                throw new InvalidOperationException($"The provided type {_type} is not an F# option");
+        var getValueProperty = GetValueProperty(_type);
 
-            var isSomeProperty = GetIsSomeProperty(_type);
-
-            _hasValue = (bool)isSomeProperty.GetValue(obj,
-                isSomeProperty!.GetIndexParameters().Length > 0
-                    ? new object?[] { obj }
+        Value = HasValue
+            ? getValueProperty.GetValue(obj,
+                getValueProperty!.GetIndexParameters().Length > 0
+                    ? new[] {obj}
                     : null
-            )!;
+            )
+            : null;
+    }
 
-            var getValueProperty = GetValueProperty(_type);
-
-            _value = HasValue
-                ? getValueProperty.GetValue(obj,
-                    getValueProperty!.GetIndexParameters().Length > 0
-                        ? new object?[] { obj }
-                        : null
-                    )
-                : null;
-        }
-
-        public static bool TryGet(object? value, out FSharpOptionInterop option)
+    public static bool TryGet(object? value, out FSharpOptionInterop option)
+    {
+        if (value is null)
         {
-            if (value is null)
-            {
-                option = default;
-                return false;
-            }
-
-            var type = value.GetType();
-
-            if (type.IsFSharpOption() || type.IsFSharpValueOption())
-            {
-                option = new(value);
-                return true;
-            }
-
             option = default;
             return false;
         }
 
-        private static PropertyInfo GetIsSomeProperty(Type type)
-            => type.GetProperty("IsSome") ?? throw new MissingMethodException($"Can't find 'IsSome' property on {type}");
+        var type = value.GetType();
 
-        private static PropertyInfo GetValueProperty(Type type)
-            => type.GetProperty("Value") ?? throw new MissingMethodException($"Can't find 'GetValue' property on {type}");
+        if (type.IsFSharpOption() || type.IsFSharpValueOption())
+        {
+            option = new FSharpOptionInterop(value);
+            return true;
+        }
+
+        option = default;
+        return false;
     }
+
+    private static PropertyInfo GetIsSomeProperty(Type type)
+        => type.GetProperty("IsSome") ?? throw new MissingMethodException($"Can't find 'IsSome' property on {type}");
+
+    private static PropertyInfo GetValueProperty(Type type)
+        => type.GetProperty("Value") ?? throw new MissingMethodException($"Can't find 'GetValue' property on {type}");
 }

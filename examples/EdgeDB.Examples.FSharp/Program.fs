@@ -1,4 +1,3 @@
-open EdgeDB
 open ExampleRunner
 open Serilog
 open Microsoft.Extensions.Hosting
@@ -11,20 +10,16 @@ Log.Logger <-
         .MinimumLevel.Debug()
         .WriteTo.Console(outputTemplate = "{Timestamp:HH:mm:ss} - {Level}: {Message:lj}{NewLine}{Exception}")
         .CreateLogger()
-        
+
 let host =
-    Host.CreateDefaultBuilder()
+    Host
+        .CreateDefaultBuilder()
         .ConfigureServices(fun services ->
-            services.AddLogging(fun logBuilder ->
-                logBuilder
-                    .ClearProviders()
-                    .AddSerilog(dispose = true)
-                |> ignore
-            ).AddEdgeDB(clientConfig = fun c ->
-                c.SchemaNamingStrategy <- INamingStrategy.SnakeCaseNamingStrategy
-            ).AddSingleton<ExampleRunner>()
-            |> ignore
-        )
+            services
+                .AddLogging(fun logBuilder -> logBuilder.ClearProviders().AddSerilog(dispose = true) |> ignore)
+                .AddEdgeDB(clientConfig = fun c -> c.SchemaNamingStrategy <- INamingStrategy.SnakeCaseNamingStrategy)
+                .AddSingleton<ExampleRunner>()
+            |> ignore)
         .Build()
 
 host.Services.GetRequiredService<ExampleRunner>().RunAsync()

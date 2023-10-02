@@ -1,4 +1,3 @@
-using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 using EdgeDB.Tests.Benchmarks;
 

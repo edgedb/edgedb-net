@@ -1,18 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace EdgeDB.Binary.Protocol;
 
-namespace EdgeDB.Binary.Protocol
+internal enum ProtocolPhase
 {
-    internal enum ProtocolPhase
-    {
-        Connection,
-        Auth,
-        Command,
-        Dump,
-        Termination,
-        Errored
-    }
+    Connection,
+    Auth,
+    Command,
+    Dump,
+    Termination,
+    Errored
 }

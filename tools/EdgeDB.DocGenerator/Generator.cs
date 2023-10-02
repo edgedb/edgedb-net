@@ -1,483 +1,483 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
-namespace EdgeDB.DocGenerator
+namespace EdgeDB.DocGenerator;
+
+internal class Generator
 {
-    internal class Generator
+    private readonly DocMember[] _docs;
+    private readonly string _outputDir;
+
+    public Generator(string outputDir, DocMember[] docs)
     {
-        private readonly string _outputDir;
-        private readonly DocMember[] _docs;
+        _outputDir = outputDir;
+        _docs = docs;
+    }
 
-        public Generator(string outputDir, DocMember[] docs)
+    public void Generate()
+    {
+        GenerateExceptionPage();
+        GenerateAPIPage();
+    }
+
+    private void GenerateExceptionPage()
+    {
+        var builder = new RSTWriter();
+
+        builder.AppendLine(".. _edgedb-dotnet-exceptions:\n");
+
+        builder.AppendLine("==========");
+        builder.AppendLine("Exceptions");
+        builder.AppendLine("==========\n");
+
+        foreach (var member in _docs.Where(x => x is DocType dt && dt.DotnetType!.IsAssignableTo(typeof(Exception)))
+                     .Cast<DocType>().ToArray())
         {
-            _outputDir = outputDir;
-            _docs = docs;
-        }
-        
-        public void Generate()
-        {
-            GenerateExceptionPage();
-            GenerateAPIPage();
-        }
-
-        private void GenerateExceptionPage()
-        {
-            var builder = new RSTWriter();
-
-            builder.AppendLine(".. _edgedb-dotnet-exceptions:\n");
-
-            builder.AppendLine("==========");
-            builder.AppendLine("Exceptions");
-            builder.AppendLine("==========\n");
-
-            foreach(var member in _docs.Where(x => x is DocType dt && dt.DotnetType!.IsAssignableTo(typeof(Exception))).Cast<DocType>().ToArray())
-            {
-                GenerateTypeSection(member, builder, true);
-            }
-
-            var content = builder.ToString();
-
-            File.WriteAllText(Path.Combine(_outputDir, "exceptions.rst"), content);
+            GenerateTypeSection(member, builder, true);
         }
 
-        private void GenerateAPIPage()
+        var content = builder.ToString();
+
+        File.WriteAllText(Path.Combine(_outputDir, "exceptions.rst"), content);
+    }
+
+    private void GenerateAPIPage()
+    {
+        var builder = new RSTWriter();
+
+        builder.AppendLine(".. _edgedb-dotnet-api:\n");
+
+        builder.AppendLine("=================");
+        builder.AppendLine("API Documentation");
+        builder.AppendLine("=================\n");
+
+        var namespaces = _docs
+            .Where(x => x is DocType dt && !dt.DotnetType!.IsAssignableTo(typeof(Exception)))
+            .Cast<DocType>()
+            .GroupBy(x => x.DotnetType!.Namespace)
+            .ToArray();
+
+        builder.AppendLine("**Namespaces**");
+        builder.AppendLine();
+
+        foreach (var ns in namespaces.Where(x => x.Any(y => y.DotnetType!.IsPublic)))
         {
-            var builder = new RSTWriter();
-
-            builder.AppendLine(".. _edgedb-dotnet-api:\n");
-
-            builder.AppendLine("=================");
-            builder.AppendLine("API Documentation");
-            builder.AppendLine("=================\n");
-
-            var namespaces = _docs
-                .Where(x => x is DocType dt && !dt.DotnetType!.IsAssignableTo(typeof(Exception)))
-                .Cast<DocType>()
-                .GroupBy(x => x.DotnetType!.Namespace)
-                .ToArray();
-
-            builder.AppendLine("**Namespaces**");
-            builder.AppendLine();
-            
-            foreach (var ns in namespaces.Where(x => x.Any(y => y.DotnetType!.IsPublic)))
-            {
-                builder.AppendLine($"- :dn:namespace:`{ns.Key}`");
-            }
-
-            builder.AppendLine();
-
-            foreach (var namespc in namespaces)
-            {
-                using (_ = builder.BeginScope($".. dn:namespace:: {namespc.Key}"))
-                {
-                    builder.AppendLine();
-                    foreach(var member in namespc.OrderBy(x => x.Name))
-                    {
-                        GenerateTypeSection(member, builder, false);
-                    }
-                }
-            }
-
-            var content = builder.ToString();
-
-            File.WriteAllText(Path.Combine(_outputDir, "api.rst"), content);
+            builder.AppendLine($"- :dn:namespace:`{ns.Key}`");
         }
 
-        private string GenerateTypeSection(DocType type, RSTWriter builder, bool includeNamespace)
+        builder.AppendLine();
+
+        foreach (var namespc in namespaces)
         {
-            if (type.DotnetType is null)
-                throw new NullReferenceException();
-
-            if (!type.DotnetType.IsPublic)
-                return string.Empty;
-
-            var tname = GetDirectivePrefix(type.DotnetType!);
-
-            var typeDefName = includeNamespace
-                ? $"{(type.DotnetType is not null ? $"{type.DotnetType?.Namespace}." : "")}{type.Name}"
-                : type.Name!;
-
-            // generics
-            typeDefName = Regex.Replace(typeDefName, @"`\d+", m =>
-            {
-                return $"<{string.Join(", ", type.DotnetType!.GetGenericArguments().Select(x => x.Name))}>";
-            });
-
-            using (_ = builder.BeginScope($".. dn:{tname}:: {typeDefName}"))
-            {
-                builder.AppendLine(); // no attributes
-
-                // main description/summary of the type
-                FormatInlineDocs(type, builder);
-
-                builder.AppendLine();
-
-                // properties
-                foreach (var prop in type.Properties.Where(x => x.PropertyInfo?.GetMethod?.IsPublic ?? false))
-                {
-                    using (_ = builder.BeginScope($":property {$"{(prop.PropertyInfo is not null ? $"{prop.PropertyInfo.PropertyType.ToFormattedString()} " : "")}{prop.Name}"}:"))
-                        FormatInlineDocs(prop, builder);
-
-                    builder.AppendLine();
-                }
-
-                // ctors
-                foreach (var ctor in type.Constructors.Where(x => x.Method?.IsPublic ?? false))
-                {
-                    if (ctor.Method is null)
-                        throw new Exception("method is null");
-
-                    GenerateMethodSection(ctor, builder);
-                }
-
-                // methods
-                foreach (var ctor in type.Methods.Where(x => x.Method?.IsPublic ?? false))
-                {
-                    if (ctor.Method is null)
-                        throw new Exception("method is null");
-
-                    GenerateMethodSection(ctor, builder);
-                }
-            }
-
-            return builder.ToString();
-        }
-
-        private void GenerateMethodSection(DocMethod method, RSTWriter builder)
-        {
-            var declaration = method.Method!.GetSignature(includeParents: false);
-
-            using (_ = builder.BeginScope($".. dn:method:: {declaration}"))
+            using (_ = builder.BeginScope($".. dn:namespace:: {namespc.Key}"))
             {
                 builder.AppendLine();
-
-                FormatInlineDocs(method, builder);
+                foreach (var member in namespc.OrderBy(x => x.Name))
+                {
+                    GenerateTypeSection(member, builder, false);
+                }
             }
         }
-        
-        private void FormatInlineDocs(DocMember member, RSTWriter builder)
+
+        var content = builder.ToString();
+
+        File.WriteAllText(Path.Combine(_outputDir, "api.rst"), content);
+    }
+
+    private string GenerateTypeSection(DocType type, RSTWriter builder, bool includeNamespace)
+    {
+        if (type.DotnetType is null)
+            throw new NullReferenceException();
+
+        if (!type.DotnetType.IsPublic)
+            return string.Empty;
+
+        var tname = GetDirectivePrefix(type.DotnetType!);
+
+        var typeDefName = includeNamespace
+            ? $"{(type.DotnetType is not null ? $"{type.DotnetType?.Namespace}." : "")}{type.Name}"
+            : type.Name!;
+
+        // generics
+        typeDefName = Regex.Replace(typeDefName, @"`\d+", m =>
         {
-            // special case for inheritdoc
-            if (member.InlineDocItems.Any(x => x is docMemberInheritDoc) && member is DocMethod method)
+            return $"<{string.Join(", ", type.DotnetType!.GetGenericArguments().Select(x => x.Name))}>";
+        });
+
+        using (_ = builder.BeginScope($".. dn:{tname}:: {typeDefName}"))
+        {
+            builder.AppendLine(); // no attributes
+
+            // main description/summary of the type
+            FormatInlineDocs(type, builder);
+
+            builder.AppendLine();
+
+            // properties
+            foreach (var prop in type.Properties.Where(x => x.PropertyInfo?.GetMethod?.IsPublic ?? false))
             {
-                var methodParams = method.Method!.GetParameters();
+                using (_ = builder.BeginScope(
+                           $":property {$"{(prop.PropertyInfo is not null ? $"{prop.PropertyInfo.PropertyType.ToFormattedString()} " : "")}{prop.Name}"}:"))
+                    FormatInlineDocs(prop, builder);
 
-                bool ScanType(Type type)
+                builder.AppendLine();
+            }
+
+            // ctors
+            foreach (var ctor in type.Constructors.Where(x => x.Method?.IsPublic ?? false))
+            {
+                if (ctor.Method is null)
+                    throw new Exception("method is null");
+
+                GenerateMethodSection(ctor, builder);
+            }
+
+            // methods
+            foreach (var ctor in type.Methods.Where(x => x.Method?.IsPublic ?? false))
+            {
+                if (ctor.Method is null)
+                    throw new Exception("method is null");
+
+                GenerateMethodSection(ctor, builder);
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    private void GenerateMethodSection(DocMethod method, RSTWriter builder)
+    {
+        var declaration = method.Method!.GetSignature(includeParents: false);
+
+        using (_ = builder.BeginScope($".. dn:method:: {declaration}"))
+        {
+            builder.AppendLine();
+
+            FormatInlineDocs(method, builder);
+        }
+    }
+
+    private void FormatInlineDocs(DocMember member, RSTWriter builder)
+    {
+        // special case for inheritdoc
+        if (member.InlineDocItems.Any(x => x is docMemberInheritDoc) && member is DocMethod method)
+        {
+            var methodParams = method.Method!.GetParameters();
+
+            bool ScanType(Type type)
+            {
+                var m = type.GetMethods().FirstOrDefault(x =>
                 {
-                    var m = type.GetMethods().FirstOrDefault(x =>
-                    {
-                        var p = x.GetParameters();
+                    var p = x.GetParameters();
 
-                        if (p.Length != methodParams!.Length)
+                    if (p.Length != methodParams!.Length)
+                        return false;
+
+                    for (var i = 0; i != p.Length; i++)
+                    {
+                        var p1 = p[i];
+                        var p2 = methodParams[i];
+
+                        if (p1.Name != p2.Name)
                             return false;
 
-                        for (int i = 0; i != p.Length; i++)
-                        {
-                            var p1 = p[i];
-                            var p2 = methodParams[i];
+                        if (p1.ParameterType != p2.ParameterType)
+                            return false;
+                    }
 
-                            if (p1.Name != p2.Name)
-                                return false;
+                    return x.Name == method.Method.Name;
+                });
 
-                            if (p1.ParameterType != p2.ParameterType)
-                                return false;
-                        }
+                if (m is not null)
+                {
+                    var targetMember = _docs.FirstOrDefault(x =>
+                        x is DocMethod targetMethod && targetMethod.Parent?.DotnetType == type &&
+                        targetMethod.Method!.GetSignature() == m.GetSignature());
 
-                        return x.Name == method.Method.Name;
-                    });
-
-                    if (m is not null)
+                    if (targetMember == null)
                     {
-                        var targetMember = _docs.FirstOrDefault(x => x is DocMethod targetMethod && targetMethod.Parent?.DotnetType == type && targetMethod.Method!.GetSignature() == m.GetSignature());
-
-                        if (targetMember == null)
-                        {
-                            // pass thru incase of system inherit docs
-                            return true;
-                        }    
-
-                        FormatInlineDocs(targetMember, builder);
+                        // pass thru incase of system inherit docs
                         return true;
                     }
 
-                    return false;
+                    FormatInlineDocs(targetMember, builder);
+                    return true;
                 }
 
-                foreach(var iface in method.Parent!.DotnetType!.GetInterfaces())
-                {
-                    if (ScanType(iface))
-                        return;
-                }
-
-                var btype = method.Parent.DotnetType!.BaseType;
-
-                while(btype is not null)
-                {
-                    if (ScanType(btype))
-                        return;
-
-                    btype = btype.BaseType;
-                }
-
-                Console.WriteLine($"Could not find inheritdoc target for {method.Method.GetSignature()} - skipping");
+                return false;
             }
 
-            foreach(var item in member.InlineDocItems.OrderByDescending(x =>
+            foreach (var iface in method.Parent!.DotnetType!.GetInterfaces())
             {
-                return x switch
-                {
-                    docMemberRemarks => 5,
-                    docMemberParam => 4,
-                    docMemberTypeparam => 3,
-                    docMemberReturns => 2,
-                    docMemberException => 1,
-                    docMemberSummary => 6,
-                    _ => 0
-                };
-            }))
+                if (ScanType(iface))
+                    return;
+            }
+
+            var btype = method.Parent.DotnetType!.BaseType;
+
+            while (btype is not null)
             {
-                bool dontAddNewline = false;
-                var compiledSummary = item is docMemberSummary sum
-                    ? CompileSummary(sum)
-                    : Optional<string>.Unspecified;
+                if (ScanType(btype))
+                    return;
 
-                if(compiledSummary.IsSpecified && string.IsNullOrEmpty(compiledSummary.Value))
-                    continue;
+                btype = btype.BaseType;
+            }
 
-                switch (item)
+            Console.WriteLine($"Could not find inheritdoc target for {method.Method.GetSignature()} - skipping");
+        }
+
+        foreach (var item in member.InlineDocItems.OrderByDescending(x =>
+                 {
+                     return x switch
+                     {
+                         docMemberRemarks => 5,
+                         docMemberParam => 4,
+                         docMemberTypeparam => 3,
+                         docMemberReturns => 2,
+                         docMemberException => 1,
+                         docMemberSummary => 6,
+                         _ => 0
+                     };
+                 }))
+        {
+            var dontAddNewline = false;
+            var compiledSummary = item is docMemberSummary sum
+                ? CompileSummary(sum)
+                : Optional<string>.Unspecified;
+
+            if (compiledSummary.IsSpecified && string.IsNullOrEmpty(compiledSummary.Value))
+                continue;
+
+            switch (item)
+            {
+                case docMemberException exception:
                 {
-                    case docMemberException exception:
-                        {
-                            using (_ = builder.BeginScope($":throws {exception.cref![2..]}:"))
-                                builder.AppendFormattedMultiLine(compiledSummary.Value!);
-                        }
-                        break;
-                    case docMemberParam param when member is DocMethod docMethod:
-                        {
-                            var p = docMethod.Method!.GetParameters().FirstOrDefault(x => x.Name == param.name);
-
-                            if (p is null)
-                                throw new Exception($"Failed to find parameter {param.name} on method {docMethod.Name}");
-
-                            using(_ = builder.BeginScope($":param {p.ParameterType.ToFormattedString()} {param.name}:"))
-                                builder.AppendFormattedMultiLine(compiledSummary.Value!);
-                        }
-                        break;
-                    case docMemberRemarks remarks:
-                        using(_ = builder.BeginScope(".. note::"))
-                        {
-                            builder.AppendLine();
-                            builder.AppendFormattedMultiLine(compiledSummary.Value!);
-                        }
-                        break;
-                    case docMemberReturns returns:
-                        using(_ = builder.BeginScope(":returns:"))
-                        {
-                            builder.AppendLine();
-                            builder.AppendFormattedMultiLine(compiledSummary.Value!);
-                        }
-                        break;
-                    case docMemberTypeparam tParam:
-                        {
-                            using (_ = builder.BeginScope($":param {tParam.name}:"))
-                                builder.AppendFormattedMultiLine(compiledSummary.Value!);
-                        }
-                        break;
-                    case docMemberSummary summary:
+                    using (_ = builder.BeginScope($":throws {exception.cref![2..]}:"))
                         builder.AppendFormattedMultiLine(compiledSummary.Value!);
-                        break;
-                    default:
-                        dontAddNewline = true;
-                        break;
                 }
-
-                if(!dontAddNewline)
-                    builder.AppendLine();
-            }
-        }
-
-        private string FormatCREF(string cref)
-        {
-            // check if its def is in the reference and we can reference it via directives
-            var type = DocMember.GetTypeOfDefName(cref);
-            var nodeName = cref[2..];
-
-            var member = _docs.FirstOrDefault(x => x.Type == type && x.NodeName == nodeName);
-
-            var targetType = type switch
-            {
-                MemberType.Method => "method",
-                _ when member is DocType t => GetDirectivePrefix(t.DotnetType!),
-                _ => null
-            };
-
-            if (member is null || targetType is null)
-                return $"``{nodeName}``";
-            
-            // fix method sig
-            if (nodeName.Contains("(") && member is DocMethod docMethod)
-            {
-                if(!docMethod.Method?.IsPublic ?? false)
+                    break;
+                case docMemberParam param when member is DocMethod docMethod:
                 {
-                    Console.WriteLine($"Warning: cref {cref} references a non-public member");
-                    return $"``{cref}``";
+                    var p = docMethod.Method!.GetParameters().FirstOrDefault(x => x.Name == param.name);
+
+                    if (p is null)
+                        throw new Exception($"Failed to find parameter {param.name} on method {docMethod.Name}");
+
+                    using (_ = builder.BeginScope($":param {p.ParameterType.ToFormattedString()} {param.name}:"))
+                        builder.AppendFormattedMultiLine(compiledSummary.Value!);
                 }
-
-                var sig = docMethod.Method!.GetSignature();
-
-                if(!sig.Contains("()"))
-                {
-                    var args = sig.Split("(")[1][..1];
-
-                    var newArgs = string.Join(", ", args.Split(", ").Select(x => x.Split(' ')[0]));
-
-                    sig = sig.Replace(args, newArgs);
-                }
-
-                nodeName = sig;
-            }
-
-            if(member is DocType tp)
-            {
-                if (!tp.DotnetType?.IsPublic ?? false)
-                {
-                    Console.WriteLine($"Warning: cref {cref} references a non-public member");
-                    return $"``{cref}``";
-                }
-                
-                nodeName = Regex.Replace(nodeName, @"`\d+", m =>
-                {
-                    return $"<{string.Join(", ", tp.DotnetType!.GetGenericArguments().Select(x => x.Name))}>";
-                });
-            }
-
-            return $":dn:{targetType}:`{nodeName}`";
-        }
-
-        private string CompileSummary(docMemberSummary summary)
-        {
-            List<string> compiledContent = new();
-
-            if (summary.Text is null)
-                return string.Empty;
-
-            var items = new Stack<object>(summary.Items?.Reverse() ?? Array.Empty<object>());
-            var itemTypes = new Stack<ItemsChoiceType>(summary.ItemsElementName?.Reverse() ?? Array.Empty<ItemsChoiceType>());
-
-            for(int i = 0; i != summary.Text.Length; i++)
-            {
-                var text = summary.Text[i];
-
-                text = Regex.Replace(text, @"\s+", " ", RegexOptions.Multiline);
-
-                if(text.StartsWith('\n') || i == 0)
-                    text = text.TrimStart();
-
-                if (summary.Items is not null && summary.ItemsElementName is not null && summary.Items.Length >= i)
-                {
-                    string? content = null;
-
-                    // pull the item and parse it
-                    if(!items.TryPop(out var item) || !itemTypes.TryPop(out var itemType))
+                    break;
+                case docMemberRemarks remarks:
+                    using (_ = builder.BeginScope(".. note::"))
                     {
-                        compiledContent.Add(text);
-                        continue;
-                    }
-                    
-                    switch (itemType)
-                    {
-                        case ItemsChoiceType.see when item is docMemberSummarySee see:
-                            {
-                                if(see.href is not null)
-                                {
-                                    if (string.IsNullOrEmpty(see.Value))
-                                        content = see.href;
-                                    else
-                                        content = $"`{see.Value} <{see.href}>`_";
-                                }
-                                else if (see.langword is not null)
-                                {
-                                    content = $"``{see.langword}``";
-                                }
-                                else if (see.cref is not null)
-                                {
-                                    content = FormatCREF(see.cref);
-                                }
-                            }
-                            break;
-                        case ItemsChoiceType.typeparamref when item is docMemberSummaryTypeparamref tref:
-                            content = $"``{tref.name}``";
-                            break;
-                        case ItemsChoiceType.i:
-                            content = $"*{item}*";
-                            break;
-                        case ItemsChoiceType.c:
-                            content = $"``{item}``";
-                            break;
-                        case ItemsChoiceType.paramref when item is docMemberSummaryParamref pref:
-                            content = $"``{pref}``";
-                            break;
-                        case ItemsChoiceType.br:
-                            content = "\n";
-                            break;
+                        builder.AppendLine();
+                        builder.AppendFormattedMultiLine(compiledSummary.Value!);
                     }
 
-                    compiledContent.Add(text);
-                    
-                    if (content is not null)
-                        compiledContent.Add(content);
-                    else
-                        Console.WriteLine($"Warning: no content generated for {itemType}:{item}");
-                    
-                }
-                else
-                    compiledContent.Add(text);
-            }
+                    break;
+                case docMemberReturns returns:
+                    using (_ = builder.BeginScope(":returns:"))
+                    {
+                        builder.AppendLine();
+                        builder.AppendFormattedMultiLine(compiledSummary.Value!);
+                    }
 
-            string result = compiledContent.Any() ? compiledContent[0] : string.Empty;
-
-            for(int i = 1; i < compiledContent.Count; i++)
-            {
-                var last = compiledContent[i - 1];
-                var cur = compiledContent[i];
-
-                if (Regex.IsMatch(last, @"\w$") && Regex.IsMatch(cur, @"^\w"))
+                    break;
+                case docMemberTypeparam tParam:
                 {
-                    result += $" {cur}";
+                    using (_ = builder.BeginScope($":param {tParam.name}:"))
+                        builder.AppendFormattedMultiLine(compiledSummary.Value!);
                 }
-                else if (Regex.IsMatch(last, @"\w$") && cur[0] is not ':' or '`')
-                    result += cur;
-                else if (!last.EndsWith(' ') && Regex.IsMatch(cur, @"^\w"))
-                    result += $" {cur}";
-                else if (cur[0] is ':' or '`' or '*')
-                    result += $"{(last.Last() is ' ' or '{' ? "" : " ")}{cur}";
-                else
-                    result += cur;
+                    break;
+                case docMemberSummary summary:
+                    builder.AppendFormattedMultiLine(compiledSummary.Value!);
+                    break;
+                default:
+                    dontAddNewline = true;
+                    break;
             }
 
-            return Regex.Replace(result, @"\n (\w)", m =>
-            {
-                return $"\n{m.Groups[1].Value}";
-            }, RegexOptions.Multiline);
+            if (!dontAddNewline)
+                builder.AppendLine();
         }
-        
+    }
 
-        private string GetDirectivePrefix(Type type)
+    private string FormatCREF(string cref)
+    {
+        // check if its def is in the reference and we can reference it via directives
+        var type = DocMember.GetTypeOfDefName(cref);
+        var nodeName = cref[2..];
+
+        var member = _docs.FirstOrDefault(x => x.Type == type && x.NodeName == nodeName);
+
+        var targetType = type switch
         {
-            if (type.IsClass)
-                return "class";
-            else if (type.IsInterface)
-                return "interface";
-            else if (type.IsEnum)
-                return "enum";
-            else if (type.IsValueType)
-                return "struct";
+            MemberType.Method => "method",
+            _ when member is DocType t => GetDirectivePrefix(t.DotnetType!),
+            _ => null
+        };
 
-            return "type";
+        if (member is null || targetType is null)
+            return $"``{nodeName}``";
+
+        // fix method sig
+        if (nodeName.Contains("(") && member is DocMethod docMethod)
+        {
+            if (!docMethod.Method?.IsPublic ?? false)
+            {
+                Console.WriteLine($"Warning: cref {cref} references a non-public member");
+                return $"``{cref}``";
+            }
+
+            var sig = docMethod.Method!.GetSignature();
+
+            if (!sig.Contains("()"))
+            {
+                var args = sig.Split("(")[1][..1];
+
+                var newArgs = string.Join(", ", args.Split(", ").Select(x => x.Split(' ')[0]));
+
+                sig = sig.Replace(args, newArgs);
+            }
+
+            nodeName = sig;
         }
+
+        if (member is DocType tp)
+        {
+            if (!tp.DotnetType?.IsPublic ?? false)
+            {
+                Console.WriteLine($"Warning: cref {cref} references a non-public member");
+                return $"``{cref}``";
+            }
+
+            nodeName = Regex.Replace(nodeName, @"`\d+", m =>
+            {
+                return $"<{string.Join(", ", tp.DotnetType!.GetGenericArguments().Select(x => x.Name))}>";
+            });
+        }
+
+        return $":dn:{targetType}:`{nodeName}`";
+    }
+
+    private string CompileSummary(docMemberSummary summary)
+    {
+        List<string> compiledContent = new();
+
+        if (summary.Text is null)
+            return string.Empty;
+
+        var items = new Stack<object>(summary.Items?.Reverse() ?? Array.Empty<object>());
+        var itemTypes =
+            new Stack<ItemsChoiceType>(summary.ItemsElementName?.Reverse() ?? Array.Empty<ItemsChoiceType>());
+
+        for (var i = 0; i != summary.Text.Length; i++)
+        {
+            var text = summary.Text[i];
+
+            text = Regex.Replace(text, @"\s+", " ", RegexOptions.Multiline);
+
+            if (text.StartsWith('\n') || i == 0)
+                text = text.TrimStart();
+
+            if (summary.Items is not null && summary.ItemsElementName is not null && summary.Items.Length >= i)
+            {
+                string? content = null;
+
+                // pull the item and parse it
+                if (!items.TryPop(out var item) || !itemTypes.TryPop(out var itemType))
+                {
+                    compiledContent.Add(text);
+                    continue;
+                }
+
+                switch (itemType)
+                {
+                    case ItemsChoiceType.see when item is docMemberSummarySee see:
+                    {
+                        if (see.href is not null)
+                        {
+                            if (string.IsNullOrEmpty(see.Value))
+                                content = see.href;
+                            else
+                                content = $"`{see.Value} <{see.href}>`_";
+                        }
+                        else if (see.langword is not null)
+                        {
+                            content = $"``{see.langword}``";
+                        }
+                        else if (see.cref is not null)
+                        {
+                            content = FormatCREF(see.cref);
+                        }
+                    }
+                        break;
+                    case ItemsChoiceType.typeparamref when item is docMemberSummaryTypeparamref tref:
+                        content = $"``{tref.name}``";
+                        break;
+                    case ItemsChoiceType.i:
+                        content = $"*{item}*";
+                        break;
+                    case ItemsChoiceType.c:
+                        content = $"``{item}``";
+                        break;
+                    case ItemsChoiceType.paramref when item is docMemberSummaryParamref pref:
+                        content = $"``{pref}``";
+                        break;
+                    case ItemsChoiceType.br:
+                        content = "\n";
+                        break;
+                }
+
+                compiledContent.Add(text);
+
+                if (content is not null)
+                    compiledContent.Add(content);
+                else
+                    Console.WriteLine($"Warning: no content generated for {itemType}:{item}");
+            }
+            else
+                compiledContent.Add(text);
+        }
+
+        var result = compiledContent.Any() ? compiledContent[0] : string.Empty;
+
+        for (var i = 1; i < compiledContent.Count; i++)
+        {
+            var last = compiledContent[i - 1];
+            var cur = compiledContent[i];
+
+            if (Regex.IsMatch(last, @"\w$") && Regex.IsMatch(cur, @"^\w"))
+            {
+                result += $" {cur}";
+            }
+            else if (Regex.IsMatch(last, @"\w$") && cur[0] is not ':' or '`')
+                result += cur;
+            else if (!last.EndsWith(' ') && Regex.IsMatch(cur, @"^\w"))
+                result += $" {cur}";
+            else if (cur[0] is ':' or '`' or '*')
+                result += $"{(last.Last() is ' ' or '{' ? "" : " ")}{cur}";
+            else
+                result += cur;
+        }
+
+        return Regex.Replace(result, @"\n (\w)", m =>
+        {
+            return $"\n{m.Groups[1].Value}";
+        }, RegexOptions.Multiline);
+    }
+
+
+    private string GetDirectivePrefix(Type type)
+    {
+        if (type.IsClass)
+            return "class";
+        if (type.IsInterface)
+            return "interface";
+        if (type.IsEnum)
+            return "enum";
+        if (type.IsValueType)
+            return "struct";
+
+        return "type";
     }
 }

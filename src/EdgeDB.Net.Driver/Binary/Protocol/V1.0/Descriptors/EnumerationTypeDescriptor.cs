@@ -1,40 +1,33 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace EdgeDB.Binary.Protocol.V1._0.Descriptors;
 
-namespace EdgeDB.Binary.Protocol.V1._0.Descriptors
+internal readonly struct EnumerationTypeDescriptor : ITypeDescriptor
 {
-    internal readonly struct EnumerationTypeDescriptor : ITypeDescriptor
+    public readonly Guid Id;
+
+    public readonly string[] Members;
+
+    public EnumerationTypeDescriptor(scoped in Guid id, scoped ref PacketReader reader)
     {
-        public readonly Guid Id;
+        Id = id;
 
-        public readonly string[] Members;
+        var count = reader.ReadUInt16();
 
-        public EnumerationTypeDescriptor(scoped in Guid id, scoped ref PacketReader reader)
+        var members = new string[count];
+
+        for (ushort i = 0; i != count; i++)
         {
-            Id = id;
-
-            var count = reader.ReadUInt16();
-
-            string[] members = new string[count];
-
-            for (ushort i = 0; i != count; i++)
-            {
-                members[i] = reader.ReadString();
-            }
-
-            Members = members;
+            members[i] = reader.ReadString();
         }
 
-        unsafe ref readonly Guid ITypeDescriptor.Id
+        Members = members;
+    }
+
+    unsafe ref readonly Guid ITypeDescriptor.Id
+    {
+        get
         {
-            get
-            {
-                fixed (Guid* ptr = &Id)
-                    return ref *ptr;
-            }
+            fixed (Guid* ptr = &Id)
+                return ref *ptr;
         }
     }
 }

@@ -1,51 +1,41 @@
-using EdgeDB.Utils.FSharp;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
+namespace EdgeDB.Binary.Builders.Wrappers;
 
-namespace EdgeDB.Binary.Builders.Wrappers
+internal sealed class FSharpOptionWrapper : IWrapper
 {
-    internal sealed class FSharpOptionWrapper : IWrapper
+    public Type GetInnerType(Type wrapperType)
+        => wrapperType.GenericTypeArguments[0];
+
+    public bool IsWrapping(Type t)
+        => t.IsFSharpOption() || t.IsFSharpValueOption();
+
+    public object? Wrap(Type target, object? value)
     {
-        public Type GetInnerType(Type wrapperType)
-            => wrapperType.GenericTypeArguments[0];
+        if (target.IsFSharpValueOption())
+            return WrapValueOption(target, value);
+        if (target.IsFSharpOption())
+            return WrapReferenceOption(target, value);
+        throw new NotSupportedException($"Unsupported wrapping type: {target}");
+    }
 
-        public bool IsWrapping(Type t)
-            => t.IsFSharpOption() || t.IsFSharpValueOption();
+    private static object? WrapReferenceOption(Type target, object? value)
+    {
+        if (value is null)
+            return null;
 
-        public object? Wrap(Type target, object? value)
-        {
-            if (target.IsFSharpValueOption())
-                return WrapValueOption(target, value);
-            else if (target.IsFSharpOption())
-                return WrapReferenceOption(target, value);
-            else
-                throw new NotSupportedException($"Unsupported wrapping type: {target}");
-        }
+        return (
+            target.GetConstructor(new[] {value.GetType()})
+            ?? throw new EdgeDBException($"Failed to find constructor for {target}")
+        ).Invoke(new[] {value});
+    }
 
-        private static object? WrapReferenceOption(Type target, object? value)
-        {
-            if (value is null)
-                return null;
+    private static object? WrapValueOption(Type target, object? value)
+    {
+        if (value is null)
+            return ReflectionUtils.GetDefault(target);
 
-            return (
-               target.GetConstructor(new Type[] { value.GetType() })
-                    ?? throw new EdgeDBException($"Failed to find constructor for {target}")
-            ).Invoke(new object?[] { value });
-        }
-
-        private static object? WrapValueOption(Type target, object? value)
-        {
-            if (value is null)
-                return ReflectionUtils.GetDefault(target);
-
-            return (
-               target.GetConstructor(new Type[] { value.GetType() })
-                    ?? throw new EdgeDBException($"Failed to find constructor for {target}")
-            ).Invoke(new object?[] { value });
-        }
+        return (
+            target.GetConstructor(new[] {value.GetType()})
+            ?? throw new EdgeDBException($"Failed to find constructor for {target}")
+        ).Invoke(new[] {value});
     }
 }

@@ -1,43 +1,36 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace EdgeDB.Binary.Protocol;
 
-namespace EdgeDB.Binary.Protocol
+internal abstract class Sendable
 {
-    internal abstract class Sendable
+    public abstract int Size { get; }
+
+    public abstract ClientMessageTypes Type { get; }
+
+    protected abstract void BuildPacket(ref PacketWriter writer);
+
+    public void Write(ref PacketWriter writer)
     {
-        public abstract int Size { get; }
+        // advance 5 bytes
+        var start = writer.Index;
+        writer.Advance(5);
 
-        public abstract ClientMessageTypes Type { get; }
+        // write the body of the packet
+        BuildPacket(ref writer);
 
-        protected abstract void BuildPacket(ref PacketWriter writer);
+        // store the index after writing the body
+        var eofPosition = writer.Index;
 
-        public void Write(ref PacketWriter writer)
-        {
-            // advance 5 bytes
-            var start = writer.Index;
-            writer.Advance(5);
+        // seek back to the beginning.
+        writer.SeekToIndex(start);
 
-            // write the body of the packet
-            BuildPacket(ref writer);
+        // write the type and size
+        writer.Write((sbyte)Type);
+        writer.Write((uint)Size + 4);
 
-            // store the index after writing the body
-            var eofPosition = writer.Index;
-
-            // seek back to the beginning.
-            writer.SeekToIndex(start);
-
-            // write the type and size
-            writer.Write((sbyte)Type);
-            writer.Write((uint)Size + 4);
-
-            // go back to eof
-            writer.SeekToIndex(eofPosition);
-        }
-
-        public int GetSize()
-            => Size + 5;
+        // go back to eof
+        writer.SeekToIndex(eofPosition);
     }
+
+    public int GetSize()
+        => Size + 5;
 }

@@ -1,30 +1,23 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace EdgeDB.Binary.Protocol.V1._0.Descriptors;
 
-namespace EdgeDB.Binary.Protocol.V1._0.Descriptors
+internal readonly struct ScalarTypeNameAnnotation : ITypeDescriptor
 {
-    internal readonly struct ScalarTypeNameAnnotation : ITypeDescriptor
+    public readonly Guid Id;
+
+    public readonly string Name;
+
+    public ScalarTypeNameAnnotation(scoped in Guid id, scoped ref PacketReader reader)
     {
-        public readonly Guid Id;
+        Id = id;
+        Name = reader.ReadString();
+    }
 
-        public readonly string Name;
-
-        public ScalarTypeNameAnnotation(scoped in Guid id, scoped ref PacketReader reader)
+    unsafe ref readonly Guid ITypeDescriptor.Id
+    {
+        get
         {
-            Id = id;
-            Name = reader.ReadString();
-        }
-
-        unsafe ref readonly Guid ITypeDescriptor.Id
-        {
-            get
-            {
-                fixed (Guid* ptr = &Id)
-                    return ref *ptr;
-            }
+            fixed (Guid* ptr = &Id)
+                return ref *ptr;
         }
     }
 }
