@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using EdgeDB.Binary.Protocol;
 using ProtocolExecuteResult = EdgeDB.Binary.Protocol.ExecuteResult;
 using EdgeDB.Binary.Protocol.Common;
+using System.Diagnostics;
 
 namespace EdgeDB
 {
@@ -32,7 +33,7 @@ namespace EdgeDB
             remove => OnDisconnectInternal.Remove((c) => value());
         }
         #endregion
-        
+
         /// <summary>
         ///     Gets whether or not this connection is idle.
         /// </summary>
@@ -54,7 +55,7 @@ namespace EdgeDB
 
         internal byte[] ServerKey;
         internal int? SuggestedPoolConcurrency;
-        
+
         internal readonly ILogger Logger;
         internal readonly TimeSpan MessageTimeout;
         internal readonly TimeSpan ConnectionTimeout;
@@ -62,10 +63,10 @@ namespace EdgeDB
 
         internal EdgeDBConfig ClientConfig
             => _config;
-        
+
         protected CancellationToken DisconnectCancelToken
             => Duplexer.DisconnectToken;
-            
+
         private ICodec? _stateCodec;
         private Guid _stateDescriptorId;
 
@@ -136,6 +137,7 @@ namespace EdgeDB
         /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
         internal virtual async Task<ProtocolExecuteResult> ExecuteInternalAsync(string query, IDictionary<string, object?>? args = null, Cardinality? cardinality = null,
             Capabilities? capabilities = Capabilities.Modifications, IOFormat format = IOFormat.Binary, bool isRetry = false, bool implicitTypeName = false,
+            Func<ParseResult, Task>? preheat = null,
             CancellationToken token = default)
         {
             // if the current client is not connected, reconnect it
@@ -148,7 +150,7 @@ namespace EdgeDB
             await _semaphore.WaitAsync(linkedTokenSource.Token).ConfigureAwait(false);
 
             await _readySource.Task;
-            
+
             IsIdle = false;
             bool released = false;
 
@@ -157,6 +159,33 @@ namespace EdgeDB
             try
             {
                 var parseResult = await _protocolProvider.ParseQueryAsync(arguments, linkedTokenSource.Token);
+
+                if (preheat is not null)
+                {
+                    var executeTask =
+                        _protocolProvider.ExecuteQueryAsync(arguments, parseResult, linkedTokenSource.Token);
+
+#if  DEBUG
+                    async Task PreheatWithTrace(ParseResult p)
+                    {
+                        var stopwatch = Stopwatch.StartNew();
+                        await preheat(p);
+                        stopwatch.Stop();
+                        Logger.LogDebug("Preheating of codecs took {@PreheatTime}ms", Math.Round(stopwatch.Elapsed.TotalMilliseconds, 4));
+                    }
+
+                    var preheatTask = PreheatWithTrace(parseResult);
+#else
+                    var preheatTask = preheat(parseResult);
+#endif
+
+                    await Task.WhenAll(
+                        preheatTask,
+                        executeTask
+                    );
+
+                    return executeTask.Result;
+                }
 
                 return await _protocolProvider.ExecuteQueryAsync(arguments, parseResult, linkedTokenSource.Token);
             }
@@ -178,14 +207,14 @@ namespace EdgeDB
                 _semaphore.Release();
                 released = true;
 
-                return await ExecuteInternalAsync(query, args, cardinality, capabilities, format, true, implicitTypeName, token).ConfigureAwait(false);
+                return await ExecuteInternalAsync(query, args, cardinality, capabilities, format, true, implicitTypeName, preheat, token).ConfigureAwait(false);
             }
             catch (EdgeDBException x) when (x.ShouldRetry && !isRetry)
             {
                 _semaphore.Release();
                 released = true;
 
-                return await ExecuteInternalAsync(query, args, cardinality, capabilities, format, true, implicitTypeName, token).ConfigureAwait(false);
+                return await ExecuteInternalAsync(query, args, cardinality, capabilities, format, true, implicitTypeName, preheat, token).ConfigureAwait(false);
             }
             catch (Exception x)
             {
@@ -231,6 +260,7 @@ namespace EdgeDB
                 Cardinality.Many,
                 capabilities,
                 implicitTypeName: implicitTypeName,
+                preheat: (parseResult) => Task.Run(() => ObjectBuilder.PreheatCodec<TResult>(this, parseResult.OutCodecInfo.Codec), token),
                 token: token);
 
             var array = new TResult?[result.Data.Length];
@@ -259,13 +289,14 @@ namespace EdgeDB
             where TResult : default
         {
             var implicitTypeName = TypeBuilder.TryGetTypeDeserializerInfo(typeof(TResult), out var info) && info.RequiresTypeName;
-            
+
             var result = await ExecuteInternalAsync(
                 query,
                 args,
                 Cardinality.AtMostOne,
                 capabilities,
                 implicitTypeName: implicitTypeName,
+                preheat: (parseResult) => Task.Run(() => ObjectBuilder.PreheatCodec<TResult>(this, parseResult.OutCodecInfo.Codec), token),
                 token: token);
 
             if (result.Data.Length > 1)
@@ -289,19 +320,20 @@ namespace EdgeDB
             Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
             var implicitTypeName = TypeBuilder.TryGetTypeDeserializerInfo(typeof(TResult), out var info) && info.RequiresTypeName;
-            
+
             var result = await ExecuteInternalAsync(
                 query,
                 args,
                 Cardinality.AtMostOne,
                 capabilities,
                 implicitTypeName: implicitTypeName,
+                preheat: (parseResult) => Task.Run(() => ObjectBuilder.PreheatCodec<TResult>(this, parseResult.OutCodecInfo.Codec), token),
                 token: token);
 
             if (result.Data.Length is > 1 or 0)
                 throw new ResultCardinalityMismatchException(Cardinality.One, result.Data.Length > 1 ? Cardinality.Many : Cardinality.AtMostOne);
 
-            
+
             return result.Data.Length != 1
                 ? throw new MissingRequiredException()
                 : ObjectBuilder.BuildResult<TResult>(this, result.OutCodecInfo.Codec, in result.Data[0])!;
@@ -316,7 +348,7 @@ namespace EdgeDB
         public override async Task<DataTypes.Json> QueryJsonAsync(string query, IDictionary<string, object?>? args = null, Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         {
             var result = await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, IOFormat.Json, token: token);
-            
+
             return result.Data.Length == 1
                 ? (string)result.OutCodecInfo.Codec.Deserialize(this, in result.Data[0])!
                 : "[]";
@@ -411,8 +443,8 @@ namespace EdgeDB
         ///     Connects and authenticates this client.
         /// </summary>
         /// <remarks>
-        ///     This task waits for the underlying connection to receive a 
-        ///     ready message indicating the client 
+        ///     This task waits for the underlying connection to receive a
+        ///     ready message indicating the client
         ///     can start to preform queries.
         /// </remarks>
         /// <inheritdoc/>
@@ -522,12 +554,12 @@ namespace EdgeDB
                         await ConnectInternalAsync(attempts, token);
                         return;
                     }
-                } 
+                }
 
                 if(Duplexer is StreamDuplexer streamDuplexer)
                     streamDuplexer.Init(stream);
 
-                
+
                 // send handshake
                 await Duplexer.SendAsync(token, _protocolProvider.Handshake()).ConfigureAwait(false);
             }
@@ -593,8 +625,8 @@ namespace EdgeDB
         /// </summary>
         /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
         /// <returns>
-        ///     A task representing the asynchronous operation of opening or 
-        ///     initializing a stream; the result of the task is a stream the 
+        ///     A task representing the asynchronous operation of opening or
+        ///     initializing a stream; the result of the task is a stream the
         ///     binary client can use to read from/write to the database with.
         /// </returns>
         protected abstract ValueTask<Stream> GetStreamAsync(CancellationToken token = default);
@@ -604,7 +636,7 @@ namespace EdgeDB
         /// </summary>
         /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
         /// <returns>
-        ///     A task that represents the asynchronous closing operation of 
+        ///     A task that represents the asynchronous closing operation of
         ///     the stream.
         /// </returns>
         protected abstract ValueTask CloseStreamAsync(CancellationToken token = default);

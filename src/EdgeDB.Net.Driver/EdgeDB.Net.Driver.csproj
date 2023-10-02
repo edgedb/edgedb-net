@@ -22,9 +22,15 @@
   <ItemGroup>
     <None Remove="ContractResolvers\" />
     <None Remove="Binary\Codecs\Visitors\" />
+    <None Remove="Binary\Packets\**" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Binary\Packets\" />
     <Folder Include="ContractResolvers\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Binary\Packets\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Remove="Binary\Packets\**" />
   </ItemGroup>
 </Project>

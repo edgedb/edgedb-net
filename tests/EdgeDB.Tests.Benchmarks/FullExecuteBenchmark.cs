@@ -1,13 +1,10 @@
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Diagnostics.dotTrace;
 using EdgeDB.Tests.Benchmarks.Utils;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EdgeDB.Tests.Benchmarks
 {
+    [DotTraceDiagnoser]
     public class FullExecuteBenchmark
     {
         public EdgeDBClient? Client;
