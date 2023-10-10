@@ -92,19 +92,6 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
     protected CancellationToken DisconnectCancelToken
         => Duplexer.DisconnectToken;
 
-    #region Events
-
-    /// <summary>
-    ///     Fired when the client disconnects.
-    /// </summary>
-    public event Func<ValueTask> OnDisconnect
-    {
-        add => OnDisconnectInternal.Add(c => value());
-        remove => OnDisconnectInternal.Remove(c => value());
-    }
-
-    #endregion
-
     #region Client pool dispose
 
     /// <remarks />

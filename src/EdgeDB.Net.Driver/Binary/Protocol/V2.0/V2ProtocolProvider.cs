@@ -43,6 +43,7 @@ internal class V2ProtocolProvider : V1ProtocolProvider
                 DescriptorType.Scalar => new ScalarTypeDescriptor(ref reader, in id),
                 DescriptorType.Set => new SetDescriptor(ref reader, in id),
                 DescriptorType.Tuple => new TupleTypeDescriptor(ref reader, in id),
+                DescriptorType.MultiRange => new MultiRangeDescriptor(ref reader, in id),
                 _ => throw new InvalidDataException($"No descriptor found for type {type}")
             };
         }
@@ -141,6 +142,12 @@ internal class V2ProtocolProvider : V1ProtocolProvider
                 ref var innerCodec = ref getRelativeCodec(range.Type)!;
 
                 return new CompilableWrappingCodec(in range.Id, innerCodec, typeof(RangeCodec<>), metadata);
+            }
+            case MultiRangeDescriptor multirange:
+            {
+                ref var innerCodec = ref getRelativeCodec(multirange.Type)!;
+
+                return new CompilableWrappingCodec(in multirange.Id, innerCodec, typeof(MultiRangeCodec<>), metadata);
             }
             case ScalarTypeDescriptor scalar:
                 throw new MissingCodecException(
