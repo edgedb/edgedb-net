@@ -40,8 +40,6 @@ namespace EdgeDB.ExampleApp.Examples
 
         private static async Task QueryBuilderDemo(EdgeDBClient client)
         {
-            Grammar.ArrayConcat(null!, null);
-
             // Selecting a type with autogen shape
             var query = QueryBuilder.Select<Person>().Build().Prettify();
 
@@ -65,9 +63,9 @@ namespace EdgeDB.ExampleApp.Examples
                         p.BestFriend
                     })
             ).Build().Prettify();
-            
+
             // selecting things that are not types
-            query = QueryBuilder.SelectExp(() => 
+            query = QueryBuilder.SelectExp(() =>
                 EdgeQL.Count(QueryBuilder.Select<Person>())
             ).Build().Prettify();
 
@@ -114,7 +112,7 @@ namespace EdgeDB.ExampleApp.Examples
                 Email = "example@example.com",
                 Name = "example"
             };
-            
+
             query = QueryBuilder.Insert(person).Build().Prettify();
 
             // Complex insert with links & dealing with conflicts
