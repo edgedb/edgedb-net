@@ -1,22 +1,17 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using EdgeDB.Binary.Protocol;
 
-namespace EdgeDB.Binary.Codecs
+namespace EdgeDB.Binary.Codecs;
+
+internal interface IComplexCodec : ICodec
 {
-    internal interface IComplexCodec : ICodec
-    {
-        IEnumerable<ICodec> RuntimeCodecs { get; }
+    IEnumerable<ICodec> RuntimeCodecs { get; }
 
-        void BuildRuntimeCodecs();
+    void BuildRuntimeCodecs(IProtocolProvider provider);
 
-        ICodec GetCodecFor(Type type);
-    }
+    ICodec GetCodecFor(IProtocolProvider provider, Type type);
+}
 
-    internal interface IRuntimeCodec : ICodec
-    {
-        IComplexCodec Broker { get; }
-    }
+internal interface IRuntimeCodec : ICodec
+{
+    IComplexCodec Broker { get; }
 }

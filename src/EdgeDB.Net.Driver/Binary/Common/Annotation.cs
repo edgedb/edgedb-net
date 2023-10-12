@@ -1,32 +1,27 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace EdgeDB.Binary
+namespace EdgeDB.Binary;
+
+/// <summary>
+///     Represents an annotation within a packet.
+/// </summary>
+internal readonly struct Annotation
 {
+    internal int Size => Encoding.UTF8.GetByteCount(Name) + Encoding.UTF8.GetByteCount(Value);
+
     /// <summary>
-    ///     Represents an annotation within a packet.
+    ///     The name of this annotation.
     /// </summary>
-    internal readonly struct Annotation
+    public readonly string Name;
+
+    /// <summary>
+    ///     The value of the annotation (in json format).
+    /// </summary>
+    public readonly string Value;
+
+    internal Annotation(string name, string value)
     {
-        internal int Size => Encoding.UTF8.GetByteCount(Name) + Encoding.UTF8.GetByteCount(Value);
-
-        /// <summary>
-        ///     Gets the name of this annotation.
-        /// </summary>
-        public string Name { get; init; }
-
-        /// <summary>
-        ///     Gets the value of the annotation (in json format).
-        /// </summary>
-        public string Value { get; init; }
-
-        internal Annotation(string name, string value)
-        {
-            Name = name;
-            Value = value;
-        }
+        Name = name;
+        Value = value;
     }
 }

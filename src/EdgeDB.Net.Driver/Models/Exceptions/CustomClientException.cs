@@ -1,24 +1,16 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace EdgeDB;
 
-namespace EdgeDB
+/// <summary>
+///     Represents a generic error with custom clients.
+/// </summary>
+public sealed class CustomClientException : EdgeDBException
 {
     /// <summary>
-    ///     Represents a generic error with custom clients.
+    ///     Constructs a new <see cref="CustomClientException" /> with the specified error message.
     /// </summary>
-    public sealed class CustomClientException : EdgeDBException
+    /// <param name="message">The error message describing why this exception was thrown.</param>
+    public CustomClientException(string message)
+        : base(message)
     {
-        /// <summary>
-        ///     Constructs a new <see cref="CustomClientException"/> with the specified error message.
-        /// </summary>
-        /// <param name="message">The error message describing why this exception was thrown.</param>
-        public CustomClientException(string message)
-            : base(message, false, false)
-        {
-
-        }
     }
 }

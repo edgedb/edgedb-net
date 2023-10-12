@@ -14,6 +14,7 @@
   datatypes
   exceptions
   api
+  transactions
 
 EdgeDB.Net is the official EdgeDB .NET client, compatable with C#, F# and
 VB.NET.

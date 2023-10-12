@@ -1,26 +1,25 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 
-namespace EdgeDB.Binary.Codecs
+namespace EdgeDB.Binary.Codecs;
+
+internal interface ICodec<T> : ICodec
 {
-    internal interface ICodec<T> : ICodec
-    {
-        void Serialize(ref PacketWriter writer, T? value, CodecContext context);
+    void Serialize(ref PacketWriter writer, T? value, CodecContext context);
 
-        new T? Deserialize(ref PacketReader reader, CodecContext context);
-    }
+    new T? Deserialize(ref PacketReader reader, CodecContext context);
+}
 
-    internal interface ICodec
-    {
-        bool CanConvert(Type t);
+internal interface ICodec
+{
+    Guid Id { get; }
 
-        Type ConverterType { get; }
+    CodecMetadata? Metadata { get; }
 
-        void Serialize(ref PacketWriter writer, object? value, CodecContext context);
+    Type ConverterType { get; }
 
-        object? Deserialize(ref PacketReader reader, CodecContext context);
-    }
+    bool CanConvert(Type t);
+
+    void Serialize(ref PacketWriter writer, object? value, CodecContext context);
+
+    object? Deserialize(ref PacketReader reader, CodecContext context);
 }

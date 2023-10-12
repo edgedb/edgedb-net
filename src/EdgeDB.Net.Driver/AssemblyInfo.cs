@@ -10,4 +10,3 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("EdgeDB.Tests.Benchmarks")]
 [assembly: InternalsVisibleTo("EdgeDB.BinaryDebugger")]
 [assembly: InternalsVisibleTo("EdgeDB.Serializer.Experiments")]
-

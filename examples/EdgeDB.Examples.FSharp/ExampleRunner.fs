@@ -4,7 +4,6 @@ open EdgeDB
 open Examples
 open System.Linq
 open Microsoft.Extensions.Logging
-open System.Reflection
 open System
 
 type ExampleRunner(client: EdgeDBClient, logger: ILogger<ExampleRunner>, factory: ILoggerFactory) =
@@ -15,12 +14,16 @@ type ExampleRunner(client: EdgeDBClient, logger: ILogger<ExampleRunner>, factory
     member this.RunAsync() =
         task {
             // get all classes that implement IExample
-            let examples = typeof<IExample>.Assembly.GetTypes().Where(fun x -> x.IsAssignableTo(typeof<IExample>) && x <> typeof<IExample>).ToArray()
+            let examples =
+                typeof<IExample>.Assembly
+                    .GetTypes()
+                    .Where(fun x -> x.IsAssignableTo(typeof<IExample>) && x <> typeof<IExample>)
+                    .ToArray()
 
             for i = 0 to examples.Length - 1 do
                 let example = examples[i]
                 this.Logger.LogInformation("Running {example}..", $"{example.Name}.fs")
-                
+
                 try
                     let inst = Activator.CreateInstance(example) :?> IExample
 
@@ -28,7 +31,6 @@ type ExampleRunner(client: EdgeDBClient, logger: ILogger<ExampleRunner>, factory
 
                     this.Logger.LogInformation("{example} complete!", $"{example.Name}.fs")
 
-                with
-                    | ex ->
-                        this.Logger.LogError(ex, "Failed to run {example}", $"{example.Name}.fs")
+                with ex ->
+                    this.Logger.LogError(ex, "Failed to run {example}", $"{example.Name}.fs")
         }

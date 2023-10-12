@@ -1,159 +1,139 @@
 using EdgeDB.Binary;
-using EdgeDB.Binary.Packets;
 using EdgeDB.Binary.Codecs;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace EdgeDB.Utils
+namespace EdgeDB.Utils;
+
+internal sealed class Scram : IDisposable
 {
-    internal sealed class Scram : IDisposable
+    public const int NonceLength = 18;
+    private static readonly IScalarCodec<string> _stringCodec;
+
+    private byte[]? _clientNonce;
+    private string? _rawFirstMessage;
+
+    static Scram()
     {
-        public const int NonceLength = 18;
+        _stringCodec = CodecBuilder.GetScalarCodec<string>()!;
+    }
 
-        private byte[]? _clientNonce;
-        private string? _rawFirstMessage;
-        private static readonly IScalarCodec<string> _stringCodec;
-        private static string SanitizeString(string str) => str.Normalize(NormalizationForm.FormKC);
+    public Scram(byte[]? clientNonce = null)
+    {
+        _clientNonce = clientNonce;
+    }
 
-        static Scram()
+    public void Dispose()
+    {
+        _clientNonce = null;
+        _rawFirstMessage = null;
+    }
+
+    private static string SanitizeString(string str) => str.Normalize(NormalizationForm.FormKC);
+
+    private static byte[] GenerateNonce()
+    {
+        var bytes = new byte[NonceLength];
+
+        using (var random = RandomNumberGenerator.Create())
         {
-            _stringCodec = CodecBuilder.GetScalarCodec<string>()!;
+            random.GetBytes(bytes);
         }
 
-        public Scram(byte[]? clientNonce = null)
+        return bytes;
+    }
+
+    public string BuildInitialMessage(string username)
+    {
+        _clientNonce ??= GenerateNonce();
+        _rawFirstMessage = $"n={SanitizeString(username)},r={Convert.ToBase64String(_clientNonce)}";
+        return $"n,,{_rawFirstMessage}";
+    }
+
+    public (string final, byte[] expectedSig) BuildFinalMessage(string initialResponse, string password)
+    {
+        var parsedMessage = ParseServerMessage(initialResponse);
+
+        if (parsedMessage.Count < 3)
         {
-            _clientNonce = clientNonce;
+            throw new FormatException("Received malformed scram message");
         }
 
-        private static byte[] GenerateNonce()
+        var salt = Convert.FromBase64String(parsedMessage["s"]);
+
+        if (!int.TryParse(parsedMessage["i"], out var iterations))
         {
-            var bytes = new byte[NonceLength];
-
-            using (var random = RandomNumberGenerator.Create())
-            {
-                random.GetBytes(bytes);
-            }
-
-            return bytes;
+            throw new FormatException("Received malformed scram message");
         }
 
-        public string BuildInitialMessage(string username)
+        // build final
+        var final = $"c=biws,r={parsedMessage["r"]}";
+        var authMsg = Encoding.UTF8.GetBytes($"{_rawFirstMessage},{initialResponse},{final}");
+
+        var saltedPassword = SaltPassword(SanitizeString(password), salt, iterations);
+        var clientKey = GetClientKey(saltedPassword);
+        var storedKey = Hash(clientKey);
+        var clientSig = ComputeHMACHash(storedKey, authMsg);
+        var clientProof = XOR(clientKey, clientSig);
+
+        var serverKey = GetServerKey(saltedPassword);
+        var serverProof = ComputeHMACHash(serverKey, authMsg);
+
+        return ($"{final},p={Convert.ToBase64String(clientProof)}", serverProof);
+    }
+
+    public static byte[] ParseServerSig(string data)
+    {
+        var parsed = ParseServerMessage(data);
+        return Convert.FromBase64String(parsed["v"]);
+    }
+
+    private static Dictionary<string, string> ParseServerMessage(string msg)
+    {
+        var matches = Regex.Matches(msg, @"(.{1})=(.+?)(?>,|$)");
+
+        return matches.ToDictionary(x => x.Groups[1].Value, x => x.Groups[2].Value);
+    }
+
+    private static byte[] SaltPassword(string password, byte[] salt, int iterations)
+    {
+        var pdb = new Rfc2898DeriveBytes(password, salt, iterations, HashAlgorithmName.SHA256);
+
+        return pdb.GetBytes(32);
+    }
+
+    private static byte[] ComputeHMACHash(byte[] data, string key)
+        => ComputeHMACHash(data, Encoding.UTF8.GetBytes(key));
+
+    private static byte[] ComputeHMACHash(byte[] data, byte[] key)
+    {
+        using var hmac = new HMACSHA256(data);
+        return hmac.ComputeHash(key);
+    }
+
+    private static byte[] GetClientKey(byte[] password)
+        => ComputeHMACHash(password, "Client Key");
+
+    private static byte[] GetServerKey(byte[] password)
+        => ComputeHMACHash(password, "Server Key");
+
+    private static byte[] Hash(byte[] input)
+    {
+        using var hs = SHA256.Create();
+        return hs.ComputeHash(input);
+    }
+
+    private static byte[] XOR(byte[] b1, byte[] b2)
+    {
+        var length = b1.Length;
+
+        var result = new byte[length];
+        for (var i = 0; i < length; i++)
         {
-            _clientNonce ??= GenerateNonce();
-            _rawFirstMessage = $"n={SanitizeString(username)},r={Convert.ToBase64String(_clientNonce)}";
-            return $"n,,{_rawFirstMessage}";
+            result[i] = (byte)(b1[i] ^ b2[i]);
         }
 
-
-        public AuthenticationSASLInitialResponse BuildInitialMessagePacket(EdgeDBBinaryClient client, string username, string method)
-            => new(
-                _stringCodec.Serialize(client, BuildInitialMessage(username)),
-                method);
-
-        public (string final, byte[] expectedSig) BuildFinalMessage(string initialResponse, string password)
-        {
-            var parsedMessage = ParseServerMessage(initialResponse);
-
-            if (parsedMessage.Count < 3)
-            {
-                throw new FormatException("Received malformed scram message");
-            }
-
-            var salt = Convert.FromBase64String(parsedMessage["s"]);
-
-            if (!int.TryParse(parsedMessage["i"], out var iterations))
-            {
-                throw new FormatException("Received malformed scram message");
-            }
-
-            // build final
-            var final = $"c=biws,r={parsedMessage["r"]}";
-            var authMsg = Encoding.UTF8.GetBytes($"{_rawFirstMessage},{initialResponse},{final}");
-
-            var saltedPassword = SaltPassword(SanitizeString(password), salt, iterations);
-            var clientKey = GetClientKey(saltedPassword);
-            var storedKey = Hash(clientKey);
-            var clientSig = ComputeHMACHash(storedKey, authMsg);
-            var clientProof = XOR(clientKey, clientSig);
-
-            var serverKey = GetServerKey(saltedPassword);
-            var serverProof = ComputeHMACHash(serverKey, authMsg);
-
-            return ($"{final},p={Convert.ToBase64String(clientProof)}", serverProof);
-        }
-
-        public (AuthenticationSASLResponse FinalMessage, byte[] ExpectedSig) BuildFinalMessagePacket(
-            EdgeDBBinaryClient client,
-            in AuthenticationStatus status,
-            string password)
-        {
-            var (final, sig) = BuildFinalMessage(_stringCodec.Deserialize(client, status.SASLDataBuffer)!, password);
-
-            return (new AuthenticationSASLResponse(_stringCodec.Serialize(client, final)), sig);
-        }
-
-        public static byte[] ParseServerFinalMessage(EdgeDBBinaryClient client, in AuthenticationStatus status)
-        {
-            var msg = _stringCodec.Deserialize(client, status.SASLDataBuffer)!;
-
-            var parsed = ParseServerMessage(msg);
-
-            return Convert.FromBase64String(parsed["v"]);
-        }
-
-        private static Dictionary<string, string> ParseServerMessage(string msg)
-        {
-            var matches = Regex.Matches(msg, @"(.{1})=(.+?)(?>,|$)");
-
-            return matches.ToDictionary(x => x.Groups[1].Value, x => x.Groups[2].Value);
-        }
-
-        private static byte[] SaltPassword(string password, byte[] salt, int iterations)
-        {
-            var pdb = new Rfc2898DeriveBytes(password, salt, iterations, HashAlgorithmName.SHA256);
-
-            return pdb.GetBytes(32);
-        }
-
-        private static byte[] ComputeHMACHash(byte[] data, string key)
-            => ComputeHMACHash(data, Encoding.UTF8.GetBytes(key));
-
-        private static byte[] ComputeHMACHash(byte[] data, byte[] key)
-        {
-            using var hmac = new HMACSHA256(data);
-            return hmac.ComputeHash(key);
-        }
-
-        private static byte[] GetClientKey(byte[] password)
-            => ComputeHMACHash(password, "Client Key");
-
-        private static byte[] GetServerKey(byte[] password)
-            => ComputeHMACHash(password, "Server Key");
-        
-        private static byte[] Hash(byte[] input)
-        {
-            using var hs = SHA256.Create();
-            return hs.ComputeHash(input);
-        }
-
-        private static byte[] XOR(byte[] b1, byte[] b2)
-        {
-            var length = b1.Length;
-
-            byte[] result = new byte[length];
-            for (int i = 0; i < length; i++)
-            {
-                result[i] = (byte)(b1[i] ^ b2[i]);
-            }
-
-            return result;
-        }
-
-        public void Dispose()
-        {
-            _clientNonce = null;
-            _rawFirstMessage = null;
-        }
+        return result;
     }
 }

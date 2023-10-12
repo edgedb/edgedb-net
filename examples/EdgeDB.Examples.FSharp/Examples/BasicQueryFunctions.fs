@@ -32,11 +32,13 @@ type BasicQueryFunctions() =
                 // If we want to execute a query but do not want/need its result we can use the Execute method.
                 // This is useful for insert/update queries.
                 client.ExecuteAsync("select 'Hello, .NET!'")
-                |> Async.AwaitTask |> Async.Ignore |> ignore
+                |> Async.AwaitTask
+                |> Async.Ignore
+                |> ignore
 
-                // Each function maps to a cardinality mode:
-                // QueryAsync -> Cardinality.Many
-                // QuerySingleAsync -> Cardinality.AtMostOne
-                // QueryRequiredSingleAsyn -> Cardinality.One
-                // ExecuteAsync -> Cardinality.Many
+            // Each function maps to a cardinality mode:
+            // QueryAsync -> Cardinality.Many
+            // QuerySingleAsync -> Cardinality.AtMostOne
+            // QueryRequiredSingleAsyn -> Cardinality.One
+            // ExecuteAsync -> Cardinality.Many
             }

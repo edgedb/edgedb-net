@@ -1,11 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace EdgeDB;
 
-namespace EdgeDB
+[AttributeUsage(AttributeTargets.Field)]
+internal sealed class ShouldReconnectAttribute : Attribute
 {
-    [AttributeUsage(AttributeTargets.Field)]
-    internal sealed class ShouldReconnectAttribute : Attribute { }
 }

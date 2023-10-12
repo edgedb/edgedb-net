@@ -1,127 +1,112 @@
-using EdgeDB.Binary;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
+using EdgeDB.Binary.Protocol.Common.Descriptors;
 using System.Dynamic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace EdgeDB.Binary.Codecs
+namespace EdgeDB.Binary.Codecs;
+
+internal sealed class SparceObjectCodec
+    : BaseCodec<object>, ICacheableCodec, IMultiWrappingCodec
 {
-    internal sealed class SparceObjectCodec
-        : BaseCodec<object>, ICacheableCodec, IMultiWrappingCodec
+    public readonly string[] FieldNames;
+    public ICodec[] InnerCodecs;
+
+    public SparceObjectCodec(in Guid id, ICodec[] innerCodecs, string[] fieldNames, CodecMetadata? metadata = null)
+        : base(in id, metadata)
     {
-        public ICodec[] InnerCodecs;
-        public readonly string[] FieldNames;
+        FieldNames = fieldNames;
+        InnerCodecs = innerCodecs;
+    }
 
-        internal SparceObjectCodec(InputShapeDescriptor descriptor, List<ICodec> codecs)
+    ICodec[] IMultiWrappingCodec.InnerCodecs
+    {
+        get => InnerCodecs;
+        set => InnerCodecs = value;
+    }
+
+    public override object? Deserialize(ref PacketReader reader, CodecContext context)
+    {
+        var numElements = reader.ReadInt32();
+
+        if (InnerCodecs.Length != numElements)
         {
-            InnerCodecs = new ICodec[descriptor.Shapes.Length];
-            FieldNames = new string[descriptor.Shapes.Length];
-
-            for (int i = 0; i != descriptor.Shapes.Length; i++)
-            {
-                var shape = descriptor.Shapes[i];
-                InnerCodecs[i] = codecs[shape.TypePos];
-                FieldNames[i] = shape.Name;
-            }
+            throw new ArgumentException(
+                $"codecs mismatch for tuple: expected {numElements} codecs, got {InnerCodecs.Length} codecs");
         }
 
-        public override object? Deserialize(ref PacketReader reader, CodecContext context)
+        dynamic data = new ExpandoObject();
+        var dataDictionary = (IDictionary<string, object?>)data;
+
+        for (var i = 0; i != numElements; i++)
         {
-            var numElements = reader.ReadInt32();
+            var index = reader.ReadInt32();
+            var elementName = FieldNames[index];
 
-            if (InnerCodecs.Length != numElements)
+            var length = reader.ReadInt32();
+
+            if (length is -1)
             {
-                throw new ArgumentException($"codecs mismatch for tuple: expected {numElements} codecs, got {InnerCodecs.Length} codecs");
+                dataDictionary.Add(elementName, null);
+                continue;
             }
 
-            dynamic data = new ExpandoObject();
-            var dataDictionary = (IDictionary<string, object?>)data;
+            reader.ReadBytes(length, out var innerData);
 
-            for (int i = 0; i != numElements; i++)
-            {
-                var index = reader.ReadInt32();
-                var elementName = FieldNames[index];
+            object? value;
 
-                var length = reader.ReadInt32();
+            value = InnerCodecs[i].Deserialize(context, in innerData);
 
-                if (length is -1)
-                {
-                    dataDictionary.Add(elementName, null);
-                    continue;
-                }
-
-                reader.ReadBytes(length, out var innerData);
-
-                object? value;
-
-                value = InnerCodecs[i].Deserialize(context, innerData);
-
-                dataDictionary.Add(elementName, value);
-            }
-
-            return data;
+            dataDictionary.Add(elementName, value);
         }
 
-        public override void Serialize(ref PacketWriter writer, object? value, CodecContext context)
+        return data;
+    }
+
+    public override void Serialize(ref PacketWriter writer, object? value, CodecContext context)
+    {
+        if (value is not IDictionary<string, object?> dict)
+            throw new InvalidOperationException(
+                $"Cannot serialize {value?.GetType() ?? Type.Missing} as a sparce object.");
+
+        if (!dict.Any())
         {
-            if (value is not IDictionary<string, object?> dict)
-                throw new InvalidOperationException($"Cannot serialize {value?.GetType() ?? Type.Missing} as a sparce object.");
-            
-            if(!dict.Any())
-            {
-                writer.Write(0);
-                return;
-            }
-
-            writer.Write(dict.Count);
-
-            var visitor = context.CreateTypeVisitor();
-
-            foreach (var element in dict)
-            {
-                var index = Array.IndexOf(FieldNames, element.Key);
-
-                if (index == -1)
-                    throw new MissingCodecException($"No serializer found for field {element.Key}");
-
-                writer.Write(index);
-
-                if (element.Value == null)
-                    writer.Write(-1);
-                else
-                {
-                    var codec = InnerCodecs[index];
-
-                    // ignore nested sparce object codecs, they will be walked
-                    // in their serialize method.
-                    visitor.SetTargetType(codec is SparceObjectCodec
-                        ? typeof(void)
-                        : element.Value.GetType()
-                    );
-
-                    visitor.Visit(ref codec);
-                    visitor.Reset();
-
-                    writer.WriteToWithInt32Length((ref PacketWriter innerWriter) => codec.Serialize(ref innerWriter, element.Value, context));
-                }
-            }
+            writer.Write(0);
+            return;
         }
 
-        public override string ToString()
-        {
-            return $"SparseObjectCodec<{string.Join(", ", InnerCodecs.Zip(FieldNames).Select(x => $"[{x.Second}: {x.First}]"))}>";
-        }
+        writer.Write(dict.Count);
 
-        ICodec[] IMultiWrappingCodec.InnerCodecs
+        var visitor = context.CreateTypeVisitor();
+
+        foreach (var element in dict)
         {
-            get => InnerCodecs;
-            set
+            var index = Array.IndexOf(FieldNames, element.Key);
+
+            if (index == -1)
+                throw new MissingCodecException($"No serializer found for field {element.Key}");
+
+            writer.Write(index);
+
+            if (element.Value == null)
+                writer.Write(-1);
+            else
             {
-                InnerCodecs = value;
+                var codec = InnerCodecs[index];
+
+                // ignore nested sparce object codecs, they will be walked
+                // in their serialize method.
+                visitor.SetTargetType(codec is SparceObjectCodec
+                    ? typeof(void)
+                    : element.Value.GetType()
+                );
+
+                visitor.Visit(ref codec);
+                visitor.Reset();
+
+                writer.WriteToWithInt32Length((ref PacketWriter innerWriter) =>
+                    codec.Serialize(ref innerWriter, element.Value, context));
             }
         }
     }
+
+    public override string ToString()
+        => "sparce_object";
 }

@@ -1,23 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace EdgeDB;
 
-namespace EdgeDB
+/// <summary>
+///     Represents an exception that occurs when required data isn't returned.
+/// </summary>
+public class MissingRequiredException : EdgeDBException
 {
     /// <summary>
-    ///     Represents an exception that occurs when required data isn't returned.
+    ///     Constructs a new <see cref="MissingRequiredException" />.
     /// </summary>
-    public class MissingRequiredException : EdgeDBException
+    public MissingRequiredException()
+        : base("Missing required result from query")
     {
-        /// <summary>
-        ///     Constructs a new <see cref="MissingRequiredException"/>.
-        /// </summary>
-        public MissingRequiredException()
-            : base("Missing required result from query")
-        {
-
-        }
     }
 }

@@ -1,25 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace EdgeDB.Utils;
 
-namespace EdgeDB.Utils
+internal static class HexConverter
 {
-    internal static class HexConverter
+    public static byte[] FromHex(string hex)
     {
-        public static byte[] FromHex(string hex)
+        hex = hex.Replace("-", "");
+        var raw = new byte[hex.Length / 2];
+        for (var i = 0; i < raw.Length; i++)
         {
-            hex = hex.Replace("-", "");
-            byte[] raw = new byte[hex.Length / 2];
-            for (int i = 0; i < raw.Length; i++)
-            {
-                raw[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
-            }
-            return raw;
+            raw[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
         }
 
-        public static string ToHex(byte[] arr)
-            => BitConverter.ToString(arr).Replace("-", "");
+        return raw;
     }
+
+    public static string ToHex(byte[] arr)
+        => BitConverter.ToString(arr).Replace("-", "");
 }

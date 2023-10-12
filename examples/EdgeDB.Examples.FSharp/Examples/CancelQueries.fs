@@ -3,7 +3,6 @@ module CancelQueries
 open Examples
 open EdgeDB
 open Microsoft.Extensions.Logging
-open System.Threading.Tasks
 open System.Threading
 open System
 
@@ -18,8 +17,8 @@ type CancelQueries() =
                     let! result = client.QueryRequiredSingleAsync<string>("select 'Hello, .NET'")
                     result |> ignore
                 with
-                    | :? OperationCanceledException -> logger.LogInformation("Got task cancelled exception")
-                    | e ->
-                        logger.LogError(e, "Got unexpected exception")
-                        raise e
+                | :? OperationCanceledException -> logger.LogInformation("Got task cancelled exception")
+                | e ->
+                    logger.LogError(e, "Got unexpected exception")
+                    raise e
             }

@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace EdgeDB.DotnetTool;
 
-namespace EdgeDB.DotnetTool
+internal class Constraint
 {
-    internal class Constraint
-    {
-        public string? Value { get; set; }
+    public string? Value { get; set; }
 
-        public bool IsExpression { get; set; }
-    }
+    public bool IsExpression { get; set; }
 }

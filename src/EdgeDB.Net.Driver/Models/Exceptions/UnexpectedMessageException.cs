@@ -1,37 +1,34 @@
 using EdgeDB.Binary;
 
-namespace EdgeDB
+namespace EdgeDB;
+
+/// <summary>
+///     Represents an exception that occurs when the client receives an unexpected message.
+/// </summary>
+public class UnexpectedMessageException : EdgeDBException
 {
     /// <summary>
-    ///     Represents an exception that occurs when the client receives an unexpected message.
+    ///     Constructs a new <see cref="UnexpectedMessageException" /> with the message type the client <i>wasn't</i>
+    ///     expecting.
     /// </summary>
-    public class UnexpectedMessageException : EdgeDBException
+    /// <param name="unexpected">The unexcepted message type.</param>
+    internal UnexpectedMessageException(ServerMessageType unexpected)
+        : base($"Got unexpected message type {unexpected}")
     {
-        /// <summary>
-        ///     Constructs a new <see cref="UnexpectedMessageException"/> with the message type the client <i>wasn't</i> expecting.
-        /// </summary>
-        /// <param name="unexpected">The unexcepted message type.</param>
-        internal UnexpectedMessageException(ServerMessageType unexpected)
-            : base($"Got unexpected message type {unexpected}")
-        {
+    }
 
-        }
+    /// <summary>
+    ///     Constructs a new <see cref="UnexpectedMessageException" /> with the expected and actual message types.
+    /// </summary>
+    /// <param name="expected">The expected message type.</param>
+    /// <param name="actual">The actual message type.</param>
+    internal UnexpectedMessageException(ServerMessageType expected, ServerMessageType actual)
+        : base($"Expected message type {expected} but got {actual}")
+    {
+    }
 
-        /// <summary>
-        ///     Constructs a new <see cref="UnexpectedMessageException"/> with the expected and actual message types.
-        /// </summary>
-        /// <param name="expected">The expected message type.</param>
-        /// <param name="actual">The actual message type.</param>
-        internal UnexpectedMessageException(ServerMessageType expected, ServerMessageType actual)
-            : base($"Expected message type {expected} but got {actual}")
-        {
-
-        }
-
-        internal UnexpectedMessageException(string msg)
-            : base(msg)
-        {
-            
-        }
+    internal UnexpectedMessageException(string msg)
+        : base(msg)
+    {
     }
 }
