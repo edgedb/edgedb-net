@@ -13,6 +13,7 @@ namespace EdgeDB
         public IShapeBuilder? Shape { get; set; }
 
         private readonly List<EdgeDBQueryable> _parts;
+
         public EdgeDBQueryProvider()
         {
             _parts = new List<EdgeDBQueryable>();

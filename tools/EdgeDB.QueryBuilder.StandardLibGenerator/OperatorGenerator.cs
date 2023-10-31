@@ -164,7 +164,7 @@ namespace EdgeDB.StandardLibGenerator
                 case OperatorKind.Infix:
                     {
                         if (op.Parameters!.Length != 2)
-                            throw new ArgumentException("Expected 2 paramets for Infix");
+                            throw new ArgumentException("Expected 2 parameters for Infix");
 
                         return op.Name switch
                         {
@@ -175,21 +175,21 @@ namespace EdgeDB.StandardLibGenerator
                 case OperatorKind.Postfix:
                     {
                         if (op.Parameters!.Length != 1)
-                            throw new ArgumentException("Expected 1 paramets for Postfix");
+                            throw new ArgumentException("Expected 1 parameter for Postfix");
 
                         return $"{{{op.Parameters[0].Name + "Param"}}} {operation}";
                     }
                 case OperatorKind.Prefix:
                     {
                         if (op.Parameters!.Length != 1)
-                            throw new ArgumentException("Expected 1 paramets for Prefix");
+                            throw new ArgumentException("Expected 1 parameter for Prefix");
 
                         return $"{operation} {{{op.Parameters[0].Name + "Param"}}}";
                     }
                 case OperatorKind.Ternary:
                     {
                         if (op.Parameters!.Length != 3)
-                            throw new ArgumentException("Expected 3 paramets for Ternary");
+                            throw new ArgumentException("Expected 3 parameters for Ternary");
 
                         return $"{{{op.Parameters[0].Name + "Param"}}} IF {{{op.Parameters[1].Name + "Param"}}} ELSE {{{op.Parameters[2].Name + "Param"}}}";
                     }

@@ -100,7 +100,7 @@ namespace EdgeDB.QueryNodes
             ///     Whether or not the setter requires introspection.
             /// </summary>
             public readonly bool RequiresIntrospection;
-            
+
             /// <summary>
             ///     The raw string form shape definition, if any.
             /// </summary>
@@ -183,13 +183,13 @@ namespace EdgeDB.QueryNodes
         private readonly StringBuilder _elseStatement;
 
         /// <summary>
-        ///     The list of currently inserted types used to determine if 
+        ///     The list of currently inserted types used to determine if
         ///     a nested query can be preformed.
         /// </summary>
         private readonly List<Type> _subQueryMap = new();
 
         /// <inheritdoc/>
-        public InsertNode(NodeBuilder builder) : base(builder) 
+        public InsertNode(NodeBuilder builder) : base(builder)
         {
             _elseStatement = new();
         }
@@ -201,8 +201,8 @@ namespace EdgeDB.QueryNodes
             _subQueryMap.Add(OperatingType);
 
             // build the insert shape
-            _shape = Context.IsJsonVariable 
-                ? BuildJsonShape() 
+            _shape = Context.IsJsonVariable
+                ? BuildJsonShape()
                 : BuildInsertShape();
 
             RequiresIntrospection = _shape.RequiresIntrospection;
@@ -212,8 +212,8 @@ namespace EdgeDB.QueryNodes
         public override void FinalizeQuery()
         {
             // build the shape with introspection
-            var shape = SchemaInfo is not null 
-                ? _shape.Build(SchemaInfo) 
+            var shape = SchemaInfo is not null
+                ? _shape.Build(SchemaInfo)
                 : _shape.Build();
 
             // prepend it to our query string
@@ -230,7 +230,7 @@ namespace EdgeDB.QueryNodes
 
                 Query.Append($" {ConflictUtils.GenerateExclusiveConflictStatement(typeInfo, _elseStatement.Length != 0)}");
             }
-            
+
             Query.Append(_elseStatement);
 
             // if the query builder wants this node as a global
@@ -282,7 +282,7 @@ namespace EdgeDB.QueryNodes
                         var edgedbName = x.GetEdgeDBPropertyName();
                         var isScalar = EdgeDBTypeUtils.TryGetScalarType(x.PropertyType, out var edgeqlType);
 
-                        // we need to add a callback for value types that are default to determine if we need to 
+                        // we need to add a callback for value types that are default to determine if we need to
                         // add the setter
                         if (isScalar && x.PropertyType.IsValueType && !x.PropertyType.IsEnum)
                         {
@@ -305,7 +305,7 @@ namespace EdgeDB.QueryNodes
                         if (EdgeDBTypeUtils.IsLink(x.PropertyType, out var isArray, out _))
                         {
                             // if we're in the last iteration of the depth map, we know for certian there
-                            // are no sub types within the current context, we can safely set the link to 
+                            // are no sub types within the current context, we can safely set the link to
                             // an empty set
                             if (isLast)
                                 return $"{edgedbName} := {{}}";
@@ -357,7 +357,7 @@ namespace EdgeDB.QueryNodes
                 var edgedbName = x.GetEdgeDBPropertyName();
                 var isScalar = EdgeDBTypeUtils.TryGetScalarType(x.PropertyType, out var edgeqlType);
 
-                // we need to add a callback for value types that are default to determine if we need to 
+                // we need to add a callback for value types that are default to determine if we need to
                 // add the setter
                 if (isScalar && x.PropertyType.IsValueType && !x.PropertyType.IsEnum)
                 {
@@ -431,7 +431,7 @@ namespace EdgeDB.QueryNodes
                 // define the type and whether or not it's a link
                 var propValue = property.PropertyInfo.GetValue(value);
                 var isScalar = EdgeDBTypeUtils.TryGetScalarType(property.Type, out var edgeqlType);
-                
+
                 if(property.CustomConverter is not null)
                 {
                     // convert it and parameterize it
@@ -443,12 +443,12 @@ namespace EdgeDB.QueryNodes
                     setters.Add($"{property.EdgeDBName} := <{scalar}>${varName}");
                     continue;
                 }
-                
+
                 // if its a default value of a struct, ignore it.
                 if (isScalar &&
                     property.Type.IsValueType &&
                     !property.Type.IsEnum &&
-                    (propValue?.Equals(ReflectionUtils.GetValueTypeDefault(property.Type)) ?? false))
+                    (propValue?.Equals(ReflectionUtils.GetDefault(property.Type)) ?? false))
                 {
                     setters.Add(new(s =>
                     {
@@ -532,34 +532,33 @@ namespace EdgeDB.QueryNodes
             if (value is null)
                 return "{}";
 
-            // is it a value thats been returned from a previous query?
-            if (QueryObjectManager.TryGetObjectId(value, out var id))
-            {
-                // add a sub select statement
-                return InlineOrGlobal(
-                    type,
-                    new SubQuery($"(select {type.GetEdgeDBTypeName()} filter .id = <uuid>\"{id}\")"),
-                    value);
-            }
-            else
-            {
-                RequiresIntrospection = true;
+            // TODO: revisit references.
+            //// is it a value that's been returned from a previous query?
+            //if (QueryObjectManager.TryGetObjectId(value, out var id))
+            //{
+            //    // add a sub select statement
+            //    return InlineOrGlobal(
+            //        type,
+            //        new SubQuery($"(select {type.GetEdgeDBTypeName()} filter .id = <uuid>\"{id}\")"),
+            //        value);
+            //}
 
-                // add a insert select statement
-                return InlineOrGlobal(type, new SubQuery((info) =>
-                {
-                    var name = type.GetEdgeDBTypeName();
-                    var exclusiveProps = QueryGenerationUtils.GetProperties(info, type, true);
-                    var exclusiveCondition = exclusiveProps.Any() ?
-                        $" unless conflict on {(exclusiveProps.Count() > 1 ? $"({string.Join(", ", exclusiveProps.Select(x => $".{x.GetEdgeDBPropertyName()}"))})" : $".{exclusiveProps.First().GetEdgeDBPropertyName()}")} else (select {name})"
-                        : string.Empty;
-                    return $"(insert {name} {BuildInsertShape(type, value).Build(info)}{exclusiveCondition})";
-                }), value);
-            }
+            RequiresIntrospection = true;
+
+            // add a insert select statement
+            return InlineOrGlobal(type, new SubQuery((info) =>
+            {
+                var name = type.GetEdgeDBTypeName();
+                var exclusiveProps = QueryGenerationUtils.GetProperties(info, type, true);
+                var exclusiveCondition = exclusiveProps.Any() ?
+                    $" unless conflict on {(exclusiveProps.Count() > 1 ? $"({string.Join(", ", exclusiveProps.Select(x => $".{x.GetEdgeDBPropertyName()}"))})" : $".{exclusiveProps.First().GetEdgeDBPropertyName()}")} else (select {name})"
+                    : string.Empty;
+                return $"(insert {name} {BuildInsertShape(type, value).Build(info)}{exclusiveCondition})";
+            }), value);
         }
 
         /// <summary>
-        ///     Adds a sub query as an inline query or as a global depending on if the current 
+        ///     Adds a sub query as an inline query or as a global depending on if the current
         ///     query contains any statements for the provided type.
         /// </summary>
         /// <param name="type">The returning type of the sub query.</param>

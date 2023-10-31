@@ -131,13 +131,14 @@ namespace EdgeDB.Translators.Expressions
                                     break;
                                 }
 
+                                // TODO: revisit references
                                 // check if its a value returned in a previous query
-                                if (QueryObjectManager.TryGetObjectId(memberValue, out var id))
-                                {
-                                    var globalName = context.GetOrAddGlobal(id, id.SelectSubQuery(property.Type));
-                                    initializations.Add($"{property.EdgeDBName} := {globalName}");
-                                    break;
-                                }
+                                //if (QueryObjectManager.TryGetObjectId(memberValue, out var id))
+                                //{
+                                //    var globalName = context.GetOrAddGlobal(id, id.SelectSubQuery(property.Type));
+                                //    initializations.Add($"{property.EdgeDBName} := {globalName}");
+                                //    break;
+                                //}
 
                                 // generate an insert or select based on its unique constraints.
                                 var name = QueryUtils.GenerateRandomVariableName();

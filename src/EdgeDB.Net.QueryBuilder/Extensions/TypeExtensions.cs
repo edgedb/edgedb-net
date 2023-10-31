@@ -10,13 +10,6 @@ namespace EdgeDB
 {
     internal static class TypeExtensions
     {
-        public static bool IsAnonymousType(this Type type)
-        {
-            return
-                type.GetCustomAttributes(typeof(CompilerGeneratedAttribute), false).Length > 0 &&
-                type.FullName!.Contains("AnonymousType");
-        }
-
         public static IEnumerable<PropertyInfo> GetEdgeDBTargetProperties(this Type type, bool excludeId = false)
             => type.GetProperties().Where(x => x.GetCustomAttribute<EdgeDBIgnoreAttribute>() == null && !(excludeId && x.Name == "Id" && (x.PropertyType == typeof(Guid) || x.PropertyType == typeof(Guid?))));
 
@@ -30,7 +23,7 @@ namespace EdgeDB
         {
             var att = info.GetCustomAttribute<EdgeDBPropertyAttribute>();
 
-            return $"{((att?.IsLinkProperty ?? false) ? "@" : "")}{att?.Name ?? TypeBuilder.SchemaNamingStrategy.Convert(info)}";
+            return $"{(att?.IsLinkProperty ?? false ? "@" : "")}{att?.Name ?? (info is PropertyInfo p ? TypeBuilder.SchemaNamingStrategy.Convert(p) : TypeBuilder.SchemaNamingStrategy.Convert(info.Name))}";
         }
 
         public static Type GetMemberType(this MemberInfo info)

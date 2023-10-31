@@ -139,9 +139,10 @@ namespace EdgeDB
         /// </returns>
         public static async ValueTask<Expression<Func<TType, QueryContext<TType>, bool>>> GenerateUpdateFilterAsync<TType>(IEdgeDBQueryable edgedb, TType value, CancellationToken token = default)
         {
+            // TODO: revisit references
             // try and get object id
-            if (QueryObjectManager.TryGetObjectId(value, out var id))
-                return (_, ctx) => ctx.UnsafeLocal<Guid>("id") == id;
+            //if (QueryObjectManager.TryGetObjectId(value, out var id))
+            //    return (_, ctx) => ctx.UnsafeLocal<Guid>("id") == id;
 
             // get exclusive properties.
             var exclusiveProperties = await GetPropertiesAsync<TType>(edgedb, exclusive: true, token: token).ConfigureAwait(false);

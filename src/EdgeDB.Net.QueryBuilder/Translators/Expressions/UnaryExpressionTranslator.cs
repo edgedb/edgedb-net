@@ -26,7 +26,7 @@ namespace EdgeDB.Translators.Expressions
                 case ExpressionType.Convert:
                     {
                         var value = TranslateExpression(expression.Operand, context);
-                        
+
                         if (value is null)
                             return null; // nullable converters for include, ex Guid? -> Guid
 
@@ -36,17 +36,17 @@ namespace EdgeDB.Translators.Expressions
                             return value;
 
                         // dotnet nullable check
-                        if (ReflectionUtils.IsSubclassOfRawGeneric(typeof(Nullable<>), expression.Type) && 
+                        if (ReflectionUtils.IsSubclassOfRawGeneric(typeof(Nullable<>), expression.Type) &&
                             expression.Type.GenericTypeArguments[0] == expression.Operand.Type)
                         {
-                            // no need to cast in edgedb, return the value   
+                            // no need to cast in edgedb, return the value
                             return value;
                         }
 
-                        var type = EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var edgedbType) 
+                        var type = EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var edgedbType)
                             ? edgedbType.ToString()
                             : expression.Type.GetEdgeDBTypeName();
-                        
+
                         return $"<{type}>{value}";
                     }
                 case ExpressionType.ArrayLength:
@@ -60,7 +60,7 @@ namespace EdgeDB.Translators.Expressions
                     return op.Build(TranslateExpression(expression.Operand, context));
             }
 
-            throw new NotSupportedException($"Failed to find converter for {expression.NodeType}!");
+            //throw new NotSupportedException($"Failed to find converter for {expression.NodeType}!");
         }
     }
 }

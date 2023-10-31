@@ -88,14 +88,6 @@ namespace EdgeDB
         private readonly Dictionary<string, object?> _queryVariables;
 
         /// <summary>
-        ///     Initializes the <see cref="QueryObjectManager"/>.
-        /// </summary>
-        static QueryBuilder()
-        {
-            QueryObjectManager.Initialize();
-        }
-
-        /// <summary>
         ///     Constructs an empty query builder.
         /// </summary>
         public QueryBuilder()

@@ -76,13 +76,14 @@ namespace EdgeDB
                     // add it as a sub-query
                     _queryGlobals.Add(new QueryGlobal(property.Name, value));
                 }
-                else if (
-                    EdgeDBTypeUtils.IsLink(property.PropertyType, out var isMultiLink, out var innerType)
-                    && !isMultiLink
-                    && QueryObjectManager.TryGetObjectId(value, out var id))
-                {
-                    _queryGlobals.Add(new QueryGlobal(property.Name, new SubQuery($"(select {property.PropertyType.GetEdgeDBTypeName()} filter .id = <uuid>'{id}')")));
-                }
+                // TODO: revisit references
+                //else if (
+                //    EdgeDBTypeUtils.IsLink(property.PropertyType, out var isMultiLink, out var innerType)
+                //    && !isMultiLink
+                //    && QueryObjectManager.TryGetObjectId(value, out var id))
+                //{
+                //    _queryGlobals.Add(new QueryGlobal(property.Name, new SubQuery($"(select {property.PropertyType.GetEdgeDBTypeName()} filter .id = <uuid>'{id}')")));
+                //}
                 else if (ReflectionUtils.IsSubclassOfRawGeneric(typeof(JsonReferenceVariable<>), property.PropertyType))
                 {
                     // serialize and add as global and variable
