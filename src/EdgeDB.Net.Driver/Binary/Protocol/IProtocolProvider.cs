@@ -30,6 +30,8 @@ internal interface IProtocolProvider
 
     IReadOnlyDictionary<string, object?> ServerConfig { get; }
 
+    int? SuggestedPoolConcurrency { get; }
+
     public static IProtocolProvider GetDefaultProvider(EdgeDBBinaryClient client)
         => (_defaultProvider ??= Providers[ProtocolVersion.EdgeDBBinaryDefaultVersion].Factory)(client);
 

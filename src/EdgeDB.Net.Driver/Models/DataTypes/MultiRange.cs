@@ -39,6 +39,12 @@ public readonly struct MultiRange<T> : IEnumerable<Range<T>>
         _ranges = ranges;
     }
 
+    /// <summary>
+    ///     Returns a hashset that represents this multirange.
+    /// </summary>
+    /// <returns>A hashset, derived from the contents of this multirange.</returns>
+    public HashSet<Range<T>> ToSet() => new(_ranges);
+
     #region Enumerator
     private sealed class MultiRangeEnumerator : IEnumerator<Range<T>>
     {
