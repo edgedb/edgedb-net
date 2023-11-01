@@ -1,3 +1,5 @@
+using EdgeDB.DataTypes;
+using EdgeDB.Models.DataTypes;
 using EdgeDB.State;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
@@ -19,6 +21,22 @@ public class ClientTests
     }
 
     internal EdgeDBClient EdgeDB { get; set; }
+
+    [TestMethod]
+    public async Task TestMultiRanges()
+    {
+        var multiRange = new MultiRange<int>(new[]
+        {
+            new Range<int>(-40, -20), new Range<int>(5, 10), new Range<int>(20, 50), new Range<int>(5000, 5001),
+        });
+
+        var result = await EdgeDB.QueryRequiredSingleAsync<MultiRange<int>>("select <multirange<int32>>$arg",
+            new {arg = multiRange});
+
+        Assert.AreEqual(result.Length, multiRange.Length);
+
+        Assert.IsTrue(multiRange.SequenceEqual(result));
+    }
 
     [TestMethod]
     public async Task TestNullableReturns()

@@ -21,7 +21,7 @@ internal class V1ProtocolProvider : IProtocolProvider
         _client = client;
     }
 
-    public int SuggestedPoolConcurrency { get; private set; }
+    public int? SuggestedPoolConcurrency { get; private set; }
 
     public ref ReadOnlyMemory<byte> ServerKey
         => ref _serverKey;

@@ -6,6 +6,7 @@ using EdgeDB.DataTypes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Reflection;
 using ProtocolExecuteResult = EdgeDB.Binary.Protocol.ExecuteResult;
 
@@ -34,7 +35,9 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
     private Guid _stateDescriptorId;
 
     internal byte[] ServerKey;
-    internal int? SuggestedPoolConcurrency;
+
+    internal int? SuggestedPoolConcurrency
+        => _protocolProvider.SuggestedPoolConcurrency;
 
     /// <summary>
     ///     Creates a new binary client with the provided conection and config.
@@ -91,19 +94,6 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
 
     protected CancellationToken DisconnectCancelToken
         => Duplexer.DisconnectToken;
-
-    #region Events
-
-    /// <summary>
-    ///     Fired when the client disconnects.
-    /// </summary>
-    public event Func<ValueTask> OnDisconnect
-    {
-        add => OnDisconnectInternal.Add(c => value());
-        remove => OnDisconnectInternal.Remove(c => value());
-    }
-
-    #endregion
 
     #region Client pool dispose
 

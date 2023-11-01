@@ -13,5 +13,6 @@ internal enum DescriptorType : byte
     Range = 9,
     Object = 10,
     Compound = 11,
+    MultiRange = 12,
     TypeAnnotationText = 127
 }
