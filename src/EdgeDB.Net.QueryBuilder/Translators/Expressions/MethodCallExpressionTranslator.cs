@@ -11,36 +11,59 @@ using System.Threading.Tasks;
 namespace EdgeDB.Translators.Expressions
 {
     /// <summary>
-    ///     Represents a translator for translating an expression with a method 
+    ///     Represents a translator for translating an expression with a method
     ///     call to either static or an instance method.
     /// </summary>
     internal class MethodCallExpressionTranslator : ExpressionTranslator<MethodCallExpression>
     {
-        public override string? Translate(MethodCallExpression expression, ExpressionContext context)
+        private static string ExpressionAsString(Expression exp)
         {
-            // figure out if the method is something we should translate or somthing that we should
+            var expressionResult = Expression
+                .Lambda(exp)
+                .Compile()
+                .DynamicInvoke();
+
+            if (expressionResult is not string strResult)
+                throw new ArgumentException(
+                    $"Expected expression {exp} to evaluate to a string, but " +
+                    $"got {expressionResult?.GetType().ToString() ?? "NULL"}"
+                );
+
+            return strResult;
+        }
+
+        public override void Translate(MethodCallExpression expression, ExpressionContext context, StringBuilder result)
+        {
+            // figure out if the method is something we should translate or something that we should
             // call to pull the result from.
-            if(ShouldTranslate(expression, context))
-                return TranslateToEdgeQL(expression, context);
+            if (ShouldTranslate(expression, context))
+            {
+                TranslateToEdgeQL(expression, context, result);
+                return;
+            }
 
             // invoke and translate the result
-            var result = Expression.Lambda(expression, context.RootExpression.Parameters).Compile().DynamicInvoke();
+            var expressionResult = Expression
+                .Lambda(expression, context.RootExpression.Parameters)
+                .Compile()
+                .DynamicInvoke();
 
             // attempt to get the scalar type of the result of the method.
             if (!EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var type))
                 throw new InvalidOperationException($"Cannot use {expression.Type} as a result in an un-translated context");
 
             // return the variable name containing the result of the method.
-            return $"<{type}>{context.AddVariable(result)}";
+            result.TypeCast(type)
+                .Append(context.AddVariable(expressionResult));
         }
 
         private bool ShouldTranslate(MethodCallExpression expression, ExpressionContext context)
         {
             // if the method references context or a parameter to our current root lambda
-            var disassembledInstance = expression.Object is null 
+            var disassembledInstance = expression.Object is null
                 ? Array.Empty<Expression>()
                 : ExpressionUtils.DisassembleExpression(expression.Object).ToArray();
-            
+
             var isInstanceReferenceToContext = expression.Object?.Type == typeof(QueryContext) || context.RootExpression.Parameters.Any(x => disassembledInstance.Contains(x));
             var isParameterReferenceToContext = expression.Arguments.Any(x => x.Type == typeof(QueryContext) || context.RootExpression.Parameters.Any(y => ExpressionUtils.DisassembleExpression(x).Contains(y)));
             var isExplicitTranslatorMethod = expression.Method.GetCustomAttribute<EquivalentOperator>() is not null;
@@ -48,7 +71,7 @@ namespace EdgeDB.Translators.Expressions
             return isStdLib || isExplicitTranslatorMethod || isParameterReferenceToContext || isInstanceReferenceToContext;
         }
 
-        private string? TranslateToEdgeQL(MethodCallExpression expression, ExpressionContext context)
+        private static void TranslateToEdgeQL(MethodCallExpression expression, ExpressionContext context, StringBuilder result)
         {
             // if our method is within the query context class
             if (expression.Method.DeclaringType?.IsAssignableTo(typeof(IQueryContext)) ?? false)
@@ -56,39 +79,48 @@ namespace EdgeDB.Translators.Expressions
                 switch (expression.Method.Name)
                 {
                     case nameof(QueryContext.Global):
-                        return TranslateExpression(expression.Arguments[0], context.Enter(x => x.StringWithoutQuotes = true));
+                        TranslateExpression(expression.Arguments[0], context.Enter(x => x.StringWithoutQuotes = true), result);
+                        return;
                     case nameof(QueryContext.Local):
                         {
-                            // validate the type context, property should exist within the type.
-                            var rawArg = TranslateExpression(expression.Arguments[0], context.Enter(x => x.StringWithoutQuotes = true));
-                            var rawPath = rawArg.Split('.');
-                            string[] parsedPath = new string[rawPath.Length];
+                            // get the path as a string and split it into segments
+                            var path = ExpressionAsString(expression.Arguments[0]);
 
-                            // build a path if the property is nested
-                            for (int i = 0; i != rawPath.Length; i++)
+                            var pathSegments = path.Split('.');
+
+                            result.Append('.');
+
+                            for (int i = 0; i != pathSegments.Length; i++)
                             {
-                                var prop = (MemberInfo?)context.LocalScope?.GetProperty(rawPath[i]) ??
-                                    context.LocalScope?.GetField(rawPath[i]) ??
-                                    (MemberInfo?)context.NodeContext.CurrentType.GetProperty(rawPath[i]) ??
-                                    context.NodeContext.CurrentType.GetField(rawPath[i]);
+                                var prop = (MemberInfo?)context.LocalScope?.GetProperty(pathSegments[i]) ??
+                                    context.LocalScope?.GetField(pathSegments[i]) ??
+                                    (MemberInfo?)context.NodeContext.CurrentType.GetProperty(pathSegments[i]) ??
+                                    context.NodeContext.CurrentType.GetField(pathSegments[i]);
 
                                 if (prop is null)
-                                    throw new InvalidOperationException($"The property \"{rawPath[i]}\" within \"{rawArg}\" is out of scope");
+                                    throw new InvalidOperationException(
+                                        $"The property \"{pathSegments[i]}\" within \"{path}\" is out of scope"
+                                    );
 
-                                parsedPath[i] = prop.GetEdgeDBPropertyName();
+                                result.Append(prop.GetEdgeDBPropertyName());
+                                if (i + 1 != pathSegments.Length)
+                                    result.Append('.');
                             }
 
-                            return $".{string.Join('.', parsedPath)}";
+                            return;
                         }
                     case nameof(QueryContext.UnsafeLocal):
                         {
                             // same thing as local except we dont validate anything here
-                            return $".{TranslateExpression(expression.Arguments[0], context.Enter(x => x.StringWithoutQuotes = true))}";
+                            result.Append('.');
+                            result.Append(ExpressionAsString(expression.Arguments[0]));
+                            return;
                         }
                     case nameof(QueryContext.Raw):
                         {
                             // return the raw string as a constant expression and serialize it without quotes
-                            return TranslateExpression(expression.Arguments[0], context.Enter(x => x.StringWithoutQuotes = true));
+                            result.Append(ExpressionAsString(expression.Arguments[0]));
+                            return;
                         }
                     case nameof(QueryContext.BackLink):
                         {
@@ -151,7 +183,7 @@ namespace EdgeDB.Translators.Expressions
 
             if (edgeqlOperator != null)
             {
-                // parse the parameters 
+                // parse the parameters
                 var argsArray = new object[expression.Arguments.Count];
                 var parameters = expression.Method.GetParameters();
                 for (int i = 0; i != argsArray.Length; i++)

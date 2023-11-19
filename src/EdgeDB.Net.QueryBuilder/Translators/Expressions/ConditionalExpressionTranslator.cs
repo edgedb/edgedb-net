@@ -13,17 +13,16 @@ namespace EdgeDB.Translators.Expressions
     internal class ConditionalExpressionTranslator : ExpressionTranslator<ConditionalExpression>
     {
         /// <inheritdoc/>
-        public override string? Translate(ConditionalExpression expression, ExpressionContext context)
+        public override void Translate(
+            ConditionalExpression expression,
+            ExpressionContext context,
+            StringBuilder result)
         {
-            // translate the condition
-            var condition = TranslateExpression(expression.Test, context);
-
-            // translate both cases
-            var ifTrue = TranslateExpression(expression.IfTrue, context);
-            var ifFalse = TranslateExpression(expression.IfFalse, context);
-
-            // return the edgeql equivalent
-            return $"{ifTrue} if {condition} else {ifFalse}";
+            TranslateExpression(expression.IfTrue, context, result);
+            result.Append(" IF ");
+            TranslateExpression(expression.Test, context, result);
+            result.Append(" ELSE ");
+            TranslateExpression(expression.IfFalse, context, result);
         }
     }
 }

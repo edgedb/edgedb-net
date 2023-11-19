@@ -13,13 +13,15 @@ namespace EdgeDB.Translators.Expressions
     internal class ConstantExpressionTranslator : ExpressionTranslator<ConstantExpression>
     {
         /// <inheritdoc/>
-        public override string? Translate(ConstantExpression expression, ExpressionContext context)
+        public override void Translate(ConstantExpression expression, ExpressionContext context, StringBuilder result)
         {
             // return the string form if the context requests its raw string
             // form, otherwise parse the constant value.
-            return context.StringWithoutQuotes && expression.Value is string str 
-                ? str 
-                : QueryUtils.ParseObject(expression.Value);
+            result.Append(
+                context.StringWithoutQuotes && expression.Value is string str
+                    ? str
+                    : QueryUtils.ParseObject(expression.Value)
+            );
         }
     }
 }

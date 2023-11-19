@@ -14,13 +14,13 @@ namespace EdgeDB.Translators.Expressions
     internal class MemberExpressionTranslator : ExpressionTranslator<MemberExpression>
     {
         /// <inheritdoc/>
-        public override string? Translate(MemberExpression expression, ExpressionContext context)
+        public override void Translate(MemberExpression expression, ExpressionContext context, StringBuilder result)
         {
             // deconstruct the member access tree.
             var deconstructed = ExpressionUtils.DisassembleExpression(expression).ToArray();
 
             var baseExpression = deconstructed.LastOrDefault();
-            
+
             // if the base class is context
             if (baseExpression is not null && baseExpression.Type.IsAssignableTo(typeof(IQueryContext)))
             {
@@ -65,21 +65,52 @@ namespace EdgeDB.Translators.Expressions
                                     if (!EdgeDBTypeUtils.TryGetScalarType(deconstructed[0].Type, out var scalarInfo))
                                         throw new InvalidOperationException($"json value access must be scalar, path: {deconstructed[0].ToString()}");
 
+                                    var arguments = new StringBuilderExtensions.FunctionArg[path.Length + 1];
 
-                                    return $"<{scalarInfo}>json_get({jsonGlobal.Name}, {string.Join(", ", path.Select(x => $"'{x}'"))})";
+                                    arguments[0] = jsonGlobal.Name;
+                                    for (var i = 1; i != path.Length; i++)
+                                    {
+                                        var element = path[i - 1];
+                                        arguments[i] = new StringBuilderExtensions.FunctionArg(
+                                            s => s.Append('\'').Append(element).Append('\'')
+                                        );
+                                    }
+
+                                    result
+                                        .TypeCast(scalarInfo)
+                                        .Function(
+                                            "json_get",
+                                            arguments
+                                        );
+                                    return;
                                 }
 
                                 if (deconstructed.Length != 3)
                                     throw new NotSupportedException("Cannot use nested values for variable access");
-                                
+
                                 // return the name of the member
-                                return targetMember.Member.Name;
+                                result.Append(targetMember.Member.Name);
+                                return;
                             default:
                                 throw new NotSupportedException($"Cannot use expression type {target.NodeType} as a variable access");
                         }
                     case nameof(QueryContext.Self):
                         var paths = deconstructed[..^2];
-                        return $".{string.Join('.', paths.Select(x => x is MemberExpression m ? m.Member.GetEdgeDBPropertyName() : throw new NotSupportedException($"Cannot use expression type {x.NodeType} for a contextual member access")))}";
+                        result.Append('.');
+                        for (var i = 0; i != paths.Length; i++)
+                        {
+                            if (paths[i] is not MemberExpression me)
+                                throw new NotSupportedException(
+                                    $"Cannot use expression type {expression.NodeType} for a contextual member access"
+                                );
+
+                            result.Append(me.Member.GetEdgeDBPropertyName());
+                            if (i + 1 != paths.Length)
+                                result.Append('.');
+
+                        }
+
+                        return;
                 }
             }
 
@@ -88,8 +119,8 @@ namespace EdgeDB.Translators.Expressions
             if (baseExpression is ConstantExpression constant)
             {
                 // walk thru the reference tree, you can imagine this as a variac pointer resolution.
-                object? refHolder = constant.Value;
-                
+                var refHolder = constant.Value;
+
                 for(int i = deconstructed.Length - 2; i >= 0; i--)
                 {
                     // if the deconstructed node is not a member expression, we have something fishy...
@@ -103,15 +134,16 @@ namespace EdgeDB.Translators.Expressions
                 // at this point, 'refHolder' is now a direct reference to the property the expression resolves to,
                 // we can add this as our variable.
                 var varName = context.AddVariable(refHolder);
-                
+
                 if (!EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var type))
                     throw new NotSupportedException($"Cannot use {expression.Type} as no edgeql equivalent can be found");
 
-                return $"<{type}>${varName}";
+                result.QueryArgument(type, varName);
+                return;
             }
-            
+
             // assume were in a access-like context and reference it in edgeql.
-            return ParseMemberExpression(expression, expression.Expression is not ParameterExpression, context.IncludeSelfReference);
+            result.Append(ParseMemberExpression(expression, expression.Expression is not ParameterExpression, context.IncludeSelfReference));
         }
 
         /// <summary>
@@ -127,7 +159,7 @@ namespace EdgeDB.Translators.Expressions
             {
                 expression.Member.GetEdgeDBPropertyName()
             };
-            
+
             if (expression.Expression is MemberExpression innerExp)
                 tree.Add(ParseMemberExpression(innerExp));
             if (expression.Expression is ParameterExpression param)

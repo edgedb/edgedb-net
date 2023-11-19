@@ -10,13 +10,13 @@ using System.Threading.Tasks;
 namespace EdgeDB.Translators.Expressions
 {
     /// <summary>
-    ///     Represents a translator for translating an expression calling a 
+    ///     Represents a translator for translating an expression calling a
     ///     constructor and initializing one or more members of the new object.
     /// </summary>
     internal class MemberInitExpressionTranslator : ExpressionTranslator<MemberInitExpression>
     {
         /// <inheritdoc/>
-        public override string? Translate(MemberInitExpression expression, ExpressionContext context)
+        public override void Translate(MemberInitExpression expression, ExpressionContext context, StringBuilder result)
         {
             List<(EdgeDBPropertyInfo, Expression)> expressions = new();
 
@@ -35,11 +35,11 @@ namespace EdgeDB.Translators.Expressions
             {
                 if (binding.Member is not PropertyInfo propInfo || !map.TryGetValue(propInfo, out var edgedbPropInfo))
                     continue;
-                
+
                 expressions.Add((edgedbPropInfo, binding.Expression));
             }
 
-            return InitializationTranslator.Translate(expressions.ToDictionary(x => x.Item1, x => x.Item2), context);
+            InitializationTranslator.Translate(expressions, context, result);
         }
     }
 }

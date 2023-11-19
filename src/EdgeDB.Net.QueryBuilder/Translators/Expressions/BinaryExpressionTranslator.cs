@@ -13,25 +13,28 @@ namespace EdgeDB.Translators.Expressions
     internal class BinaryExpressionTranslator : ExpressionTranslator<BinaryExpression>
     {
         /// <inheritdoc/>
-        public override string? Translate(BinaryExpression expression, ExpressionContext context)
+        public override void Translate(BinaryExpression expression, ExpressionContext context, StringBuilder result)
         {
-            // translate the left and right side of the binary operation
-            var left = TranslateExpression(expression.Left, context);
-            var right = TranslateExpression(expression.Right, context);
-
             // special case for exists keyword
-            if ((expression.Right is ConstantExpression rightConst && rightConst.Value is null ||
-               expression.Left is ConstantExpression leftConst && leftConst.Value is null) &&
+            if ((expression.Right is ConstantExpression { Value: null } ||
+               expression.Left is ConstantExpression { Value: null }) &&
                expression.NodeType is ExpressionType.Equal or ExpressionType.NotEqual)
             {
-                return $"{(expression.NodeType is ExpressionType.Equal ? "not exists" : "exists")} {(right == "{}" ? left : right)}";
+                result.Append(expression.NodeType is ExpressionType.Equal ? "not exists" : "exists");
+
+                TranslateExpression(
+                    expression.Right is ConstantExpression { Value: null }
+                        ? expression.Left
+                        : expression.Right,
+                    context,
+                    result);
             }
 
             // try to build an operator for the given binary operator
-            if (!Grammar.TryBuildOperator(expression.NodeType, out var result, left, right))
-                throw new NotSupportedException($"Failed to find operator for node type {expression.NodeType}");
-
-            return result;
+            if (!Grammar.TryBuildOperator(
+                    expression.NodeType, result,
+                    Proxy(context, expression.Left, expression.Right))
+            ) throw new NotSupportedException($"Failed to find operator for node type {expression.NodeType}");
         }
     }
 }

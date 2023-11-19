@@ -1,5 +1,7 @@
+using EdgeDB.Translators;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -67,7 +69,7 @@ namespace EdgeDB
             }
         }
 
-        public static bool TryBuildOperator(ExpressionType type, out string? result, params object?[] args)
+        public static bool TryBuildOperator(ExpressionType type, StringBuilder result, params TranslatorProxy[] args)
         {
             if(_expOperators.TryGetValue(type, out var op))
             {
@@ -79,7 +81,7 @@ namespace EdgeDB
             return false;
         }
 
-        public static bool TryBuildOperator(string opName, out string? result, params object?[] args)
+        public static bool TryBuildOperator(string opName, StringBuilder result, params object?[] args)
         {
             if (_operators.TryGetValue(opName, out var op))
             {

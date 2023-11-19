@@ -25,7 +25,6 @@ var functions = await QueryBuilder
     .Filter(x => x.BuiltIn)
     .ExecuteAsync(edgedb)!;
 
-
 var requiredMethodTranslators = await OperatorGenerator.GenerateAsync(edgedb, operators!);
 
 var writer = new CodeWriter();
