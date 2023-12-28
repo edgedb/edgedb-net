@@ -283,10 +283,22 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
 
         var codec = result.OutCodecInfo.Codec;
 
-        for (var i = 0; i != result.Data.Length; i++)
+        if (result.Data.Length <= 7)
         {
-            var obj = ObjectBuilder.BuildResult<TResult>(this, codec, in result.Data[i]);
-            array[i] = obj;
+            for (var i = 0; i != result.Data.Length; i++)
+            {
+                var obj = await ObjectBuilder.BuildResultAsync<TResult>(this, codec, result.Data[i]);
+                array[i] = obj;
+            }
+        }
+        else
+        {
+            await Task.WhenAll(
+                result.Data.Select(async (x, i) =>
+                {
+                    array[i] = await ObjectBuilder.BuildResultAsync<TResult>(this, codec, x);
+                })
+            );
         }
 
         return array.ToImmutableArray();
@@ -323,7 +335,7 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
 
         return result.Data.Length == 0
             ? default
-            : ObjectBuilder.BuildResult<TResult>(this, result.OutCodecInfo.Codec, in result.Data[0]);
+            : await ObjectBuilder.BuildResultAsync<TResult>(this, result.OutCodecInfo.Codec, result.Data[0]);
     }
 
     /// <inheritdoc />
@@ -359,7 +371,8 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
 
         return result.Data.Length != 1
             ? throw new MissingRequiredException()
-            : ObjectBuilder.BuildResult<TResult>(this, result.OutCodecInfo.Codec, in result.Data[0])!;
+            : await ObjectBuilder.BuildResultAsync<TResult>(this, result.OutCodecInfo.Codec, result.Data[0])
+                ?? throw new ResultCardinalityMismatchException(Cardinality.One, Cardinality.NoResult);
     }
 
     /// <inheritdoc />

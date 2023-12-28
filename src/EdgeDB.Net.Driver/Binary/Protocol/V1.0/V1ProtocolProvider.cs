@@ -70,13 +70,30 @@ internal class V1ProtocolProvider : IProtocolProvider
             _ => null
         };
 
+    private ReadOnlyMemory<byte> SerializeArguments(
+        IDictionary<string, object?> arguments,
+        IArgumentCodec codec,
+        ArgumentVisitor visitor)
+    {
+        var writer = new PacketWriter();
+        try
+        {
+            codec.SerializeArguments(
+                ref writer,
+                arguments,
+                new ArgumentCodecContext(visitor.VisitedChildCodecs, _client)
+            );
+            return writer.GetBytes();
+        }
+        finally
+        {
+            writer.Dispose();
+        }
+    }
+
     public virtual async Task<ExecuteResult> ExecuteQueryAsync(QueryParameters queryParameters, ParseResult parseResult,
         CancellationToken token)
     {
-        if (parseResult.InCodecInfo.Codec is not IArgumentCodec argumentCodec)
-            throw new MissingCodecException(
-                $"Cannot encode arguments, {parseResult.InCodecInfo.Codec} is not a registered argument codec");
-
         ErrorResponse? error = null;
         var executeSuccess = false;
         var gotStateDescriptor = false;
@@ -84,6 +101,22 @@ internal class V1ProtocolProvider : IProtocolProvider
         var receivedData = new List<ReadOnlyMemory<byte>>();
 
         var stateBuf = parseResult.StateData;
+
+        ReadOnlyMemory<byte> argumentBuffer = Array.Empty<byte>();
+
+        if (queryParameters.Arguments is not null)
+        {
+            var inCodec = new Ref<ICodec>(parseResult.InCodecInfo.Codec);
+
+            var argumentVisitor = new ArgumentVisitor(_client, queryParameters.Arguments);
+            await argumentVisitor.VisitAsync(inCodec);
+
+            if (inCodec.Value is not IArgumentCodec argumentCodec)
+                throw new MissingCodecException(
+                    $"Cannot encode arguments, {parseResult.InCodecInfo.Codec} is not a registered argument codec");
+
+            argumentBuffer = SerializeArguments(queryParameters.Arguments, argumentCodec, argumentVisitor);
+        }
 
         do
         {
@@ -98,7 +131,7 @@ internal class V1ProtocolProvider : IProtocolProvider
                                StateData = stateBuf,
                                ImplicitTypeNames = queryParameters.ImplicitTypeNames, // used for type builder
                                ImplicitTypeIds = _client.ClientConfig.ImplicitTypeIds,
-                               Arguments = argumentCodec.SerializeArguments(_client, queryParameters.Arguments),
+                               Arguments = argumentBuffer,
                                ImplicitLimit = _client.ClientConfig.ImplicitLimit,
                                InputTypeDescriptorId = parseResult.InCodecInfo.Id,
                                OutputTypeDescriptorId = parseResult.OutCodecInfo.Id

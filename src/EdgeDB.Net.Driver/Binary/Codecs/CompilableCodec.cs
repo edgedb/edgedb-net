@@ -31,7 +31,7 @@ internal sealed class CompilableWrappingCodec
     object? ICodec.Deserialize(ref PacketReader reader, CodecContext context) => throw new NotSupportedException();
 
     // to avoid state changes to this compilable, pass in the inner codec post-walk.
-    public ICodec Compile(IProtocolProvider provider, Type type, ICodec? innerCodec = null)
+    public ICompiledCodec Compile(IProtocolProvider provider, Type type, ICodec? innerCodec = null)
     {
         innerCodec ??= InnerCodec;
 
@@ -41,7 +41,10 @@ internal sealed class CompilableWrappingCodec
 
         return CodecBuilder.GetProviderCache(provider).CompiledCodecCache.GetOrAdd(cacheKey, k =>
         {
-            var codec = (ICodec)Activator.CreateInstance(genType, Id, innerCodec, Metadata)!;
+            var codec = (ICompiledCodec)Activator.CreateInstance(
+                genType,
+                Id, type, this, innerCodec, Metadata
+            )!;
 
             if (codec is IComplexCodec complex)
             {
@@ -49,7 +52,8 @@ internal sealed class CompilableWrappingCodec
             }
 
             return codec;
-        });
+        }) as ICompiledCodec
+            ?? throw new InvalidOperationException("Codec that was returned from the cache was not a compiled codec, this shouldn't happen");
     }
 
     public Type GetInnerType()

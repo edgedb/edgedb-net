@@ -1,5 +1,6 @@
 using EdgeDB.Binary.Codecs;
 using EdgeDB.DataTypes;
+using EdgeDB.Utils;
 using Microsoft.Extensions.Logging;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -12,7 +13,7 @@ internal sealed class ObjectBuilder
     private static readonly ConcurrentDictionary<Type, (int Version, ICodec Codec)> _codecVisitorStateTable = new();
     private static readonly object _visitorLock = new();
 
-    public static PreheatedCodec PreheatCodec<T>(EdgeDBBinaryClient client, ICodec codec)
+    public static async Task<PreheatedCodec> PreheatCodec<T>(EdgeDBBinaryClient client, ICodec codec)
     {
         // if the codec has been visited before and we have the most up-to-date version, return it.
         if (
@@ -28,17 +29,18 @@ internal sealed class ObjectBuilder
 
         var visitor = new TypeVisitor(client);
         visitor.SetTargetType(typeof(T));
-        visitor.Visit(ref codec);
+        var reference = new Ref<ICodec>(codec);
+        await visitor.VisitAsync(reference);
 
         if (typeof(T) != typeof(object))
-            _codecVisitorStateTable[typeof(T)] = (version, codec);
+            _codecVisitorStateTable[typeof(T)] = (version, reference.Value);
 
         if (client.Logger.IsEnabled(LogLevel.Debug))
         {
-            client.Logger.ObjectDeserializationPrep(CodecFormatter.Format(codec).ToString());
+            client.Logger.ObjectDeserializationPrep(CodecFormatter.Format(reference.Value).ToString());
         }
 
-        return new PreheatedCodec(codec);
+        return new PreheatedCodec(reference.Value);
     }
 
     public static T? BuildResult<T>(EdgeDBBinaryClient client, in PreheatedCodec preheated,
@@ -54,8 +56,8 @@ internal sealed class ObjectBuilder
         return (T?)ConvertTo(typeof(T), value);
     }
 
-    public static T? BuildResult<T>(EdgeDBBinaryClient client, ICodec codec, in ReadOnlyMemory<byte> data)
-        => BuildResult<T>(client, PreheatCodec<T>(client, codec), data);
+    public static async Task<T?> BuildResultAsync<T>(EdgeDBBinaryClient client, ICodec codec, ReadOnlyMemory<byte> data)
+        => BuildResult<T>(client, await PreheatCodec<T>(client, codec), data);
 
     public static object? ConvertTo(Type type, object? value)
     {

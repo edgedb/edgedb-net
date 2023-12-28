@@ -3,15 +3,25 @@ using EdgeDB.Binary.Protocol.Common.Descriptors;
 namespace EdgeDB.Binary.Codecs;
 
 internal sealed class ArrayCodec<T>
-    : BaseCodec<T?[]>, IWrappingCodec, ICacheableCodec
+    : BaseCodec<T?[]>, IWrappingCodec, ICacheableCodec, ICompiledCodec
 {
     public static readonly byte[] EMPTY_ARRAY = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
 
+    public Type CompiledFrom { get; }
+    public CompilableWrappingCodec Template { get; }
+
     internal ICodec<T> InnerCodec;
 
-    public ArrayCodec(in Guid id, ICodec<T> innerCodec, CodecMetadata? metadata = null)
+    public ArrayCodec(
+        in Guid id,
+        Type compiledFrom,
+        CompilableWrappingCodec template,
+        ICodec<T> innerCodec,
+        CodecMetadata? metadata = null)
         : base(in id, metadata)
     {
+        CompiledFrom = compiledFrom;
+        Template = template;
         InnerCodec = innerCodec;
     }
 

@@ -9,7 +9,7 @@ internal sealed class NullCodec
 
     public NullCodec(CodecMetadata? metadata = null) { } // used in generic codec construction
 
-    public void SerializeArguments(ref PacketWriter writer, object? value, CodecContext context) { }
+    public void SerializeArguments(ref PacketWriter writer, object? value, ArgumentCodecContext context) { }
 
     public Guid Id
         => Guid.Empty;

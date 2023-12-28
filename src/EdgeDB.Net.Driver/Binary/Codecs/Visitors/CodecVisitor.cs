@@ -1,8 +1,10 @@
+using EdgeDB.Utils;
+
 namespace EdgeDB.Binary.Codecs;
 
 internal abstract class CodecVisitor
 {
-    public void Visit(ref ICodec codec) => VisitCodec(ref codec);
+    public Task VisitAsync(Ref<ICodec> codec) => VisitCodecAsync(codec);
 
-    protected abstract void VisitCodec(ref ICodec codec);
+    protected abstract Task VisitCodecAsync(Ref<ICodec> codec);
 }
