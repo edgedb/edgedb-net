@@ -109,7 +109,7 @@ internal class V1ProtocolProvider : IProtocolProvider
             var inCodec = new Ref<ICodec>(parseResult.InCodecInfo.Codec);
 
             var argumentVisitor = new ArgumentVisitor(_client, queryParameters.Arguments);
-            await argumentVisitor.VisitAsync(inCodec);
+            await argumentVisitor.VisitAsync(inCodec, token);
 
             if (inCodec.Value is not IArgumentCodec argumentCodec)
                 throw new MissingCodecException(

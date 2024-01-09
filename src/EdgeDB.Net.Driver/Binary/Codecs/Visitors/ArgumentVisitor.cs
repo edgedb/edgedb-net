@@ -14,8 +14,10 @@ internal sealed class ArgumentVisitor : CodecVisitor
         _arguments = args;
     }
 
-    protected override async Task VisitCodecAsync(Ref<ICodec> codec)
+    protected override async Task VisitCodecAsync(Ref<ICodec> codec, CancellationToken token)
     {
+        token.ThrowIfCancellationRequested();
+
         switch (codec.Value)
         {
             case ObjectCodec objectCodec:
@@ -28,7 +30,7 @@ internal sealed class ArgumentVisitor : CodecVisitor
                             type = v?.GetType() ?? typeof(object);
 
                         var reference = new Ref<ICodec>(x);
-                        await VisitAsync(reference, type);
+                        await VisitAsync(reference, type, token);
 
                         return reference.Value;
                     })
@@ -41,10 +43,10 @@ internal sealed class ArgumentVisitor : CodecVisitor
         }
     }
 
-    private async ValueTask VisitAsync(Ref<ICodec> codec, Type type)
+    private async ValueTask VisitAsync(Ref<ICodec> codec, Type type, CancellationToken token)
     {
         var typeVisitor = new TypeVisitor(_client);
         typeVisitor.SetTargetType(type);
-        await typeVisitor.VisitAsync(codec);
+        await typeVisitor.VisitAsync(codec, token);
     }
 }

@@ -62,5 +62,5 @@ internal sealed class CompilableWrappingCodec
             : InnerCodec.ConverterType;
 
     public override string ToString()
-        => $"compilable({_rootCodecType.Name})";
+        => $"compilable({InnerCodec})";
 }

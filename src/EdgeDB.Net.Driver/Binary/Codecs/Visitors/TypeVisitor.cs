@@ -33,14 +33,14 @@ internal sealed class TypeVisitor : CodecVisitor
 #if DEBUG
         async
 #endif
-        Task VisitCodecAsync(Ref<ICodec> codec)
+        Task VisitCodecAsync(Ref<ICodec> codec, CancellationToken token)
     {
         if (_context is null)
             throw new EdgeDBException("Context was not initialized for type walking");
 
 #if DEBUG
         var sw = Stopwatch.StartNew();
-        await VisitCodecAsync(codec, _context);
+        await VisitCodecAsync(codec, _context, token);
         sw.Stop();
         _logger.CodecVisitorTimingTrace(
             this,
@@ -50,14 +50,13 @@ internal sealed class TypeVisitor : CodecVisitor
 #else
         if(_logger.IsEnabled(LogLevel.Trace))
             _logger.CodecTree(CodecFormatter.FormatCodecAsTree(codec.Value).ToString());
-        return VisitCodecAsync(codec, _context);
+        return VisitCodecAsync(codec, _context, token);
 #endif
     }
 
-    private async Task VisitCodecAsync(Ref<ICodec> codec, TypeVisitorContext context)
+    private async Task VisitCodecAsync(Ref<ICodec> codec, TypeVisitorContext context, CancellationToken token)
     {
-         // TODO: if dynamic or object was passed in, return the default type
-        // from the complex OR based on config.
+        token.ThrowIfCancellationRequested();
 
         if (context.Type == typeof(void))
             return;
@@ -74,7 +73,7 @@ internal sealed class TypeVisitor : CodecVisitor
                     ? context.Type
                     : context.Type.GetWrappingType();
 
-                await VisitCodecAsync(reference, context with { Type = type });
+                await VisitCodecAsync(reference, context with { Type = type }, token);
                 compiled.InnerCodec = reference.Value;
             }
                 break;
@@ -121,7 +120,7 @@ internal sealed class TypeVisitor : CodecVisitor
                                 : x.ConverterType,
                         InnerRealType = !hasPropInfo && x is CompilableWrappingCodec,
                         Name = obj.PropertyNames[i]
-                    });
+                    }, token);
 
                     obj.InnerCodecs[i] = reference.Value;
                 }));
@@ -147,7 +146,7 @@ internal sealed class TypeVisitor : CodecVisitor
                         Type = tupleTypes is not null
                             ? tupleTypes[i]
                             : typeof(object)
-                    });
+                    }, token);
                     tuple.InnerCodecs[i] = reference.Value;
                 }));
 
@@ -164,7 +163,7 @@ internal sealed class TypeVisitor : CodecVisitor
                     : context.Type.GetWrappingType();
 
                 var reference = new Ref<ICodec>(compilable.InnerCodec);
-                await VisitCodecAsync(reference, context with { Type = innerType });
+                await VisitCodecAsync(reference, context with { Type = innerType }, token);
                 codec.Value = compilable.Compile(_client.ProtocolProvider, innerType, reference.Value);
             }
                 break;
