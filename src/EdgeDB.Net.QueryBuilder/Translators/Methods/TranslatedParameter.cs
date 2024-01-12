@@ -20,13 +20,13 @@ namespace EdgeDB.Translators.Methods
         /// <summary>
         ///     Gets the translated value of the parameter.
         /// </summary>
-        public string Value { get; }
+        public QueryStringWriter.Proxy ValueProxy { get; }
 
         /// <summary>
         ///     Gets the raw expression of the parameter.
         /// </summary>
         public Expression RawValue { get; }
-        
+
         /// <summary>
         ///     Gets whether or not the parameter type is a scalar array.
         /// </summary>
@@ -48,27 +48,28 @@ namespace EdgeDB.Translators.Methods
         /// <summary>
         ///     Gets whether or not the parameter is a valid multi-link type.
         /// </summary>
-        public bool IsMutliLinkType
+        public bool IsMultiLinkType
             => EdgeDBTypeUtils.IsLink(ParameterType, out var isMulti, out _) && isMulti;
 
         /// <summary>
         ///     Constructs a new <see cref="TranslatedParameter"/>.
         /// </summary>
         /// <param name="type">The type of the parameter.</param>
-        /// <param name="value">The translated value of the parameter.</param>
+        /// <param name="value">The proxy to translate the value of the parameter.</param>
         /// <param name="raw">The raw expression of the parameter.</param>
-        public TranslatedParameter(Type type, string value, Expression raw)
+        public TranslatedParameter(Type type, QueryStringWriter.Proxy value, Expression raw)
         {
             ParameterType = type;
-            Value = value;
+            ValueProxy = value;
             RawValue = raw;
         }
 
-        /// <summary>
-        ///     Converts this <see cref="TranslatedParameter"/> into the edgeql form.
-        /// </summary>
-        /// <returns>The edgeql (parsed) version of the parameter.</returns>
-        public override string ToString()
-            => Value;
+        public void WriteTo(QueryStringWriter writer)
+        {
+            ValueProxy(writer);
+        }
+
+        public static implicit operator QueryStringWriter.Value(TranslatedParameter param) => new(param.ValueProxy);
+        public static implicit operator QueryStringWriter.FunctionArg(TranslatedParameter param) => new(param.ValueProxy);
     }
 }

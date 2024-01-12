@@ -10,14 +10,14 @@ namespace EdgeDB
     {
         [EquivalentExpression(ExpressionType.ArrayIndex)]
         [EdgeQLOp("std::[]")]
-        public static string Op_1422860995(string? lParam, string? rParam)
+        public static void Op_1376978675(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
         {
-            return $"{lParam}[{rParam}]";
+            writer.Append(lParam).Wrapped(rParam, "[]");
         }
         [EdgeQLOp("std::++")]
-        public static string Op_1012565951(string? lParam, string? rParam)
+        public static void Op_1667101(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
         {
-            return $"{lParam} ++ {rParam}";
+            writer.Append(lParam).Wrapped("++", "  ").Append(rParam);
         }
     }
 }

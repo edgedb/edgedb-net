@@ -23,17 +23,14 @@ namespace EdgeDB.QueryNodes
         /// <summary>
         ///     Parsed the given contextual expression into an iterator.
         /// </summary>
+        /// <param name="writer">The query string writer to append the expression to.</param>
         /// <param name="name">The name of the root iterator.</param>
         /// <param name="varName">The name of the query variable containing the json value.</param>
         /// <param name="json">The json used for iteration.</param>
-        /// <returns>
-        ///     A edgeql iterator for a 'FOR' statement; or <see langword="null"/> 
-        ///     if the iterator requires introspection to build.
-        /// </returns>
         /// <exception cref="ArgumentException">
         ///     A type cannot be used as a parameter to a 'FOR' expression
         /// </exception>
-        private string? ParseExpression(string name, string varName, string json)
+        private void ParseExpression(QueryStringWriter writer, string name, string varName, string json)
         {
             // check if we're returning a query builder
             if (Context.Expression!.ReturnType == typeof(IQueryBuilder))
@@ -61,11 +58,13 @@ namespace EdgeDB.QueryNodes
                 // add all nodes as sub nodes to this node
                 SubNodes.AddRange(builder.Nodes);
 
-                // return nothing indicating we need to do introspection
-                return null;
+                // return indicating we need to do introspection
+                RequiresIntrospection = true;
             }
             else
-                return TranslateExpression(Context.Expression!);
+            {
+                writer.Wrapped(writer => TranslateExpression(Context.Expression!, writer));
+            }
         }
 
         /// <inheritdoc/>
@@ -82,16 +81,10 @@ namespace EdgeDB.QueryNodes
             SetVariable(jsonName, new Json(setJson));
 
             // append the 'FOR' statement
-            Query.Append($"for {name} in json_array_unpack(<json>${jsonName}) union ");
+            Writer.Append($"for {name} in json_array_unpack(<json>${jsonName}) union ");
 
             // parse the iterator expression
-            var parsed = ParseExpression(name, jsonName, setJson);
-
-            // if it's not null or empty, append the union statement's content
-            if (!string.IsNullOrEmpty(parsed))
-                Query.Append($"({parsed})");
-            else
-                RequiresIntrospection = true; // else tell the query builder that this node needs introspection
+            ParseExpression(Writer, name, jsonName, setJson);
         }
 
         /// <inheritdoc/>
@@ -117,7 +110,7 @@ namespace EdgeDB.QueryNodes
             }).Where(x => !string.IsNullOrEmpty(x)).Aggregate((x, y) => $"{x} {y}");
 
             // append union statement's content
-            Query.Append($"({iterator})");
+            Writer.Append($"({iterator})");
         }
     }
 }

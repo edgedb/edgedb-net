@@ -8,23 +8,29 @@ using System.Threading.Tasks;
 namespace EdgeDB.Translators.Expressions
 {
     /// <summary>
-    ///     Represents a translator for translating an expression creating a new array and 
+    ///     Represents a translator for translating an expression creating a new array and
     ///     possibly initializing the elements of the new array.
     /// </summary>
     internal class NewArrayExpressionTranslator : ExpressionTranslator<NewArrayExpression>
     {
         /// <inheritdoc/>
-        public override string? Translate(NewArrayExpression expression, ExpressionContext context)
+        public override void Translate(NewArrayExpression expression, ExpressionContext context, QueryStringWriter writer)
         {
-            // return out a edgeql set with each element in the dotnet array translated
-            var elements = string.Join(", ", expression.Expressions.Select(x => TranslateExpression(x, context)));
+            var brackets = EdgeDBTypeUtils.IsLink(expression.Type, out _, out _)
+                ? "{}"
+                : "[]";
 
-            // if its a collection of link-valid types, serialzie it as a set
-            if(EdgeDBTypeUtils.IsLink(expression.Type, out _, out _))
-                return $"{{ {elements} }}";
+            writer.Append(brackets[0]);
 
-            // serialize as a scalar array
-            return $"[{elements}]";
+            for (var i = 0; i != expression.Expressions.Count;)
+            {
+                TranslateExpression(expression.Expressions[i], context, writer);
+
+                if (i++ < expression.Expressions.Count)
+                    writer.Append(',');
+            }
+
+            writer.Append(brackets[1]);
         }
     }
 }

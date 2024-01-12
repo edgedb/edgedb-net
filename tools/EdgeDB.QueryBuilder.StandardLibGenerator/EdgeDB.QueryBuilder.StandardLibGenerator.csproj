@@ -12,4 +12,16 @@
     <ProjectReference Include="..\..\src\EdgeDB.Net.QueryBuilder\EdgeDB.Net.QueryBuilder.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="output\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Remove="output\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="output\**" />
+  </ItemGroup>
+
 </Project>

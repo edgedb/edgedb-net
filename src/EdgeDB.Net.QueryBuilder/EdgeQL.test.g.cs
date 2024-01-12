@@ -2,6 +2,7 @@
 #pragma warning disable
 using EdgeDB.Operators;
 using EdgeDB.DataTypes;
+using EdgeDB.Models.DataTypes;
 using System.Numerics;
 using DateTime = System.DateTime;
 
@@ -12,17 +13,17 @@ namespace EdgeDB
         /// <summary>
         ///     Check that the input set contains at most one element, raise CardinalityViolationError otherwise.
         /// </summary>
-        public static TType? AssertSingle<TType>(IEnumerable<TType> input, String? message)
+        public static TType? AssertSingle<TType>(IEnumerable<TType> input, String? message = null)
             => default!;
         /// <summary>
         ///     Check that the input set contains at least one element, raise CardinalityViolationError otherwise.
         /// </summary>
-        public static IEnumerable<TType> AssertExists<TType>(IEnumerable<TType> input, String? message)
+        public static IEnumerable<TType> AssertExists<TType>(IEnumerable<TType> input, String? message = null)
             => default!;
         /// <summary>
         ///     Check that the input set is a proper set, i.e. all elements are unique
         /// </summary>
-        public static IEnumerable<TType> AssertDistinct<TType>(IEnumerable<TType> input, String? message)
+        public static IEnumerable<TType> AssertDistinct<TType>(IEnumerable<TType> input, String? message = null)
             => default!;
         /// <summary>
         ///     Return the smallest value of the input set.
@@ -35,14 +36,14 @@ namespace EdgeDB
         public static TType? Max<TType>(IEnumerable<TType> vals)
             => default!;
         /// <summary>
-        ///     Return array elements as a set.
-        /// </summary>
-        public static IEnumerable<TType> ArrayUnpack<TType>(IEnumerable<TType> array)
-            => default!;
-        /// <summary>
         ///     Return the element of *array* at the specified *index*.
         /// </summary>
         public static TType? ArrayGet<TType>(IEnumerable<TType> array, Int64 idx, TType? @default)
+            => default!;
+        /// <summary>
+        ///     Return array elements as a set.
+        /// </summary>
+        public static IEnumerable<TType> ArrayUnpack<TType>(IEnumerable<TType> array)
             => default!;
         public static IEnumerable<TType> Distinct<TType>(IEnumerable<TType> s = default)
             => default!;
@@ -55,7 +56,7 @@ namespace EdgeDB
         /// <summary>
         ///     Assert that a boolean value is true.
         /// </summary>
-        public static Boolean Assert(Boolean input, String? message)
+        public static Boolean Assert(Boolean input, String? message = null)
             => default!;
         /// <summary>
         ///     Generalized boolean `AND` applied to the set of *values*.
@@ -83,6 +84,14 @@ namespace EdgeDB
         public static Boolean Contains<TType>(IEnumerable<TType> haystack, TType needle)
             => default!;
         /// <summary>
+        ///     A polymorphic function to test if one JSON value contains another JSON value.
+        /// </summary>
+        public static Boolean Contains(Json haystack, Json needle)
+            => default!;
+        public static Boolean StrictlyAbove<TPoint>(MultiRange<TPoint> l, MultiRange<TPoint> r)
+            where TPoint : struct
+            => default!;
+        /// <summary>
         ///     Test if a regular expression has a match in a string.
         /// </summary>
         public static Boolean ReTest(String pattern, String str)
@@ -102,7 +111,21 @@ namespace EdgeDB
         public static Boolean Overlaps<TPoint>(Range<TPoint> l, Range<TPoint> r)
             where TPoint : struct
             => default!;
+        public static Boolean StrictlyBelow<TPoint>(Range<TPoint> l, Range<TPoint> r)
+            where TPoint : struct
+            => default!;
+        public static Boolean BoundedAbove<TPoint>(Range<TPoint> l, Range<TPoint> r)
+            where TPoint : struct
+            => default!;
+        public static Boolean BoundedBelow<TPoint>(Range<TPoint> l, Range<TPoint> r)
+            where TPoint : struct
+            => default!;
+        public static Boolean Adjacent<TPoint>(Range<TPoint> l, Range<TPoint> r)
+            where TPoint : struct
+            => default!;
         public static Boolean Contains(Range<DateOnly> haystack, DateOnly needle)
+            => default!;
+        public static Boolean Contains(MultiRange<DateOnly> haystack, DateOnly needle)
             => default!;
         public static Boolean Not(Boolean v = default)
             => default!;
@@ -209,12 +232,12 @@ namespace EdgeDB
             => default!;
         public static IEnumerable<Int64> RangeUnpack(Range<Int64> val, Int64 step)
             => default!;
+        public static Int64 SequenceReset(Type seq, Int64 value)
+            => default!;
         /// <summary>
         ///     Create a `int64` value.
         /// </summary>
         public static Int64 ToInt64(String s, String? fmt)
-            => default!;
-        public static Int64 SequenceReset(Type seq, Int64 value)
             => default!;
         public static Int64 SequenceReset(Type seq)
             => default!;
@@ -283,11 +306,6 @@ namespace EdgeDB
         public static Decimal ToDecimal(String s, String? fmt)
             => default!;
         /// <summary>
-        ///     Return the sample variance of the input set.
-        /// </summary>
-        public static Decimal? Var(IEnumerable<Decimal> vals)
-            => default!;
-        /// <summary>
         ///     Round up to the nearest integer.
         /// </summary>
         public static Decimal Ceil(Decimal x)
@@ -333,6 +351,11 @@ namespace EdgeDB
         public static Decimal StddevPop(IEnumerable<Decimal> vals)
             => default!;
         /// <summary>
+        ///     Return the sample variance of the input set.
+        /// </summary>
+        public static Decimal? Var(IEnumerable<Decimal> vals)
+            => default!;
+        /// <summary>
         ///     Return the population variance of the input set.
         /// </summary>
         public static Decimal? VarPop(IEnumerable<Decimal> vals)
@@ -375,16 +398,6 @@ namespace EdgeDB
         public static Double DurationGet(TimeSpan dt, String el)
             => default!;
         public static IEnumerable<Double> RangeUnpack(Range<Double> val, Double step)
-            => default!;
-        /// <summary>
-        ///     Return the population standard deviation of the input set.
-        /// </summary>
-        public static Double StddevPop(IEnumerable<Double> vals)
-            => default!;
-        /// <summary>
-        ///     Return the sample variance of the input set.
-        /// </summary>
-        public static Double? Var(IEnumerable<Int64> vals)
             => default!;
         /// <summary>
         ///     Create a `float64` value.
@@ -457,6 +470,16 @@ namespace EdgeDB
         public static Double StddevPop(IEnumerable<Int64> vals)
             => default!;
         /// <summary>
+        ///     Return the population standard deviation of the input set.
+        /// </summary>
+        public static Double StddevPop(IEnumerable<Double> vals)
+            => default!;
+        /// <summary>
+        ///     Return the sample variance of the input set.
+        /// </summary>
+        public static Double? Var(IEnumerable<Int64> vals)
+            => default!;
+        /// <summary>
         ///     Return the sample variance of the input set.
         /// </summary>
         public static Double? Var(IEnumerable<Double> vals)
@@ -514,7 +537,7 @@ namespace EdgeDB
         /// <summary>
         ///     Replace matching substrings in a given string.
         /// </summary>
-        public static String ReReplace(String pattern, String sub, String str, String flags = "")
+        public static String ReReplace(String pattern, String sub, String str, String flags)
             => default!;
         /// <summary>
         ///     Repeat the input *string* *n* times.
@@ -539,47 +562,47 @@ namespace EdgeDB
         /// <summary>
         ///     Return the input string padded at the start to the length *n*.
         /// </summary>
-        public static String StrPadStart(String s, Int64 n, String fill = " ")
+        public static String StrPadStart(String s, Int64 n, String fill =  )
             => default!;
         /// <summary>
         ///     Return the input string left-padded to the length *n*.
         /// </summary>
-        public static String StrLpad(String s, Int64 n, String fill = " ")
+        public static String StrLpad(String s, Int64 n, String fill =  )
             => default!;
         /// <summary>
         ///     Return the input string padded at the end to the length *n*.
         /// </summary>
-        public static String StrPadEnd(String s, Int64 n, String fill = " ")
+        public static String StrPadEnd(String s, Int64 n, String fill =  )
             => default!;
         /// <summary>
         ///     Return the input string right-padded to the length *n*.
         /// </summary>
-        public static String StrRpad(String s, Int64 n, String fill = " ")
+        public static String StrRpad(String s, Int64 n, String fill =  )
             => default!;
         /// <summary>
         ///     Return the input string with all *trim* characters removed from its start.
         /// </summary>
-        public static String StrTrimStart(String s, String tr = " ")
+        public static String StrTrimStart(String s, String tr =  )
             => default!;
         /// <summary>
         ///     Return the input string with all leftmost *trim* characters removed.
         /// </summary>
-        public static String StrLtrim(String s, String tr = " ")
+        public static String StrLtrim(String s, String tr =  )
             => default!;
         /// <summary>
         ///     Return the input string with all *trim* characters removed from its end.
         /// </summary>
-        public static String StrTrimEnd(String s, String tr = " ")
+        public static String StrTrimEnd(String s, String tr =  )
             => default!;
         /// <summary>
         ///     Return the input string with all rightmost *trim* characters removed.
         /// </summary>
-        public static String StrRtrim(String s, String tr = " ")
+        public static String StrRtrim(String s, String tr =  )
             => default!;
         /// <summary>
         ///     Return the input string with *trim* characters removed from both ends.
         /// </summary>
-        public static String StrTrim(String s, String tr = " ")
+        public static String StrTrim(String s, String tr =  )
             => default!;
         /// <summary>
         ///     Given a string, find a matching substring and replace all its occurrences with a new substring.
@@ -632,6 +655,11 @@ namespace EdgeDB
         public static String ToStr(Json json, String? fmt)
             => default!;
         /// <summary>
+        ///     Convert a binary UTF-8 string to a text value.
+        /// </summary>
+        public static String ToStr(Byte[] b)
+            => default!;
+        /// <summary>
         ///     Return the server version as a string.
         /// </summary>
         public static String GetVersionAsStr()
@@ -655,6 +683,11 @@ namespace EdgeDB
         ///     Return string representation of the input value.
         /// </summary>
         public static String ToStr(DateOnly d, String? fmt)
+            => default!;
+        /// <summary>
+        ///     Encode given data as a base64 string
+        /// </summary>
+        public static String Enc(Byte[] data, Base64Alphabet alphabet = enc, Boolean padding = true)
             => default!;
         public static String Concat(String l = null, String r = null)
             => default!;
@@ -754,6 +787,11 @@ namespace EdgeDB
         ///     Return the server version as a tuple.
         /// </summary>
         public static ValueTuple<Int64, Int64, VersionStage, Int64, IEnumerable<String>> GetVersion()
+            => default!;
+        /// <summary>
+        ///     Search an object using its fts::index index. Returns objects that match the specified query and the matching score.
+        /// </summary>
+        public static ValueTuple<TObject, Single>? Search<TObject>(TObject object, String query, String language = eng, IEnumerable<Double>? weights)
             => default!;
         /// <summary>
         ///     Bitwise AND operator for 16-bit integers.
@@ -862,6 +900,11 @@ namespace EdgeDB
         /// <summary>
         ///     Return the smallest value of the input set.
         /// </summary>
+        public static IEnumerable<TimeSpan>? Max(IEnumerable<IEnumerable<TimeSpan>> vals)
+            => default!;
+        /// <summary>
+        ///     Return the smallest value of the input set.
+        /// </summary>
         public static IEnumerable<DateTime>? Min(IEnumerable<IEnumerable<DateTime>> vals)
             => default!;
         /// <summary>
@@ -883,11 +926,6 @@ namespace EdgeDB
         ///     Return the smallest value of the input set.
         /// </summary>
         public static IEnumerable<DateOnly>? Max(IEnumerable<IEnumerable<DateOnly>> vals)
-            => default!;
-        /// <summary>
-        ///     Return the smallest value of the input set.
-        /// </summary>
-        public static IEnumerable<TimeSpan>? Max(IEnumerable<IEnumerable<TimeSpan>> vals)
             => default!;
         /// <summary>
         ///     Return elements of JSON array as a set of `json`.
@@ -931,11 +969,42 @@ namespace EdgeDB
         public static Range<TPoint> Range<TPoint>(TPoint? lower, TPoint? upper, Boolean inc_lower = true, Boolean inc_upper = false, Boolean empty = false)
             where TPoint : struct
             => default!;
+        public static IEnumerable<Range<Int32>> MultirangeUnpack(MultiRange<Int32> val)
+            => default!;
+        public static IEnumerable<Range<Int64>> MultirangeUnpack(MultiRange<Int64> val)
+            => default!;
+        public static IEnumerable<Range<Single>> MultirangeUnpack(MultiRange<Single> val)
+            => default!;
+        public static IEnumerable<Range<Double>> MultirangeUnpack(MultiRange<Double> val)
+            => default!;
+        public static IEnumerable<Range<Decimal>> MultirangeUnpack(MultiRange<Decimal> val)
+            => default!;
+        public static IEnumerable<Range<DateTimeOffset>> MultirangeUnpack(MultiRange<DateTimeOffset> val)
+            => default!;
+        public static IEnumerable<Range<DateTime>> MultirangeUnpack(MultiRange<DateTime> val)
+            => default!;
+        public static IEnumerable<Range<DateOnly>> MultirangeUnpack(MultiRange<DateOnly> val)
+            => default!;
+        public static MultiRange<TPoint> Multirange<TPoint>(IEnumerable<Range<TPoint>> ranges)
+            where TPoint : struct
+            => default!;
         public static TPoint? RangeGetUpper<TPoint>(Range<TPoint> r)
             where TPoint : struct
             => default!;
         public static TPoint? RangeGetLower<TPoint>(Range<TPoint> r)
             where TPoint : struct
+            => default!;
+        /// <summary>
+        ///     Convert a text string to a binary UTF-8 string.
+        /// </summary>
+        public static Byte[] ToBytes(String s)
+            => default!;
+        /// <summary>
+        ///     Decode the byte64-encoded byte string and return decoded bytes.
+        /// </summary>
+        public static Byte[] Enc(String data, Base64Alphabet alphabet = standard, Boolean padding = true)
+            => default!;
+        public static Byte[] Concat(Byte[] l = null, Byte[] r = null)
             => default!;
         /// <summary>
         ///     Return the isolation level of the current transaction.
@@ -987,12 +1056,12 @@ namespace EdgeDB
         /// <summary>
         ///     Return the smallest value of the input set.
         /// </summary>
-        public static DateOnly? Max(IEnumerable<DateOnly> vals)
+        public static DateOnly? Min(IEnumerable<DateOnly> vals)
             => default!;
         /// <summary>
         ///     Return the smallest value of the input set.
         /// </summary>
-        public static DateOnly? Min(IEnumerable<DateOnly> vals)
+        public static DateOnly? Max(IEnumerable<DateOnly> vals)
             => default!;
         public static IEnumerable<DateOnly> RangeUnpack(Range<DateOnly> val)
             => default!;
@@ -1032,6 +1101,11 @@ namespace EdgeDB
         ///     Create a `cal::date_duration` value.
         /// </summary>
         public static TimeSpan ToDateDuration(Int64 years = 0, Int64 months = 0, Int64 days = 0)
+            => default!;
+        /// <summary>
+        ///     Adds language and weight category information to a string, so it be indexed with fts::index.
+        /// </summary>
+        public static  WithOptions<TEnum>(String text, TEnum language, Weight? weight_category = Weight.A)
             => default!;
     }
 }

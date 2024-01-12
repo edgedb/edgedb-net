@@ -10,7 +10,14 @@ namespace EdgeDB
     {
         internal static SubQuery SelectSubQuery(this Guid id, Type queryType)
         {
-            return new SubQuery($"(select {queryType.GetEdgeDBTypeName()} filter .id = <uuid>\"{id}\")");
+            return new SubQuery(writer => writer
+                .Wrapped(writer => writer
+                    .Append("select ")
+                    .Append(queryType.GetEdgeDBTypeName())
+                    .Append(" filter .id = <uuid>")
+                    .SingleQuoted(id.ToString())
+                )
+            );
         }
     }
 }

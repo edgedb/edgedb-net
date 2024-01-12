@@ -13,8 +13,9 @@ namespace EdgeDB
     internal static class ConflictUtils
     {
         /// <summary>
-        ///     Generates an 'UNLESS CONFLICT [ON expr]' statement for the given object type. 
+        ///     Generates an 'UNLESS CONFLICT [ON expr]' statement for the given object type.
         /// </summary>
+        /// <param name="writer">The query string writer to append the exclusive constraint to.</param>
         /// <param name="type">The object type to generate the conflict for.</param>
         /// <param name="hasElse">Whether or not the query has an else statement.</param>
         /// <returns>
@@ -23,25 +24,35 @@ namespace EdgeDB
         /// <exception cref="InvalidOperationException">
         ///     The conflict statement cannot be generated because of query grammar limitations.
         /// </exception>
-        public static string GenerateExclusiveConflictStatement(ObjectType type, bool hasElse)
+        public static void GenerateExclusiveConflictStatement(QueryStringWriter writer, ObjectType type, bool hasElse)
         {
             // does the type have any object level exclusive constraints?
             if (type.Constraints?.Any(x => x.IsExclusive) ?? false)
             {
-                return $"unless conflict on {type.Constraints?.First(x => x.IsExclusive).SubjectExpression}";
+                writer
+                    .Append("unless conflict on ")
+                    .Append(type.Constraints?.First(x => x.IsExclusive).SubjectExpression);
+                return;
             }
 
             // does the type have a single property that is exclusive?
             if(type.Properties!.Count(x => x.Name != "id" && x.IsExclusive) == 1)
             {
-                return $"unless conflict on .{type.Properties!.First(x => x.Name != "id" && x.IsExclusive).Name}";
+                writer
+                    .Append("unless conflict on .")
+                    .Append(type.Properties!.First(x => x.Name != "id" && x.IsExclusive).Name);
+
+                return;
             }
 
             // if it doesn't have an else statement we can simply add 'UNLESS CONFLICT'
             if (!hasElse)
-                return "unless conflict";
+            {
+                writer.Append("unless conflict");
+                return;
+            }
 
-            throw new InvalidOperationException($"Cannot find a valid exclusive contraint on type {type.Name}");
+            throw new InvalidOperationException($"Cannot find a valid exclusive constraint on type {type.Name}");
         }
     }
 }

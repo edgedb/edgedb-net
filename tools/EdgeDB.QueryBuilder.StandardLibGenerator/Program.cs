@@ -45,7 +45,7 @@ using (var _ = writer.BeginScope("namespace EdgeDB"))
     }
 }
 
-File.WriteAllText(Path.Combine(@"C:\Users\lynch\source\repos\EdgeDB\src\EdgeDB.Net.QueryBuilder", "EdgeQL.test.g.cs"), writer.ToString());
+File.WriteAllText(Path.Combine(Environment.CurrentDirectory, "output", "EdgeQL.test.g.cs"), writer.ToString());
 
 
 await Task.Delay(-1);

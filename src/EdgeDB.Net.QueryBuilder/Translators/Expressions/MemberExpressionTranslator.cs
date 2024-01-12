@@ -14,7 +14,7 @@ namespace EdgeDB.Translators.Expressions
     internal class MemberExpressionTranslator : ExpressionTranslator<MemberExpression>
     {
         /// <inheritdoc/>
-        public override void Translate(MemberExpression expression, ExpressionContext context, StringBuilder result)
+        public override void Translate(MemberExpression expression, ExpressionContext context, QueryStringWriter writer)
         {
             // deconstruct the member access tree.
             var deconstructed = ExpressionUtils.DisassembleExpression(expression).ToArray();
@@ -65,18 +65,18 @@ namespace EdgeDB.Translators.Expressions
                                     if (!EdgeDBTypeUtils.TryGetScalarType(deconstructed[0].Type, out var scalarInfo))
                                         throw new InvalidOperationException($"json value access must be scalar, path: {deconstructed[0].ToString()}");
 
-                                    var arguments = new StringBuilderExtensions.FunctionArg[path.Length + 1];
+                                    var arguments = new QueryStringWriter.FunctionArg[path.Length + 1];
 
                                     arguments[0] = jsonGlobal.Name;
                                     for (var i = 1; i != path.Length; i++)
                                     {
                                         var element = path[i - 1];
-                                        arguments[i] = new StringBuilderExtensions.FunctionArg(
+                                        arguments[i] = new QueryStringWriter.Value(
                                             s => s.Append('\'').Append(element).Append('\'')
                                         );
                                     }
 
-                                    result
+                                    writer
                                         .TypeCast(scalarInfo)
                                         .Function(
                                             "json_get",
@@ -89,14 +89,14 @@ namespace EdgeDB.Translators.Expressions
                                     throw new NotSupportedException("Cannot use nested values for variable access");
 
                                 // return the name of the member
-                                result.Append(targetMember.Member.Name);
+                                writer.Append(targetMember.Member.Name);
                                 return;
                             default:
                                 throw new NotSupportedException($"Cannot use expression type {target.NodeType} as a variable access");
                         }
                     case nameof(QueryContext.Self):
                         var paths = deconstructed[..^2];
-                        result.Append('.');
+                        writer.Append('.');
                         for (var i = 0; i != paths.Length; i++)
                         {
                             if (paths[i] is not MemberExpression me)
@@ -104,9 +104,9 @@ namespace EdgeDB.Translators.Expressions
                                     $"Cannot use expression type {expression.NodeType} for a contextual member access"
                                 );
 
-                            result.Append(me.Member.GetEdgeDBPropertyName());
+                            writer.Append(me.Member.GetEdgeDBPropertyName());
                             if (i + 1 != paths.Length)
-                                result.Append('.');
+                                writer.Append('.');
 
                         }
 
@@ -138,12 +138,12 @@ namespace EdgeDB.Translators.Expressions
                 if (!EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var type))
                     throw new NotSupportedException($"Cannot use {expression.Type} as no edgeql equivalent can be found");
 
-                result.QueryArgument(type, varName);
+                writer.QueryArgument(type, varName);
                 return;
             }
 
             // assume were in a access-like context and reference it in edgeql.
-            result.Append(ParseMemberExpression(expression, expression.Expression is not ParameterExpression, context.IncludeSelfReference));
+            writer.Append(ParseMemberExpression(expression, expression.Expression is not ParameterExpression, context.IncludeSelfReference));
         }
 
         /// <summary>

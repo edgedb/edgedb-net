@@ -29,11 +29,14 @@ namespace EdgeDB.QueryNodes
                 return false;
 
             // find all nodes that references this global
-            var nodes = Builder.Nodes.Where(x => x.ReferencedGlobals.Contains(global));
+            var nodes = Builder.Nodes.Where(x => x.ReferencedGlobals.Contains(global)).ToArray();
 
-            var bannedTypes = builder.Nodes.Select(x => x.GetOperatingType()).Where(x => EdgeDBTypeUtils.IsLink(x, out _, out _));
+            var bannedTypes = builder.Nodes
+                .Select(x => x.GetOperatingType())
+                .Where(x => EdgeDBTypeUtils.IsLink(x, out _, out _))
+                .ToArray();
 
-            int c = nodes.Count();
+            var count = nodes.Length;
             foreach(var node in nodes)
             {
                 // check the operating type of the node
@@ -41,45 +44,44 @@ namespace EdgeDB.QueryNodes
                 if (EdgeDBTypeUtils.IsLink(operatingType, out _, out _) && bannedTypes.Contains(operatingType))
                     continue;
 
-                node.ReplaceSubqueryAsLiteral(global.Name, CompileGlobalValue(global));
-                c--;
+                node.ReplaceSubqueryAsLiteral(global, CompileGlobalValue);
+                count--;
             }
-            
-            return c <= 0;
+
+            return count <= 0;
         }
 
         /// <inheritdoc/>
         public override void Visit()
         {
-            // if no values are provided we can safely stop here.
             if (Context.Values is null || !Context.Values.Any())
                 return;
 
-            List<string> values = new();
+            var nodes = Context.Values.Where(x => !TryReduceNode(x)).ToArray();
 
-            // iterate over every global defined in our context
-            foreach(var global in Context.Values)
-            {
-                if(TryReduceNode(global))
-                {
-                    continue;
-                }
-
-                var value = CompileGlobalValue(global);
-
-                // parse the object and add it to the values.
-                values.Add($"{global.Name} := {value}");
-            }
-
-            if (!values.Any())
+            if (!nodes.Any())
                 return;
 
-            // join the values seperated by commas
-            Query.Append($"with {string.Join(", ", values)}");
+            Writer.Append("with ");
+
+            for (var i = 0; i != nodes.Length; i++)
+            {
+                var global = nodes[i];
+
+                Writer.Append(global.Name)
+                    .Append(" := ");
+
+                CompileGlobalValue(global);
+
+                if (i + 1 < nodes.Length)
+                    Writer.Append(", ");
+            }
         }
 
-        private string CompileGlobalValue(QueryGlobal global)
+        private void CompileGlobalValue(QueryGlobal global, QueryStringWriter? writer = null)
         {
+            writer ??= Writer;
+
             // if its a query builder, build it and add it as a sub-query.
             if (global.Value is IQueryBuilder queryBuilder)
             {
@@ -93,25 +95,29 @@ namespace EdgeDB.QueryNodes
                     foreach (var queryGlobal in query.Globals)
                         SetGlobal(queryGlobal.Name, queryGlobal.Value, null);
 
-                return $"({query.Query})";
+                writer.Wrapped(query.Query);
             }
 
             // if its a sub query that requires introspection, build it and add it.
             if (global.Value is SubQuery subQuery && subQuery.RequiresIntrospection)
             {
-                if (subQuery.RequiresIntrospection && SchemaInfo is null)
+                if (SchemaInfo is null)
                     throw new InvalidOperationException("Cannot build without introspection! A node requires query introspection.");
 
-                return subQuery.Build(SchemaInfo!).Query!;
+                subQuery.Build(SchemaInfo, writer);
+                return;
             }
 
-            // if its an expession, translate it and then return the subquery form
+            // if its an expression, translate it and then return the subquery form
             if(global.Value is Expression expression && global.Reference is LambdaExpression root)
             {
-                return $"({TranslateExpression(root, expression)})";
+                writer.Append('(');
+                TranslateExpression(root, expression, writer);
+                writer.Append(')');
+                return;
             }
 
-            return QueryUtils.ParseObject(global.Value);
+            QueryUtils.ParseObject(writer, global.Value);
         }
     }
 }

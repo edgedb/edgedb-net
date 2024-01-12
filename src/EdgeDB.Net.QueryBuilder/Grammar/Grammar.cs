@@ -12,26 +12,30 @@ namespace EdgeDB
 {
     internal partial class Grammar
     {
-        private static readonly Dictionary<ExpressionType, Operator> _expOperators;
-        private static readonly Dictionary<string, Operator> _operators;
+        private static readonly List<Operator> _operators;
 
         private class Operator
         {
+            public ExpressionType[] ExpressionTypes { get; }
             public string Name { get; }
             public int ParameterCount { get; }
 
             private readonly MethodInfo _method;
 
-            public Operator(string name, int paramCount, MethodInfo method)
+            public Operator(ExpressionType[] expressionTypes, string name, int paramCount, MethodInfo method)
             {
+                ExpressionTypes = expressionTypes;
                 Name = name;
                 ParameterCount = paramCount;
                 _method = method;
             }
 
-            public string Build(params object?[] args)
+            public void Build(QueryStringWriter writer, params QueryStringWriter.Proxy[] args)
             {
-                return (string)_method.Invoke(null, args)!;
+                var arr = new object?[args.Length + 1];
+                arr[0] = writer;
+                args.CopyTo(arr, 1);
+                _method.Invoke(null, arr);
             }
         }
 
@@ -41,56 +45,45 @@ namespace EdgeDB
                 .Where(x => x.GetCustomAttribute<EdgeQLOpAttribute>() is not null);
 
             _operators = new();
-            _expOperators = new();
 
             foreach (var op in operators)
             {
                 var opAttr = op.GetCustomAttribute<EdgeQLOpAttribute>()!;
 
-                if (_operators.ContainsKey(opAttr.Operator))
-                    continue;
-
                 var expAttr = op.GetCustomAttribute<EquivalentExpressionAttribute>();
 
-                var opInfo = new Operator(opAttr.Operator, op.GetParameters().Length, op);
+                var expressions = expAttr is null
+                    ? Array.Empty<ExpressionType>()
+                    : expAttr.Expressions;
 
-                _operators.Add(opAttr.Operator, opInfo);
+                var opInfo = new Operator(expressions, opAttr.Operator, op.GetParameters().Length - 1, op);
 
-                if (expAttr is not null)
-                {
-                    foreach (var exp in expAttr.Expressions)
-                    {
-                        if (!_expOperators.ContainsKey(exp))
-                        {
-                            _expOperators.Add(exp, opInfo);
-                        }
-                    }
-                }
+                _operators.Add(opInfo);
             }
         }
 
-        public static bool TryBuildOperator(ExpressionType type, StringBuilder result, params TranslatorProxy[] args)
+        private static Operator? SearchForBestMatch(ExpressionType type, QueryStringWriter.Proxy[] args)
+            => _operators.FirstOrDefault(x => x.ExpressionTypes.Contains(type) && x.ParameterCount == args.Length);
+
+        public static bool TryBuildOperator(ExpressionType type, QueryStringWriter writer,
+            params QueryStringWriter.Proxy[] args)
         {
-            if(_expOperators.TryGetValue(type, out var op))
-            {
-                result = op.Build(args);
-                return true;
-            }
+            var op = SearchForBestMatch(type, args);
 
-            result = null;
-            return false;
+            if (op is null)
+                return false;
+
+            op.Build(writer, args);
+            return true;
         }
 
-        public static bool TryBuildOperator(string opName, StringBuilder result, params object?[] args)
-        {
-            if (_operators.TryGetValue(opName, out var op))
-            {
-                result = op.Build(args);
-                return true;
-            }
-
-            result = null;
-            return false;
-        }
+        public static bool TryBuildOperator(ExpressionType type, QueryStringWriter writer, params object?[] args)
+            => TryBuildOperator(
+                type,
+                writer,
+                args.Select(x => new QueryStringWriter.Proxy(writer => writer
+                    .Append(x)
+                )).ToArray()
+            );
     }
 }

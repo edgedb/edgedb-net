@@ -7,7 +7,7 @@ namespace EdgeDB.StandardLibGenerator
 {
     internal class OperatorGenerator
     {
-        private const string OUTPUT_PATH = @"C:\Users\lynch\source\repos\EdgeDB\src\EdgeDB.Net.QueryBuilder\Grammar\Operators";
+        private static string OutputPath => Path.Combine(Environment.CurrentDirectory, "output", "operators"); // @"C:\Users\lynch\source\repos\EdgeDB\src\EdgeDB.Net.QueryBuilder\Grammar\Operators";
 
         public static Dictionary<string, ExpressionType[]> ExpressionMap = new Dictionary<string, ExpressionType[]>
         {
@@ -81,7 +81,7 @@ namespace EdgeDB.StandardLibGenerator
                 {
                     var opName = _aliases.TryGetValue(op!.Name!, out var alias) ? alias : op!.Name!;
 
-                    if (generatedOps.Contains(opName))
+                    if (generatedOps.Contains($"{opName}{op.Parameters!.Length}"))
                     {
                         // shortcut for method translators
                         if (Regex.IsMatch(opName!, @".+::(?>\w| )+$"))
@@ -128,16 +128,17 @@ namespace EdgeDB.StandardLibGenerator
 
                     var name = Math.Abs(HashCode.Combine(opName, op.Parameters));
 
-                    using (_ = writer.BeginScope($"public static string Op_{name}({string.Join(", ", op.Parameters!.Select(x => $"string? {x.Name}Param"))})"))
+                    using (_ = writer.BeginScope($"public static void Op_{name}(QueryStringWriter writer, {string.Join(", ", op.Parameters!.Select(x => $"QueryStringWriter.Proxy {x.Name}Param"))})"))
                     {
-                        writer.AppendLine($"return $\"{expression}\";");
+                        writer.AppendLine($"{expression};");
                     }
 
-                    generatedOps.Add(op.Name!);
+                    generatedOps.Add($"{op.Name}{op.Parameters.Length}");
                 }
             }
 
-            var outputPath = Path.Join(OUTPUT_PATH, $"Grammar.{clsName}.g.cs");
+            var outputPath = Path.Join(OutputPath, $"Grammar.{clsName}.g.cs");
+            Directory.CreateDirectory(OutputPath);
             await File.WriteAllTextAsync(outputPath, writer.ToString());
 
             return methodTranslators;
@@ -166,32 +167,33 @@ namespace EdgeDB.StandardLibGenerator
                         if (op.Parameters!.Length != 2)
                             throw new ArgumentException("Expected 2 parameters for Infix");
 
-                        return op.Name switch
+                        if (op.Name == "std::[]")
                         {
-                            "std::[]" => $"{{{op.Parameters[0].Name + "Param"}}}[{{{op.Parameters[1].Name + "Param"}}}]",
-                            _ => $"{{{op.Parameters[0].Name + "Param"}}} {operation} {{{op.Parameters[1].Name + "Param"}}}"
-                        };
+                            return $"writer.Append({op.Parameters[0].Name + "Param"}).Wrapped({op.Parameters[1].Name + "Param"}, \"[]\")";
+                        }
+
+                        return $"writer.Append({op.Parameters[0].Name + "Param"}).Wrapped(\"{operation}\", \"  \").Append({op.Parameters[1].Name + "Param"})";
                     }
                 case OperatorKind.Postfix:
                     {
                         if (op.Parameters!.Length != 1)
                             throw new ArgumentException("Expected 1 parameter for Postfix");
 
-                        return $"{{{op.Parameters[0].Name + "Param"}}} {operation}";
+                        return $"writer.Append({op.Parameters[0].Name + "Param"}).Append(\"{operation}\")";
                     }
                 case OperatorKind.Prefix:
                     {
                         if (op.Parameters!.Length != 1)
                             throw new ArgumentException("Expected 1 parameter for Prefix");
 
-                        return $"{operation} {{{op.Parameters[0].Name + "Param"}}}";
+                        return $"writer.Append(\"{operation}\").Append({op.Parameters[0].Name + "Param"})";
                     }
                 case OperatorKind.Ternary:
                     {
                         if (op.Parameters!.Length != 3)
                             throw new ArgumentException("Expected 3 parameters for Ternary");
 
-                        return $"{{{op.Parameters[0].Name + "Param"}}} IF {{{op.Parameters[1].Name + "Param"}}} ELSE {{{op.Parameters[2].Name + "Param"}}}";
+                        return $"writer.Append({op.Parameters[0].Name + "Param"}).Append(\" IF \").Append({op.Parameters[1].Name + "Param"}).Append(\" ELSE \").Append({op.Parameters[2].Name + "Param"})";
                     }
                 default:
                     throw new Exception("Unknown operator kind " + op.OperatorKind);

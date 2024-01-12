@@ -19,20 +19,30 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Builders
 {
-    internal delegate string SelectShapeExpressionTranslatorCallback(ShapeElementExpression expression);
+    internal delegate void SelectShapeExpressionTranslatorCallback(QueryStringWriter writer, ShapeElementExpression expression);
 
     internal class SelectShape
     {
-        private readonly IEnumerable<SelectedProperty> _shape;
+        private readonly SelectedProperty[] _shape;
 
         public SelectShape(IEnumerable<SelectedProperty> shape)
         {
-            _shape = shape;
+            _shape = shape.ToArray();
         }
 
-        public string Compile(SelectShapeExpressionTranslatorCallback translator)
+        public void Compile(QueryStringWriter writer, SelectShapeExpressionTranslatorCallback translator)
         {
-            return $"{{ {string.Join(", ", _shape.Select(x => x.Compile(translator)))} }}";
+            writer.Append("{ ");
+
+            for (int i = 0; i != _shape.Length;)
+            {
+                _shape[i].Compile(writer, translator);
+
+                if (++i != _shape.Length)
+                    writer.Append(", ");
+            }
+
+            writer.Append(" }");
         }
     }
 
@@ -59,14 +69,26 @@ namespace EdgeDB.Builders
             ElementShape = shape;
         }
 
-        public string Compile(SelectShapeExpressionTranslatorCallback translator)
+        public void Compile(QueryStringWriter writer, SelectShapeExpressionTranslatorCallback translator)
         {
             if (ElementValue.HasValue)
-                return $"{Name} := {translator(ElementValue.Value)}";
+            {
+                writer
+                    .Append(Name)
+                    .Append(" := ");
+                translator(writer, ElementValue.Value);
+            }
             else if (ElementShape is not null)
-                return $"{Name}: {ElementShape.Compile(translator)}";
+            {
+                writer
+                    .Append(Name)
+                    .Append(": ");
+                ElementShape.Compile(writer, translator);
+            }
             else
-                return Name;
+            {
+                writer.Append(Name);
+            }
         }
     }
 

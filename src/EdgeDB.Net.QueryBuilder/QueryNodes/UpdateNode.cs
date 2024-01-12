@@ -12,11 +12,6 @@ namespace EdgeDB.QueryNodes
     /// </summary>
     internal class UpdateNode : QueryNode<UpdateContext>
     {
-        /// <summary>
-        ///     The translated update factory.
-        /// </summary>
-        private string? _translatedExpression;
-        
         /// <inheritdoc/>
         public UpdateNode(NodeBuilder builder) : base(builder) { }
 
@@ -24,14 +19,12 @@ namespace EdgeDB.QueryNodes
         public override void Visit()
         {
             // resolve and append the UPDATE ... statement
-            var updateTarget = Context.Selector is not null
-                ? TranslateExpression(Context.Selector)
-                : OperatingType.GetEdgeDBTypeName();
+            Writer.Append("update ");
 
-            Query.Append($"update {updateTarget}");
-            
-            // translate the update factory
-            _translatedExpression = TranslateExpression(Context.UpdateExpression!);
+            if (Context.Selector is not null)
+                TranslateExpression(Context.Selector, Writer);
+            else
+                Writer.Append(OperatingType.GetEdgeDBTypeName());
 
             // set whether or not we need introspection based on our child queries
             RequiresIntrospection = Context.ChildQueries.Any(x => x.Value.RequiresIntrospection);
@@ -41,7 +34,9 @@ namespace EdgeDB.QueryNodes
         public override void FinalizeQuery()
         {
             // add our 'set' statement to our translated update factory
-            Query.Append($" set {_translatedExpression}");
+            Writer.Append($" set ");
+
+            TranslateExpression(Context.UpdateExpression!, Writer);
 
             // throw if we dont have introspection data when a child requires it
             if (RequiresIntrospection && SchemaInfo is null)
@@ -53,12 +48,14 @@ namespace EdgeDB.QueryNodes
                 // sub query will be built with introspection by the with node.
                 SetGlobal(child.Key, child.Value, null);
             }
-            
+
             // if the builder wants this node to be a global
             if (Context.SetAsGlobal && Context.GlobalName != null)
             {
-                SetGlobal(Context.GlobalName, new SubQuery($"({Query})"), null);
-                Query.Clear();
+                SetGlobal(Context.GlobalName, new SubQuery(writer => writer
+                    .Wrapped(Writer)
+                ), null);
+                Writer.Clear();
             }
         }
 
@@ -69,8 +66,8 @@ namespace EdgeDB.QueryNodes
         public void Filter(LambdaExpression filter)
         {
             // translate the filter and append it to our query text.
-            var parsedExpression = TranslateExpression(filter);
-            Query.Append($" filter {parsedExpression}");
+            Writer.Append(" filter ");
+            TranslateExpression(filter, Writer);
         }
     }
 }

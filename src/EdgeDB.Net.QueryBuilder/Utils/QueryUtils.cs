@@ -27,31 +27,65 @@ namespace EdgeDB
         /// </summary>
         /// <param name="obj">The object to parse.</param>
         /// <returns>The string representation for the given object.</returns>
-        internal static string ParseObject(object? obj)
+        internal static void ParseObject(QueryStringWriter writer, object? obj)
         {
             if (obj is null)
-                return "{}";
+            {
+                writer.Append("{}");
+                return;
+            }
 
             if (obj is Enum enm)
             {
                 var type = enm.GetType();
                 var att = type.GetCustomAttribute<EnumSerializerAttribute>();
-                return att != null ? att.Method switch
+
+                if (att is not null)
                 {
-                    SerializationMethod.Lower => $"\"{obj.ToString()?.ToLower()}\"",
-                    SerializationMethod.Numeric => Convert.ChangeType(obj, type.BaseType ?? typeof(int)).ToString() ?? "{}",
-                    _ => "{}"
-                } : $"\"{obj}\"";
+                    switch (att.Method)
+                    {
+                        case SerializationMethod.Lower:
+                            writer.SingleQuoted(obj?.ToString()?.ToLower());
+                            break;
+                        case SerializationMethod.Numeric:
+                            writer.Append(Convert.ChangeType(obj, type.BaseType ?? typeof(int)).ToString() ?? "{}");
+                            break;
+                        default:
+                            writer.Append("{}");
+                            break;
+                    }
+
+                    return;
+                }
+
+                writer.SingleQuoted(obj.ToString());
             }
 
-            return obj switch
+            switch (obj)
             {
-                SubQuery query when !query.RequiresIntrospection => query.Query!,
-                string str => $"\"{str}\"",
-                char chr => $"\"{chr}\"",
-                Type type => EdgeDBTypeUtils.TryGetScalarType(type, out var info) ? info.ToString() : type.GetEdgeDBTypeName(),
-                _ => obj.ToString()!
-            };
+                case SubQuery subQuery:
+                    if (subQuery.RequiresIntrospection)
+                        throw new InvalidOperationException("Subquery required introspection to build");
+
+                    if (subQuery.Query is not null)
+                        subQuery.Query(writer);
+                    break;
+                case string str:
+                    writer.SingleQuoted(str);
+                    break;
+                case char ch:
+                    writer.SingleQuoted(ch);
+                    break;
+                case Type type:
+                    if (EdgeDBTypeUtils.TryGetScalarType(type, out var info))
+                        writer.Append(info);
+                    else
+                        writer.Append(type.GetEdgeDBTypeName());
+                    break;
+                default:
+                    writer.Append(obj);
+                    break;
+            }
         }
 
         /// <summary>

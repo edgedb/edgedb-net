@@ -12,15 +12,15 @@ namespace EdgeDB.Translators.Expressions
     /// </summary>
     /// <remarks>
     ///     This translator is only called when a parameter is directly referenced, normally
-    ///     A parameter reference is accessed which will cause a <c>.x</c> to be added where as 
+    ///     A parameter reference is accessed which will cause a <c>.x</c> to be added where as
     ///     this translator will just serialize the parameters name.
     /// </remarks>
     internal class ParameterExpressionTranslator : ExpressionTranslator<ParameterExpression>
     {
         /// <inheritdoc/>
-        public override string? Translate(ParameterExpression expression, ExpressionContext context)
+        public override void Translate(ParameterExpression expression, ExpressionContext context, QueryStringWriter writer)
         {
-            return $"{expression.Name}";
+            writer.Append(expression.Name!);
         }
     }
 }

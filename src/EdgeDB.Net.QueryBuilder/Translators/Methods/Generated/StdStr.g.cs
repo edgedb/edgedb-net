@@ -1,6 +1,7 @@
 #nullable restore
 using EdgeDB;
 using EdgeDB.DataTypes;
+using EdgeDB.Translators.Methods;
 using System.Runtime.CompilerServices;
 
 namespace EdgeDB.Translators
@@ -8,141 +9,141 @@ namespace EdgeDB.Translators
     internal partial class StdStrMethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.ArrayJoin))]
-        public string ArrayJoinTranslator(string? arrayParam, string? delimiterParam)
+        public void ArrayJoinTranslator(QueryStringWriter writer, TranslatedParameter arrayParam, TranslatedParameter delimiterParam)
         {
-            return $"std::array_join({arrayParam}, {delimiterParam})";
+            writer.Function("std::array_join", arrayParam, delimiterParam);
         }
 
         [MethodName(nameof(EdgeQL.JsonTypeof))]
-        public string JsonTypeofTranslator(string? jsonParam)
+        public void JsonTypeofTranslator(QueryStringWriter writer, TranslatedParameter jsonParam)
         {
-            return $"std::json_typeof({jsonParam})";
+            writer.Function("std::json_typeof", jsonParam);
         }
 
         [MethodName(nameof(EdgeQL.ReReplace))]
-        public string ReReplaceTranslator(string? patternParam, string? subParam, string? strParam, string? flagsParam)
+        public void ReReplaceTranslator(QueryStringWriter writer, TranslatedParameter patternParam, TranslatedParameter subParam, TranslatedParameter strParam, TranslatedParameter flagsParam)
         {
-            return $"std::re_replace({patternParam}, {subParam}, {strParam}, flags := {flagsParam})";
+            writer.Function("std::re_replace", patternParam, subParam, strParam, new QueryStringWriter.FunctionArg(flagsParam, "flags"));
         }
 
         [MethodName(nameof(EdgeQL.StrRepeat))]
-        public string StrRepeatTranslator(string? sParam, string? nParam)
+        public void StrRepeatTranslator(QueryStringWriter writer, TranslatedParameter sParam, TranslatedParameter nParam)
         {
-            return $"std::str_repeat({sParam}, {nParam})";
+            writer.Function("std::str_repeat", sParam, nParam);
         }
 
         [MethodName(nameof(EdgeQL.StrLower))]
-        public string StrLowerTranslator(string? sParam)
+        public void StrLowerTranslator(QueryStringWriter writer, TranslatedParameter sParam)
         {
-            return $"std::str_lower({sParam})";
+            writer.Function("std::str_lower", sParam);
         }
 
         [MethodName(nameof(EdgeQL.StrUpper))]
-        public string StrUpperTranslator(string? sParam)
+        public void StrUpperTranslator(QueryStringWriter writer, TranslatedParameter sParam)
         {
-            return $"std::str_upper({sParam})";
+            writer.Function("std::str_upper", sParam);
         }
 
         [MethodName(nameof(EdgeQL.StrTitle))]
-        public string StrTitleTranslator(string? sParam)
+        public void StrTitleTranslator(QueryStringWriter writer, TranslatedParameter sParam)
         {
-            return $"std::str_title({sParam})";
+            writer.Function("std::str_title", sParam);
         }
 
         [MethodName(nameof(EdgeQL.StrPadStart))]
-        public string StrPadStartTranslator(string? sParam, string? nParam, string? fillParam)
+        public void StrPadStartTranslator(QueryStringWriter writer, TranslatedParameter sParam, TranslatedParameter nParam, TranslatedParameter fillParam)
         {
-            return $"std::str_pad_start({sParam}, {nParam}, {fillParam})";
+            writer.Function("std::str_pad_start", sParam, nParam, fillParam);
         }
 
         [MethodName(nameof(EdgeQL.StrLpad))]
-        public string StrLpadTranslator(string? sParam, string? nParam, string? fillParam)
+        public void StrLpadTranslator(QueryStringWriter writer, TranslatedParameter sParam, TranslatedParameter nParam, TranslatedParameter fillParam)
         {
-            return $"std::str_lpad({sParam}, {nParam}, {fillParam})";
+            writer.Function("std::str_lpad", sParam, nParam, fillParam);
         }
 
         [MethodName(nameof(EdgeQL.StrPadEnd))]
-        public string StrPadEndTranslator(string? sParam, string? nParam, string? fillParam)
+        public void StrPadEndTranslator(QueryStringWriter writer, TranslatedParameter sParam, TranslatedParameter nParam, TranslatedParameter fillParam)
         {
-            return $"std::str_pad_end({sParam}, {nParam}, {fillParam})";
+            writer.Function("std::str_pad_end", sParam, nParam, fillParam);
         }
 
         [MethodName(nameof(EdgeQL.StrRpad))]
-        public string StrRpadTranslator(string? sParam, string? nParam, string? fillParam)
+        public void StrRpadTranslator(QueryStringWriter writer, TranslatedParameter sParam, TranslatedParameter nParam, TranslatedParameter fillParam)
         {
-            return $"std::str_rpad({sParam}, {nParam}, {fillParam})";
+            writer.Function("std::str_rpad", sParam, nParam, fillParam);
         }
 
         [MethodName(nameof(EdgeQL.StrTrimStart))]
-        public string StrTrimStartTranslator(string? sParam, string? trParam)
+        public void StrTrimStartTranslator(QueryStringWriter writer, TranslatedParameter sParam, TranslatedParameter trParam)
         {
-            return $"std::str_trim_start({sParam}, {trParam})";
+            writer.Function("std::str_trim_start", sParam, trParam);
         }
 
         [MethodName(nameof(EdgeQL.StrLtrim))]
-        public string StrLtrimTranslator(string? sParam, string? trParam)
+        public void StrLtrimTranslator(QueryStringWriter writer, TranslatedParameter sParam, TranslatedParameter trParam)
         {
-            return $"std::str_ltrim({sParam}, {trParam})";
+            writer.Function("std::str_ltrim", sParam, trParam);
         }
 
         [MethodName(nameof(EdgeQL.StrTrimEnd))]
-        public string StrTrimEndTranslator(string? sParam, string? trParam)
+        public void StrTrimEndTranslator(QueryStringWriter writer, TranslatedParameter sParam, TranslatedParameter trParam)
         {
-            return $"std::str_trim_end({sParam}, {trParam})";
+            writer.Function("std::str_trim_end", sParam, trParam);
         }
 
         [MethodName(nameof(EdgeQL.StrRtrim))]
-        public string StrRtrimTranslator(string? sParam, string? trParam)
+        public void StrRtrimTranslator(QueryStringWriter writer, TranslatedParameter sParam, TranslatedParameter trParam)
         {
-            return $"std::str_rtrim({sParam}, {trParam})";
+            writer.Function("std::str_rtrim", sParam, trParam);
         }
 
         [MethodName(nameof(EdgeQL.StrTrim))]
-        public string StrTrimTranslator(string? sParam, string? trParam)
+        public void StrTrimTranslator(QueryStringWriter writer, TranslatedParameter sParam, TranslatedParameter trParam)
         {
-            return $"std::str_trim({sParam}, {trParam})";
+            writer.Function("std::str_trim", sParam, trParam);
         }
 
         [MethodName(nameof(EdgeQL.StrReplace))]
-        public string StrReplaceTranslator(string? sParam, string? oldParam, string? newParam)
+        public void StrReplaceTranslator(QueryStringWriter writer, TranslatedParameter sParam, TranslatedParameter oldParam, TranslatedParameter newParam)
         {
-            return $"std::str_replace({sParam}, {oldParam}, {newParam})";
+            writer.Function("std::str_replace", sParam, oldParam, newParam);
         }
 
         [MethodName(nameof(EdgeQL.StrReverse))]
-        public string StrReverseTranslator(string? sParam)
+        public void StrReverseTranslator(QueryStringWriter writer, TranslatedParameter sParam)
         {
-            return $"std::str_reverse({sParam})";
+            writer.Function("std::str_reverse", sParam);
         }
 
         [MethodName(nameof(EdgeQL.ToStr))]
-        public string ToStrTranslator(string? dtParam, string? fmtParam)
+        public void ToStrTranslator(QueryStringWriter writer, TranslatedParameter dtParam, TranslatedParameter? fmtParam)
         {
-            return $"std::to_str({dtParam}, {(fmtParam is not null ? "fmtParam, " : "")})";
+            writer.Function("std::to_str", dtParam, OptionalArg(fmtParam));
         }
 
         [MethodName(nameof(EdgeQL.GetVersionAsStr))]
-        public string GetVersionAsStrTranslator()
+        public void GetVersionAsStrTranslator(QueryStringWriter writer)
         {
-            return $"sys::get_version_as_str()";
+            writer.Function("sys::get_version_as_str");
         }
 
         [MethodName(nameof(EdgeQL.GetInstanceName))]
-        public string GetInstanceNameTranslator()
+        public void GetInstanceNameTranslator(QueryStringWriter writer)
         {
-            return $"sys::get_instance_name()";
+            writer.Function("sys::get_instance_name");
         }
 
         [MethodName(nameof(EdgeQL.GetCurrentDatabase))]
-        public string GetCurrentDatabaseTranslator()
+        public void GetCurrentDatabaseTranslator(QueryStringWriter writer)
         {
-            return $"sys::get_current_database()";
+            writer.Function("sys::get_current_database");
         }
 
         [MethodName(nameof(EdgeQL.Concat))]
-        public string Concat(string? lParam, string? rParam)
+        public void Concat(QueryStringWriter writer, TranslatedParameter lParam, TranslatedParameter rParam)
         {
-            return $"{lParam} ++ {rParam}";
+            writer.Append(lParam).Wrapped("++", "  ").Append(rParam);
         }
     }
 }

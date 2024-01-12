@@ -1,6 +1,7 @@
 #nullable restore
 using EdgeDB;
 using EdgeDB.DataTypes;
+using EdgeDB.Translators.Methods;
 using System.Runtime.CompilerServices;
 
 namespace EdgeDB.Translators
@@ -8,22 +9,22 @@ namespace EdgeDB.Translators
     internal partial class TupleMethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.Enumerate))]
-        public string EnumerateTranslator(string? valsParam)
+        public void EnumerateTranslator(QueryStringWriter writer, TranslatedParameter valsParam)
         {
-            return $"std::enumerate({valsParam})";
+            writer.Function("std::enumerate", valsParam);
         }
 
         [MethodName(nameof(EdgeQL.JsonObjectUnpack))]
-        public string JsonObjectUnpackTranslator(string? objParam)
+        public void JsonObjectUnpackTranslator(QueryStringWriter writer, TranslatedParameter objParam)
         {
-            return $"std::json_object_unpack({objParam})";
+            writer.Function("std::json_object_unpack", objParam);
         }
 
-        [MethodName(nameof(EdgeQL.GetVersion))]
-        public string GetVersionTranslator()
-        {
-            return $"sys::get_version()";
-        }
+        // [MethodName(nameof(EdgeQL.Search))]
+        // public void SearchTranslator(QueryStringWriter writer, TranslatedParameter objectParam, TranslatedParameter queryParam, TranslatedParameter languageParam, TranslatedParameter? weightsParam)
+        // {
+        //     writer.Function("fts::search", objectParam, queryParam, new QueryStringWriter.FunctionArg(languageParam, "language"), new QueryStringWriter.FunctionArg(OptionalArg(weightsParam), "weights"));
+        // }
 
     }
 }

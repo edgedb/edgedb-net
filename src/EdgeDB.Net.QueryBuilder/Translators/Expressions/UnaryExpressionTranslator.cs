@@ -13,51 +13,54 @@ namespace EdgeDB.Translators.Expressions
     internal class UnaryExpressionTranslator : ExpressionTranslator<UnaryExpression>
     {
         /// <inheritdoc/>
-        public override string? Translate(UnaryExpression expression, ExpressionContext context)
+        public override void Translate(UnaryExpression expression, ExpressionContext context, QueryStringWriter writer)
         {
             switch (expression.NodeType)
             {
                 // quote expressions are literal funcs (im pretty sure), so we can just
                 // directly translate them and return the result.
                 case ExpressionType.Quote when expression.Operand is LambdaExpression lambda:
-                    return TranslateExpression(lambda.Body, context.Enter(x => x.StringWithoutQuotes = false));
-
+                    TranslateExpression(lambda.Body, context.Enter(x => x.StringWithoutQuotes = false), writer);
+                    return;
                 // convert is a type change, so we translate the dotnet form '(type)value' to '<type>value'
                 case ExpressionType.Convert:
+                {
+                    var index = writer.Position;
+
+                    TranslateExpression(expression.Operand, context, writer);
+
+                    // this is a selector-based expression converting value types to objects, for
+                    // this case we can just return the value
+                    if (expression.Type == typeof(object))
+                        return;
+
+                    // dotnet nullable check
+                    if (ReflectionUtils.IsSubclassOfRawGeneric(typeof(Nullable<>), expression.Type) &&
+                        expression.Type.GenericTypeArguments[0] == expression.Operand.Type)
                     {
-                        var value = TranslateExpression(expression.Operand, context);
-
-                        if (value is null)
-                            return null; // nullable converters for include, ex Guid? -> Guid
-
-                        // this is a selector-based expression converting value types to objects, for
-                        // this case we can just return the value
-                        if (expression.Type == typeof(object))
-                            return value;
-
-                        // dotnet nullable check
-                        if (ReflectionUtils.IsSubclassOfRawGeneric(typeof(Nullable<>), expression.Type) &&
-                            expression.Type.GenericTypeArguments[0] == expression.Operand.Type)
-                        {
-                            // no need to cast in edgedb, return the value
-                            return value;
-                        }
-
-                        var type = EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var edgedbType)
-                            ? edgedbType.ToString()
-                            : expression.Type.GetEdgeDBTypeName();
-
-                        return $"<{type}>{value}";
+                        // no need to cast in edgedb, return the value
+                        return;
                     }
+
+                    var type = EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var edgedbType)
+                        ? edgedbType.ToString()
+                        : expression.Type.GetEdgeDBTypeName();
+
+                    writer.Insert(index, $"<{type}>");
+                    return;
+                }
                 case ExpressionType.ArrayLength:
-                    return $"len({TranslateExpression(expression.Operand, context)})";
+                    writer.Append("len(");
+                    TranslateExpression(expression.Operand, context, writer);
+                    writer.Append(')');
+                    return;
 
                 // default case attempts to get an IEdgeQLOperator for the given
                 // node type, and uses that to translate the expression.
                 default:
-                    if (!TryGetExpressionOperator(expression.NodeType, out var op))
+                    if (!Grammar.TryBuildOperator(expression.NodeType, writer, Proxy(expression.Operand, context)))
                         throw new NotSupportedException($"Failed to find operator for node type {expression.NodeType}");
-                    return op.Build(TranslateExpression(expression.Operand, context));
+                    return;
             }
 
             //throw new NotSupportedException($"Failed to find converter for {expression.NodeType}!");

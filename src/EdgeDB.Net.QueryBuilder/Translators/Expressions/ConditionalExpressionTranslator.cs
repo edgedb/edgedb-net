@@ -16,13 +16,13 @@ namespace EdgeDB.Translators.Expressions
         public override void Translate(
             ConditionalExpression expression,
             ExpressionContext context,
-            StringBuilder result)
+            QueryStringWriter writer)
         {
-            TranslateExpression(expression.IfTrue, context, result);
-            result.Append(" IF ");
-            TranslateExpression(expression.Test, context, result);
-            result.Append(" ELSE ");
-            TranslateExpression(expression.IfFalse, context, result);
+            TranslateExpression(expression.IfTrue, context, writer);
+            writer.Append(" IF ");
+            TranslateExpression(expression.Test, context, writer);
+            writer.Append(" ELSE ");
+            TranslateExpression(expression.IfFalse, context, writer);
         }
     }
 }

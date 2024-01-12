@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -32,18 +33,18 @@ namespace EdgeDB.QueryNodes
             /// <summary>
             ///     A string-based setter.
             /// </summary>
-            private readonly string? _setter;
+            private readonly Action<QueryStringWriter>? _setter;
 
             /// <summary>
             ///     A function-based setter which requires introspection.
             /// </summary>
-            private readonly Func<SchemaInfo, string?>? _setterBuilder;
+            private readonly Action<QueryStringWriter, SchemaInfo>? _setterBuilder;
 
             /// <summary>
             ///     Constructs a new <see cref="ShapeSetter"/>.
             /// </summary>
             /// <param name="setter">A string-based setter.</param>
-            public ShapeSetter(string setter)
+            public ShapeSetter(Action<QueryStringWriter> setter)
             {
                 _setter = setter;
                 _setterBuilder = null;
@@ -54,7 +55,7 @@ namespace EdgeDB.QueryNodes
             ///     Constructs a new <see cref="ShapeSetter"/>.
             /// </summary>
             /// <param name="builder">A function-based setter that requires introspection.</param>
-            public ShapeSetter(Func<SchemaInfo, string?> builder)
+            public ShapeSetter(Action<QueryStringWriter, SchemaInfo> builder)
             {
                 _setterBuilder = builder;
                 _setter = null;
@@ -62,33 +63,36 @@ namespace EdgeDB.QueryNodes
             }
 
             /// <summary>
-            ///     Converts this <see cref="ShapeSetter"/> to a string form without introspection.
+            ///     Builds this <see cref="ShapeSetter"/> to a string form without introspection.
             /// </summary>
-            /// <returns>A stringified edgeql setter.</returns>
+            /// <param name="writer">The query string writer to append this shape to.</param>
             /// <exception cref="InvalidOperationException">
             ///     The current setter requires introspection.
             /// </exception>
-            public override string ToString()
+            public void Build(QueryStringWriter writer)
             {
                 if (_setter is null)
                     throw new InvalidOperationException("Cannot build insert setter, a setter requires introspection");
-                return _setter;
+
+                _setter(writer);
             }
 
             /// <summary>
             ///     Converts this <see cref="ShapeSetter"/> to a string form with introspection.
             /// </summary>
+            /// <param name="writer">The query string writer to append the shape to.</param>
             /// <param name="info">The introspected schema info.</param>
             /// <returns>A stringified edgeql setter.</returns>
-            public string? ToString(SchemaInfo info)
+            public void Build(QueryStringWriter writer, SchemaInfo info)
             {
-                return RequiresIntrospection && _setterBuilder is not null
-                    ? _setterBuilder(info)
-                    : ToString();
+                if (RequiresIntrospection && _setterBuilder is not null)
+                    _setterBuilder(writer, info);
+                else
+                    Build(writer);
             }
 
-            public static implicit operator ShapeSetter(string s) => new(s);
-            public static implicit operator ShapeSetter(Func<SchemaInfo, string?> s) => new(s);
+            public static implicit operator ShapeSetter(Action<QueryStringWriter> s) => new(s);
+            public static implicit operator ShapeSetter(Action<QueryStringWriter, SchemaInfo?> s) => new(s);
         }
 
         /// <summary>
@@ -104,18 +108,18 @@ namespace EdgeDB.QueryNodes
             /// <summary>
             ///     The raw string form shape definition, if any.
             /// </summary>
-            private readonly string? _rawShape;
+            private readonly Action<QueryStringWriter>? _rawShape;
 
             /// <summary>
             ///     The setters in this shape definition.
             /// </summary>
-            private readonly IEnumerable<ShapeSetter> _shape;
+            private readonly ShapeSetter[] _shape;
 
             /// <summary>
             ///     Constructs a new <see cref="ShapeDefinition"/> with the given shape body.
             /// </summary>
             /// <param name="shape"></param>
-            public ShapeDefinition(string shape)
+            public ShapeDefinition(Action<QueryStringWriter> shape)
             {
                 _rawShape = shape;
                 _shape = Array.Empty<ShapeSetter>();
@@ -128,9 +132,9 @@ namespace EdgeDB.QueryNodes
             /// <param name="shape"></param>
             public ShapeDefinition(IEnumerable<ShapeSetter> shape)
             {
-                _shape = shape;
+                _shape = shape.ToArray();
                 _rawShape = null;
-                RequiresIntrospection = shape.Any(x => x.RequiresIntrospection);
+                RequiresIntrospection = _shape.Any(x => x.RequiresIntrospection);
             }
 
             /// <summary>
@@ -138,33 +142,43 @@ namespace EdgeDB.QueryNodes
             /// </summary>
             /// <returns>The string form of the shape definition.</returns>
             /// <exception cref="InvalidOperationException">The shape body requires introspection to build.</exception>
-            public string Build()
+            public void Build(QueryStringWriter writer)
             {
                 if (_rawShape is not null)
-                    return _rawShape;
+                {
+                    _rawShape(writer);
+                    return;
+                }
 
                 if (_shape.Any(x => x.RequiresIntrospection))
-                    throw new InvalidOperationException("Cannot build insert shape, some properties require introspection");
+                    throw new InvalidOperationException(
+                        "Cannot build insert shape, some properties require introspection");
 
-                return $"{{ {string.Join(", ", _shape)} }}";
+                writer.Shape(_shape);
             }
 
             /// <summary>
             ///     Builds this <see cref="ShapeDefinition"/> into a string using schema introspection.
             /// </summary>
+            /// <param name="writer">The query string writer to append the built shape to.</param>
             /// <param name="info">The schema introspection info.</param>
             /// <returns>The string form of the shape definition.</returns>
-            public string Build(SchemaInfo info)
+            public void Build(QueryStringWriter writer, SchemaInfo? info)
             {
                 if (_rawShape is not null)
-                    return _rawShape;
+                {
+                    _rawShape(writer);
+                    return;
+                }
 
-                return RequiresIntrospection
-                    ? $"{{ {string.Join(", ", _shape.Select(x => x.ToString(info)).Where(x => x is not null))} }}"
-                    : Build();
+                if (RequiresIntrospection && info is null)
+                    throw new InvalidOperationException("Introspection is required to build this shape definition");
+
+                if (RequiresIntrospection)
+                    writer.Shape(_shape, (w, x) => x.Build(w, info!));
+                else
+                    Build(writer);
             }
-
-            public static implicit operator ShapeDefinition(string shape) => new ShapeDefinition(shape);
         }
 
         /// <summary>
@@ -177,10 +191,12 @@ namespace EdgeDB.QueryNodes
         /// </summary>
         private bool _autogenerateUnlessConflict;
 
+        private LambdaExpression? _unlessConflictExpression;
+
         /// <summary>
         ///     The else clause if any.
         /// </summary>
-        private readonly StringBuilder _elseStatement;
+        private Action<QueryStringWriter>? _elseStatement;
 
         /// <summary>
         ///     The list of currently inserted types used to determine if
@@ -191,7 +207,6 @@ namespace EdgeDB.QueryNodes
         /// <inheritdoc/>
         public InsertNode(NodeBuilder builder) : base(builder)
         {
-            _elseStatement = new();
         }
 
         /// <inheritdoc/>
@@ -211,33 +226,126 @@ namespace EdgeDB.QueryNodes
         /// <inheritdoc/>
         public override void FinalizeQuery()
         {
-            // build the shape with introspection
-            var shape = SchemaInfo is not null
-                ? _shape.Build(SchemaInfo)
-                : _shape.Build();
+            Writer.Append("insert ")
+                .Append(OperatingType.GetEdgeDBTypeName())
+                .Append(' ');
 
-            // prepend it to our query string
-            Query.Insert(0, $"insert {OperatingType.GetEdgeDBTypeName()} {shape}");
+            _shape.Build(Writer, SchemaInfo);
 
-            // if we require autogeneration of the unless conflict statement
             if (_autogenerateUnlessConflict)
             {
                 if (SchemaInfo is null)
-                    throw new NotSupportedException("Cannot use autogenerated unless conflict on without schema interpolation");
+                    throw new InvalidOperationException(
+                        "Cannot use autogenerated unless conflict on without schema interpolation");
 
                 if (!SchemaInfo.TryGetObjectInfo(OperatingType, out var typeInfo))
                     throw new NotSupportedException($"Could not find type info for {OperatingType}");
 
-                Query.Append($" {ConflictUtils.GenerateExclusiveConflictStatement(typeInfo, _elseStatement.Length != 0)}");
+                Writer.Append(' ');
+                ConflictUtils.GenerateExclusiveConflictStatement(Writer, typeInfo, _elseStatement is not null);
             }
 
-            Query.Append(_elseStatement);
+            if (_elseStatement is not null)
+                _elseStatement(Writer);
 
-            // if the query builder wants this node as a global
-            if (Context.SetAsGlobal && Context.GlobalName != null)
+            if (Context.SetAsGlobal && Context.GlobalName is not null)
             {
-                SetGlobal(Context.GlobalName, new SubQuery($"({Query})"), null);
-                Query.Clear();
+                SetGlobal(Context.GlobalName, new SubQuery(writer => writer
+                    .Wrapped(Writer)
+                ), null);
+            }
+        }
+
+        private void AppendJsonIteration(
+            QueryStringWriter writer,
+            PropertyInfo property,
+            string edgedbName,
+            string mappingName,
+            string iterationName,
+            int index,
+            bool isArray)
+        {
+            writer.Assignment(edgedbName, writer => writer.Wrapped(writer => writer
+                .Append("select ")
+                .Append(mappingName)
+                .Append("_d")
+                .Append(index + 1)
+                .Append(" offset ")
+                .TypeCast("int64")
+            ));
+
+            // return a slice operator for multi links or a index operator for single links
+            if (isArray)
+            {
+                writer
+                    .Function(
+                        "json_get",
+                        iterationName,
+                        writer.Val(writer => writer
+                            .SingleQuoted(property.Name)
+                        ),
+                        writer.Val(writer => writer
+                            .SingleQuoted(
+                                writer.Val(writer => writer
+                                    .Append(mappingName)
+                                    .Append("_depth_from")
+                                )
+                            )
+                        )
+                    )
+                    .Append(" ?? 0 limit ")
+                    .TypeCast("int64")
+                    .Function(
+                        "json_get",
+                        iterationName,
+                        writer.Val(writer => writer
+                            .SingleQuoted(property.Name)
+                        ),
+                        writer.Val(writer => writer
+                            .SingleQuoted(
+                                writer.Val(writer => writer
+                                    .Append(mappingName)
+                                    .Append("_depth_to")
+                                )
+                            )
+                        )
+                    )
+                    .Append(" ?? 0");
+            }
+            else
+            {
+                writer
+                    .Function(
+                        "json_get",
+                        iterationName,
+                        writer.Val(writer => writer
+                            .SingleQuoted(property.Name)
+                        ),
+                        writer.Val(writer => writer
+                            .SingleQuoted(
+                                writer.Val(writer => writer
+                                    .Append(mappingName)
+                                    .Append("_depth_index")
+                                )
+                            )
+                        )
+                    )
+                    .Append(" limit 1 if ")
+                    .Function(
+                        "json_typeof",
+                        writer.Val(writer => writer
+                            .Function(
+                                "json_get",
+                                iterationName,
+                                writer.Val(writer => writer
+                                    .SingleQuoted(property.Name)
+                                )
+                            )
+                        )
+                    )
+                    .Append(" != \'null\' else")
+                    .TypeCast(property.PropertyType.GetEdgeDBTypeName())
+                    .Append("{}");
             }
         }
 
@@ -254,10 +362,13 @@ namespace EdgeDB.QueryNodes
             var depth = jsonValue.Depth;
 
             // create a depth map that contains each nested level of types to be inserted
-            IGrouping<int, DepthNode>[] depthMap = JsonUtils.BuildDepthMap(mappingName, jsonValue).ToArray().GroupBy(x => x.Depth).ToArray();
+            var depthMap = JsonUtils
+                .BuildDepthMap(mappingName, jsonValue)
+                .GroupBy(x => x.Depth)
+                .ToArray();
 
             // generate the global maps
-            for (int i = depth; i != 0; i--)
+            for (var i = depth; i != 0; i--)
             {
                 var map = depthMap[i];
                 var node = map.First();
@@ -270,71 +381,124 @@ namespace EdgeDB.QueryNodes
                 var indexCopy = i;
 
                 // generate a introspection-dependant sub query for the insert or select
-                var query = new SubQuery((info) =>
+                var query = new SubQuery((info, writer) =>
                 {
                     var allProps = QueryGenerationUtils.GetProperties(info, node.Type);
                     var typeName = node.Type.GetEdgeDBTypeName();
                     var infoCopy = info;
 
-                    // define the insert shape
-                    var shape = allProps.Select(x =>
+                    writer.Wrapped(writer =>
                     {
-                        var edgedbName = x.GetEdgeDBPropertyName();
-                        var isScalar = EdgeDBTypeUtils.TryGetScalarType(x.PropertyType, out var edgeqlType);
+                        writer
+                            .Append("for ")
+                            .Append(iterationName)
+                            .Append(" in json_array_unpack(")
+                            .QueryArgument("json", variableName)
+                            .Append(") union ")
+                            .Wrapped(writer =>
+                            {
+                                var exclusiveProperties =
+                                    QueryGenerationUtils.GetProperties(info, node.Type, true).ToArray();
 
-                        // we need to add a callback for value types that are default to determine if we need to
-                        // add the setter
-                        if (isScalar && x.PropertyType.IsValueType && !x.PropertyType.IsEnum)
-                        {
-                            if (!infoCopy.TryGetObjectInfo(jsonValue.InnerType, out var info))
-                                throw new InvalidOperationException($"Could not find {jsonValue.InnerType.GetEdgeDBTypeName()} in schema info!");
+                                writer.Append("insert ")
+                                    .Append(typeName)
+                                    .Shape(allProps, (writer, x) =>
+                                    {
+                                        var edgedbName = x.GetEdgeDBPropertyName();
+                                        var isScalar =
+                                            EdgeDBTypeUtils.TryGetScalarType(x.PropertyType, out var edgeqlType);
 
-                            // get the property defined in the schema
-                            var edgedbProp = info.Properties!.FirstOrDefault(x => x.Name == edgedbName);
+                                        // we need to add a callback for value types that are default to determine if we need to
+                                        // add the setter
+                                        if (isScalar && x.PropertyType.IsValueType && !x.PropertyType.IsEnum)
+                                        {
+                                            if (!infoCopy.TryGetObjectInfo(jsonValue.InnerType, out var info))
+                                                throw new InvalidOperationException(
+                                                    $"Could not find {jsonValue.InnerType.GetEdgeDBTypeName()} in schema info!");
 
-                            if (edgedbProp is null)
-                                throw new InvalidOperationException($"Could not find property '{edgedbName}' on type {jsonValue.InnerType.GetEdgeDBTypeName()}");
+                                            // get the property defined in the schema
+                                            var edgedbProp = info.Properties!.FirstOrDefault(x => x.Name == edgedbName);
 
-                            if (edgedbProp.Required && !edgedbProp.HasDefault)
-                                return $"{edgedbName} := <{edgeqlType}>json_get({jsonValue.Name}, '{x.Name}')";
+                                            if (edgedbProp is null)
+                                                throw new InvalidOperationException(
+                                                    $"Could not find property '{edgedbName}' on type {jsonValue.InnerType.GetEdgeDBTypeName()}");
 
-                            return null;
-                        }
+                                            if (edgedbProp.Required && !edgedbProp.HasDefault)
+                                            {
+                                                writer
+                                                    .Append(edgedbName)
+                                                    .Append(" := ")
+                                                    .TypeCast(edgeqlType!)
+                                                    .Function(
+                                                        "json_get",
+                                                        jsonValue.Name,
+                                                        new QueryStringWriter.Value(writer => writer
+                                                            .Append('\'')
+                                                            .Append(x.Name)
+                                                            .Append('\'')
+                                                        )
+                                                    );
+                                            }
 
-                        // if its a link, add a ternary statement for pulling the value out of a sub-map
-                        if (EdgeDBTypeUtils.IsLink(x.PropertyType, out var isArray, out _))
-                        {
-                            // if we're in the last iteration of the depth map, we know for certian there
-                            // are no sub types within the current context, we can safely set the link to
-                            // an empty set
-                            if (isLast)
-                                return $"{edgedbName} := {{}}";
+                                            return;
+                                        }
 
-                            // return a slice operator for multi links or a index operator for single links
-                            return isArray
-                                ? $"{edgedbName} := (select {mappingName}_d{indexCopy + 1} offset <int64>json_get({iterationName}, '{x.Name}', '{mappingName}_depth_from') ?? 0 limit <int64>json_get({iterationName}, '{x.Name}', '{mappingName}_depth_to') ?? 0)"
-                                : $"{edgedbName} := (select {mappingName}_d{indexCopy + 1} offset <int64>json_get({iterationName}, '{x.Name}', '{mappingName}_depth_index') limit 1) if json_typeof(json_get({iterationName}, '{x.Name}')) != 'null' else <{x.PropertyType.GetEdgeDBTypeName()}>{{}}";
-                        }
+                                        // if its a link, add a ternary statement for pulling the value out of a sub-map
+                                        if (EdgeDBTypeUtils.IsLink(x.PropertyType, out var isArray, out _))
+                                        {
+                                            // if we're in the last iteration of the depth map, we know for certian there
+                                            // are no sub types within the current context, we can safely set the link to
+                                            // an empty set
+                                            if (isLast)
+                                            {
+                                                writer.Assignment(edgedbName, "{}");
+                                                return;
+                                            }
 
-                        // if its a scalar type, use json_get to pull the value and cast it to our property
-                        // type
-                        if (!isScalar)
-                            throw new NotSupportedException($"Cannot use type {x.PropertyType} as there is no serializer for it");
+                                            AppendJsonIteration(
+                                                writer, x, edgedbName, mappingName, iterationName,
+                                                indexCopy, isArray
+                                            );
 
-                        return $"{edgedbName} := <{edgeqlType}>json_get({iterationName}, '{x.Name}')";
+                                            return;
+                                        }
+
+                                        // if its a scalar type, use json_get to pull the value and cast it to our property
+                                        // type
+                                        if (!isScalar)
+                                            throw new NotSupportedException(
+                                                $"Cannot use type {x.PropertyType} as there is no serializer for it");
+
+                                        writer
+                                            .Assignment(edgedbName, writer.Val(writer => writer
+                                                .TypeCast(edgeqlType)
+                                                .Function(
+                                                    "json_get",
+                                                    iterationName,
+                                                    writer.Val(writer => writer
+                                                        .SingleQuoted(x.Name)
+                                                    )
+                                                )
+                                            ));
+                                    })
+                                    .AppendIf(exclusiveProperties.Any, writer.Val(writer =>
+                                    {
+                                        writer.Append(" unless conflict on ");
+
+                                        if (exclusiveProperties.Length is 1)
+                                            writer.Append('.').Append(exclusiveProperties[0].GetEdgeDBPropertyName());
+                                        else
+                                            writer.Shape(
+                                                exclusiveProperties.Select(x => $".{x.GetEdgeDBPropertyName()}"), "()");
+
+                                        writer
+                                            .Append(" else ").Wrapped(writer => writer
+                                                .Append("select ")
+                                                .Append(typeName)
+                                            );
+                                    }));
+                            });
                     });
-
-                    // generate the 'insert .. unless conflict .. else select' query
-                    var exclusiveProps = QueryGenerationUtils.GetProperties(info, node.Type, true);
-                    var exclusiveCondition = exclusiveProps.Any() ?
-                        $" unless conflict on {(exclusiveProps.Count() > 1 ? $"({string.Join(", ", exclusiveProps.Select(x => $".{x.GetEdgeDBPropertyName()}"))})" : $".{exclusiveProps.First().GetEdgeDBPropertyName()}")} else (select {typeName})"
-                        : string.Empty;
-
-                    var insertStatement = $"(insert {typeName} {{ {string.Join(", ", shape)} }}{exclusiveCondition})";
-
-                    // add the iteration and turn it into an array so we can use the index operand
-                    // during our query stage
-                    return $"(for {iterationName} in json_array_unpack(<json>${variableName}) union {insertStatement})";
                 });
 
                 // tell the builder that this query requires introspection
@@ -349,56 +513,72 @@ namespace EdgeDB.QueryNodes
             }
 
             // replace the json variables content with the root depth map
-            SetVariable(jsonValue.VariableName, new Json(JsonConvert.SerializeObject(depthMap[0].Select(x => x.JsonNode))));
+            SetVariable(jsonValue.VariableName,
+                new Json(JsonConvert.SerializeObject(depthMap[0].Select(x => x.JsonNode))));
 
-            // create the base insert shape
-            var shape = jsonValue.InnerType.GetEdgeDBTargetProperties(excludeId: true).Select(x =>
+            var elements = new List<ShapeSetter>();
+
+            foreach (var property in jsonValue.InnerType.GetEdgeDBTargetProperties(excludeId: true))
             {
-                var edgedbName = x.GetEdgeDBPropertyName();
-                var isScalar = EdgeDBTypeUtils.TryGetScalarType(x.PropertyType, out var edgeqlType);
+                var edgedbName = property.GetEdgeDBPropertyName();
+                var isScalar = EdgeDBTypeUtils.TryGetScalarType(property.PropertyType, out var edgeqlType);
 
-                // we need to add a callback for value types that are default to determine if we need to
-                // add the setter
-                if (isScalar && x.PropertyType.IsValueType && !x.PropertyType.IsEnum)
+                if (isScalar && property.PropertyType.IsValueType && !property.PropertyType.IsEnum)
                 {
-                    // we should include the setter based on the schema
-                    return new ShapeSetter(s =>
+                    elements.Add(new ShapeSetter((writer, info) =>
                     {
-                        if (!s.TryGetObjectInfo(jsonValue.InnerType, out var info))
-                            throw new InvalidOperationException($"Could not find {jsonValue.InnerType.GetEdgeDBTypeName()} in schema info!");
+                        if (!info.TryGetObjectInfo(jsonValue.InnerType, out var typeInfo))
+                            throw new InvalidOperationException(
+                                $"Could not find {jsonValue.InnerType.GetEdgeDBTypeName()} in schema info!");
 
                         // get the property defined in the schema
-                        var edgedbProp = info.Properties!.FirstOrDefault(x => x.Name == edgedbName);
+                        var edgedbProp = typeInfo.Properties!.FirstOrDefault(x => x.Name == edgedbName);
 
                         if (edgedbProp is null)
-                            throw new InvalidOperationException($"Could not find property '{edgedbName}' on type {jsonValue.InnerType.GetEdgeDBTypeName()}");
+                            throw new InvalidOperationException(
+                                $"Could not find property '{edgedbName}' on type {jsonValue.InnerType.GetEdgeDBTypeName()}");
 
-                        if (edgedbProp.Required && !edgedbProp.HasDefault)
-                            return $"{edgedbName} := <{edgeqlType}>json_get({jsonValue.Name}, '{x.Name}')";
+                        writer.Assignment(edgedbName, writer.Val(writer => writer
+                            .TypeCast(edgeqlType)
+                            .Function(
+                                "json_get",
+                                jsonValue.Name,
+                                writer.Val(writer => writer
+                                    .SingleQuoted(property.Name)
+                                )
+                            )
+                        ));
+                    }));
 
-                        return null;
-                    });
+                    continue;
                 }
 
-                // if its a link, add a ternary statement for pulling the value out of a sub-map
-                if (EdgeDBTypeUtils.IsLink(x.PropertyType, out var isArray, out _))
+                if (EdgeDBTypeUtils.IsLink(property.PropertyType, out var isArray, out _))
                 {
-                    // return a slice operator for multi links or a index operator for single links
-                    return isArray
-                        ? $"{edgedbName} := (select {mappingName}_d1 offset <int64>json_get({jsonValue.Name}, '{x.Name}', '{mappingName}_depth_from') ?? 0 limit <int64>json_get({jsonValue.Name}, '{x.Name}', '{mappingName}_depth_to') ?? 0)"
-                        : $"{edgedbName} := (select {mappingName}_d1 offset <int64>json_get({jsonValue.Name}, '{x.Name}', '{mappingName}_depth_index') limit 1) if json_typeof(json_get({jsonValue.Name}, '{x.Name}')) != 'null' else <{x.PropertyType.GetEdgeDBTypeName()}>{{}}";
+                    elements.Add(new ShapeSetter(writer =>
+                        AppendJsonIteration(writer, property, edgedbName, mappingName, jsonValue.Name, 0, isArray))
+                    );
+                    continue;
                 }
 
-                // if its a scalar type, use json_get to pull the value and cast it to our property
-                // type
                 if (!isScalar)
-                    throw new NotSupportedException($"Cannot use type {x.PropertyType} as there is no serializer for it");
+                    throw new NotSupportedException(
+                        $"Cannot use type {property.PropertyType} as there is no serializer for it");
 
-                return $"{edgedbName} := <{edgeqlType}>json_get({jsonValue.Name}, '{x.Name}')";
-            });
+                elements.Add(new ShapeSetter(writer => writer
+                    .Assignment(edgedbName, writer.Val(writer => writer
+                        .TypeCast(edgeqlType).Function(
+                            "json_get",
+                            jsonValue.Name,
+                            writer.Val(writer => writer
+                                .SingleQuoted(property.Name))
+                        ))
+                    )
+                ));
+            }
 
             // return out our insert shape
-            return new ShapeDefinition(shape);
+            return new ShapeDefinition(elements);
         }
 
         /// <summary>
@@ -421,7 +601,14 @@ namespace EdgeDB.QueryNodes
 
             // if the value is an expression we can just directly translate it
             if (value is LambdaExpression expression)
-                return $"{{ {TranslateExpression(expression)} }}";
+            {
+                return new ShapeDefinition(writer =>
+                {
+                    writer.Append('{');
+                    TranslateExpression(expression, writer);
+                    writer.Append('}');
+                });
+            }
 
             // get all properties that aren't marked with the EdgeDBIgnore attribute
             var map = EdgeDBPropertyMapInfo.Create(type);
@@ -432,15 +619,22 @@ namespace EdgeDB.QueryNodes
                 var propValue = property.PropertyInfo.GetValue(value);
                 var isScalar = EdgeDBTypeUtils.TryGetScalarType(property.Type, out var edgeqlType);
 
-                if(property.CustomConverter is not null)
+                if (property.CustomConverter is not null)
                 {
                     // convert it and parameterize it
-                    if(!EdgeDBTypeUtils.TryGetScalarType(property.CustomConverter.Target, out var scalar))
-                        throw new ArgumentException($"Cannot resolve scalar type for {property.CustomConverter.Target}");
+                    if (!EdgeDBTypeUtils.TryGetScalarType(property.CustomConverter.Target, out var scalar))
+                        throw new ArgumentException(
+                            $"Cannot resolve scalar type for {property.CustomConverter.Target}");
                     propValue = property.CustomConverter.ConvertTo(propValue);
+
                     var varName = QueryUtils.GenerateRandomVariableName();
                     SetVariable(varName, propValue);
-                    setters.Add($"{property.EdgeDBName} := <{scalar}>${varName}");
+
+                    setters.Add(new ShapeSetter(writer => writer
+                        .Append(property.EdgeDBName)
+                        .Append(" := ")
+                        .QueryArgument(new(scalar), varName)
+                    ));
                     continue;
                 }
 
@@ -450,27 +644,30 @@ namespace EdgeDB.QueryNodes
                     !property.Type.IsEnum &&
                     (propValue?.Equals(ReflectionUtils.GetDefault(property.Type)) ?? false))
                 {
-                    setters.Add(new(s =>
+                    setters.Add(new ShapeSetter((writer, info) =>
                     {
-                        // get the object type from the schema
-                        if (!s.TryGetObjectInfo(type!, out var info))
-                            throw new InvalidOperationException($"Could not find {type!.GetEdgeDBTypeName()} in schema info!");
+                        if (!info.TryGetObjectInfo(type!, out var typeInfo))
+                            throw new InvalidOperationException(
+                                $"Could not find {type!.GetEdgeDBTypeName()} in schema info!"
+                            );
 
-                        // get the property defined in the schema
-                        var edgedbProp = info.Properties!.FirstOrDefault(x => x.Name == property.EdgeDBName);
+                        var edgedbProp = typeInfo.Properties!.FirstOrDefault(x => x.Name == property.EdgeDBName);
 
                         if (edgedbProp is null)
-                            throw new InvalidOperationException($"Could not find property '{property.EdgeDBName}' on type {type!.GetEdgeDBTypeName()}");
+                            throw new InvalidOperationException(
+                                $"Could not find property '{property.EdgeDBName}' on type {type!.GetEdgeDBTypeName()}"
+                            );
 
-                        // if its required and it doesn't have a default value, set it
                         if (edgedbProp.Required && !edgedbProp.HasDefault)
                         {
                             var varName = QueryUtils.GenerateRandomVariableName();
                             SetVariable(varName, propValue);
-                            return $"{property.EdgeDBName} := <{edgeqlType}>${varName}";
-                        }
 
-                        return null;
+                            writer
+                                .Append(property.EdgeDBName)
+                                .Append(" := ")
+                                .QueryArgument(new(edgeqlType), varName);
+                        }
                     }));
                     continue;
                 }
@@ -483,7 +680,11 @@ namespace EdgeDB.QueryNodes
                     // set it as a variable and continue the iteration
                     var varName = QueryUtils.GenerateRandomVariableName();
                     SetVariable(varName, propValue);
-                    setters.Add($"{property.EdgeDBName} := <{edgeqlType}>${varName}");
+                    setters.Add(new ShapeSetter(writer => writer
+                        .Append(property.EdgeDBName)
+                        .Append(" := ")
+                        .QueryArgument(new(edgeqlType), varName)
+                    ));
                     continue;
                 }
 
@@ -492,27 +693,38 @@ namespace EdgeDB.QueryNodes
                 {
                     // if its null we can append an empty set
                     if (propValue is null)
-                        setters.Add($"{property.EdgeDBName} := {{}}");
+                        setters.Add(new ShapeSetter(writer => writer
+                            .Append(property.EdgeDBName).Append(" := {}")
+                        ));
                     else if (isArray) // if its a multi link
                     {
-                        List<string> subShape = new();
+                        if (propValue is not IEnumerable enumerable)
+                            throw new InvalidOperationException(
+                                $"Expected enumerable type for array, got {propValue.GetType()}"
+                            );
 
-                        // iterate over all values and generate their resolver
-                        foreach (var item in (IEnumerable)propValue!)
-                        {
-                            subShape.Add(BuildLinkResolver(innerType!, item));
-                        }
-
-                        // append the sub-shape
-                        setters.Add($"{property.EdgeDBName} := {{ {string.Join(", ", subShape)} }}");
+                        setters.Add(new ShapeSetter(writer => writer
+                            .Append(property.EdgeDBName)
+                            .Append(" := ")
+                            .Shape(enumerable.Cast<object?>(), (w, x) =>
+                                BuildLinkResolver(w, innerType!, x)
+                            )));
                     }
                     else // generate the link resolver and append it
-                        setters.Add($"{property.EdgeDBName} := {BuildLinkResolver(property.Type, propValue)}");
+                        setters.Add(new ShapeSetter(writer =>
+                        {
+                            writer
+                                .Append(property.EdgeDBName)
+                                .Append(" := ");
+
+                            BuildLinkResolver(writer, property.Type, propValue);
+                        }));
 
                     continue;
                 }
 
-                throw new InvalidOperationException($"Failed to find method to serialize the property \"{property.Type.Name}\" on type {type.Name}");
+                throw new InvalidOperationException(
+                    $"Failed to find method to serialize the property \"{property.Type.Name}\" on type {type.Name}");
             }
 
             return new ShapeDefinition(setters);
@@ -521,16 +733,20 @@ namespace EdgeDB.QueryNodes
         /// <summary>
         ///     Resolves a sub query for a link.
         /// </summary>
+        /// <param name="writer">The query string writer to append the link resolver to.</param>
         /// <param name="type">The type of the link</param>
         /// <param name="value">The value of the link.</param>
         /// <returns>
         ///     A sub query or global name to reference the links value within the query.
         /// </returns>
-        private string BuildLinkResolver(Type type, object? value)
+        private void BuildLinkResolver(QueryStringWriter writer, Type type, object? value)
         {
             // if the value is null we can just return an empty set
             if (value is null)
-                return "{}";
+            {
+                writer.Append("{}");
+                return;
+            }
 
             // TODO: revisit references.
             //// is it a value that's been returned from a previous query?
@@ -546,14 +762,28 @@ namespace EdgeDB.QueryNodes
             RequiresIntrospection = true;
 
             // add a insert select statement
-            return InlineOrGlobal(type, new SubQuery((info) =>
+            InlineOrGlobal(writer, type, new SubQuery((info, subqueryWriter) =>
             {
                 var name = type.GetEdgeDBTypeName();
-                var exclusiveProps = QueryGenerationUtils.GetProperties(info, type, true);
-                var exclusiveCondition = exclusiveProps.Any() ?
-                    $" unless conflict on {(exclusiveProps.Count() > 1 ? $"({string.Join(", ", exclusiveProps.Select(x => $".{x.GetEdgeDBPropertyName()}"))})" : $".{exclusiveProps.First().GetEdgeDBPropertyName()}")} else (select {name})"
-                    : string.Empty;
-                return $"(insert {name} {BuildInsertShape(type, value).Build(info)}{exclusiveCondition})";
+                var exclusiveProps = QueryGenerationUtils.GetProperties(info, type, true).ToArray();
+
+                subqueryWriter
+                    .Append("(insert ").Append(name);
+
+                BuildInsertShape(type, value).Build(subqueryWriter, info);
+
+                if (exclusiveProps.Any())
+                {
+                    subqueryWriter
+                        .Append(" unless conflict on ");
+
+                    if (exclusiveProps.Length is 1)
+                        subqueryWriter.Append('.').Append(exclusiveProps[0].GetEdgeDBPropertyName());
+                    else
+                        subqueryWriter.Shape(exclusiveProps.Select(x => $".{x.GetEdgeDBPropertyName()}"), "()");
+
+                    subqueryWriter.Append(" else (select ").Append(name).Append(')');
+                }
             }), value);
         }
 
@@ -561,25 +791,26 @@ namespace EdgeDB.QueryNodes
         ///     Adds a sub query as an inline query or as a global depending on if the current
         ///     query contains any statements for the provided type.
         /// </summary>
+        /// <param name="writer">The query string writer to append the inlined query or global.</param>
         /// <param name="type">The returning type of the sub query.</param>
         /// <param name="value">The query itself.</param>
         /// <param name="reference">The optional reference object.</param>
         /// <returns>
         ///     A sub query or global name to reference the sub query.
         /// </returns>
-        private string InlineOrGlobal(Type type, SubQuery value, object? reference)
+        private void InlineOrGlobal(QueryStringWriter writer, Type type, SubQuery value, object? reference)
         {
             // if were in a query with the type or the query requires introspection add it as a global
-            if (_subQueryMap.Contains(type) || (value is SubQuery sq && sq.RequiresIntrospection))
-                return GetOrAddGlobal(reference, value);
+            if (_subQueryMap.Contains(type) || value.RequiresIntrospection)
+            {
+                writer.Append(GetOrAddGlobal(reference, value));
+                return;
+            }
 
             // add it to our sub query map and return the inlined version
             _subQueryMap.Add(type);
-            return value is SubQuery subQuery && subQuery.Query != null
-                ? subQuery.Query
-                : value.ToString()!;
+            writer.Append(value.Query);
         }
-
 
         /// <summary>
         ///     Adds a unless conflict on (...) statement to the insert node
@@ -599,7 +830,7 @@ namespace EdgeDB.QueryNodes
         /// <param name="selector">The property selector for the conflict clause.</param>
         public void UnlessConflictOn(LambdaExpression selector)
         {
-            Query.Append($" unless conflict on {TranslateExpression(selector)}");
+            _unlessConflictExpression = selector;
         }
 
         /// <summary>
@@ -607,7 +838,15 @@ namespace EdgeDB.QueryNodes
         /// </summary>
         public void ElseDefault()
         {
-            _elseStatement.Append($" else (select {OperatingType.GetEdgeDBTypeName()})");
+            if (_elseStatement is not null)
+                throw new InvalidOperationException("An insert statement may only contain one else statement");
+
+            _elseStatement = writer => writer
+                .Append(" else ")
+                .Wrapped(writer => writer
+                    .Append("select ")
+                    .Append(OperatingType.GetEdgeDBTypeName())
+                );
         }
 
         /// <summary>
@@ -616,23 +855,34 @@ namespace EdgeDB.QueryNodes
         /// <param name="builder">The builder that contains the else statement.</param>
         public void Else(IQueryBuilder builder)
         {
+            if (_elseStatement is not null)
+                throw new InvalidOperationException("An insert statement may only contain one else statement");
+
             // remove addon & autogen nodes.
-            var userNodes = builder.Nodes.Where(x => !builder.Nodes.Any(y => y.SubNodes.Contains(x)) || !x.IsAutoGenerated);
+            var userNodes = builder.Nodes
+                .Where(x => !builder.Nodes.Any(y => y.SubNodes.Contains(x)) || !x.IsAutoGenerated)
+                .ToArray();
 
             // TODO: better checks for this, future should add a callback to add the
             // node with its context so any parent builder can change contexts for nodes
             foreach (var node in userNodes)
                 node.Context.SetAsGlobal = false;
 
-            foreach(var variable in builder.Variables)
+            foreach (var variable in builder.Variables)
             {
                 Builder.QueryVariables[variable.Key] = variable.Value;
             }
 
-            var newBuilder = new QueryBuilder<object?>(userNodes.ToList(), builder.Globals.ToList(), builder.Variables.ToDictionary(x => x.Key, x=> x.Value));
+            var newBuilder = new QueryBuilder<object?>(
+                userNodes.ToList(), builder.Globals.ToList(),
+                builder.Variables.ToDictionary(x => x.Key, x => x.Value)
+            );
 
             var result = newBuilder.BuildWithGlobals();
-            _elseStatement.Append($" else ({result.Query})");
+
+            _elseStatement = writer => writer
+                .Append(" else ")
+                .Wrapped(result.Query);
         }
     }
 }

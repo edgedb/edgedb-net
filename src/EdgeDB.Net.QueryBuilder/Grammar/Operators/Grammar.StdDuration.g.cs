@@ -10,15 +10,21 @@ namespace EdgeDB
     {
         [EquivalentExpression(ExpressionType.Subtract, ExpressionType.Negate)]
         [EdgeQLOp("std::-")]
-        public static string Op_659357244(string? lParam, string? rParam)
+        public static void Op_678265550(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
         {
-            return $"{lParam} - {rParam}";
+            writer.Append(lParam).Wrapped("-", "  ").Append(rParam);
         }
         [EquivalentExpression(ExpressionType.Add, ExpressionType.AddChecked)]
         [EdgeQLOp("std::+")]
-        public static string Op_1721894087(string? lParam, string? rParam)
+        public static void Op_1610440653(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
         {
-            return $"{lParam} + {rParam}";
+            writer.Append(lParam).Wrapped("+", "  ").Append(rParam);
+        }
+        [EquivalentExpression(ExpressionType.Subtract, ExpressionType.Negate)]
+        [EdgeQLOp("std::-")]
+        public static void Op_2111313406(QueryStringWriter writer, QueryStringWriter.Proxy vParam)
+        {
+            writer.Append("-").Append(vParam);
         }
     }
 }

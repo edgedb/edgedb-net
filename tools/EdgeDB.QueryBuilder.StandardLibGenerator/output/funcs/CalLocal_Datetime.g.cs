@@ -1,6 +1,7 @@
 #nullable restore
 using EdgeDB;
 using EdgeDB.DataTypes;
+using EdgeDB.Translators.Methods;
 using System.Runtime.CompilerServices;
 
 namespace EdgeDB.Translators
@@ -8,9 +9,9 @@ namespace EdgeDB.Translators
     internal partial class CalLocal_DatetimeMethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.ToLocalDatetime))]
-        public string ToLocalDatetimeTranslator(string? sParam, string? fmtParam)
+        public void ToLocalDatetimeTranslator(QueryStringWriter writer, TranslatedParameter sParam, TranslatedParameter? fmtParam)
         {
-            return $"cal::to_local_datetime({sParam}, {(fmtParam is not null ? "fmtParam, " : "")})";
+            writer.Function("cal::to_local_datetime", sParam, OptionalArg(fmtParam));
         }
 
     }

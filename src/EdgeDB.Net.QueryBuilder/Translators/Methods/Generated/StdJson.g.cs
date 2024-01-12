@@ -1,6 +1,7 @@
 #nullable restore
 using EdgeDB;
 using EdgeDB.DataTypes;
+using EdgeDB.Translators.Methods;
 using System.Runtime.CompilerServices;
 
 namespace EdgeDB.Translators
@@ -8,45 +9,39 @@ namespace EdgeDB.Translators
     internal partial class StdJsonMethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.JsonArrayUnpack))]
-        public string JsonArrayUnpackTranslator(string? arrayParam)
+        public void JsonArrayUnpackTranslator(QueryStringWriter writer, TranslatedParameter arrayParam)
         {
-            return $"std::json_array_unpack({arrayParam})";
+            writer.Function("std::json_array_unpack", arrayParam);
         }
 
         [MethodName(nameof(EdgeQL.JsonObjectPack))]
-        public string JsonObjectPackTranslator(string? pairsParam)
+        public void JsonObjectPackTranslator(QueryStringWriter writer, TranslatedParameter pairsParam)
         {
-            return $"std::json_object_pack({pairsParam})";
+            writer.Function("std::json_object_pack", pairsParam);
         }
 
         [MethodName(nameof(EdgeQL.JsonGet))]
-        public string JsonGetTranslator(string? jsonParam, string? pathParam, string? defaultParam)
+        public void JsonGetTranslator(QueryStringWriter writer, TranslatedParameter jsonParam, TranslatedParameter pathParam, TranslatedParameter? defaultParam)
         {
-            return $"std::json_get({jsonParam}, {pathParam}, default := {defaultParam})";
-        }
-
-        [MethodName(nameof(EdgeQL.JsonSet))]
-        public string JsonSetTranslator(string? targetParam, string? pathParam, string? valueParam, string? create_if_missingParam, string? empty_treatmentParam)
-        {
-            return $"std::json_set({targetParam}, {pathParam}, value := {valueParam}, create_if_missing := {create_if_missingParam}, empty_treatment := {empty_treatmentParam})";
+            writer.Function("std::json_get", jsonParam, pathParam, new QueryStringWriter.FunctionArg(OptionalArg(defaultParam), "default"));
         }
 
         [MethodName(nameof(EdgeQL.ToJson))]
-        public string ToJsonTranslator(string? strParam)
+        public void ToJsonTranslator(QueryStringWriter writer, TranslatedParameter strParam)
         {
-            return $"std::to_json({strParam})";
+            writer.Function("std::to_json", strParam);
         }
 
         [MethodName(nameof(EdgeQL.GetConfigJson))]
-        public string GetConfigJsonTranslator(string? sourcesParam, string? max_sourceParam)
+        public void GetConfigJsonTranslator(QueryStringWriter writer, TranslatedParameter? sourcesParam, TranslatedParameter? max_sourceParam)
         {
-            return $"cfg::get_config_json(sources := {sourcesParam}, max_source := {max_sourceParam})";
+            writer.Function("cfg::get_config_json", new QueryStringWriter.FunctionArg(OptionalArg(sourcesParam), "sources"), new QueryStringWriter.FunctionArg(OptionalArg(max_sourceParam), "max_source"));
         }
 
         [MethodName(nameof(EdgeQL.Concat))]
-        public string Concat(string? lParam, string? rParam)
+        public void Concat(QueryStringWriter writer, TranslatedParameter lParam, TranslatedParameter rParam)
         {
-            return $"{lParam} ++ {rParam}";
+            writer.Append(lParam).Wrapped("++", "  ").Append(rParam);
         }
     }
 }

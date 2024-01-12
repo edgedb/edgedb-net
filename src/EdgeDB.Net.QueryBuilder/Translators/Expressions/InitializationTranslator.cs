@@ -83,8 +83,8 @@ namespace EdgeDB.Translators.Expressions
 
         private static void CompileInsertExpression(
             Type propertyType,
-            StringBuilder subQuery,
-            TranslatorProxy shapeProxy,
+            QueryStringWriter subQuery,
+            QueryStringWriter.Proxy shapeProxy,
             ObjectType objectInfo,
             ExpressionContext context)
         {
@@ -98,16 +98,19 @@ namespace EdgeDB.Translators.Expressions
             shapeProxy(subQuery);
 
             subQuery
-                .Append(" } ")
-                .Append(ConflictUtils.GenerateExclusiveConflictStatement(objectInfo, true))
+                .Append(" } ");
+
+            ConflictUtils.GenerateExclusiveConflictStatement(subQuery, objectInfo, true);
+
+            subQuery
                 .Append(" else ( select ")
                 .Append(typename)
                 .Append("))");
         }
 
-        private static void AppendInitialization(StringBuilder builder, string name, string? value = null)
+        private static void AppendInitialization(QueryStringWriter writer, string name, string? value = null)
         {
-            builder
+            writer
                 .Append(name)
                 .Append(" := ")
                 .Append(value ?? "{}");
@@ -116,12 +119,12 @@ namespace EdgeDB.Translators.Expressions
         public static void Translate(
             List<(EdgeDBPropertyInfo, Expression)> expressions,
             ExpressionContext context,
-            StringBuilder result)
+            QueryStringWriter writer)
         {
             // context.IsShape = true;
             // return $"{{ {string.Join(", ", initializations)} }}";
 
-            result.Append("{ ");
+            writer.Append("{ ");
 
             for (var i = 0; i != expressions.Count; i++)
             {
@@ -147,12 +150,12 @@ namespace EdgeDB.Translators.Expressions
 
                                 if (subQuery == null)
                                 {
-                                    AppendInitialization(result, property.EdgeDBName);
+                                    AppendInitialization(writer, property.EdgeDBName);
                                     break;
                                 }
 
                                 AppendInitialization(
-                                    result,
+                                    writer,
                                     property.EdgeDBName,
                                     context.GetOrAddGlobal(memberValue, subQuery)
                                 );
@@ -170,7 +173,7 @@ namespace EdgeDB.Translators.Expressions
                                 // check if its a global value we've already got a query for
                                 if (context.TryGetGlobal(memberValue, out var global))
                                 {
-                                    AppendInitialization(result, property.EdgeDBName, global.Name);
+                                    AppendInitialization(writer, property.EdgeDBName, global.Name);
                                     break;
                                 }
 
@@ -208,15 +211,15 @@ namespace EdgeDB.Translators.Expressions
                                     );
                                 }), memberValue);
 
-                                AppendInitialization(result, property.PropertyName, name);
+                                AppendInitialization(writer, property.PropertyName, name);
                             }
                             else if (disassembled.Last().Type.IsAssignableTo(typeof(QueryContext)))
                             {
-                                result
+                                writer
                                     .Append(property.EdgeDBName)
                                     .Append(" := ");
 
-                                ExpressionTranslator.ContextualTranslate(expression, context, result);
+                                ExpressionTranslator.ContextualTranslate(expression, context, writer);
                             }
                             else
                                 throw new InvalidOperationException($"Cannot translate {expression}");
@@ -232,7 +235,7 @@ namespace EdgeDB.Translators.Expressions
                             var converted = property.CustomConverter.ConvertTo(expressionResult);
                             var varName = context.AddVariable(converted);
 
-                            result
+                            writer
                                 .Append(property.EdgeDBName)
                                 .Append(" := ")
                                 .QueryArgument(scalar.ToString(), varName);
@@ -255,7 +258,7 @@ namespace EdgeDB.Translators.Expressions
                                 );
                             }), null);
 
-                            AppendInitialization(result, property.EdgeDBName, name);
+                            AppendInitialization(writer, property.EdgeDBName, name);
                         }
                         break;
                     default:
@@ -271,33 +274,33 @@ namespace EdgeDB.Translators.Expressions
                                 context.NodeContext.CurrentType.GetProperty(property.PropertyName) != null &&
                                 expression is not MethodCallExpression);
 
-                            result.Append(property.EdgeDBName);
+                            writer.Append(property.EdgeDBName);
 
-                            var position = result.Length;
+                            var position = writer.Position;
 
-                            ExpressionTranslator.ContextualTranslate(expression!, newContext, result);
+                            ExpressionTranslator.ContextualTranslate(expression!, newContext, writer);
 
-                            if (position == result.Length) // part of shape: no actual content was added
+                            if (position == writer.Position) // part of shape: no actual content was added
                                 break;
 
                             if (newContext.IsShape)
                             {
                                 // add the start and end shape form.
-                                result
+                                writer
                                     .Insert(position, ": {")
                                     .Append('}');
                             }
                             else if ((isSetter || context.IsFreeObject) && !newContext.HasInitializationOperator)
-                                result.Insert(position, " := "); // add assignment.
+                                writer.Insert(position, " := "); // add assignment.
                         }
                         break;
                 }
 
                 if (i + 1 != expressions.Count)
-                    result.Append(", ");
+                    writer.Append(", ");
             }
 
-            result.Append('}');
+            writer.Append('}');
         }
     }
 }

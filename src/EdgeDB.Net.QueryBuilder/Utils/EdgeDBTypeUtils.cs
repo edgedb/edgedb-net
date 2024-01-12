@@ -104,8 +104,8 @@ namespace EdgeDB
 
             info = null;
 
-            Type? enumerableType = ReflectionUtils.IsSubclassOfRawGeneric(typeof(IEnumerable<>), type) 
-                ? type 
+            Type? enumerableType = ReflectionUtils.IsSubclassOfRawGeneric(typeof(IEnumerable<>), type)
+                ? type
                 : type.GetInterfaces().FirstOrDefault(x => ReflectionUtils.IsSubclassOfRawGeneric(typeof(IEnumerable<>), x));
 
             EdgeDBTypeInfo? child = null;
@@ -125,14 +125,14 @@ namespace EdgeDB
         /// </summary>
         /// <param name="type">The type to check whether or not its a link.</param>
         /// <param name="isMultiLink">
-        ///     The out parameter which is <see langword="true"/> 
+        ///     The out parameter which is <see langword="true"/>
         ///     if the type is a 'multi link'; otherwise a 'single link'.
         /// </param>
         /// <param name="innerLinkType">The inner type of the multi link if <paramref name="isMultiLink"/> is <see langword="true"/>; otherwise <see langword="null"/>.</param>
         /// <returns>
         ///     <see langword="true"/> if the given type is a link; otherwise <see langword="false"/>.
         /// </returns>
-        public static bool IsLink(Type type, out bool isMultiLink, [MaybeNullWhen(false)] out Type? innerLinkType)
+        public static bool IsLink(Type type, out bool isMultiLink, [NotNullWhen(true)] out Type? innerLinkType)
         {
             innerLinkType = null;
             isMultiLink = false;
@@ -158,7 +158,7 @@ namespace EdgeDB
         /// </summary>
         /// <param name="info">The property info to check whether or not its a link.</param>
         /// <param name="isMultiLink">
-        ///     The out parameter which is <see langword="true"/> 
+        ///     The out parameter which is <see langword="true"/>
         ///     if the type is a 'multi link'; otherwise a 'single link'.
         /// </param>
         /// <param name="innerLinkType">The inner type of the multi link if <paramref name="isMultiLink"/> is <see langword="true"/>; otherwise <see langword="null"/>.</param>

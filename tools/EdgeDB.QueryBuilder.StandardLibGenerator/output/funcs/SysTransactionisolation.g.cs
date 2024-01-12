@@ -1,6 +1,7 @@
 #nullable restore
 using EdgeDB;
 using EdgeDB.DataTypes;
+using EdgeDB.Translators.Methods;
 using System.Runtime.CompilerServices;
 
 namespace EdgeDB.Translators
@@ -8,9 +9,9 @@ namespace EdgeDB.Translators
     internal partial class SysTransactionisolationMethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.GetTransactionIsolation))]
-        public string GetTransactionIsolationTranslator()
+        public void GetTransactionIsolationTranslator(QueryStringWriter writer)
         {
-            return $"sys::get_transaction_isolation()";
+            writer.Function("sys::get_transaction_isolation");
         }
 
     }

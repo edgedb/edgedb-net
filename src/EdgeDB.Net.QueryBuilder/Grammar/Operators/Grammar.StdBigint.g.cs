@@ -10,27 +10,39 @@ namespace EdgeDB
     {
         [EquivalentExpression(ExpressionType.Add, ExpressionType.AddChecked)]
         [EdgeQLOp("std::+")]
-        public static string Op_1338897288(string? lParam, string? rParam)
+        public static void Op_187122355(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
         {
-            return $"{lParam} + {rParam}";
+            writer.Append(lParam).Wrapped("+", "  ").Append(rParam);
+        }
+        [EquivalentExpression(ExpressionType.Add, ExpressionType.AddChecked)]
+        [EdgeQLOp("std::+")]
+        public static void Op_1070787292(QueryStringWriter writer, QueryStringWriter.Proxy lParam)
+        {
+            writer.Append("+").Append(lParam);
         }
         [EquivalentExpression(ExpressionType.Subtract, ExpressionType.Negate)]
         [EdgeQLOp("std::-")]
-        public static string Op_2007736371(string? lParam, string? rParam)
+        public static void Op_1782036213(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
         {
-            return $"{lParam} - {rParam}";
+            writer.Append(lParam).Wrapped("-", "  ").Append(rParam);
+        }
+        [EquivalentExpression(ExpressionType.Subtract, ExpressionType.Negate)]
+        [EdgeQLOp("std::-")]
+        public static void Op_1297256363(QueryStringWriter writer, QueryStringWriter.Proxy lParam)
+        {
+            writer.Append("-").Append(lParam);
         }
         [EquivalentExpression(ExpressionType.Multiply)]
         [EdgeQLOp("std::*")]
-        public static string Op_596915432(string? lParam, string? rParam)
+        public static void Op_1836965427(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
         {
-            return $"{lParam} * {rParam}";
+            writer.Append(lParam).Wrapped("*", "  ").Append(rParam);
         }
         [EquivalentExpression(ExpressionType.Modulo)]
         [EdgeQLOp("std::%")]
-        public static string Op_1046883458(string? nParam, string? dParam)
+        public static void Op_1909327778(QueryStringWriter writer, QueryStringWriter.Proxy nParam, QueryStringWriter.Proxy dParam)
         {
-            return $"{nParam} % {dParam}";
+            writer.Append(nParam).Wrapped("%", "  ").Append(dParam);
         }
     }
 }

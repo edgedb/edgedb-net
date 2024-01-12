@@ -16,13 +16,15 @@ namespace EdgeDB.Translators.Expressions
     internal class MemberInitExpressionTranslator : ExpressionTranslator<MemberInitExpression>
     {
         /// <inheritdoc/>
-        public override void Translate(MemberInitExpression expression, ExpressionContext context, StringBuilder result)
+        public override void Translate(MemberInitExpression expression, ExpressionContext context,
+            QueryStringWriter writer)
+
         {
             List<(EdgeDBPropertyInfo, Expression)> expressions = new();
 
             var map = new Dictionary<PropertyInfo, EdgeDBPropertyInfo>(
                 EdgeDBPropertyMapInfo.Create(expression.Type).Properties
-                .Select(x => new KeyValuePair<PropertyInfo, EdgeDBPropertyInfo>(x.PropertyInfo, x)));
+                    .Select(x => new KeyValuePair<PropertyInfo, EdgeDBPropertyInfo>(x.PropertyInfo, x)));
 
             // ctor
             // TODO: custom type converters?
@@ -39,7 +41,7 @@ namespace EdgeDB.Translators.Expressions
                 expressions.Add((edgedbPropInfo, binding.Expression));
             }
 
-            InitializationTranslator.Translate(expressions, context, result);
+            InitializationTranslator.Translate(expressions, context, writer);
         }
     }
 }

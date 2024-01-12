@@ -1,4 +1,5 @@
 using EdgeDB.DataTypes;
+using EdgeDB.Models.DataTypes;
 using EdgeDB.StandardLibGenerator.Models;
 using System;
 using System.Collections;
@@ -20,7 +21,7 @@ namespace EdgeDB.StandardLibGenerator
             => DotnetType?.Name?.Replace("`1", "") ?? _dotnetName!;
 
         public bool IsEnum { get; set; }
-        
+
         public string EdgeDBName { get; }
         public Type? DotnetType { get; }
         public bool IsGeneric { get; }
@@ -124,7 +125,7 @@ namespace EdgeDB.StandardLibGenerator
             var edgedbType = (await QueryBuilder.Select<Models.Type>().Filter(x => x.Name == node.EdgeDBName).ExecuteAsync(client!)).FirstOrDefault();
 
             if (edgedbType is null)
-                throw new Exception($"Failde to find type {node.EdgeDBName}");
+                throw new Exception($"Failed to find type {node.EdgeDBName}");
 
             if (TypeUtils.GeneratedTypes.TryGetValue(edgedbType.Name, out var dotnetType))
                 return dotnetType;
@@ -157,8 +158,10 @@ namespace EdgeDB.StandardLibGenerator
                             }
                         }
                         break;
+                    case MetaInfoType.Unknown when edgedbType.Name is "fts::document": // ignored
+                        break;
                     default:
-                        throw new Exception($"Unknown stdlib builder for type {edgedbType.Id}");
+                        throw new Exception($"Unknown stdlib builder for type {edgedbType.Id} {edgedbType.Name}");
                 }
             }
 
@@ -176,7 +179,7 @@ namespace EdgeDB.StandardLibGenerator
             }
 
             type = default;
-            
+
             var dotnetType = t switch
             {
                 "std::set" => typeof(IEnumerable),
@@ -211,7 +214,7 @@ namespace EdgeDB.StandardLibGenerator
                 type = new(t, null, true);
             else
             {
-                // tuple or arry?
+                // tuple or array?
                 var match = GenericRegex.Match(t);
 
                 if (!match.Success)
@@ -223,6 +226,7 @@ namespace EdgeDB.StandardLibGenerator
                     "array" => typeof(IEnumerable<>),
                     "set" => typeof(IEnumerable<>),
                     "range" => typeof(Range<>),
+                    "multirange" => typeof(MultiRange<>),
                     _ => null
                 };
 

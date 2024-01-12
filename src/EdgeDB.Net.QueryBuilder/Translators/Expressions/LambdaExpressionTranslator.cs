@@ -13,10 +13,12 @@ namespace EdgeDB.Translators.Expressions
     internal class LambdaExpressionTranslator : ExpressionTranslator<LambdaExpression>
     {
         /// <inheritdoc/>
-        public override void Translate(LambdaExpression expression, ExpressionContext context, StringBuilder result)
+        public override void Translate(LambdaExpression expression, ExpressionContext context, QueryStringWriter result)
         {
             // create a new context and translate the body of the lambda.
-            var newContext = new ExpressionContext(context.NodeContext, expression, context.QueryArguments, context.Globals);
+            var newContext =
+                new ExpressionContext(context.NodeContext, expression, context.QueryArguments, context.Globals);
+
             TranslateExpression(expression.Body, newContext, result);
         }
     }

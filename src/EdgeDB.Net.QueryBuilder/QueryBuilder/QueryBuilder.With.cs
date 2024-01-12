@@ -69,7 +69,14 @@ namespace EdgeDB
                 {
                     var varName = QueryUtils.GenerateRandomVariableName();
                     _queryVariables.Add(varName, value);
-                    _queryGlobals.Add(new QueryGlobal(property.Name, new SubQuery($"<{scalarInfo}>${varName}")));
+                    _queryGlobals.Add(
+                        new QueryGlobal(
+                            property.Name,
+                            new SubQuery(writer => writer
+                                .QueryArgument(scalarInfo, varName)
+                            )
+                        )
+                    );
                 }
                 else if (property.PropertyType.IsAssignableTo(typeof(IQueryBuilder)))
                 {
@@ -90,7 +97,9 @@ namespace EdgeDB
                     var referenceValue = property.PropertyType.GetProperty("Value")!.GetValue(value);
                     var jsonVarName = QueryUtils.GenerateRandomVariableName();
                     _queryVariables.Add(jsonVarName, DataTypes.Json.Serialize(referenceValue));
-                    _queryGlobals.Add(new QueryGlobal(property.Name, new SubQuery($"<json>${jsonVarName}"), value));
+                    _queryGlobals.Add(new QueryGlobal(property.Name, new SubQuery(writer => writer
+                        .QueryArgument("json", jsonVarName)
+                    ), value));
                 }
                 else
                     throw new InvalidOperationException($"Cannot serialize {property.Name}: No serialization strategy found for {property.PropertyType}");

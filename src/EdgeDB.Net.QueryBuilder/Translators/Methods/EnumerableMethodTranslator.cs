@@ -14,56 +14,105 @@ namespace EdgeDB.Translators.Methods
     internal class EnumerableMethodTranslator : MethodTranslator
     {
         /// <inheritdoc/>
-        protected override Type TransaltorTargetType => typeof(Enumerable);
+        protected override Type TranslatorTargetType => typeof(Enumerable);
 
         /// <summary>
         ///     Translates the method <see cref="Enumerable.Count{TSource}(IEnumerable{TSource})"/>.
         /// </summary>
+        /// <param name="writer">The query string writer to append the translated method to.</param>
         /// <param name="source">The source collection to count.</param>
         /// <returns>The EdgeQL equivalent of the method.</returns>
         [MethodName(nameof(Enumerable.Count))]
-        public string Count(TranslatedParameter source)
-            => (source.IsScalarArrayType || source.IsScalarType) ? $"len({source})" : $"count({source})";
+        public void Count(QueryStringWriter writer, TranslatedParameter source)
+        {
+            if (source.IsScalarArrayType || source.IsScalarType)
+                writer.Function("len", source);
+            else
+                writer.Function("count", source);
+        }
 
         /// <summary>
         ///     Translates the method <see cref="Enumerable.Contains{TSource}(IEnumerable{TSource}, TSource)"/>.
         /// </summary>
+        /// <param name="writer">The query string writer to append the translated method to.</param>
         /// <param name="source">The source collection.</param>
         /// <param name="target">The value to locate within the collection.</param>
         /// <returns>The EdgeQL equivalent of the method.</returns>
         [MethodName(nameof(Enumerable.Contains))]
-        public string Contains(TranslatedParameter source, string target)
-            => (source.IsScalarArrayType || source.IsScalarType) ? $"contains({source}, {target})" : $"{target} in {source}";
+        public void Contains(QueryStringWriter writer, TranslatedParameter source, TranslatedParameter target)
+        {
+            if (source.IsScalarArrayType || source.IsScalarType)
+                writer.Function("contains", source);
+            else
+                writer.Append(target).Append(" in ").Append(source);
+        }
 
         /// <summary>
         ///     Translates the method <see cref="Enumerable.ElementAt{TSource}(IEnumerable{TSource}, Index)"/>.
         /// </summary>
+        /// <param name="writer">The query string writer to append the translated method to.</param>
         /// <param name="source">The source collection.</param>
         /// <param name="index">The index of the element to get</param>
         /// <returns>The EdgeQL equivalent of the method.</returns>
         [MethodName(nameof(Enumerable.ElementAt))]
-        public string ElementAt(TranslatedParameter source, string index)
-            => $"array_get({source}, {index})";
+        public void ElementAt(QueryStringWriter writer, TranslatedParameter source, TranslatedParameter index)
+            => writer.Function("array_get", source, index);
 
         /// <summary>
         ///     Translates the method <see cref="Enumerable.FirstOrDefault{TSource}(IEnumerable{TSource})"/>.
         /// </summary>
+        /// <param name="writer">The query string writer to append the translated method to.</param>
         /// <param name="source">The source collection.</param>
         /// <param name="filterOrDefault">The default value or expression.</param>
         /// <param name="defaultValue">The default value if the <paramref name="filterOrDefault"/> was a filter.</param>
         /// <returns>The EdgeQL equivalent of the method.</returns>
         [MethodName(nameof(Enumerable.FirstOrDefault))]
-        public string FirstOrDefault(TranslatedParameter source, TranslatedParameter filterOrDefault, TranslatedParameter? defaultValue)
+        public void FirstOrDefault(QueryStringWriter writer, TranslatedParameter source, TranslatedParameter filterOrDefault, TranslatedParameter? defaultValue)
         {
             if (filterOrDefault.IsScalarType)
-                return $"{ElementAt(source, "0")} ?? {filterOrDefault}";
+            {
+                ElementAt(
+                    writer,
+                    source,
+                    new TranslatedParameter(typeof(long), writer => writer
+                        .Append("0"),
+                    Expression.Constant(0L)
+                ));
+                writer
+                    .Append(" ?? ")
+                    .Append(filterOrDefault);
 
-            // get the parameter name for the filter
+                return;
+            }
+
             var name = ((LambdaExpression)filterOrDefault.RawValue).Parameters[0].Name;
             var set = source.IsScalarArrayType ? $"array_unpack({source})" : source.ToString();
             var returnType = ((LambdaExpression)filterOrDefault.RawValue).Parameters[0].Type;
-            return $"<{EdgeDBTypeUtils.GetEdgeDBScalarOrTypeName(returnType)}>array_get(array_agg((select {name} := {set} filter {filterOrDefault})), 0){(defaultValue != null ? $" ?? {defaultValue}" : String.Empty)}";
-        }
 
+            writer
+                .TypeCast(EdgeDBTypeUtils.GetEdgeDBScalarOrTypeName(returnType))
+                .Function(
+                    "array_get",
+                    writer.Val(writer => writer
+                        .Function(
+                            "array_agg",
+                            writer.Val(writer => writer
+                                .Wrapped(writer => writer
+                                    .Append("select ")
+                                    .Assignment(name!, set)
+                                    .Append(" filter ")
+                                    .Append(filterOrDefault)
+                                )
+                            )
+                        )
+                    ),
+                    "0"
+                );
+
+            if (defaultValue is not null)
+                writer
+                    .Append(" ?? ")
+                    .Append(defaultValue);
+        }
     }
 }

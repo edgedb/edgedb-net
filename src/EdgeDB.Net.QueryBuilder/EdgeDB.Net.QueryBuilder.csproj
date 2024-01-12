@@ -10,12 +10,15 @@
 	  <NoWarn>CS1591</NoWarn>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <WarningLevel>5</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>preview</LangVersion>
   </PropertyGroup>
   
   <ItemGroup>
     <ProjectReference Include="..\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Grammar\Operators\" />
     <Folder Include="stdlib\" />
     <Folder Include="Translators\Methods\Generated\" />
   </ItemGroup>
