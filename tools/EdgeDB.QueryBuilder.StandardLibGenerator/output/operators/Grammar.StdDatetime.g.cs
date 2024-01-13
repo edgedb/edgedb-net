@@ -10,13 +10,13 @@ namespace EdgeDB
     {
         [EquivalentExpression(ExpressionType.Add, ExpressionType.AddChecked)]
         [EdgeQLOp("std::+")]
-        public static void Op_1645298519(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
+        public static void Op_1425158882(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
         {
             writer.Append(lParam).Wrapped("+", "  ").Append(rParam);
         }
         [EquivalentExpression(ExpressionType.Subtract, ExpressionType.Negate)]
         [EdgeQLOp("std::-")]
-        public static void Op_919307452(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
+        public static void Op_1390992251(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
         {
             writer.Append(lParam).Wrapped("-", "  ").Append(rParam);
         }

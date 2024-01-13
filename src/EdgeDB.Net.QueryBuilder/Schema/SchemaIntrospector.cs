@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace EdgeDB.Schema
-{   
+{
     /// <summary>
     ///     Represents a class responsible for preforming and caching schema introspection data.
     /// </summary>
@@ -32,7 +32,7 @@ namespace EdgeDB.Schema
         /// <param name="edgedb">The client to preform introspection with if the cache doesn't have it.</param>
         /// <param name="token">A cancellation token used to cancel the introspection query.</param>
         /// <returns>
-        ///     A ValueTask representing the (a)sync introspection operation. The result of the 
+        ///     A ValueTask representing the (a)sync introspection operation. The result of the
         ///     task is the introspection info.
         /// </returns>
         public static ValueTask<SchemaInfo> GetOrCreateSchemaIntrospectionAsync(IEdgeDBQueryable edgedb, CancellationToken token = default)
@@ -48,7 +48,7 @@ namespace EdgeDB.Schema
         /// <param name="edgedb">The client to preform introspection with.</param>
         /// <param name="token">A cancellation token used to cancel the introspection query.</param>
         /// <returns>
-        ///     A ValueTask representing the (a)sync introspection operation. The result of the 
+        ///     A ValueTask representing the (a)sync introspection operation. The result of the
         ///     task is the introspection info.
         /// </returns>
         private static async Task<SchemaInfo> IntrospectSchemaAsync(IEdgeDBQueryable edgedb, CancellationToken token)
@@ -77,7 +77,7 @@ namespace EdgeDB.Schema
             //    Id = ctx.Include<Guid>(),
             //    IsAbstract = ctx.Include<bool>(),
             //    Name = ctx.Include<string>(),
-            //    Constraints = ctx.IncludeMultiLink(() => new Constraint 
+            //    Constraints = ctx.IncludeMultiLink(() => new Constraint
             //    {
             //        SubjectExpression = ctx.Include<string>(),
             //        Name = ctx.Include<string>(),
@@ -97,7 +97,7 @@ namespace EdgeDB.Schema
             //        HasDefault = ctx.Raw<bool>("EXISTS .default or (\"std::sequence\" in .target[IS schema::ScalarType].ancestors.name)")
             //    })
             //}).Filter((x, ctx) => !ctx.UnsafeLocal<bool>("builtin")).ExecuteAsync(edgedb, token: token);
-            
+
             // add to our cache
             return _schemas[edgedb] = new SchemaInfo(result);
         }

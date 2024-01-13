@@ -34,6 +34,7 @@ writer.AppendLine("#pragma warning disable");
 writer.AppendLine("using EdgeDB.Operators;");
 writer.AppendLine("using EdgeDB.DataTypes;");
 writer.AppendLine("using System.Numerics;");
+writer.AppendLine("using EdgeDB.Models.DataTypes;");
 writer.AppendLine("using DateTime = System.DateTime;");
 writer.AppendLine();
 

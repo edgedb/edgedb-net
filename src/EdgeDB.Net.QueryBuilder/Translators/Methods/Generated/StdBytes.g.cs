@@ -14,6 +14,12 @@ namespace EdgeDB.Translators
             writer.Function("std::to_bytes", sParam);
         }
 
+        [MethodName(nameof(EdgeQL.Base64Decode))]
+        public void Base64DecodeTranslator(QueryStringWriter writer, TranslatedParameter dataParam, TranslatedParameter alphabetParam, TranslatedParameter paddingParam)
+        {
+            writer.Function("std::enc::base64_decode", dataParam, new QueryStringWriter.FunctionArg(alphabetParam, "alphabet"), new QueryStringWriter.FunctionArg(paddingParam, "padding"));
+        }
+
         [MethodName(nameof(EdgeQL.Concat))]
         public void Concat(QueryStringWriter writer, TranslatedParameter lParam, TranslatedParameter rParam)
         {

@@ -10,12 +10,12 @@ namespace EdgeDB
     {
         [EquivalentExpression(ExpressionType.ArrayIndex)]
         [EdgeQLOp("std::[]")]
-        public static void Op_1376978675(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
+        public static void Op_379242823(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
         {
             writer.Append(lParam).Wrapped(rParam, "[]");
         }
         [EdgeQLOp("std::++")]
-        public static void Op_1667101(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
+        public static void Op_690824036(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
         {
             writer.Append(lParam).Wrapped("++", "  ").Append(rParam);
         }

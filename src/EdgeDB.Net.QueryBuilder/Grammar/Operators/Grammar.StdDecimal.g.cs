@@ -10,49 +10,49 @@ namespace EdgeDB
     {
         [EquivalentExpression(ExpressionType.Add, ExpressionType.AddChecked)]
         [EdgeQLOp("std::+")]
-        public static void Op_428501794(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
+        public static void Op_130310656(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
         {
             writer.Append(lParam).Wrapped("+", "  ").Append(rParam);
         }
         [EquivalentExpression(ExpressionType.Add, ExpressionType.AddChecked)]
         [EdgeQLOp("std::+")]
-        public static void Op_955623857(QueryStringWriter writer, QueryStringWriter.Proxy lParam)
+        public static void Op_1100802303(QueryStringWriter writer, QueryStringWriter.Proxy lParam)
         {
             writer.Append("+").Append(lParam);
         }
         [EquivalentExpression(ExpressionType.Subtract, ExpressionType.Negate)]
         [EdgeQLOp("std::-")]
-        public static void Op_86237905(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
+        public static void Op_1384781931(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
         {
             writer.Append(lParam).Wrapped("-", "  ").Append(rParam);
         }
         [EquivalentExpression(ExpressionType.Subtract, ExpressionType.Negate)]
         [EdgeQLOp("std::-")]
-        public static void Op_1275946902(QueryStringWriter writer, QueryStringWriter.Proxy lParam)
+        public static void Op_2122592212(QueryStringWriter writer, QueryStringWriter.Proxy lParam)
         {
             writer.Append("-").Append(lParam);
         }
         [EquivalentExpression(ExpressionType.Multiply)]
         [EdgeQLOp("std::*")]
-        public static void Op_216935838(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
+        public static void Op_930880377(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
         {
             writer.Append(lParam).Wrapped("*", "  ").Append(rParam);
         }
         [EquivalentExpression(ExpressionType.Divide)]
         [EdgeQLOp("std::/")]
-        public static void Op_2012276076(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
+        public static void Op_217110351(QueryStringWriter writer, QueryStringWriter.Proxy lParam, QueryStringWriter.Proxy rParam)
         {
             writer.Append(lParam).Wrapped("/", "  ").Append(rParam);
         }
         [EquivalentExpression(ExpressionType.Modulo)]
         [EdgeQLOp("std::%")]
-        public static void Op_1971112825(QueryStringWriter writer, QueryStringWriter.Proxy nParam, QueryStringWriter.Proxy dParam)
+        public static void Op_1168713276(QueryStringWriter writer, QueryStringWriter.Proxy nParam, QueryStringWriter.Proxy dParam)
         {
             writer.Append(nParam).Wrapped("%", "  ").Append(dParam);
         }
         [EquivalentExpression(ExpressionType.Power)]
         [EdgeQLOp("std::^")]
-        public static void Op_244399847(QueryStringWriter writer, QueryStringWriter.Proxy nParam, QueryStringWriter.Proxy pParam)
+        public static void Op_208319411(QueryStringWriter writer, QueryStringWriter.Proxy nParam, QueryStringWriter.Proxy pParam)
         {
             writer.Append(nParam).Wrapped("^", "  ").Append(pParam);
         }

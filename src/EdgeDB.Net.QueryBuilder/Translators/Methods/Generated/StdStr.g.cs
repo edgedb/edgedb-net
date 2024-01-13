@@ -140,6 +140,12 @@ namespace EdgeDB.Translators
             writer.Function("sys::get_current_database");
         }
 
+        [MethodName(nameof(EdgeQL.Base64Encode))]
+        public void Base64EncodeTranslator(QueryStringWriter writer, TranslatedParameter dataParam, TranslatedParameter alphabetParam, TranslatedParameter paddingParam)
+        {
+            writer.Function("std::enc::base64_encode", dataParam, new QueryStringWriter.FunctionArg(alphabetParam, "alphabet"), new QueryStringWriter.FunctionArg(paddingParam, "padding"));
+        }
+
         [MethodName(nameof(EdgeQL.Concat))]
         public void Concat(QueryStringWriter writer, TranslatedParameter lParam, TranslatedParameter rParam)
         {

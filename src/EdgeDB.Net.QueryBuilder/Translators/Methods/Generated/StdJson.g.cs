@@ -26,6 +26,12 @@ namespace EdgeDB.Translators
             writer.Function("std::json_get", jsonParam, pathParam, new QueryStringWriter.FunctionArg(OptionalArg(defaultParam), "default"));
         }
 
+        [MethodName(nameof(EdgeQL.JsonSet))]
+        public void JsonSetTranslator(QueryStringWriter writer, TranslatedParameter targetParam, TranslatedParameter pathParam, TranslatedParameter? valueParam, TranslatedParameter create_if_missingParam, TranslatedParameter empty_treatmentParam)
+        {
+            writer.Function("std::json_set", targetParam, pathParam, new QueryStringWriter.FunctionArg(OptionalArg(valueParam), "value"), new QueryStringWriter.FunctionArg(create_if_missingParam, "create_if_missing"), new QueryStringWriter.FunctionArg(empty_treatmentParam, "empty_treatment"));
+        }
+
         [MethodName(nameof(EdgeQL.ToJson))]
         public void ToJsonTranslator(QueryStringWriter writer, TranslatedParameter strParam)
         {

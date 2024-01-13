@@ -24,9 +24,9 @@ namespace EdgeDB.StandardLibGenerator
         public static string StdLibOutputPath => Path.Combine(Environment.CurrentDirectory, "output", "stdlib");
 
         public static string OutputPath => Path.Combine(Environment.CurrentDirectory, "output", "funcs");
-            //@"C:\Users\lynch\source\repos\EdgeDB\src\EdgeDB.Net.QueryBuilder\Translators\Methods\Generated";
+        //@"C:\Users\lynch\source\repos\EdgeDB\src\EdgeDB.Net.QueryBuilder\Translators\Methods\Generated";
 
-        private static readonly TextInfo _textInfo = new CultureInfo("en-US").TextInfo;
+        public static readonly TextInfo TextInfo = new CultureInfo("en-US").TextInfo;
         private static readonly Regex _groupRegex = new(@"(.+?)<.+?>");
         private static readonly List<string> _generatedPublicFuncs = new();
         private static CodeWriter? _edgeqlClassWriter;
@@ -34,7 +34,11 @@ namespace EdgeDB.StandardLibGenerator
 
         private static readonly Dictionary<string, string> _keywords = new()
         {
-            { "base", "@base" }, { "default", "@default" }, { "new", "@new" }, { "string", "str" }
+            { "base", "@base" },
+            { "default", "@default" },
+            { "new", "@new" },
+            { "string", "str" },
+            { "object", "@object" }
         };
 
         public static async ValueTask GenerateAsync(CodeWriter eqlWriter, EdgeDBClient client,
@@ -76,6 +80,7 @@ namespace EdgeDB.StandardLibGenerator
             public string[] Generics { get; set; } = Array.Empty<string>();
             public List<string> GenericConditions { get; set; } = new();
             public string? DefaultValue { get; set; } = "{}";
+            public bool Optional { get; set; }
         }
 
         private static async ValueTask ProcessGroup(string groupType, IEnumerable<Function> funcs,
@@ -109,13 +114,13 @@ namespace EdgeDB.StandardLibGenerator
             using (var namespaceScope = writer.BeginScope("namespace EdgeDB.Translators"))
             using (var classScope =
                    writer.BeginScope(
-                       $"internal partial class {_textInfo.ToTitleCase(groupType.Replace("::", " ")).Replace(" ", "")}MethodTranslator : MethodTranslator<EdgeQL>"))
+                       $"internal partial class {TextInfo.ToTitleCase(groupType.Replace("::", " ")).Replace(" ", "")}MethodTranslator : MethodTranslator<EdgeQL>"))
             {
                 foreach (var func in funcs)
                 {
                     try
                     {
-                        var funcName = _textInfo.ToTitleCase(func.Name!.Split("::")[1].Replace("_", " "))
+                        var funcName = TextInfo.ToTitleCase(func.Name!.Split("::").Last().Replace("_", " "))
                             .Replace(" ", "");
 
                         if (!TypeUtils.TryGetType(func.ReturnType!.Name!, out var returnTypeInfo))
@@ -140,7 +145,8 @@ namespace EdgeDB.StandardLibGenerator
                             {
                                 var node = new TypeNode(parameters[i].Parameter.Type!.Name, null);
                                 info = new TypeNode(
-                                    await TypeUtils.BuildType(_client!, node, TypeModifier.SingletonType, StdLibOutputPath,
+                                    await TypeUtils.BuildType(_client!, node, TypeModifier.SingletonType,
+                                        StdLibOutputPath,
                                         true), true, parameters[i].Parameter.Type!.Name);
                                 info.IsEnum = node.IsEnum;
 
@@ -169,8 +175,11 @@ namespace EdgeDB.StandardLibGenerator
                         {
                             var t = $"{x.Type} {(_keywords.TryGetValue(x.Name!, out var p) ? p : x.Name)}";
                             var param = parameters.ElementAt(i);
-                            if (!string.IsNullOrEmpty(x.DefaultValue) && x.DefaultValue != "{}")
+                            if (!string.IsNullOrEmpty(x.DefaultValue))
                             {
+                                if (x.DefaultValue is "{}" && !x.Optional)
+                                    return t;
+
                                 var defaultVal = x.DefaultValue;
 
                                 t += " = " + defaultVal switch
@@ -238,6 +247,8 @@ namespace EdgeDB.StandardLibGenerator
                                 methodBody += ");";
 
                                 writer.AppendLine(methodBody);
+
+                                Console.WriteLine($"Generated {funcName} => {methodBody}");
                             }
 
                             writer.AppendLine();
@@ -363,6 +374,10 @@ namespace EdgeDB.StandardLibGenerator
                                 _ => defaultVal
                             };
                         }
+                        else if (x.Optional)
+                        {
+                            t += " = default";
+                        }
 
                         return t;
                     }));
@@ -396,7 +411,7 @@ namespace EdgeDB.StandardLibGenerator
             try
             {
                 File.WriteAllText(
-                    Path.Combine(OutputPath, $"{_textInfo.ToTitleCase(groupType).Replace(":", "")}.g.cs"),
+                    Path.Combine(OutputPath, $"{TextInfo.ToTitleCase(groupType).Replace(":", "")}.g.cs"),
                     writer.ToString());
             }
             catch (Exception x)
@@ -411,7 +426,7 @@ namespace EdgeDB.StandardLibGenerator
             if (node.IsGeneric)
             {
                 var tname =
-                    $"T{_textInfo.ToTitleCase(Regex.Match(node.EdgeDBName, @"(?>.+?::|^)(.*?)$").Groups[1].Value.Replace("any", ""))}";
+                    $"T{TextInfo.ToTitleCase(Regex.Match(node.EdgeDBName, @"(?>.+?::|^)(.*?)$").Groups[1].Value.Replace("any", ""))}";
                 var tModified = tname;
                 if (modifier.HasValue)
                 {
@@ -428,7 +443,7 @@ namespace EdgeDB.StandardLibGenerator
                     }
                 }
 
-                return new ParsedParameter() { Name = name, Generics = new string[] { tname }, Type = tModified };
+                return new ParsedParameter() { Name = name, Generics = new string[] { tname }, Type = tModified, Optional = modifier is TypeModifier.OptionalType};
             }
 
             var typeName = node.DotnetTypeName ?? await TypeUtils.GenerateType(_client!, node, StdLibOutputPath);
@@ -454,7 +469,6 @@ namespace EdgeDB.StandardLibGenerator
                             case "Range" or "MultiRange":
                                 constraints.Add($"where {parsed.Type} : struct");
                                 break;
-
                         }
                     }
                 }
@@ -480,7 +494,8 @@ namespace EdgeDB.StandardLibGenerator
 
             return new ParsedParameter
             {
-                GenericConditions = constraints, Name = name, Type = typeName, Generics = generics.ToArray()
+                GenericConditions = constraints, Name = name, Type = typeName, Generics = generics.ToArray(),
+                Optional = modifier is TypeModifier.OptionalType
             };
         }
 
@@ -488,16 +503,13 @@ namespace EdgeDB.StandardLibGenerator
 
         private static async Task<string> ParseDefaultAsync(string @default, TypeNode node)
         {
-            if (node.IsEnum)
-            {
-                return @default.Split("::")[1];
-            }
-
             var result = await _client!.QuerySingleAsync<object>($"select {@default}");
             return result switch
             {
                 bool b => b.ToString().ToLower(),
                 null => "null",
+                string str when node.IsEnum => $"{node.DotnetTypeName}.{str}",
+                string str => $"\"{str}\"",
                 _ => result.ToString()!
             };
         }

@@ -20,11 +20,17 @@ namespace EdgeDB.Translators
             writer.Function("std::json_object_unpack", objParam);
         }
 
-        // [MethodName(nameof(EdgeQL.Search))]
-        // public void SearchTranslator(QueryStringWriter writer, TranslatedParameter objectParam, TranslatedParameter queryParam, TranslatedParameter languageParam, TranslatedParameter? weightsParam)
-        // {
-        //     writer.Function("fts::search", objectParam, queryParam, new QueryStringWriter.FunctionArg(languageParam, "language"), new QueryStringWriter.FunctionArg(OptionalArg(weightsParam), "weights"));
-        // }
+        [MethodName(nameof(EdgeQL.GetVersion))]
+        public void GetVersionTranslator(QueryStringWriter writer)
+        {
+            writer.Function("sys::get_version");
+        }
+
+        [MethodName(nameof(EdgeQL.Search))]
+        public void SearchTranslator(QueryStringWriter writer, TranslatedParameter objectParam, TranslatedParameter queryParam, TranslatedParameter languageParam, TranslatedParameter? weightsParam)
+        {
+            writer.Function("fts::search", objectParam, queryParam, new QueryStringWriter.FunctionArg(languageParam, "language"), new QueryStringWriter.FunctionArg(OptionalArg(weightsParam), "weights"));
+        }
 
     }
 }
