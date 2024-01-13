@@ -1,4 +1,3 @@
-using EdgeDB.Operators;
 using EdgeDB.QueryNodes;
 using EdgeDB.Translators;
 using System;
@@ -46,18 +45,7 @@ namespace EdgeDB
         private static readonly Dictionary<Type, ExpressionTranslator> _translators = new();
 
         /// <summary>
-        ///     An array of all edgeql operators.
-        /// </summary>
-        private static readonly IEdgeQLOperator[] _operators;
-
-        /// <summary>
-        ///     A collection of expression types (key) and operators (value).
-        /// </summary>
-        private static readonly Dictionary<ExpressionType, IEdgeQLOperator> _expressionOperators;
-
-        /// <summary>
-        ///     Statically initializes the translator, setting <see cref="_translators"/>,
-        ///     <see cref="_operators"/>, and <see cref="_expressionOperators"/>.
+        ///     Statically initializes the translator, setting <see cref="_translators"/>.
         /// </summary>
         static ExpressionTranslator()
         {
@@ -70,12 +58,6 @@ namespace EdgeDB
             {
                 _translators[translator.BaseType!.GenericTypeArguments[0]] = (ExpressionTranslator)Activator.CreateInstance(translator)!;
             }
-
-            // load operators
-            _operators = types.Where(x => x.ImplementedInterfaces.Any(x => x == typeof(IEdgeQLOperator))).Select(x => (IEdgeQLOperator)Activator.CreateInstance(x)!).ToArray();
-
-            // set the expression operators
-            _expressionOperators = _operators.Where(x => x.Expression is not null).DistinctBy(x => x.Expression).ToDictionary(x => (ExpressionType)x.Expression!, x => x);
         }
 
         public static QueryStringWriter.Proxy Proxy(Expression expression, ExpressionContext context)
@@ -94,20 +76,6 @@ namespace EdgeDB
 
             return proxies;
         }
-
-        /// <summary>
-        ///     Attempts to get a <see cref="IEdgeQLOperator"/> for the given <see cref="ExpressionType"/>.
-        /// </summary>
-        /// <param name="type">The expression type to get the operator for.</param>
-        /// <param name="edgeqlOperator">The out parameter containing the operator if found.</param>
-        /// <returns>
-        ///     <see langword="true"/> if an operator was found for the given
-        ///     <see cref="ExpressionType"/>; otherwise <see langword="false"/>.
-        /// </returns>
-        protected static bool TryGetExpressionOperator(
-            ExpressionType type,
-            [MaybeNullWhen(false)] out IEdgeQLOperator edgeqlOperator)
-            => _expressionOperators.TryGetValue(type, out edgeqlOperator);
 
         /// <summary>
         ///     Translate the given expression into the EdgeQL equivalent.

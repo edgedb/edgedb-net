@@ -108,6 +108,27 @@ namespace EdgeDB.Translators
             }
         }
 
+        internal static bool TryGetTranslator<T>(string name, [NotNullWhen(true)] out MethodTranslator? translator)
+            where T : MethodTranslator
+        {
+            translator = _translators.Values.FirstOrDefault(x => x.GetType() == typeof(T));
+
+            if (translator is null)
+                return false;
+
+            return translator._methodTranslators.TryGetValue(name, out _);
+        }
+
+        internal static bool TryGetTranslator(Type type, string name, [NotNullWhen(true)] out MethodTranslator? translator)
+        {
+            translator = _translators.Values.FirstOrDefault(x => x.GetType() == type);
+
+            if (translator is null)
+                return false;
+
+            return translator._methodTranslators.TryGetValue(name, out _);
+        }
+
         /// <summary>
         ///     Attempts to translate the given <see cref="MethodCallExpression"/> into a edgeql equivalent expression.
         /// </summary>

@@ -1,13 +1,6 @@
 using EdgeDB.Builders;
 using EdgeDB.Interfaces;
-using EdgeDB.Interfaces.Queries;
-using EdgeDB.Operators;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EdgeDB
 {
@@ -21,7 +14,7 @@ namespace EdgeDB
         ///     Gets a mock reference to the current working type.
         /// </summary>
         public TSelf Self { get; } = default!;
-        
+
         /// <summary>
         ///     References a defined query global given a name.
         /// </summary>
@@ -30,7 +23,6 @@ namespace EdgeDB
         /// <returns>
         ///     A mock reference to a global with the given <paramref name="name"/>.
         /// </returns>
-        [EquivalentOperator(typeof(VariablesReference))]
         public TType Global<TType>(string name)
             => default!;
 
@@ -42,7 +34,6 @@ namespace EdgeDB
         /// <returns>
         ///     A mock reference to a local with the given <paramref name="name"/>.
         /// </returns>
-        [EquivalentOperator(typeof(LocalReference))]
         public TType Local<TType>(string name)
             => default!;
 
@@ -53,7 +44,6 @@ namespace EdgeDB
         /// <returns>
         ///     A mock reference to a local with the given <paramref name="name"/>.
         /// </returns>
-        [EquivalentOperator(typeof(LocalReference))]
         public object? Local(string name)
             => default!;
 
@@ -65,7 +55,6 @@ namespace EdgeDB
         /// <returns>
         ///     A mock reference to a local with the given <paramref name="name"/>.
         /// </returns>
-        [EquivalentOperator(typeof(LocalReference))]
         public TType UnsafeLocal<TType>(string name)
             => default!;
 
@@ -76,7 +65,6 @@ namespace EdgeDB
         /// <returns>
         ///     A mock reference to a local with the given <paramref name="name"/>.
         /// </returns>
-        [EquivalentOperator(typeof(LocalReference))]
         public object? UnsafeLocal(string name)
             => default!;
 

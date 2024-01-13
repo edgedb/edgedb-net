@@ -1,6 +1,5 @@
 #nullable restore
 #pragma warning disable
-using EdgeDB.Operators;
 using EdgeDB.DataTypes;
 using System.Numerics;
 using EdgeDB.Models.DataTypes;

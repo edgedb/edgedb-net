@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,7 +12,7 @@ namespace EdgeDB
         internal readonly SerializationMethod Method;
 
         /// <summary>
-        ///     Marks this enum to be serialized in a certian way.
+        ///     Marks this enum to be serialized in a certain way.
         /// </summary>
         /// <param name="method">The serialization method to use when serializing this enum.</param>
         public EnumSerializerAttribute(SerializationMethod method)

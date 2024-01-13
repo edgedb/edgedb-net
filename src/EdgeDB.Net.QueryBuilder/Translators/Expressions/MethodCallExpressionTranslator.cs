@@ -1,4 +1,3 @@
-using EdgeDB.Operators;
 using EdgeDB.QueryNodes;
 using System;
 using System.Collections.Generic;
@@ -32,7 +31,8 @@ namespace EdgeDB.Translators.Expressions
             return strResult;
         }
 
-        public override void Translate(MethodCallExpression expression, ExpressionContext context, QueryStringWriter writer)
+        public override void Translate(MethodCallExpression expression, ExpressionContext context,
+            QueryStringWriter writer)
         {
             // figure out if the method is something we should translate or something that we should
             // call to pull the result from.
@@ -50,7 +50,8 @@ namespace EdgeDB.Translators.Expressions
 
             // attempt to get the scalar type of the result of the method.
             if (!EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var type))
-                throw new InvalidOperationException($"Cannot use {expression.Type} as a result in an un-translated context");
+                throw new InvalidOperationException(
+                    $"Cannot use {expression.Type} as a result in an un-translated context");
 
             // return the variable name containing the result of the method.
             writer
@@ -65,14 +66,25 @@ namespace EdgeDB.Translators.Expressions
                 ? Array.Empty<Expression>()
                 : ExpressionUtils.DisassembleExpression(expression.Object).ToArray();
 
-            var isInstanceReferenceToContext = expression.Object?.Type == typeof(QueryContext) || context.RootExpression.Parameters.Any(x => disassembledInstance.Contains(x));
-            var isParameterReferenceToContext = expression.Arguments.Any(x => x.Type == typeof(QueryContext) || context.RootExpression.Parameters.Any(y => ExpressionUtils.DisassembleExpression(x).Contains(y)));
-            var isExplicitTranslatorMethod = expression.Method.GetCustomAttribute<EquivalentOperator>() is not null;
+            var isInstanceReferenceToContext = expression.Object?.Type == typeof(QueryContext) ||
+                                               context.RootExpression.Parameters.Any(x =>
+                                                   disassembledInstance.Contains(x));
+
+            var isParameterReferenceToContext = expression.Arguments.Any(x =>
+                x.Type == typeof(QueryContext) ||
+                context.RootExpression.Parameters.Any(y => ExpressionUtils.DisassembleExpression(x).Contains(y)));
+
+            var isExplicitTranslatorMethod = expression.Method.DeclaringType is not null &&
+                                             MethodTranslator.TryGetTranslator(expression.Method.DeclaringType,
+                                                 expression.Method.Name, out _);
+
             var isStdLib = expression.Method.DeclaringType == typeof(EdgeQL);
-            return isStdLib || isExplicitTranslatorMethod || isParameterReferenceToContext || isInstanceReferenceToContext;
+            return isStdLib || isExplicitTranslatorMethod || isParameterReferenceToContext ||
+                   isInstanceReferenceToContext;
         }
 
-        private static void TranslateToEdgeQL(MethodCallExpression expression, ExpressionContext context, QueryStringWriter writer)
+        private static void TranslateToEdgeQL(MethodCallExpression expression, ExpressionContext context,
+            QueryStringWriter writer)
         {
             // if our method is within the query context class
             if (expression.Method.DeclaringType?.IsAssignableTo(typeof(IQueryContext)) ?? false)
@@ -80,114 +92,117 @@ namespace EdgeDB.Translators.Expressions
                 switch (expression.Method.Name)
                 {
                     case nameof(QueryContext.Global):
-                        TranslateExpression(expression.Arguments[0], context.Enter(x => x.StringWithoutQuotes = true), writer);
+                        TranslateExpression(expression.Arguments[0], context.Enter(x => x.StringWithoutQuotes = true),
+                            writer);
                         return;
                     case nameof(QueryContext.Local):
+                    {
+                        // get the path as a string and split it into segments
+                        var path = ExpressionAsString(expression.Arguments[0]);
+
+                        var pathSegments = path.Split('.');
+
+                        writer.Append('.');
+
+                        for (int i = 0; i != pathSegments.Length; i++)
                         {
-                            // get the path as a string and split it into segments
-                            var path = ExpressionAsString(expression.Arguments[0]);
+                            var prop = (MemberInfo?)context.LocalScope?.GetProperty(pathSegments[i]) ??
+                                       context.LocalScope?.GetField(pathSegments[i]) ??
+                                       (MemberInfo?)context.NodeContext.CurrentType.GetProperty(pathSegments[i]) ??
+                                       context.NodeContext.CurrentType.GetField(pathSegments[i]);
 
-                            var pathSegments = path.Split('.');
+                            if (prop is null)
+                                throw new InvalidOperationException(
+                                    $"The property \"{pathSegments[i]}\" within \"{path}\" is out of scope"
+                                );
 
-                            writer.Append('.');
+                            writer.Append(prop.GetEdgeDBPropertyName());
 
-                            for (int i = 0; i != pathSegments.Length; i++)
-                            {
-                                var prop = (MemberInfo?)context.LocalScope?.GetProperty(pathSegments[i]) ??
-                                    context.LocalScope?.GetField(pathSegments[i]) ??
-                                    (MemberInfo?)context.NodeContext.CurrentType.GetProperty(pathSegments[i]) ??
-                                    context.NodeContext.CurrentType.GetField(pathSegments[i]);
-
-                                if (prop is null)
-                                    throw new InvalidOperationException(
-                                        $"The property \"{pathSegments[i]}\" within \"{path}\" is out of scope"
-                                    );
-
-                                writer.Append(prop.GetEdgeDBPropertyName());
-
-                                if (i + 1 != pathSegments.Length)
-                                    writer.Append('.');
-                            }
-
-                            return;
+                            if (i + 1 != pathSegments.Length)
+                                writer.Append('.');
                         }
+
+                        return;
+                    }
                     case nameof(QueryContext.UnsafeLocal):
-                        {
-                            // same thing as local except we dont validate anything here
-                            writer
-                                .Append('.')
-                                .Append(ExpressionAsString(expression.Arguments[0]));
-                            return;
-                        }
+                    {
+                        // same thing as local except we dont validate anything here
+                        writer
+                            .Append('.')
+                            .Append(ExpressionAsString(expression.Arguments[0]));
+                        return;
+                    }
                     case nameof(QueryContext.Raw):
-                        {
-                            // return the raw string as a constant expression and serialize it without quotes
-                            writer.Append(ExpressionAsString(expression.Arguments[0]));
-                            return;
-                        }
+                    {
+                        // return the raw string as a constant expression and serialize it without quotes
+                        writer.Append(ExpressionAsString(expression.Arguments[0]));
+                        return;
+                    }
                     case nameof(QueryContext.BackLink):
+                    {
+                        // depending on the backlink method called, we should set some flags:
+                        // whether or not the called function is using the string form or the lambda form
+                        var isRawPropertyName = expression.Arguments[0].Type == typeof(string);
+
+                        // whether or not a shape argument was supplied
+                        var hasShape = !isRawPropertyName && expression.Arguments.Count > 1;
+
+                        writer.Append(".<");
+
+                        // translate the backlink property accessor
+                        TranslateExpression(
+                            expression.Arguments[0],
+                            isRawPropertyName
+                                ? context.Enter(x => x.StringWithoutQuotes = true)
+                                : context.Enter(x => x.IncludeSelfReference = false),
+                            writer
+                        );
+
+                        // if its a lambda, add the corresponding generic type as a [is x] statement
+                        if (!isRawPropertyName)
                         {
-                            // depending on the backlink method called, we should set some flags:
-                            // whether or not the called function is using the string form or the lambda form
-                            var isRawPropertyName = expression.Arguments[0].Type == typeof(string);
-
-                            // whether or not a shape argument was supplied
-                            var hasShape = !isRawPropertyName && expression.Arguments.Count > 1;
-
-                            writer.Append(".<");
-
-                            // translate the backlink property accessor
-                            TranslateExpression(
-                                expression.Arguments[0],
-                                isRawPropertyName
-                                    ? context.Enter(x => x.StringWithoutQuotes = true)
-                                    : context.Enter(x => x.IncludeSelfReference = false),
-                                writer
-                            );
-
-                            // if its a lambda, add the corresponding generic type as a [is x] statement
-                            if (!isRawPropertyName)
-                            {
-                                writer
-                                    .Append("[is ")
-                                    .Append(expression.Method.GetGenericArguments()[0].GetEdgeDBTypeName())
-                                    .Append(']');
-                            }
-
-                            // if it has a shape, translate the shape and add it to the backlink
-                            if (hasShape)
-                            {
-                                writer.Append('{');
-                                TranslateExpression(expression.Arguments[1], context, writer);
-                                writer.Append('}');
-                            }
+                            writer
+                                .Append("[is ")
+                                .Append(expression.Method.GetGenericArguments()[0].GetEdgeDBTypeName())
+                                .Append(']');
                         }
+
+                        // if it has a shape, translate the shape and add it to the backlink
+                        if (hasShape)
+                        {
+                            writer.Append('{');
+                            TranslateExpression(expression.Arguments[1], context, writer);
+                            writer.Append('}');
+                        }
+                    }
                         return;
                     case nameof(QueryContext.SubQuery):
-                        {
-                            // pull the builder parameter and add it to a new lambda
-                            // and execute it to get an instance of the builder
-                            var builder = (IQueryBuilder)Expression.Lambda(expression.Arguments[0]).Compile().DynamicInvoke()!;
+                    {
+                        // pull the builder parameter and add it to a new lambda
+                        // and execute it to get an instance of the builder
+                        var builder =
+                            (IQueryBuilder)Expression.Lambda(expression.Arguments[0]).Compile().DynamicInvoke()!;
 
-                            // build it and copy its globals & parameters to our builder
-                            var result = builder.BuildWithGlobals();
+                        // build it and copy its globals & parameters to our builder
+                        var result = builder.BuildWithGlobals();
 
-                            if (result.Parameters is not null)
-                                foreach (var parameter in result.Parameters)
-                                    context.SetVariable(parameter.Key, parameter.Value);
+                        if (result.Parameters is not null)
+                            foreach (var parameter in result.Parameters)
+                                context.SetVariable(parameter.Key, parameter.Value);
 
-                            if (result.Globals is not null)
-                                foreach (var global in result.Globals)
-                                    context.SetGlobal(global.Name, global.Value, global.Reference);
+                        if (result.Globals is not null)
+                            foreach (var global in result.Globals)
+                                context.SetGlobal(global.Name, global.Value, global.Reference);
 
-                            writer
-                                .Append('(')
-                                .Append(result.Query)
-                                .Append(')');
-                        }
+                        writer
+                            .Append('(')
+                            .Append(result.Query)
+                            .Append(')');
+                    }
                         return;
                     default:
-                        throw new NotImplementedException($"{expression.Method.Name} does not have an implementation. This is a bug, please file a github issue with your query to reproduce this exception.");
+                        throw new NotImplementedException(
+                            $"{expression.Method.Name} does not have an implementation. This is a bug, please file a github issue with your query to reproduce this exception.");
                 }
             }
 
