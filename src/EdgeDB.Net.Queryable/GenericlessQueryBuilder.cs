@@ -91,7 +91,9 @@ namespace EdgeDB
         }
 
         #region Query methods
+
         #region With
+
         public GenericlessQueryBuilder With(object variables)
         {
             if (variables is null)
@@ -110,7 +112,8 @@ namespace EdgeDB
                 {
                     var varName = QueryUtils.GenerateRandomVariableName();
                     _queryVariables.Add(varName, value);
-                    _queryGlobals.Add(new QueryGlobal(property.Name, new SubQuery($"<{scalarInfo}>${varName}")));
+                    _queryGlobals.Add(new QueryGlobal(property.Name,
+                        new SubQuery(writer => writer.QueryArgument(scalarInfo, varName))));
                 }
                 else if (property.PropertyType.IsAssignableTo(typeof(IQueryBuilder)))
                 {
@@ -131,30 +134,32 @@ namespace EdgeDB
                     var referenceValue = property.PropertyType.GetProperty("Value")!.GetValue(value);
                     var jsonVarName = QueryUtils.GenerateRandomVariableName();
                     _queryVariables.Add(jsonVarName, DataTypes.Json.Serialize(referenceValue));
-                    _queryGlobals.Add(new QueryGlobal(property.Name, new SubQuery($"<json>${jsonVarName}"), value));
+                    _queryGlobals.Add(new QueryGlobal(property.Name,
+                        new SubQuery(writer => writer.QueryArgument("json", jsonVarName)), value));
                 }
                 else
-                    throw new InvalidOperationException($"Cannot serialize {property.Name}: No serialization strategy found for {property.PropertyType}");
+                    throw new InvalidOperationException(
+                        $"Cannot serialize {property.Name}: No serialization strategy found for {property.PropertyType}");
             }
 
             return this;
         }
+
         #endregion
 
         #region For
+
         public GenericlessQueryBuilder For(IEnumerable collection, LambdaExpression iterator, Type? type = null)
         {
-            AddNode<ForNode>(new ForContext(EnterType(type))
-            {
-                Expression = iterator,
-                Set = collection
-            });
+            AddNode<ForNode>(new ForContext(EnterType(type)) { Expression = iterator, Set = collection });
 
             return this;
         }
+
         #endregion
 
         #region Select
+
         public GenericlessQueryBuilder Select(Type? type = null)
         {
             AddNode<SelectNode>(new SelectContext(EnterType(type)));
@@ -165,11 +170,7 @@ namespace EdgeDB
         {
             type ??= EnterType(type);
 
-            AddNode<SelectNode>(new SelectContext(type)
-            {
-                Shape = shape,
-                IsFreeObject = type.IsAnonymousType()
-            });
+            AddNode<SelectNode>(new SelectContext(type) { Shape = shape, IsFreeObject = type.IsAnonymousType() });
 
             return this;
         }
@@ -180,24 +181,21 @@ namespace EdgeDB
 
             AddNode<SelectNode>(new SelectContext(type)
             {
-                Expression = expression,
-                IncludeShape = false,
-                IsFreeObject = type.IsAnonymousType(),
+                Expression = expression, IncludeShape = false, IsFreeObject = type.IsAnonymousType(),
             });
 
             return this;
         }
+
         #endregion
 
         #region Insert
+
         public GenericlessQueryBuilder Insert(object value, bool returnInsertedValue = true, Type? type = null)
         {
             type ??= EnterType(type);
 
-            var insertNode = AddNode<InsertNode>(new InsertContext(type)
-            {
-                Value = value
-            });
+            var insertNode = AddNode<InsertNode>(new InsertContext(type) { Value = value });
 
             if (returnInsertedValue)
             {
@@ -206,17 +204,16 @@ namespace EdgeDB
 
             return this;
         }
+
         #endregion
 
         #region Update
+
         public GenericlessQueryBuilder Update(LambdaExpression func, bool returnUpdatedValue = true, Type? type = null)
         {
             type ??= EnterType(type);
 
-            var updateNode = AddNode<UpdateNode>(new UpdateContext(type)
-            {
-                UpdateExpression = func
-            });
+            var updateNode = AddNode<UpdateNode>(new UpdateContext(type) { UpdateExpression = func });
 
             if (returnUpdatedValue)
             {
@@ -225,18 +222,23 @@ namespace EdgeDB
 
             return this;
         }
+
         #endregion
 
         #region Delete
+
         public GenericlessQueryBuilder Delete(Type? type = null)
         {
             AddNode<DeleteNode>(new DeleteContext(EnterType(type)));
             return this;
         }
+
         #endregion
+
         #endregion
 
         #region Query node attributes
+
         public GenericlessQueryBuilder Filter(LambdaExpression expression)
         {
             switch (CurrentUserNode)
@@ -250,10 +252,12 @@ namespace EdgeDB
                 default:
                     throw new InvalidOperationException($"Cannot filter on a {CurrentUserNode}");
             }
+
             return this;
         }
 
-        public GenericlessQueryBuilder OrderBy(bool asc, LambdaExpression selector, OrderByNullPlacement? placement = null)
+        public GenericlessQueryBuilder OrderBy(bool asc, LambdaExpression selector,
+            OrderByNullPlacement? placement = null)
         {
             if (CurrentUserNode is not SelectNode selectNode)
                 throw new InvalidOperationException($"Cannot order by on a {CurrentUserNode}");
@@ -357,13 +361,17 @@ namespace EdgeDB
 
             return this;
         }
+
         #endregion
 
         #region Building
+
         private async ValueTask<BuiltQuery> IntrospectAndBuildAsync(IEdgeDBQueryable edgedb, CancellationToken token)
         {
-            if (_nodes.Any(x => x.RequiresIntrospection) || _queryGlobals.Any(x => x.Value is SubQuery subQuery && subQuery.RequiresIntrospection))
-                _schemaInfo ??= await SchemaIntrospector.GetOrCreateSchemaIntrospectionAsync(edgedb, token).ConfigureAwait(false);
+            if (_nodes.Any(x => x.RequiresIntrospection) ||
+                _queryGlobals.Any(x => x.Value is SubQuery subQuery && subQuery.RequiresIntrospection))
+                _schemaInfo ??= await SchemaIntrospector.GetOrCreateSchemaIntrospectionAsync(edgedb, token)
+                    .ConfigureAwait(false);
 
             var result = Build();
             _nodes.Clear();
@@ -372,7 +380,8 @@ namespace EdgeDB
             return result;
         }
 
-        internal BuiltQuery InternalBuild(bool includeGlobalsInQuery = true, Action<QueryNode>? preFinalizerModifier = null)
+        internal BuiltQuery InternalBuild(bool includeGlobalsInQuery = true,
+            Action<QueryNode>? preFinalizerModifier = null)
         {
             List<string> query = new();
             List<IDictionary<string, object?>> parameters = new();
@@ -391,15 +400,10 @@ namespace EdgeDB
             // create a with block if we have any globals
             if (includeGlobalsInQuery && _queryGlobals.Any())
             {
-                var builder = new NodeBuilder(new WithContext(QueryType)
-                {
-                    Values = _queryGlobals,
-                }, _queryGlobals, nodes, _queryVariables);
+                var builder = new NodeBuilder(new WithContext(QueryType) { Values = _queryGlobals, }, _queryGlobals,
+                    nodes, _queryVariables);
 
-                var with = new WithNode(builder)
-                {
-                    SchemaInfo = _schemaInfo
-                };
+                var with = new WithNode(builder) { SchemaInfo = _schemaInfo };
 
                 // visit the with node and add it to the front of our local collection of nodes.
                 with.Visit();
@@ -426,8 +430,8 @@ namespace EdgeDB
 
             // flatten our parameters into a single collection and make it distinct.
             var variables = parameters
-                            .SelectMany(x => x)
-                            .DistinctBy(x => x.Key);
+                .SelectMany(x => x)
+                .DistinctBy(x => x.Key);
 
             // add any variables that might have been added by other builders in a sub-query context.
             variables = variables.Concat(_queryVariables.Where(x => !variables.Any(x => x.Key == x.Key)));
@@ -436,8 +440,7 @@ namespace EdgeDB
             return new BuiltQuery(string.Join(' ', query))
             {
                 Parameters = variables
-                            .ToDictionary(x => x.Key, x => x.Value),
-
+                    .ToDictionary(x => x.Key, x => x.Value),
                 Globals = !includeGlobalsInQuery ? _queryGlobals : null
             };
         }
@@ -453,16 +456,20 @@ namespace EdgeDB
         /// <inheritdoc cref="IQueryBuilder.BuildWithGlobals"/>
         public BuiltQuery BuildWithGlobals(Action<QueryNode>? preFinalizerModifier = null)
             => InternalBuild(false, preFinalizerModifier);
+
         #endregion
 
         #region IQueryBuilder
+
         IReadOnlyCollection<QueryNode> IQueryBuilder.Nodes
             => _nodes.ToImmutableArray();
+
         IReadOnlyCollection<QueryGlobal> IQueryBuilder.Globals
             => _queryGlobals.ToImmutableArray();
 
         IReadOnlyDictionary<string, object?> IQueryBuilder.Variables
             => _queryVariables.ToImmutableDictionary();
+
         #endregion
     }
 }
