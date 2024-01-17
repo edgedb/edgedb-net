@@ -17,15 +17,9 @@ namespace EdgeDB.QueryNodes
         }
 
         /// <inheritdoc/>
-        /// <remarks>
-        ///     Overrides the default <see cref="SelectNode.FinalizeQuery"/> method and does nothing.
-        /// </remarks>
-        public override void FinalizeQuery() { }
-        
-        /// <inheritdoc/>
-        public override void Visit()
+        public override void FinalizeQuery(QueryStringWriter writer)
         {
-            Writer.Append($"delete {Context.SelectName ?? OperatingType.GetEdgeDBTypeName()}");
+            writer.Append($"delete {Context.SelectName ?? OperatingType.GetEdgeDBTypeName()}");
         }
     }
 }

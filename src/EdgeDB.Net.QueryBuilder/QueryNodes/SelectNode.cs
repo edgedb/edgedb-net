@@ -109,10 +109,10 @@ namespace EdgeDB.QueryNodes
                 if (Context.Expression is not null)
                 {
                     var writer = Writer.GetPositionalWriter(0)
-                        .Append("select");
+                        .Append("select ");
 
                     if (Context.SelectName is not null)
-                        writer.Append(" ").Append(Context.SelectName);
+                        writer.Append(Context.SelectName).Append(' ');
 
                     TranslateExpression(Context.Expression, writer);
                 }

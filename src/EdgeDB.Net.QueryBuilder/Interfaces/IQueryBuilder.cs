@@ -22,7 +22,7 @@ namespace EdgeDB
         IGroupable<TType>
     {
         /// <summary>
-        ///     Adds a <c>FOR</c> statement on the <paramref name="collection"/> with a <c>UNION</c> 
+        ///     Adds a <c>FOR</c> statement on the <paramref name="collection"/> with a <c>UNION</c>
         ///     whos inner query is the <paramref name="iterator"/>.
         /// </summary>
         /// <param name="collection">The collection to iterate over.</param>
@@ -72,7 +72,7 @@ namespace EdgeDB
         ///     A <see cref="ISelectQuery{TType, TContext}"/>.
         /// </returns>
         ISelectQuery<TResult, TContext> Select<TResult>(Action<ShapeBuilder<TResult>> shape);
-        
+
         /// <summary>
         ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
         /// </summary>
@@ -112,7 +112,7 @@ namespace EdgeDB
         ///     Adds a <c>INSERT</c> statement inserting an instance of <typeparamref name="TType"/>.
         /// </summary>
         /// <remarks>
-        ///     This statement requires introspection when <typeparamref name="TType"/> contains a 
+        ///     This statement requires introspection when <typeparamref name="TType"/> contains a
         ///     property thats a <see cref="ValueType"/>.
         /// </remarks>
         /// <param name="value">The value to insert.</param>
@@ -126,7 +126,7 @@ namespace EdgeDB
         ///     Adds a <c>INSERT</c> statement inserting an instance of <typeparamref name="TType"/>.
         /// </summary>
         /// <remarks>
-        ///     This statement requires introspection when <typeparamref name="TType"/> contains a 
+        ///     This statement requires introspection when <typeparamref name="TType"/> contains a
         ///     property thats a <see cref="ValueType"/>.
         /// </remarks>
         /// <param name="value">The value to insert.</param>
@@ -137,7 +137,7 @@ namespace EdgeDB
         ///     Adds a <c>INSERT</c> statement inserting an instance of <typeparamref name="TType"/>.
         /// </summary>
         /// <remarks>
-        ///     This statement requires introspection when <typeparamref name="TType"/> contains a 
+        ///     This statement requires introspection when <typeparamref name="TType"/> contains a
         ///     property thats a <see cref="ValueType"/>.
         /// </remarks>
         /// <param name="value">The callback containing the value initialization to insert.</param>
@@ -151,7 +151,7 @@ namespace EdgeDB
         ///     Adds a <c>INSERT</c> statement inserting an instance of <typeparamref name="TType"/>.
         /// </summary>
         /// <remarks>
-        ///     This statement requires introspection when <typeparamref name="TType"/> contains a 
+        ///     This statement requires introspection when <typeparamref name="TType"/> contains a
         ///     property thats a <see cref="ValueType"/>.
         /// </remarks>
         /// <param name="value">The callback containing the value initialization to insert.</param>
@@ -278,6 +278,11 @@ namespace EdgeDB
     public interface IQueryBuilder
     {
         /// <summary>
+        ///     Gets whether or not this query builder requires introspection to build.
+        /// </summary>
+        public bool RequiresIntrospection { get; }
+
+        /// <summary>
         ///     Gets a read-only collection of query nodes within this query builder.
         /// </summary>
         internal IReadOnlyCollection<QueryNode> Nodes { get; }
@@ -296,7 +301,7 @@ namespace EdgeDB
         ///     Builds the current query.
         /// </summary>
         /// <remarks>
-        ///     If the query requires introspection please use 
+        ///     If the query requires introspection please use
         ///     <see cref="BuildAsync(IEdgeDBQueryable, CancellationToken)"/>.
         /// </remarks>
         /// <returns>
@@ -313,8 +318,8 @@ namespace EdgeDB
         ValueTask<BuiltQuery> BuildAsync(IEdgeDBQueryable edgedb, CancellationToken token = default);
 
         /// <summary>
-        ///     Builds the current query builder into its <see cref="BuiltQuery"/> 
-        ///     form and exlcudes globals from the query text and puts them in 
+        ///     Builds the current query builder into its <see cref="BuiltQuery"/>
+        ///     form and exlcudes globals from the query text and puts them in
         ///     <see cref="BuiltQuery.Globals"/>.
         /// </summary>
         /// <param name="preFinalizerModifier">

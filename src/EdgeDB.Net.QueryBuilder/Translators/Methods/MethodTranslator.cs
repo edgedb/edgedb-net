@@ -55,7 +55,7 @@ namespace EdgeDB.Translators
         /// <summary>
         ///     The static dictionary containing all of the method translators.
         /// </summary>
-        private static readonly ConcurrentDictionary<Type, MethodTranslator> _translators = new();
+        private static readonly ConcurrentDictionary<Type, List<MethodTranslator>> _translators = new();
 
         /// <summary>
         ///     The dictionary containing all of the methods that the current translator
@@ -70,7 +70,8 @@ namespace EdgeDB.Translators
         public MethodTranslator()
         {
             // get all methods within the current type that have at least one MethodName attribute
-            var methods = GetType().GetMethods().Where(x => x.GetCustomAttributes().Any(x => x.GetType() == typeof(MethodNameAttribute)));
+            var methods = GetType().GetMethods().Where(x =>
+                x.GetCustomAttributes().Any(x => x.GetType() == typeof(MethodNameAttribute)));
 
             var tempDict = new Dictionary<string, MethodInfo>();
 
@@ -85,7 +86,6 @@ namespace EdgeDB.Translators
 
             // create a new concurrent dictionary from our temp one
             _methodTranslators = new(tempDict);
-
         }
 
         /// <summary>
@@ -97,36 +97,41 @@ namespace EdgeDB.Translators
             var types = Assembly.GetExecutingAssembly().DefinedTypes;
 
             // load current translators
-            var translators = types.Where(x => x.BaseType?.Name == "MethodTranslator`1" || (x.BaseType == typeof(MethodTranslator) && x.Name != "MethodTranslator`1"));
+            var translators = types.Where(x =>
+                x.BaseType?.Name == "MethodTranslator`1" ||
+                (x.BaseType == typeof(MethodTranslator) && x.Name != "MethodTranslator`1"));
 
             // iterate over the translators and initialize them and store them in the translators
             // dictionary
             foreach (var translator in translators)
             {
                 var inst = (MethodTranslator)Activator.CreateInstance(translator)!;
-                _translators[inst.TranslatorTargetType] = inst;
+                _translators.GetOrAdd(inst.TranslatorTargetType, _ => new()).Add(inst);
             }
         }
 
         internal static bool TryGetTranslator<T>(string name, [NotNullWhen(true)] out MethodTranslator? translator)
             where T : MethodTranslator
         {
-            translator = _translators.Values.FirstOrDefault(x => x.GetType() == typeof(T));
+            translator = null;
 
-            if (translator is null)
+            if (!_translators.TryGetValue(typeof(T), out var translators))
                 return false;
 
-            return translator._methodTranslators.TryGetValue(name, out _);
+            return (translator = translators.FirstOrDefault(x => x._methodTranslators.TryGetValue(name, out _))) is not
+                null;
         }
 
-        internal static bool TryGetTranslator(Type type, string name, [NotNullWhen(true)] out MethodTranslator? translator)
+        internal static bool TryGetTranslator(Type type, string name,
+            [NotNullWhen(true)] out MethodTranslator? translator)
         {
-            translator = _translators.Values.FirstOrDefault(x => x.GetType() == type);
+            translator = null;
 
-            if (translator is null)
+            if (!_translators.TryGetValue(type, out var translators))
                 return false;
 
-            return translator._methodTranslators.TryGetValue(name, out _);
+            return (translator = translators.FirstOrDefault(x => x._methodTranslators.TryGetValue(name, out _))) is not
+                null;
         }
 
         /// <summary>
@@ -138,7 +143,8 @@ namespace EdgeDB.Translators
         /// <returns>
         ///     <see langword="true"/> if the <paramref name="methodCall"/> was translated; otherwise <see langword="false"/>.
         /// </returns>
-        public static bool TryTranslateMethod(QueryStringWriter writer, MethodCallExpression methodCall, ExpressionContext context)
+        public static bool TryTranslateMethod(QueryStringWriter writer, MethodCallExpression methodCall,
+            ExpressionContext context)
         {
             try
             {
@@ -155,18 +161,28 @@ namespace EdgeDB.Translators
         /// <param name="methodCall">The method call expression to translate.</param>
         /// <param name="context">The current context for the method call expression.</param>
         /// <exception cref="NotSupportedException">No translator could be found for the given method expression.</exception>
-        public static void TranslateMethod(QueryStringWriter writer, MethodCallExpression methodCall, ExpressionContext context)
+        public static void TranslateMethod(QueryStringWriter writer, MethodCallExpression methodCall,
+            ExpressionContext context)
         {
             var type = methodCall.Method.DeclaringType;
-            MethodTranslator? translator = null;
+            List<MethodTranslator>? translators = null;
 
-            while(type != null && !_translators.TryGetValue(type, out translator))
+
+            while (type != null && !_translators.TryGetValue(type, out translators))
             {
                 type = type.BaseType;
             }
 
-            if(type is null || translator is null)
-                throw new NotSupportedException($"Cannot use method {methodCall.Method} as there is no translator for it");
+            if (translators is null)
+                throw new NotSupportedException(
+                    $"Cannot use method {methodCall.Method} as there is no translator for it");
+
+            var translator = translators
+                .FirstOrDefault(x => x._methodTranslators.TryGetValue(methodCall.Method.Name, out _));
+
+            if (type is null || translator is null)
+                throw new NotSupportedException(
+                    $"Cannot use method {methodCall.Method} as there is no translator for it");
 
             translator.Translate(writer, methodCall, context);
         }
@@ -200,11 +216,14 @@ namespace EdgeDB.Translators
         {
             // try to get a method for translating the expression
             if (!_methodTranslators.TryGetValue(methodCall.Method.Name, out var methodInfo))
-                throw new NotSupportedException($"Cannot use method {methodCall.Method} as there is no translator for it");
+                throw new NotSupportedException(
+                    $"Cannot use method {methodCall.Method} as there is no translator for it");
 
             // get the parameters of the method and check if it references an instance parameter
             var methodParameters = methodInfo.GetParameters();
-            var instanceParam = methodParameters.Length >= 2 && methodParameters[1].Name == "instance" ? methodParameters[0] : null;
+            var instanceParam = methodParameters.Length >= 2 && methodParameters[1].Name == "instance"
+                ? methodParameters[0]
+                : null;
             var hasInstanceReference = instanceParam is not null;
 
             if (methodParameters.Length <= 0)
@@ -240,8 +259,8 @@ namespace EdgeDB.Translators
                             remaining[j].Type, ExpressionTranslator.Proxy(remaining[j], context), remaining[j]
                         );
                     }
-                    break;
 
+                    break;
                 }
                 else if (methodCall.Arguments.Count > i)
                 {
@@ -250,7 +269,6 @@ namespace EdgeDB.Translators
                         ExpressionTranslator.Proxy(methodCall.Arguments[i], context),
                         methodCall.Arguments[i]
                     );
-
                 }
                 else if (parameterInfo.ParameterType == typeof(ExpressionContext))
                 {

@@ -50,8 +50,12 @@ namespace EdgeDB.Translators.Expressions
 
             // attempt to get the scalar type of the result of the method.
             if (!EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var type))
-                throw new InvalidOperationException(
-                    $"Cannot use {expression.Type} as a result in an un-translated context");
+            {
+                if(expressionResult is IQueryBuilder)
+
+                // add it is a global
+                writer.Append(context.GetOrAddGlobal(expression, new SubQuery()));
+            }
 
             // return the variable name containing the result of the method.
             writer

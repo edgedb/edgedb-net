@@ -1,3 +1,4 @@
+using EdgeDB.DataTypes;
 using EdgeDB.QueryNodes;
 using EdgeDB.Schema;
 using EdgeDB.Schema.DataTypes;
@@ -33,13 +34,18 @@ namespace EdgeDB.ExampleApp.Examples
             {
                 await QueryBuilderDemo(client);
             }
-            catch(Exception x)
+            catch (Exception x)
             {
+                throw;
             }
         }
 
         private static async Task QueryBuilderDemo(EdgeDBClient client)
         {
+            var test = QueryBuilder.SelectExp(() => EdgeQL.Range<int>(5, 10, true, false, false));
+
+            var result = test.Build();
+
             // Selecting a type with autogen shape
             var query = QueryBuilder.Select<Person>().Build().Prettify();
 
@@ -56,12 +62,7 @@ namespace EdgeDB.ExampleApp.Examples
             // Specifying a shape
             query = QueryBuilder.Select<Person>(shape =>
                 shape
-                    .Explicitly(p => new
-                    {
-                        p.Name,
-                        p.Email,
-                        p.BestFriend
-                    })
+                    .Explicitly(p => new { p.Name, p.Email, p.BestFriend })
             ).Build().Prettify();
 
             // selecting things that are not types
@@ -92,40 +93,23 @@ namespace EdgeDB.ExampleApp.Examples
 
             // With object variables
             query = QueryBuilder
-                .With(new
-                {
-                    Args = EdgeQL.AsJson(new
-                    {
-                        Name = "Example",
-                        Email = "example@example.com"
-                    })
-                })
+                .With(new { Args = EdgeQL.AsJson(new { Name = "Example", Email = "example@example.com" }) })
                 .SelectExp(ctx => new
                 {
-                    PassedName = ctx.Variables.Args.Value.Name,
-                    PassedEmail = ctx.Variables.Args.Value.Email
+                    PassedName = ctx.Variables.Args.Value.Name, PassedEmail = ctx.Variables.Args.Value.Email
                 }).Build().Prettify();
 
             // Inserting a new type
-            var person = new Person
-            {
-                Email = "example@example.com",
-                Name = "example"
-            };
+            var person = new Person { Email = "example@example.com", Name = "example" };
 
             query = QueryBuilder.Insert(person).Build().Prettify();
 
             // Complex insert with links & dealing with conflicts
             query = (await QueryBuilder
-                .Insert(new Person
-                {
-                    BestFriend = person,
-                    Name = "example2",
-                    Email = "example2@example.com"
-                })
-                .UnlessConflict()
-                .ElseReturn()
-                .BuildAsync(client))
+                    .Insert(new Person { BestFriend = person, Name = "example2", Email = "example2@example.com" })
+                    .UnlessConflict()
+                    .ElseReturn()
+                    .BuildAsync(client))
                 .Prettify();
 
             // Manual conflicts
@@ -138,55 +122,43 @@ namespace EdgeDB.ExampleApp.Examples
 
             // Autogenerating unless conflict with introspection
             query = (await QueryBuilder
-                .Insert(person)
-                .UnlessConflict()
-                .ElseReturn()
-                .BuildAsync(client))
+                    .Insert(person)
+                    .UnlessConflict()
+                    .ElseReturn()
+                    .BuildAsync(client))
                 .Prettify();
 
             // Bulk inserts
             var data = new Person[]
             {
-                new Person
-                {
-                    Email = "test1@mail.com",
-                    Name = "test1",
-                },
+                new Person { Email = "test1@mail.com", Name = "test1", },
                 new Person
                 {
                     Email = "test2@mail.com",
                     Name = "test2",
-                    BestFriend = new Person
-                    {
-                        Email = "test3@mail.com",
-                        Name = "test3",
-                    }
+                    BestFriend = new Person { Email = "test3@mail.com", Name = "test3", }
                 }
             };
 
-            var tquery = (await QueryBuilder.For(data,
-                    x => QueryBuilder.Insert(x)
-                ).BuildAsync(client));
+            QueryBuilder.For(data, x => QueryBuilder.Insert(x));
+
+            var tquery = await QueryBuilder.For(data,
+                x => QueryBuilder.Insert(x)
+            ).BuildAsync(client);
 
             // Else statements (upsert demo)
             query = (await QueryBuilder
-                .Insert(person)
-                .UnlessConflict()
-                .Else(q =>
-                    q.Update(old => new Person
-                    {
-                        Name = old!.Name!.ToLower()
-                    })
-                )
-                .BuildAsync(client))
+                    .Insert(person)
+                    .UnlessConflict()
+                    .Else(q =>
+                        q.Update(old => new Person { Name = old!.Name!.ToLower() })
+                    )
+                    .BuildAsync(client))
                 .Prettify();
 
             // Updating a type
             query = QueryBuilder
-                .Update<Person>(old => new Person
-                {
-                    Name = "example new name"
-                })
+                .Update<Person>(old => new Person { Name = "example new name" })
                 .Filter(x => x.Email == "example@example.com")
                 .Build()
                 .Prettify();

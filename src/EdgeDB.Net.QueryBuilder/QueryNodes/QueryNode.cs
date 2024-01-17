@@ -80,12 +80,6 @@ namespace EdgeDB.QueryNodes
         internal List<QueryGlobal> ReferencedGlobals { get; } = new();
 
         /// <summary>
-        ///     Gets the query string for this node.
-        /// </summary>
-        internal QueryStringWriter Writer
-            => Builder.Writer;
-
-        /// <summary>
         ///     Gets the context for this node.
         /// </summary>
         internal NodeContext Context
@@ -117,13 +111,13 @@ namespace EdgeDB.QueryNodes
         ///     <see cref="SchemaInfo"/> should be populated for the final build step,
         ///     <see cref="FinalizeQuery"/>.
         /// </remarks>
-        public abstract void Visit();
+        public virtual void Visit(){}
 
         /// <summary>
         ///     Finalizes the nodes query, completing the second and final phase of this
-        ///     nodes build process. <see cref="Build"/> can now be safely called.
+        ///     nodes build process by writing the nodes query string to the writer.
         /// </summary>
-        public virtual void FinalizeQuery() { }
+        public abstract void FinalizeQuery(QueryStringWriter writer);
 
         /// <summary>
         ///     Sets a query variable with the given name.
@@ -204,20 +198,9 @@ namespace EdgeDB.QueryNodes
             ExpressionTranslator.ContextualTranslate(expression, consumer, writer);
         }
 
-        /// <summary>
-        ///     Builds the current node, returning the built form <see cref="BuiltQueryNode"/>.
-        /// </summary>
-        /// <remarks>
-        ///     Both <see cref="Visit"/> and <see cref="FinalizeQuery"/> must be called
-        ///     before this function in order to ensure this node has finished generating.
-        /// </remarks>
-        /// <returns>A <see cref="BuiltQueryNode"/>.</returns>
-        internal BuiltQueryNode Build()
-            => new(Writer.Compile(SchemaInfo).ToString(), Builder.QueryVariables);
-
-        internal void ReplaceSubqueryAsLiteral(QueryGlobal global, Action<QueryGlobal, QueryStringWriter> compile)
+        internal void ReplaceSubqueryAsLiteral(QueryStringWriter writer, QueryGlobal global, Action<QueryGlobal, QueryStringWriter> compile)
         {
-            var index = Writer.IndexOf(global.Name);
+            var index = writer.IndexOf(global.Name);
 
             if (index is -1)
                 throw new InvalidOperationException("Global could not be found within the query string");
@@ -228,44 +211,17 @@ namespace EdgeDB.QueryNodes
             {
                 if (cached is null)
                 {
-                    var globalWriter = Writer.GetPositionalWriter(index);
+                    var globalWriter = writer.GetPositionalWriter(index);
                     compile(global, globalWriter);
                     cached = globalWriter.ToString();
                 }
                 else
                 {
-                    Writer.Insert(index, cached);
+                    writer.Insert(index, cached);
                 }
 
-                index = Writer.IndexOf(global.Name);
+                index = writer.IndexOf(global.Name);
             }
-        }
-    }
-
-    /// <summary>
-    ///     Represents the built form of a <see cref="QueryNode"/>
-    /// </summary>
-    internal class BuiltQueryNode
-    {
-        /// <summary>
-        ///     Gets the query text the node generated.
-        /// </summary>
-        public string Query { get; init; }
-
-        /// <summary>
-        ///     Gets the collection of variables this node is using.
-        /// </summary>
-        public IDictionary<string, object?> Parameters { get; init; }
-
-        /// <summary>
-        ///     Constructs a new <see cref="BuiltQueryNode"/>.
-        /// </summary>
-        /// <param name="query">The query text the node generated.</param>
-        /// <param name="parameters">The collection of variables this node is using.</param>
-        public BuiltQueryNode(string query, IDictionary<string, object?> parameters)
-        {
-            Query = query;
-            Parameters = parameters;
         }
     }
 }

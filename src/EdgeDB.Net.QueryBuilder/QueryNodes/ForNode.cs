@@ -15,6 +15,10 @@ namespace EdgeDB.QueryNodes
     /// </summary>
     internal class ForNode : QueryNode<ForContext>
     {
+        private string? _name;
+        private string? _jsonName;
+        private string? _json;
+
         /// <inheritdoc/>
         public ForNode(NodeBuilder builder) : base(builder)
         {
@@ -71,25 +75,28 @@ namespace EdgeDB.QueryNodes
         public override void Visit()
         {
             // pull the name of the value that the user has specified
-            var name = Context.Expression!.Parameters.First(x => x.Type != typeof(QueryContext)).Name!;
+            _name = Context.Expression!.Parameters.First(x => x.Type != typeof(QueryContext)).Name!;
 
             // serialize the collection & generate a name for the json variable
-            var setJson = JsonConvert.SerializeObject(Context.Set);
-            var jsonName = QueryUtils.GenerateRandomVariableName();
+            _json = JsonConvert.SerializeObject(Context.Set);
+            _jsonName = QueryUtils.GenerateRandomVariableName();
 
             // set the json variable
-            SetVariable(jsonName, new Json(setJson));
-
-            // append the 'FOR' statement
-            Writer.Append($"for {name} in json_array_unpack(<json>${jsonName}) union ");
-
-            // parse the iterator expression
-            ParseExpression(Writer, name, jsonName, setJson);
+            SetVariable(_jsonName, new Json(_json));
         }
 
         /// <inheritdoc/>
-        public override void FinalizeQuery()
+        public override void FinalizeQuery(QueryStringWriter writer)
         {
+            if (_name is null || _jsonName is null || _json is null)
+                throw new InvalidOperationException("No initialization of this node was preformed");
+
+            // append the 'FOR' statement
+            writer.Append($"for {_name} in json_array_unpack(<json>${_jsonName}) union ");
+
+            // parse the iterator expression
+            ParseExpression(writer, _name, _jsonName, _json);
+
             // finalize and build our sub nodes
             var iterator = SubNodes.Select(x =>
             {

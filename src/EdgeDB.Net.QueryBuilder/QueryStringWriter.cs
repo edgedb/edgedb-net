@@ -408,7 +408,7 @@ internal class QueryStringWriter
 
             var pos = Position;
 
-            Append(arg);
+            Append(arg.Value);
 
             if(pos == Position)
                 continue;

@@ -13,11 +13,6 @@ namespace EdgeDB
     internal class NodeBuilder
     {
         /// <summary>
-        ///     Gets the query string builder for the current nodes query.
-        /// </summary>
-        public QueryStringWriter Writer { get; }
-
-        /// <summary>
         ///     Gets a collection of nodes currently within the builder.
         /// </summary>
         public List<QueryNode> Nodes { get; }
@@ -51,7 +46,6 @@ namespace EdgeDB
         /// <param name="variables">The variable collection.</param>
         public NodeBuilder(NodeContext context, List<QueryGlobal> globals, List<QueryNode>? nodes = null, Dictionary<string, object?>? variables = null)
         {
-            Writer = new();
             Nodes = nodes ?? new();
             Context = context;
             QueryGlobals = globals;
