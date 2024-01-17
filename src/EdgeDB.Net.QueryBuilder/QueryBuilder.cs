@@ -202,9 +202,20 @@ namespace EdgeDB
         /// <returns>
         ///     A <see cref="BuiltQuery"/> which is the current query this builder has constructed.
         /// </returns>
-        internal BuiltQuery InternalBuild(bool includeGlobalsInQuery = true, Action<QueryNode>? preFinalizerModifier = null)
+        internal BuiltQuery InternalBuild(bool? includeGlobalsInQuery = true, Action<QueryNode>? preFinalizerModifier = null)
         {
-            List<string> query = new();
+            var writer = new QueryStringWriter();
+
+            InternalBuild(writer, includeGlobalsInQuery, preFinalizerModifier);
+
+            return new BuiltQuery(writer.Compile(_schemaInfo).ToString())
+            {
+                Parameters = _queryVariables, Globals = _queryGlobals
+            };
+        }
+
+        internal void InternalBuild(QueryStringWriter writer, bool? includeGlobalsInQuery = true, Action<QueryNode>? preFinalizerModifier = null)
+        {
             List<IDictionary<string, object?>> parameters = new();
 
             var nodes = _nodes;
@@ -215,11 +226,10 @@ namespace EdgeDB
                 node.SchemaInfo ??= _schemaInfo;
                 if (preFinalizerModifier is not null)
                     preFinalizerModifier(node);
-                node.FinalizeQuery();
             }
 
             // create a with block if we have any globals
-            if (includeGlobalsInQuery && _queryGlobals.Any())
+            if ((includeGlobalsInQuery ?? false) && _queryGlobals.Any())
             {
                 var builder = new NodeBuilder(new WithContext(typeof(TType))
                 {
@@ -236,23 +246,29 @@ namespace EdgeDB
                 nodes = nodes.Prepend(with).ToList();
             }
 
-            // build each node starting at the last node.
-            for (int i = nodes.Count - 1; i >= 0; i--)
+            for (var i = 0; i != nodes.Count; i++)
             {
-                var node = nodes[i];
-
-                var result = node.Build();
-
-                // add the nodes query string if its not null or empty.
-                if (!string.IsNullOrEmpty(result.Query))
-                    query.Add(result.Query);
-
-                // add any parameters the node has.
-                parameters.Add(result.Parameters);
+                nodes[i].FinalizeQuery(writer);
+                parameters.Add(nodes[i].Builder.QueryVariables);
             }
 
-            // reverse our query string since we built our nodes in reverse.
-            query.Reverse();
+            // // build each node starting at the last node.
+            // for (int i = nodes.Count - 1; i >= 0; i--)
+            // {
+            //     var node = nodes[i];
+            //
+            //     var result = node.Build();
+            //
+            //     // add the nodes query string if its not null or empty.
+            //     if (!string.IsNullOrEmpty(result.Query))
+            //         query.Add(result.Query);
+            //
+            //     // add any parameters the node has.
+            //     parameters.Add(result.Parameters);
+            // }
+
+            // // reverse our query string since we built our nodes in reverse.
+            // query.Reverse();
 
             // flatten our parameters into a single collection and make it distinct.
             var variables = parameters
@@ -262,14 +278,14 @@ namespace EdgeDB
             // add any variables that might have been added by other builders in a sub-query context.
             variables = variables.Concat(_queryVariables.Where(x => !variables.Any(x => x.Key == x.Key)));
 
-            // construct a built query with our query text, variables, and globals.
-            return new BuiltQuery(string.Join(' ', query))
-            {
-                Parameters = variables
-                            .ToDictionary(x => x.Key, x => x.Value),
-
-                Globals = !includeGlobalsInQuery ? _queryGlobals : null
-            };
+            // // construct a built query with our query text, variables, and globals.
+            // return new BuiltQuery(string.Join(' ', query))
+            // {
+            //     Parameters = variables
+            //                 .ToDictionary(x => x.Key, x => x.Value),
+            //
+            //     Globals = !includeGlobalsInQuery ? _queryGlobals : null
+            // };
         }
 
         /// <inheritdoc/>

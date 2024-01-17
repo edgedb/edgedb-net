@@ -1,4 +1,5 @@
 using EdgeDB.Schema;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace EdgeDB;
@@ -65,7 +66,7 @@ internal class QueryStringWriter
                 else if(_str is not null)
                     writer.Insert(index, _str);
                 else if (_ch is not null)
-                    writer.Insert(index, _ch);
+                    writer.Insert(index, _ch.Value);
                 else
                     writer.Insert(index, _value);
 
@@ -77,6 +78,36 @@ internal class QueryStringWriter
         public static implicit operator Value(char value) => new(value);
         public static implicit operator Value(QueryStringWriter writer) => new(writer);
         public static implicit operator Value(Proxy callback) => new(callback);
+    }
+
+    public sealed class Marker
+    {
+        public int Position { get; private set; }
+        public int Size { get; }
+
+        private readonly QueryStringWriter _writer;
+
+        internal Marker(QueryStringWriter writer, int size,  int position)
+        {
+            _writer = writer;
+            Size = size;
+            Position = position;
+        }
+
+        internal void Update(int delta)
+        {
+            Position += delta;
+        }
+
+        public void Replace(Value value)
+        {
+            _writer
+                .Remove(Position, Size)
+                .Insert(Position, value);
+        }
+
+        public void Replace(Proxy value)
+            => Replace(new Value(value));
     }
 
     private sealed class PositionedQueryStringWriter : QueryStringWriter
@@ -110,6 +141,7 @@ internal class QueryStringWriter
         }
     }
 
+    private readonly Dictionary<string, List<Marker>> _labels;
     private readonly StringBuilder _builder;
     private readonly SortedList<int, IntrospectionChunk> _chunks;
 
@@ -121,24 +153,42 @@ internal class QueryStringWriter
 
     public char this[int index] => _builder[index];
 
-    public QueryStringWriter()
-    {
-        _builder = new();
-        _chunks = new();
-    }
+    public QueryStringWriter() : this(new())
+    { }
 
     private QueryStringWriter(StringBuilder stringBuilder)
     {
         _builder = stringBuilder;
         _chunks = new();
+        _chunks = new();
+        _labels = new();
+    }
+
+    private void UpdateLabels(int pos, int sz)
+    {
+        foreach (var label in _labels.Values.SelectMany(x => x).Where(x => x.Position <= pos))
+        {
+            label.Update(sz);
+        }
     }
 
     protected virtual void WriteInternal(char ch)
-        => _builder.Append(ch);
-    protected virtual void WriteInternal(string str)
-        => _builder.Append(str);
+    {
+        _builder.Append(ch);
+        UpdateLabels(Position - 1, 1);
+    }
 
-    protected virtual void OnExternalWrite(int position, int length){}
+    protected virtual void WriteInternal(string str)
+    {
+        var pos = Position;
+        _builder.Append(str);
+        UpdateLabels(pos, str.Length);
+    }
+
+    protected virtual void OnExternalWrite(int position, int length) {}
+
+    public QueryStringWriter Remove(int start, int count)
+        => _builder.Remove(start, count);
 
     public Value Val(object? value)
         => new(value);
@@ -153,6 +203,20 @@ internal class QueryStringWriter
 
         return new PositionedQueryStringWriter(index, this);
     }
+
+    public QueryStringWriter Label(string name, Value value)
+    {
+        if (!_labels.TryGetValue(name, out var labels))
+            _labels[name] = labels = new();
+
+        var pos = Position;
+        Append(value);
+        labels.Add(new Marker(this, Position - pos, pos));
+        return this;
+    }
+
+    public bool TryGetLabeled(string name, [NotNullWhen(true)] out List<Marker>? markers)
+        => _labels.TryGetValue(name, out markers);
 
     public int IndexOf(string value, bool ignoreCase = false, int startIndex = 0)
     {
@@ -212,6 +276,13 @@ internal class QueryStringWriter
         OnExternalWrite(index, s.Length);
         return this;
     }
+
+    public QueryStringWriter Insert(int index, Value val)
+    {
+        val.WriteAt(this, index);
+        return this;
+    }
+
     public QueryStringWriter Insert(int index, object? o)
     {
         if (o is null)

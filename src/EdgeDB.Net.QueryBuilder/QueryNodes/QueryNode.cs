@@ -200,28 +200,41 @@ namespace EdgeDB.QueryNodes
 
         internal void ReplaceSubqueryAsLiteral(QueryStringWriter writer, QueryGlobal global, Action<QueryGlobal, QueryStringWriter> compile)
         {
-            var index = writer.IndexOf(global.Name);
+            if (!writer.TryGetLabeled(global.Name, out var markers))
+                return;
 
-            if (index is -1)
-                throw new InvalidOperationException("Global could not be found within the query string");
-
-            string? cached = null;
-
-            while (index is not -1)
+            foreach (var marker in markers)
             {
-                if (cached is null)
+                marker.Replace(writer =>
                 {
-                    var globalWriter = writer.GetPositionalWriter(index);
-                    compile(global, globalWriter);
-                    cached = globalWriter.ToString();
-                }
-                else
-                {
-                    writer.Insert(index, cached);
-                }
-
-                index = writer.IndexOf(global.Name);
+                    compile(global, writer);
+                });
             }
+
+
+
+            // var index = writer.IndexOf(global.Name);
+            //
+            // if (index is -1)
+            //     throw new InvalidOperationException("Global could not be found within the query string");
+            //
+            // string? cached = null;
+            //
+            // while (index is not -1)
+            // {
+            //     if (cached is null)
+            //     {
+            //         var globalWriter = writer.GetPositionalWriter(index);
+            //         compile(global, globalWriter);
+            //         cached = globalWriter.ToString();
+            //     }
+            //     else
+            //     {
+            //         writer.Insert(index, cached);
+            //     }
+            //
+            //     index = writer.IndexOf(global.Name);
+            // }
         }
     }
 }

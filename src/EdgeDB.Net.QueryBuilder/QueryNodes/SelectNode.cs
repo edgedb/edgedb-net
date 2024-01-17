@@ -16,6 +16,10 @@ namespace EdgeDB.QueryNodes
     /// </summary>
     internal class SelectNode : QueryNode<SelectContext>
     {
+        private QueryStringWriter.Proxy? _filter;
+        private QueryStringWriter.Proxy? _limit;
+        private QueryStringWriter.Proxy? _offset;
+        private QueryStringWriter.Proxy? _orderBy;
         private SelectShape? _shape;
 
         /// <inheritdoc/>
@@ -58,8 +62,13 @@ namespace EdgeDB.QueryNodes
         }
 
         /// <inheritdoc/>
-        public override void FinalizeQuery()
+        public override void FinalizeQuery(QueryStringWriter writer)
         {
+            if(SubNodes.Count > 1)
+            {
+                throw new NotSupportedException("Got more than one child node for select statement (this is a bug)");
+            }
+
             // if parent is defined, our select logic was generated in the
             // visit step, we can just return out.
             if (SubNodes.Count == 1)
@@ -68,74 +77,76 @@ namespace EdgeDB.QueryNodes
 
                 // set introspection details & finalize
                 node.SchemaInfo = SchemaInfo;
-                node.FinalizeQuery();
 
-                var result = node.Build();
 
-                var selectTarget = result.Query;
-
-                if (string.IsNullOrEmpty(selectTarget))
+                writer.Append($"select ").Wrapped(writer =>
                 {
+                    var pos = writer.Position;
+                    node.FinalizeQuery(writer);
+
+                    // no query was written?
+                    if (pos != writer.Position) return;
+
                     if(node.Context.SetAsGlobal && !string.IsNullOrEmpty(node.Context.GlobalName))
                     {
                         // wrap global name
-                        selectTarget = node.Context.GlobalName;
+                        writer.Append(node.Context.GlobalName);
                     }
                     else
                         throw new InvalidOperationException($"Cannot resolve parent node {Parent}'s query");
-                }
-
-                Writer.Append($"select ({selectTarget})");
+                });
 
                 // append the shape of the parents node operating type if we should include ours
                 if (Context.IncludeShape && _shape is not null)
                 {
-                    _shape.Compile(Writer, (writer, expression) =>
+                    _shape.Compile(writer, (writer, expression) =>
                     {
                         using var consumer = NodeTranslationContext.CreateContextConsumer(expression.Root);
                         ExpressionTranslator.ContextualTranslate(expression.Expression, consumer, writer);
                     });
                 }
-
-                return;
             }
-            else if(SubNodes.Count > 1)
-            {
-                throw new NotSupportedException("Got more than one child node for select statement (this is a bug)");
-            }
-
-            if(!Context.IncludeShape)
+            else if(!Context.IncludeShape)
             {
                 if (Context.Expression is not null)
                 {
-                    var writer = Writer.GetPositionalWriter(0)
+                    var expressionWriter = writer.GetPositionalWriter(0)
                         .Append("select ");
 
                     if (Context.SelectName is not null)
-                        writer.Append(Context.SelectName).Append(' ');
+                        expressionWriter.Append(Context.SelectName).Append(' ');
 
-                    TranslateExpression(Context.Expression, writer);
+                    TranslateExpression(Context.Expression, expressionWriter);
                 }
                 else
-                    Writer.Insert(0, $"select {Context.SelectName ?? OperatingType.GetEdgeDBTypeName()}");
-
-                return;
+                    writer.Insert(0, $"select {Context.SelectName ?? OperatingType.GetEdgeDBTypeName()}");
             }
-
-            if (_shape is not null)
+            else if (_shape is not null)
             {
-                var writer = Writer.GetPositionalWriter(0)
+                var shapeWriter = writer.GetPositionalWriter(0)
                     .Append("select ");
 
                 if (!Context.IsFreeObject)
-                    writer.Append(Context.SelectName ?? OperatingType.GetEdgeDBTypeName());
+                    shapeWriter.Append(Context.SelectName ?? OperatingType.GetEdgeDBTypeName());
 
-                _shape.Compile(writer, (writer, expression) =>
+                _shape.Compile(shapeWriter, (writer, expression) =>
                 {
                     using var consumer = NodeTranslationContext.CreateContextConsumer(expression.Root);
                     ExpressionTranslator.ContextualTranslate(expression.Expression, consumer, writer);
                 });
             }
+
+            if (_filter is not null)
+                writer.Append(_filter);
+
+            if (_orderBy is not null)
+                writer.Append(_orderBy);
+
+            if (_offset is not null)
+                writer.Append(_offset);
+
+            if (_limit is not null)
+                writer.Append(_limit);
         }
 
         /// <summary>
@@ -144,8 +155,11 @@ namespace EdgeDB.QueryNodes
         /// <param name="expression">The filter predicate to add.</param>
         public void Filter(LambdaExpression expression)
         {
-            Writer.Append(" filter ");
-            TranslateExpression(expression, Writer);
+            _filter ??= writer =>
+            {
+                writer.Append(" filter ");
+                TranslateExpression(expression, writer);
+            };
         }
 
         /// <summary>
@@ -160,12 +174,15 @@ namespace EdgeDB.QueryNodes
         {
             var direction = asc ? "asc" : "desc";
 
-            Writer.Append(" order by ");
-            TranslateExpression(selector, Writer);
-            Writer.Append(" ").Append(direction);
+            _orderBy ??= writer =>
+            {
+                writer.Append(" order by ");
+                TranslateExpression(selector, writer);
+                writer.Append(" ").Append(direction);
 
-            if (nullPlacement.HasValue)
-                Writer.Append(nullPlacement.Value.ToString().ToLowerInvariant());
+                if (nullPlacement.HasValue)
+                    writer.Append(nullPlacement.Value.ToString().ToLowerInvariant());
+            };
         }
 
         /// <summary>
@@ -174,7 +191,7 @@ namespace EdgeDB.QueryNodes
         /// <param name="offset">The number of elements to offset by.</param>
         internal void Offset(long offset)
         {
-            Writer.Append(" offset ").Append(offset);
+            _offset ??= writer => writer.Append(" offset ").Append(offset);
         }
 
         /// <summary>
@@ -183,8 +200,11 @@ namespace EdgeDB.QueryNodes
         /// <param name="exp">The expression returning the number of elements to offset by.</param>
         internal void OffsetExpression(LambdaExpression exp)
         {
-            Writer.Append(" offset ");
-            TranslateExpression(exp, Writer);
+            _offset ??= writer =>
+            {
+                writer.Append(" offset ");
+                TranslateExpression(exp, writer);
+            };
         }
 
         /// <summary>
@@ -193,7 +213,7 @@ namespace EdgeDB.QueryNodes
         /// <param name="limit">The number of element to limit to.</param>
         internal void Limit(long limit)
         {
-            Writer.Append(" limit ").Append(limit);
+            _limit ??= writer => writer.Append(" limit ").Append(limit);
         }
 
         /// <summary>
@@ -202,8 +222,11 @@ namespace EdgeDB.QueryNodes
         /// <param name="exp">The expression returning the number of elements to limit to.</param>
         internal void LimitExpression(LambdaExpression exp)
         {
-            Writer.Append(" limit ");
-            TranslateExpression(exp, Writer);
+            _limit ??= writer =>
+            {
+                writer.Append(" limit ");
+                TranslateExpression(exp, writer);
+            };
         }
     }
 }

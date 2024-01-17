@@ -12,7 +12,7 @@ namespace EdgeDB.QueryNodes
         {
         }
 
-        public override void Visit()
+        public override void FinalizeQuery(QueryStringWriter writer)
         {
             throw new NotImplementedException();
         }

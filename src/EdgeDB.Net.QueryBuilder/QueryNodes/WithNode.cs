@@ -1,10 +1,4 @@
-using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EdgeDB.QueryNodes
 {
@@ -16,7 +10,7 @@ namespace EdgeDB.QueryNodes
         /// <inheritdoc/>
         public WithNode(NodeBuilder builder) : base(builder) { }
 
-        private bool TryReduceNode(QueryGlobal global)
+        private bool TryReduceNode(QueryStringWriter writer, QueryGlobal global)
         {
             // check if we can even flatten this global
             var builder = global.Value is IQueryBuilder a
@@ -44,7 +38,7 @@ namespace EdgeDB.QueryNodes
                 if (EdgeDBTypeUtils.IsLink(operatingType, out _, out _) && bannedTypes.Contains(operatingType))
                     continue;
 
-                node.ReplaceSubqueryAsLiteral(global, CompileGlobalValue);
+                node.ReplaceSubqueryAsLiteral(writer, global, CompileGlobalValue);
                 count--;
             }
 
@@ -52,36 +46,34 @@ namespace EdgeDB.QueryNodes
         }
 
         /// <inheritdoc/>
-        public override void Visit()
+        public override void FinalizeQuery(QueryStringWriter writer)
         {
             if (Context.Values is null || !Context.Values.Any())
                 return;
 
-            var nodes = Context.Values.Where(x => !TryReduceNode(x)).ToArray();
+            var nodes = Context.Values.Where(x => !TryReduceNode(writer, x)).ToArray();
 
             if (!nodes.Any())
                 return;
 
-            Writer.Append("with ");
+            writer.Append("with ");
 
             for (var i = 0; i != nodes.Length; i++)
             {
                 var global = nodes[i];
 
-                Writer.Append(global.Name)
+                writer.Append(global.Name)
                     .Append(" := ");
 
-                CompileGlobalValue(global);
+                CompileGlobalValue(global, writer);
 
                 if (i + 1 < nodes.Length)
-                    Writer.Append(", ");
+                    writer.Append(", ");
             }
         }
 
-        private void CompileGlobalValue(QueryGlobal global, QueryStringWriter? writer = null)
+        private void CompileGlobalValue(QueryGlobal global, QueryStringWriter writer)
         {
-            writer ??= Writer;
-
             // if its a query builder, build it and add it as a sub-query.
             if (global.Value is IQueryBuilder queryBuilder)
             {

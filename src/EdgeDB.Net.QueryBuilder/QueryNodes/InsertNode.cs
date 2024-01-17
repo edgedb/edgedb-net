@@ -224,13 +224,13 @@ namespace EdgeDB.QueryNodes
         }
 
         /// <inheritdoc/>
-        public override void FinalizeQuery()
+        public override void FinalizeQuery(QueryStringWriter writer)
         {
-            Writer.Append("insert ")
+            writer.Append("insert ")
                 .Append(OperatingType.GetEdgeDBTypeName())
                 .Append(' ');
 
-            _shape.Build(Writer, SchemaInfo);
+            _shape.Build(writer, SchemaInfo);
 
             if (_autogenerateUnlessConflict)
             {
@@ -241,17 +241,17 @@ namespace EdgeDB.QueryNodes
                 if (!SchemaInfo.TryGetObjectInfo(OperatingType, out var typeInfo))
                     throw new NotSupportedException($"Could not find type info for {OperatingType}");
 
-                Writer.Append(' ');
-                ConflictUtils.GenerateExclusiveConflictStatement(Writer, typeInfo, _elseStatement is not null);
+                writer.Append(' ');
+                ConflictUtils.GenerateExclusiveConflictStatement(writer, typeInfo, _elseStatement is not null);
             }
 
             if (_elseStatement is not null)
-                _elseStatement(Writer);
+                _elseStatement(writer);
 
             if (Context.SetAsGlobal && Context.GlobalName is not null)
             {
                 SetGlobal(Context.GlobalName, new SubQuery(writer => writer
-                    .Wrapped(Writer)
+                    .Wrapped(writer)
                 ), null);
             }
         }

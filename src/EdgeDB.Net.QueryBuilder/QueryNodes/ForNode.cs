@@ -98,26 +98,21 @@ namespace EdgeDB.QueryNodes
             ParseExpression(writer, _name, _jsonName, _json);
 
             // finalize and build our sub nodes
-            var iterator = SubNodes.Select(x =>
+            writer.Wrapped(writer =>
             {
-                x.SchemaInfo = SchemaInfo;
-                x.FinalizeQuery();
+                foreach (var node in SubNodes)
+                {
+                    node.SchemaInfo = SchemaInfo;
+                    node.FinalizeQuery(writer);
 
-                var builtNode = x.Build();
+                    foreach (var variable in node.Builder.QueryVariables)
+                        SetVariable(variable.Key, variable.Value);
 
-                foreach (var variable in builtNode.Parameters)
-                    SetVariable(variable.Key, variable.Value);
-
-                // copy the globals & variables to the current builder
-                foreach (var global in x.ReferencedGlobals)
-                    SetGlobal(global.Name, global.Value, global.Reference);
-
-                // we don't need to copy variables or nodes here since we did that in the parse step
-                return builtNode.Query;
-            }).Where(x => !string.IsNullOrEmpty(x)).Aggregate((x, y) => $"{x} {y}");
-
-            // append union statement's content
-            Writer.Append($"({iterator})");
+                    // copy the globals & variables to the current builder
+                    foreach (var global in node.ReferencedGlobals)
+                        SetGlobal(global.Name, global.Value, global.Reference);
+                }
+            });
         }
     }
 }
