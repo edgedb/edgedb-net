@@ -77,17 +77,8 @@ namespace EdgeDB.QueryNodes
             // if its a query builder, build it and add it as a sub-query.
             if (global.Value is IQueryBuilder queryBuilder)
             {
-                var query = queryBuilder.Build();
-
-                if (query.Parameters is not null)
-                    foreach (var variable in query.Parameters)
-                        SetVariable(variable.Key, variable.Value);
-
-                if (query.Globals is not null)
-                    foreach (var queryGlobal in query.Globals)
-                        SetGlobal(queryGlobal.Name, queryGlobal.Value, null);
-
-                writer.Wrapped(query.Query);
+                writer.Wrapped(writer => queryBuilder.WriteTo(writer, this));
+                return;
             }
 
             // if its a sub query that requires introspection, build it and add it.

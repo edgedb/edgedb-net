@@ -45,31 +45,29 @@ internal class QueryStringWriter
             {
                 if (_value is QueryStringWriter qsw)
                     writer.Append(qsw);
-                else if(_str is not null)
+                else if (_str is not null)
                     writer.Append(_str);
                 else if (_ch is not null)
-                    writer.Append(_ch);
+                    writer.Append(_ch.Value);
                 else
                     writer.Append(_value);
-
             }
         }
 
         public void WriteAt(QueryStringWriter writer, int index)
         {
             if (_callback is not null)
-                _callback(writer);
+                _callback(writer.GetPositionalWriter(index));
             else
             {
                 if (_value is QueryStringWriter qsw)
                     writer.Insert(index, qsw);
-                else if(_str is not null)
+                else if (_str is not null)
                     writer.Insert(index, _str);
                 else if (_ch is not null)
                     writer.Insert(index, _ch.Value);
                 else
                     writer.Insert(index, _value);
-
             }
         }
 
@@ -87,7 +85,7 @@ internal class QueryStringWriter
 
         private readonly QueryStringWriter _writer;
 
-        internal Marker(QueryStringWriter writer, int size,  int position)
+        internal Marker(QueryStringWriter writer, int size, int position)
         {
             _writer = writer;
             Size = size;
@@ -110,34 +108,33 @@ internal class QueryStringWriter
             => Replace(new Value(value));
     }
 
-    private sealed class PositionedQueryStringWriter : QueryStringWriter
+    private sealed class PositionedQueryStringWriter(int position, QueryStringWriter parent)
+        : QueryStringWriter(parent._builder, parent._chunks, parent._labels)
     {
-        private int _position;
-        private readonly QueryStringWriter _parent;
-
-        public PositionedQueryStringWriter(int position, QueryStringWriter parent)
+        protected override void OnExternalWrite(int position1, int length)
         {
-            _position = position;
-            _parent = parent;
-        }
+            if (position1 <= position)
+                position += length;
 
-        protected override void OnExternalWrite(int position, int length)
-        {
-            if (position <= _position)
-                _position += length;
+            parent.OnExternalWrite(position1, length);
         }
 
         protected override void WriteInternal(char ch)
         {
-            _parent._builder.Insert(_position++, ch);
-            base.WriteInternal(ch);
+            _builder.Insert(position++, ch);
+
+            UpdateLabels(position - 1, 1);
+            parent.OnExternalWrite(position - 1, 1);
         }
 
         protected override void WriteInternal(string str)
         {
-            _parent._builder.Insert(_position, str);
-            _position += str.Length;
-            base.WriteInternal(str);
+            _builder.Insert(position, str);
+
+            UpdateLabels(position, str.Length);
+            parent.OnExternalWrite(position, str.Length);
+
+            position += str.Length;
         }
     }
 
@@ -149,22 +146,32 @@ internal class QueryStringWriter
         => _chunks.Count > 0;
 
     public int Position
-        => _builder.Length;
+        => _builder.Length == 0 ? 0 : _builder.Length - 1;
 
     public char this[int index] => _builder[index];
 
-    public QueryStringWriter() : this(new())
-    { }
-
-    private QueryStringWriter(StringBuilder stringBuilder)
+    public QueryStringWriter() : this(new(), new(), new())
     {
-        _builder = stringBuilder;
-        _chunks = new();
-        _chunks = new();
-        _labels = new();
     }
 
-    private void UpdateLabels(int pos, int sz)
+    private QueryStringWriter(StringBuilder stringBuilder, SortedList<int, IntrospectionChunk> chunks, Dictionary<string, List<Marker>> labels)
+    {
+        _builder = stringBuilder;
+        _chunks = chunks;
+        _labels = labels;
+    }
+
+    [return: NotNullIfNotNull(nameof(o))]
+    private string? Format(object? o)
+    {
+        return o switch
+        {
+            bool b => b ? "true" : "false",
+            _ => o?.ToString()
+        };
+    }
+
+    protected void UpdateLabels(int pos, int sz)
     {
         foreach (var label in _labels.Values.SelectMany(x => x).Where(x => x.Position <= pos))
         {
@@ -185,7 +192,7 @@ internal class QueryStringWriter
         UpdateLabels(pos, str.Length);
     }
 
-    protected virtual void OnExternalWrite(int position, int length) {}
+    protected virtual void OnExternalWrite(int position, int length) { }
 
     public QueryStringWriter Remove(int start, int count)
         => _builder.Remove(start, count);
@@ -211,6 +218,20 @@ internal class QueryStringWriter
 
         var pos = Position;
         Append(value);
+        labels.Add(new Marker(this, Position - pos, pos));
+        return this;
+    }
+
+    public QueryStringWriter Label(string value)
+        => Label(value, value);
+
+    public QueryStringWriter Label(string name, Action<string, QueryStringWriter> func)
+    {
+        if (!_labels.TryGetValue(name, out var labels))
+            _labels[name] = labels = new();
+
+        var pos = Position;
+        func(name, this);
         labels.Add(new Marker(this, Position - pos, pos));
         return this;
     }
@@ -270,6 +291,7 @@ internal class QueryStringWriter
         OnExternalWrite(index, 1);
         return this;
     }
+
     public QueryStringWriter Insert(int index, string s)
     {
         _builder.Insert(index, s);
@@ -285,10 +307,7 @@ internal class QueryStringWriter
 
     public QueryStringWriter Insert(int index, object? o)
     {
-        if (o is null)
-            return this;
-
-        return Insert(index, o.ToString()!);
+        return o is null ? this : Insert(index, Format(o));
     }
 
     public QueryStringWriter Insert(int index, QueryStringWriter writer)
@@ -318,6 +337,7 @@ internal class QueryStringWriter
         WriteInternal(c);
         return this;
     }
+
     public QueryStringWriter Append(string? s)
     {
         if (s is null)
@@ -332,7 +352,8 @@ internal class QueryStringWriter
         if (o is null)
             return this;
 
-        Append(o.ToString()!);
+        Append(Format(o));
+
         return this;
     }
 
@@ -376,17 +397,19 @@ internal class QueryStringWriter
 
     public QueryStringWriter QueryArgument(object? type, Value name)
         => QueryArgument(new Value(type), name);
+
     public QueryStringWriter QueryArgument(Value type, Value name)
         => TypeCast(type).Append('$').Append(name);
 
     public QueryStringWriter TypeCast(object? type)
-        => Append('<').Append(type).Append('>');
+        => Append('<').Append(Format(type)).Append('>');
 
     public QueryStringWriter TypeCast(Value type)
         => Append('<').Append(type).Append('>');
 
     public QueryStringWriter Wrapped(Proxy func, string chars = "()")
         => Wrapped(new Value(func), chars);
+
     public QueryStringWriter Wrapped(Value value, string chars = "()")
     {
         if (chars.Length is not 2)
@@ -481,12 +504,12 @@ internal class QueryStringWriter
 
             Append(arg.Value);
 
-            if(pos == Position)
+            if (pos == Position)
                 continue;
 
             // append the named part if its specified
             if (arg.Named is not null)
-                GetPositionalWriter(pos)
+                GetPositionalWriter(pos + 1)
                     .Append(arg.Named)
                     .Append(" := ");
 
@@ -525,5 +548,5 @@ internal class QueryStringWriter
             => compiler(info, builder);
     }
 
-    public static implicit operator QueryStringWriter(StringBuilder stringBuilder) => new(stringBuilder);
+    public static implicit operator QueryStringWriter(StringBuilder stringBuilder) => new(stringBuilder, new(), new());
 }

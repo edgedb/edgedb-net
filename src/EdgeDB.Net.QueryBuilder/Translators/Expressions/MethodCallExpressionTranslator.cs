@@ -51,13 +51,18 @@ namespace EdgeDB.Translators.Expressions
             // attempt to get the scalar type of the result of the method.
             if (!EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var type))
             {
-                throw new InvalidOperationException("Expected a scalar type for ");
+                // if we can't, add it as a global
+                writer.Label(context.GetOrAddGlobal(expression, expressionResult));
+                return;
+                //throw new InvalidOperationException("Expected a scalar type for ");
             }
 
             // return the variable name containing the result of the method.
             writer
-                .TypeCast(type)
-                .Append(context.AddVariable(expressionResult));
+                .Label(context.AddVariable(expressionResult), (variable, writer) => writer
+                    .TypeCast(type)
+                    .Append(variable)
+                );
         }
 
         private bool ShouldTranslate(MethodCallExpression expression, ExpressionContext context)

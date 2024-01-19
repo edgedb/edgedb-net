@@ -42,7 +42,7 @@ namespace EdgeDB.ExampleApp.Examples
 
         private static async Task QueryBuilderDemo(EdgeDBClient client)
         {
-            var test = QueryBuilder.SelectExp(() => EdgeQL.Range<int>(5, 10, true, false, false));
+            var test = QueryBuilder.SelectExpression(() => EdgeQL.Range<int>(5, 10, true, false, false));
 
             var result = test.Build();
 
@@ -66,12 +66,12 @@ namespace EdgeDB.ExampleApp.Examples
             ).Build().Prettify();
 
             // selecting things that are not types
-            query = QueryBuilder.SelectExp(() =>
+            query = QueryBuilder.SelectExpression(() =>
                 EdgeQL.Count(QueryBuilder.Select<Person>())
             ).Build().Prettify();
 
             // selecting 'free objects'
-            query = QueryBuilder.SelectExp(ctx => new
+            query = QueryBuilder.SelectExpression(ctx => new
             {
                 MyString = "This is a string",
                 MyNumber = 42,
@@ -94,7 +94,7 @@ namespace EdgeDB.ExampleApp.Examples
             // With object variables
             query = QueryBuilder
                 .With(new { Args = EdgeQL.AsJson(new { Name = "Example", Email = "example@example.com" }) })
-                .SelectExp(ctx => new
+                .SelectExpression(ctx => new
                 {
                     PassedName = ctx.Variables.Args.Value.Name, PassedEmail = ctx.Variables.Args.Value.Email
                 }).Build().Prettify();

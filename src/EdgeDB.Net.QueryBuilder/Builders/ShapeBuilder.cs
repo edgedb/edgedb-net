@@ -94,6 +94,8 @@ namespace EdgeDB.Builders
 
     internal readonly struct ShapeElementExpression
     {
+        //public readonly bool IsSelector;
+
         public readonly LambdaExpression Root;
         public readonly Expression Expression;
 
@@ -135,19 +137,28 @@ namespace EdgeDB.Builders
             if (expression.Body is not NewExpression init || !init.Type.IsAnonymousType() || init.Members is null)
                 throw new InvalidOperationException($"Expected anonymous object initializer, but got {expression.Body}");
 
-            var realProps = selectedType.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            return FlattenNewExpression(selectedType, init, expression);
+        }
+
+        internal static Dictionary<MemberInfo, ShapeElementExpression> FlattenNewExpression(Type? selectedType, NewExpression expression, LambdaExpression root)
+        {
+            if (!expression.Type.IsAnonymousType() || expression.Members is null)
+                throw new InvalidOperationException($"Expected anonymous object initializer, but got {expression}");
+
+            var realProps = selectedType?.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? Array.Empty<PropertyInfo>();
 
             Dictionary<MemberInfo, ShapeElementExpression> dict = new();
 
-            for (var i = 0; i != init.Arguments.Count; i++)
+            for (var i = 0; i != expression.Arguments.Count; i++)
             {
-                var argExpression = init.Arguments[i];
-                var member = init.Members[i];
+                var argExpression = expression.Arguments[i];
+                var member = expression.Members[i];
 
                 // cross reference the 'T' type and check for any explicit name or naming convention
                 var realProp = realProps.FirstOrDefault(x => x.Name == member.Name);
 
-                dict.Add(realProp ?? member, new(expression, argExpression));
+                dict.Add(realProp ?? member, new(root, argExpression));
             }
 
             return dict;
@@ -234,9 +245,43 @@ namespace EdgeDB.Builders
             SelectedProperties.Clear();
 
             foreach (var member in members)
-                SelectedProperties[member.Key.GetEdgeDBPropertyName()] = new(member.Key, member.Value);
+                SelectedProperties[member.Key.GetEdgeDBPropertyName()] = ParseShape(member.Key, member.Value);
 
             return this;
+        }
+
+        private SelectedProperty ParseShape(MemberInfo info, ShapeElementExpression element)
+        {
+            // theres 3 types we could come across:
+            // 1. Property: include the specified property in the shape; ex: 'Name = x.Name'
+            // 2. Computed: include the compuded in the shape; ex: 'Name = {exp}'
+            // 3. Subshape: include the sub shape; ex: 'Friend = new { Name = x.Friend.Name }
+
+            if (element.Expression is MemberExpression)
+            {
+                var treeTail = ExpressionUtils.DisassembleExpression(element.Expression).Last();
+
+                if (treeTail is ParameterExpression param && element.Root.Parameters.Contains(param))
+                {
+                    return new SelectedProperty(info);
+                }
+
+                // treat as a computed
+                return new SelectedProperty(info, element);
+            }
+
+            if (element.Expression is NewExpression newExpression)
+            {
+                // this is a subshape, try to get the type
+
+                var flattened = FlattenNewExpression(info.GetMemberType(), newExpression, element.Root)
+                    .Select(x => ParseShape(x.Key, x.Value));
+
+                return new SelectedProperty(info, new SelectShape(flattened));
+            }
+
+            // computed
+            return new SelectedProperty(info, element);
         }
 
         private ShapeBuilder<T> IncludeInternal<TIncluded>(LambdaExpression selector, Action<ShapeBuilder<TIncluded>>? shape = null, bool errorOnMultiLink = false)

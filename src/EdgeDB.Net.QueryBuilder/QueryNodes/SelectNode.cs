@@ -110,7 +110,7 @@ namespace EdgeDB.QueryNodes
             {
                 if (Context.Expression is not null)
                 {
-                    var expressionWriter = writer.GetPositionalWriter(0)
+                    var expressionWriter = writer
                         .Append("select ");
 
                     if (Context.SelectName is not null)
@@ -123,7 +123,7 @@ namespace EdgeDB.QueryNodes
             }
             else if (_shape is not null)
             {
-                var shapeWriter = writer.GetPositionalWriter(0)
+                var shapeWriter = writer
                     .Append("select ");
 
                 if (!Context.IsFreeObject)

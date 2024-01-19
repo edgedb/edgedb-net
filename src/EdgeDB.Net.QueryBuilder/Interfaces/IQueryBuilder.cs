@@ -81,7 +81,7 @@ namespace EdgeDB
         /// <returns>
         ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
         /// </returns>
-        ISelectQuery<TNewType, TContext> SelectExp<TNewType>(Expression<Func<TNewType?>> expression);
+        ISelectQuery<TNewType, TContext> SelectExpression<TNewType>(Expression<Func<TNewType?>> expression);
 
         /// <summary>
         ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
@@ -91,7 +91,7 @@ namespace EdgeDB
         /// <returns>
         ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
         /// </returns>
-        ISelectQuery<TNewType, TContext> SelectExp<TNewType>(Expression<Func<TContext, TNewType?>> expression);
+        ISelectQuery<TNewType, TContext> SelectExpression<TNewType>(Expression<Func<TContext, TNewType?>> expression);
 
         /// <summary>
         ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
@@ -103,7 +103,7 @@ namespace EdgeDB
         /// <returns>
         ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
         /// </returns>
-        ISelectQuery<TNewType, TContext> SelectExp<TNewType, TQuery>(
+        ISelectQuery<TNewType, TContext> SelectExpression<TNewType, TQuery>(
             Expression<Func<TContext, TQuery?>> expression,
             Action<ShapeBuilder<TNewType>>? shape = null
         ) where TQuery : ISingleCardinalityExecutable<TNewType>;
@@ -290,12 +290,12 @@ namespace EdgeDB
         /// <summary>
         ///     Gets a read-only collection of globals defined within this query builder.
         /// </summary>
-        internal IReadOnlyCollection<QueryGlobal> Globals { get; }
+        internal List<QueryGlobal> Globals { get; }
 
         /// <summary>
         ///     Gets a read-only dictionary of query variables defined within the query builder.
         /// </summary>
-        internal IReadOnlyDictionary<string, object?> Variables { get; }
+        internal Dictionary<string, object?> Variables { get; }
 
         /// <summary>
         ///     Builds the current query.
@@ -329,5 +329,8 @@ namespace EdgeDB
         ///     A <see cref="BuiltQuery"/> which is the current query this builder has constructed.
         /// </returns>
         internal BuiltQuery BuildWithGlobals(Action<QueryNode>? preFinalizerModifier = null);
+
+        internal void InternalBuild(QueryStringWriter writer, bool? includeGlobalsInQuery = true,
+            Action<QueryNode>? preFinalizerModifier = null, bool includeAutoGenNodes = true);
     }
 }
