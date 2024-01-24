@@ -519,6 +519,148 @@ public class QueryTests
 
     #region Object types
 
+    public class ScalarContainer
+    {
+        public short? A { get; set; }
+        public int? B { get; set; }
+        public long? C { get; set; }
+        public string? D { get; set; }
+        public bool? E { get; set; }
+        public float? F { get; set; }
+        public double? G { get; set; }
+        public BigInteger? H { get; set; }
+        public decimal? I { get; set; }
+        public Guid? J { get; set; }
+        public Json? K { get; set; }
+        public EdgeDB.DataTypes.DateTime? L { get; set; }
+        public DataTypes.LocalDateTime? M { get; set; }
+        public DataTypes.LocalDate? N { get; set; }
+        public DataTypes.LocalTime? O { get; set; }
+        public DataTypes.Duration? P { get; set; }
+        public DataTypes.RelativeDuration? Q { get; set; }
+        public DataTypes.DateDuration? R { get; set; }
+        public byte[]? S { get; set; }
+
+    }
+
+    [TestMethod]
+    public async Task TestNullableScalars()
+    {
+        var j = Guid.NewGuid();
+        var k = new Json("{\"Test\": \"Value\"}");
+        var l = new DataTypes.DateTime(DateTime.Now);
+        var m = new LocalDateTime(DateTime.Now);
+        var n = new LocalDate(DateOnly.FromDateTime(DateTime.Now));
+        var o = new LocalTime(TimeOnly.FromDateTime(DateTime.Now));
+        var p = new Duration(TimeSpan.FromSeconds(23));
+        var q = new RelativeDuration(TimeSpan.FromMilliseconds(255));
+        var r = new DateDuration(TimeSpan.FromDays(2));
+        var s = new byte[] {1, 2, 3, 4, 5};
+
+        var result = await _client.QueryRequiredSingleAsync<ScalarContainer>(
+            """
+            WITH
+                container := (INSERT tests::ScalarContainer {
+                    a := 5,
+                    b := 7,
+                    c := 299,
+                    d := 'ABC',
+                    e := true,
+                    f := 221.5,
+                    g := 2999.999,
+                    h := 19248124,
+                    i := <decimal>23.2,
+                    j := <uuid>$j,
+                    k := <json>$k,
+                    l := <datetime>$l,
+                    m := <cal::local_datetime>$m,
+                    n := <cal::local_date>$n,
+                    o := <cal::local_time>$o,
+                    p := <duration>$p,
+                    q := <cal::relative_duration>$q,
+                    r := <cal::date_duration>$r,
+                    s := <bytes>$s
+                })
+            SELECT container {
+                a,
+                b,
+                c,
+                d,
+                e,
+                f,
+                g,
+                h,
+                i,
+                j,
+                k,
+                l,
+                m,
+                n,
+                o,
+                p,
+                q,
+                r,
+                s
+            }
+            """, new
+            {
+                j,
+                k,
+                l,
+                m,
+                n,
+                o,
+                p,
+                q,
+                r,
+                s
+            });
+
+        #region Null checks
+
+        Assert.IsNotNull(result.A);
+        Assert.IsNotNull(result.B);
+        Assert.IsNotNull(result.C);
+        Assert.IsNotNull(result.D);
+        Assert.IsNotNull(result.E);
+        Assert.IsNotNull(result.F);
+        Assert.IsNotNull(result.G);
+        Assert.IsNotNull(result.H);
+        Assert.IsNotNull(result.I);
+        Assert.IsNotNull(result.J);
+        Assert.IsNotNull(result.K);
+        Assert.IsNotNull(result.L);
+        Assert.IsNotNull(result.M);
+        Assert.IsNotNull(result.N);
+        Assert.IsNotNull(result.O);
+        Assert.IsNotNull(result.P);
+        Assert.IsNotNull(result.Q);
+        Assert.IsNotNull(result.R);
+        Assert.IsNotNull(result.S);
+
+        #endregion
+
+        Assert.AreEqual(5, result.A.Value);
+        Assert.AreEqual(7, result.B.Value);
+        Assert.AreEqual(299, result.C.Value);
+        Assert.AreEqual("ABC", result.D);
+        Assert.AreEqual(true, result.E.Value);
+        Assert.AreEqual(221.5f, result.F.Value);
+        Assert.AreEqual(2999.999, result.G.Value);
+        Assert.AreEqual(19248124, result.H.Value);
+        Assert.AreEqual((decimal)23.2, result.I.Value);
+        Assert.AreEqual(j, result.J.Value);
+        Assert.AreEqual(k, result.K.Value);
+        Assert.AreEqual(l, result.L.Value);
+        Assert.AreEqual(m, result.M.Value);
+        Assert.AreEqual(n, result.N.Value);
+        Assert.AreEqual(o, result.O.Value);
+        Assert.AreEqual(p, result.P.Value);
+        Assert.AreEqual(q, result.Q.Value);
+        Assert.AreEqual(r, result.R.Value);
+        Assert.IsTrue(s.SequenceEqual(result.S));
+    }
+
     public class A
     {
         public B? PropA { get; set; }
