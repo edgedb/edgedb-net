@@ -74,8 +74,6 @@ internal sealed class SparceObjectCodec
 
         writer.Write(dict.Count);
 
-        var visitor = context.CreateTypeVisitor();
-
         foreach (var element in dict)
         {
             var index = Array.IndexOf(FieldNames, element.Key);
@@ -90,16 +88,6 @@ internal sealed class SparceObjectCodec
             else
             {
                 var codec = InnerCodecs[index];
-
-                // ignore nested sparce object codecs, they will be walked
-                // in their serialize method.
-                visitor.SetTargetType(codec is SparceObjectCodec
-                    ? typeof(void)
-                    : element.Value.GetType()
-                );
-
-                visitor.Visit(ref codec);
-                visitor.Reset();
 
                 writer.WriteToWithInt32Length((ref PacketWriter innerWriter) =>
                     codec.Serialize(ref innerWriter, element.Value, context));

@@ -5,6 +5,45 @@ namespace EdgeDB.Binary.Codecs;
 
 internal static class CodecFormatter
 {
+    public static StringBuilder FormatCodecAsTree(ICodec codec)
+    {
+        var sb = new StringBuilder();
+
+        AppendCodecToTree(sb, codec, 0);
+
+        return sb;
+    }
+
+
+    private const int CODEC_TREE_SPACING = 2;
+    private static void AppendCodecToTree(StringBuilder tree, ICodec codec, int depth, string? prefix = null)
+    {
+        tree.AppendLine("".PadLeft(depth) + $"{prefix} {codec}");
+
+        if (codec is IMultiWrappingCodec multiwrap)
+        {
+            for (int i = 0; i != multiwrap.InnerCodecs.Length; i++)
+            {
+                var innerCodec = multiwrap.InnerCodecs[i];
+                AppendCodecToTree(
+                    tree,
+                    innerCodec,
+                    depth + CODEC_TREE_SPACING,
+                    i == multiwrap.InnerCodecs.Length - 1 ? "\u2514" : "\u251c"
+                );
+            }
+        }
+        else if (codec is IWrappingCodec wrapping)
+        {
+            AppendCodecToTree(
+                tree,
+                wrapping.InnerCodec,
+                depth + CODEC_TREE_SPACING,
+                "\u2514"
+            );
+        }
+    }
+
     public static StringBuilder Format(ICodec codec, int spacing = 2)
     {
         StringBuilder sb = new();

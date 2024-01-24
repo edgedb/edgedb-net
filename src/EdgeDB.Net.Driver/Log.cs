@@ -168,9 +168,9 @@ internal static partial class Log
 
     [LoggerMessage(
         24,
-        LogLevel.Debug,
-        "{Depth}Frame for {Type} exited")]
-    public static partial void CodecVisitorFramePopped(this ILogger logger, string depth, Type type);
+        LogLevel.Trace,
+        "Codec visitor {Visitor} took {Time}ms for the following tree:\n{CodecTree}")]
+    public static partial void CodecVisitorTimingTrace(this ILogger logger, CodecVisitor visitor, double time, string codecTree);
 
     [LoggerMessage(
         25,
@@ -222,4 +222,10 @@ internal static partial class Log
         LogLevel.Debug,
         "Codec visited in preperation for deserialization: \n{Codec}")]
     public static partial void ObjectDeserializationPrep(this ILogger logger, string codec);
+
+    [LoggerMessage(
+        33,
+        LogLevel.Trace,
+        "Codec tree information:\n{CodecTree}")]
+    public static partial void CodecTree(this ILogger logger, string codecTree);
 }

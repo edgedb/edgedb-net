@@ -53,6 +53,9 @@ internal sealed class TypeInitializedObjectCodec : ObjectCodec
             reader.Position = enumerator.Reader.Position;
         }
     }
+
+    public override string ToString()
+        => $"object ({TargetType.Name})";
 }
 
 internal class ObjectCodec
@@ -109,10 +112,13 @@ internal class ObjectCodec
         }
     }
 
-    public override void SerializeArguments(ref PacketWriter writer, object? value, CodecContext context)
-        => Serialize(ref writer, value, context);
+    public override void SerializeArguments(ref PacketWriter writer, object? value, ArgumentCodecContext context)
+        => Serialize(ref writer, value, context.Codecs, context);
 
     public override void Serialize(ref PacketWriter writer, object? value, CodecContext context)
+        => Serialize(ref writer, value, InnerCodecs, context);
+
+    private void Serialize(ref PacketWriter writer, object? value, ICodec[] codecs, CodecContext context)
     {
         object?[]? values = null;
 
@@ -127,9 +133,6 @@ internal class ObjectCodec
         }
 
         writer.Write(values.Length);
-
-        // TODO: maybe cache the visited codecs based on the 'value'.
-        var visitor = context.CreateTypeVisitor();
 
         for (var i = 0; i != values.Length; i++)
         {
@@ -156,17 +159,11 @@ internal class ObjectCodec
             }
             else
             {
-                var innerCodec = InnerCodecs[i];
+                var innerCodec = codecs[i];
 
                 // special case for enums
                 if (element.GetType().IsEnum && innerCodec is TextCodec)
                     element = element.ToString();
-                else
-                {
-                    visitor.SetTargetType(element.GetType());
-                    visitor.Visit(ref innerCodec);
-                    visitor.Reset();
-                }
 
                 writer.WriteToWithInt32Length((ref PacketWriter innerWriter) =>
                     innerCodec.Serialize(ref innerWriter, element, context));

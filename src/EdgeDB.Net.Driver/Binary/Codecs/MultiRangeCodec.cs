@@ -4,14 +4,32 @@ using EdgeDB.Models.DataTypes;
 
 namespace EdgeDB.Binary.Codecs;
 
-internal sealed class MultiRangeCodec<T> : BaseCodec<MultiRange<T>>, IWrappingCodec, ICacheableCodec
+internal sealed class MultiRangeCodec<T>
+    : BaseCodec<MultiRange<T>>, IWrappingCodec, ICacheableCodec, ICompiledCodec
     where T : struct
 {
+    public Type CompiledFrom { get; }
+    public CompilableWrappingCodec Template { get; }
+
     private RangeCodec<T> _rangeCodec;
 
-    public MultiRangeCodec(in Guid id, ICodec<T> rangeInnerCodec, CodecMetadata? metadata) : base(in id, metadata)
+    public MultiRangeCodec(
+        in Guid id,
+        Type compiledFrom,
+        CompilableWrappingCodec template,
+        ICodec<T> rangeInnerCodec,
+        CodecMetadata? metadata
+        ) : base(in id, metadata)
     {
-        _rangeCodec = new RangeCodec<T>(in id, rangeInnerCodec, metadata);
+        CompiledFrom = compiledFrom;
+        Template = template;
+        _rangeCodec = new RangeCodec<T>(
+            in id,
+            compiledFrom,
+            template,
+            rangeInnerCodec,
+            metadata
+        );
     }
 
     public override void Serialize(ref PacketWriter writer, MultiRange<T> value, CodecContext context)

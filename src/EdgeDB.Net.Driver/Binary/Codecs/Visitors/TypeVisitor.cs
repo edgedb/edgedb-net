@@ -1,5 +1,8 @@
 using EdgeDB.DataTypes;
+using EdgeDB.Utils;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using DateTime = System.DateTime;
 
@@ -9,126 +12,145 @@ internal sealed class TypeVisitor : CodecVisitor
 {
     private readonly EdgeDBBinaryClient _client;
 
-    private readonly Stack<TypeResultFrame> _frames;
     private readonly ILogger _logger;
+
+    private Type? _targetType;
+    private TypeVisitorContext? _context;
 
     public TypeVisitor(EdgeDBBinaryClient client)
     {
-        _frames = new Stack<TypeResultFrame>();
         _logger = client.Logger;
         _client = client;
     }
 
-    private TypeResultFrame Context
-        => _frames.Peek();
-
-    private string Depth
-        => "".PadRight(_frames.Count, '>') + (_frames.Count > 0 ? " " : "");
-
     public void SetTargetType(Type type)
     {
-        EdgeDBTypeDeserializeInfo? deserializer = null;
-
-        if (type != typeof(void))
-        {
-            _ = TypeBuilder.IsValidObjectType(type) && TypeBuilder.TryGetTypeDeserializerInfo(type, out deserializer);
-        }
-
-        var old = _frames.Count == 0 ? typeof(void) : Context.Type;
-
-        _logger.CodecVisitorStackTransition(Depth, old, type);
-
-        _frames.Push(new TypeResultFrame {Type = type, Deserializer = deserializer});
+        _targetType = type;
+        _context = new TypeVisitorContext(type);
     }
 
-    public void Reset()
-        => _frames.Clear();
-
-    protected override void VisitCodec(ref ICodec codec)
+    protected override
+#if DEBUG
+        async
+#endif
+        Task VisitCodecAsync(Ref<ICodec> codec, CancellationToken token)
     {
-        // TODO: if dynamic or object was passed in, return the default type
-        // from the complex OR based on config.
+        if (_context is null)
+            throw new EdgeDBException("Context was not initialized for type walking");
 
-        if (Context.Type == typeof(void))
+#if DEBUG
+        var sw = Stopwatch.StartNew();
+        await VisitCodecAsync(codec, _context, token);
+        sw.Stop();
+        _logger.CodecVisitorTimingTrace(
+            this,
+            Math.Round(sw.Elapsed.TotalMilliseconds, 4),
+            CodecFormatter.FormatCodecAsTree(codec.Value).ToString()
+        );
+#else
+        if(_logger.IsEnabled(LogLevel.Trace))
+            _logger.CodecTree(CodecFormatter.FormatCodecAsTree(codec.Value).ToString());
+        return VisitCodecAsync(codec, _context, token);
+#endif
+    }
+
+    private async Task VisitCodecAsync(Ref<ICodec> codec, TypeVisitorContext context, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+
+        if (context.Type == typeof(void))
             return;
 
-        _logger.CodecVisitorNewCodec(Depth, codec);
+        _logger.CodecVisitorNewCodec(context.FormattedDepth, codec.Value);
 
-        switch (codec)
+        switch (codec.Value)
         {
+            case ICompiledCodec compiled when (context.Type != compiled.ConverterType):
+            {
+                var reference = new Ref<ICodec>(compiled.InnerCodec);
+
+                var type = context.IsDynamicResult
+                    ? context.Type
+                    : context.Type.GetWrappingType();
+
+                await VisitCodecAsync(reference, context with { Type = type }, token);
+                compiled.InnerCodec = reference.Value;
+            }
+                break;
             case ObjectCodec obj:
             {
                 if (obj is TypeInitializedObjectCodec typeCodec)
                 {
-                    if (typeCodec.TargetType != Context.Type)
-                        typeCodec = typeCodec.Parent.GetOrCreateTypeCodec(Context.Type);
+                    if (typeCodec.TargetType != context.Type)
+                        typeCodec = typeCodec.Parent.GetOrCreateTypeCodec(context.Type);
                 }
                 else
                 {
-                    typeCodec = obj.GetOrCreateTypeCodec(Context.Type);
+                    typeCodec = obj.GetOrCreateTypeCodec(context.Type);
                 }
 
                 if (typeCodec.TargetType is null || typeCodec.Deserializer is null)
                     throw new NullReferenceException("Could not find deserializer info for object codec.");
 
-                using var objHandle = EnterNewContext(typeCodec.TargetType, typeCodec.TargetType.Name,
-                    typeCodec.Deserializer);
-                for (var i = 0; i != obj.InnerCodecs.Length; i++)
+                var subContext = context with
                 {
-                    ref var innerCodec = ref obj.InnerCodecs[i];
-                    var name = obj.PropertyNames[i];
+                    Type = typeCodec.TargetType,
+                    Deserializer = typeCodec.Deserializer,
+                    Name = typeCodec.TargetType.Name
+                };
 
+                await Task.WhenAll(obj.InnerCodecs.Select(async (x, i) =>
+                {
                     // use the defined type, if not found, use the codecs type
                     // if the inner is compilable, use its inner type and set the real
-                    // flag, since compileable visits only care about the inner type rather
+                    // flag, since compilable visits only care about the inner type rather
                     // than a concrete root.
-                    var hasPropInfo = Context.Deserializer!.PropertyMapInfo.Map.TryGetValue(name, out var propInfo);
+                    var hasPropInfo =
+                        typeCodec.Deserializer.PropertyMapInfo.Map.TryGetValue(obj.PropertyNames[i], out var propInfo);
 
-                    var propType = hasPropInfo
-                        ? propInfo!.Type
-                        : innerCodec is CompilableWrappingCodec compilable
-                            ? compilable.GetInnerType()
-                            : innerCodec.ConverterType;
+                    var reference = new Ref<ICodec>(x);
 
-                    using var propHandle = EnterNewContext(propType, name,
-                        innerRealType: !hasPropInfo && innerCodec is CompilableWrappingCodec);
+                    await VisitCodecAsync(reference, subContext with
+                    {
+                        Depth = subContext.Depth + 1,
+                        Type = hasPropInfo
+                            ? propInfo!.Type
+                            : x is CompilableWrappingCodec compilable
+                                ? compilable.GetInnerType()
+                                : x.ConverterType,
+                        InnerRealType = !hasPropInfo && x is CompilableWrappingCodec,
+                        Name = obj.PropertyNames[i]
+                    }, token);
 
-                    Visit(ref innerCodec);
+                    obj.InnerCodecs[i] = reference.Value;
+                }));
 
-                    _logger.CodecVisitorMutatedCodec(Depth, obj.InnerCodecs[i], innerCodec);
-                }
-
-                codec = typeCodec;
+                codec.Value = typeCodec;
             }
-                break;
+            break;
             case TupleCodec tuple:
             {
-                var tupleTypes = Context.Type.IsAssignableTo(typeof(ITuple)) && Context.Type != typeof(TransientTuple)
-                    ? TransientTuple.FlattenTypes(Context.Type)
+                var tupleTypes = context.Type.IsAssignableTo(typeof(ITuple)) && context.Type != typeof(TransientTuple)
+                    ? TransientTuple.FlattenTypes(context.Type)
                     : null;
 
                 if (tupleTypes is not null && tupleTypes.Length != tuple.InnerCodecs.Length)
-                    throw new NoTypeConverterException($"Cannot determine inner types of the tuple {Context.Type}");
+                    throw new NoTypeConverterException($"Cannot determine inner types of the tuple {context.Type}");
 
-                var type = typeof(object);
 
-                for (var i = 0; i != tuple.InnerCodecs.Length; i++)
+                await Task.WhenAll(tuple.InnerCodecs.Select(async (x, i) =>
                 {
-                    if (tupleTypes != null)
-                        type = tupleTypes[i];
+                    var reference = new Ref<ICodec>(x);
+                    await VisitCodecAsync(reference, context with
+                    {
+                        Type = tupleTypes is not null
+                            ? tupleTypes[i]
+                            : typeof(object)
+                    }, token);
+                    tuple.InnerCodecs[i] = reference.Value;
+                }));
 
-                    var innerCodec = tuple.InnerCodecs[i];
-                    using var elementHandle = EnterNewContext(type);
-
-                    Visit(ref innerCodec);
-
-                    _logger.CodecVisitorMutatedCodec(Depth, tuple.InnerCodecs[i], innerCodec);
-
-                    tuple.InnerCodecs[i] = innerCodec;
-                }
-
-                codec = tuple.GetCodecFor(_client.ProtocolProvider, GetContextualTypeForComplexCodec(tuple));
-                _logger.CodecVisitorComplexCodecFlattened(Depth, tuple, codec, Context.Type);
+                codec.Value = tuple.GetCodecFor(_client.ProtocolProvider, GetContextualTypeForComplexCodec(tuple, context));
             }
                 break;
             case CompilableWrappingCodec compilable:
@@ -136,55 +158,43 @@ internal sealed class TypeVisitor : CodecVisitor
                 // visit the inner codec
                 var tmp = compilable.InnerCodec;
 
-                var innerType = Context.InnerRealType || Context.IsDynamicResult
-                    ? Context.Type
-                    : Context.Type.GetWrappingType();
+                var innerType = context.InnerRealType || context.IsDynamicResult
+                    ? context.Type
+                    : context.Type.GetWrappingType();
 
-                using (var innerHandle = EnterNewContext(innerType))
-                {
-                    VisitCodec(ref tmp);
-
-                    codec = compilable.Compile(_client.ProtocolProvider, Context.Type, tmp);
-
-                    _logger.CodecVisitorCompiledCodec(Depth, compilable, codec, Context.Type);
-                }
-
-                _logger.CodecVisitorMutatedCodec(Depth, tmp, codec);
-
-                // visit the compiled codec
-                Visit(ref codec);
+                var reference = new Ref<ICodec>(compilable.InnerCodec);
+                await VisitCodecAsync(reference, context with { Type = innerType }, token);
+                codec.Value = compilable.Compile(_client.ProtocolProvider, innerType, reference.Value);
             }
                 break;
             case IComplexCodec complex:
             {
-                codec = complex.GetCodecFor(_client.ProtocolProvider, GetContextualTypeForComplexCodec(complex));
-                _logger.CodecVisitorComplexCodecFlattened(Depth, complex, codec, Context.Type);
+                codec.Value = complex.GetCodecFor(_client.ProtocolProvider, GetContextualTypeForComplexCodec(complex, context));
             }
                 break;
             case IRuntimeCodec runtime:
             {
                 // check if the converter type is the same.
                 // exit if they are: its the correct codec.
-                if (runtime.ConverterType == Context.Type)
+                if (runtime.ConverterType == context.Type)
                     break;
 
                 // ask the broker of the runtime codec for
                 // the correct one.
-                codec = runtime.Broker.GetCodecFor(_client.ProtocolProvider,
-                    GetContextualTypeForComplexCodec(runtime.Broker));
+                codec.Value = runtime.Broker.GetCodecFor(_client.ProtocolProvider,
+                    GetContextualTypeForComplexCodec(runtime.Broker, context));
 
-                _logger.CodecVisitorRuntimeCodecBroker(Depth, runtime, runtime.Broker, codec, Context.Type);
             }
                 break;
         }
     }
 
-    private Type GetContextualTypeForComplexCodec(IComplexCodec codec)
+    private Type GetContextualTypeForComplexCodec(IComplexCodec codec, TypeVisitorContext context)
     {
         // if theres a concrete type def supplied by the
         // user, return their requested type.
-        if (!Context.IsDynamicResult && !Context.InnerRealType)
-            return Context.Type;
+        if (!context.IsDynamicResult && !context.InnerRealType)
+            return context.Type;
 
         if (codec is ITemporalCodec temporal)
         {
@@ -226,55 +236,22 @@ internal sealed class TypeVisitor : CodecVisitor
 
         // return out the current context type if we haven't
         // defined a way to change it.
-        return Context.Type;
+        return context.Type;
     }
 
-    private IDisposable EnterNewContext(
-        Type type,
-        string? name = null,
-        EdgeDBTypeDeserializeInfo? deserializer = null,
-        bool innerRealType = false)
-    {
-        var old = _frames.Count == 0 ? typeof(void) : Context.Type;
-
-        _logger.CodecVisitorStackTransition(Depth, old, type);
-
-        _frames.Push(new TypeResultFrame
-        {
-            Type = type, Name = name, Deserializer = deserializer, InnerRealType = innerRealType
-        });
-
-
-        return new FrameHandle(_logger, Depth, _frames);
-    }
-
-    private struct TypeResultFrame
+    private record TypeVisitorContext(Type Type)
     {
         public bool IsDynamicResult
             => Type == typeof(object);
 
-        public readonly Type Type { get; init; }
         public string? Name { get; set; }
         public EdgeDBTypeDeserializeInfo? Deserializer { get; set; }
         public bool InnerRealType { get; set; }
+
+        public int Depth { get; init; }
+
+        public string FormattedDepth
+            => "".PadRight(Depth, '>') + (Depth > 0 ? " " : "");
     }
 
-    private readonly struct FrameHandle : IDisposable
-    {
-        private readonly Stack<TypeResultFrame> _stack;
-        private readonly ILogger _logger;
-        private readonly string _depth;
-
-
-        public FrameHandle(ILogger logger, string depth, Stack<TypeResultFrame> stack)
-        {
-            _depth = depth;
-            _logger = logger;
-            _stack = stack;
-        }
-
-        public void Dispose() =>
-            _logger.CodecVisitorFramePopped(_depth == string.Empty ? string.Empty : $"{_depth[..^2]} ",
-                _stack.Pop().Type);
-    }
 }

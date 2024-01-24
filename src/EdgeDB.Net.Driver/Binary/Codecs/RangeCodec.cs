@@ -5,25 +5,36 @@ using SysRange = System.Range;
 namespace EdgeDB.Binary.Codecs;
 
 internal sealed class RangeCodec<T>
-    : BaseComplexCodec<Range<T>>, IWrappingCodec, ICacheableCodec
+    : BaseComplexCodec<Range<T>>, IWrappingCodec, ICacheableCodec, ICompiledCodec
     where T : struct
 {
     [Flags]
     public enum RangeFlags : byte
     {
         Empty = 1 << 0,
-        IncudeLowerBound = 1 << 1,
+        IncludeLowerBound = 1 << 1,
         IncludeUpperBound = 1 << 2,
         InfiniteLowerBound = 1 << 3,
         InfiniteUpperBound = 1 << 4
     }
 
-    public ICodec<T> _innerCodec;
+    public Type CompiledFrom { get; }
+    public CompilableWrappingCodec Template { get; }
 
-    public RangeCodec(in Guid id, ICodec<T> innerCodec, CodecMetadata? metadata = null)
+    private ICodec<T> _innerCodec;
+
+    public RangeCodec(
+        in Guid id,
+        Type compiledFrom,
+        CompilableWrappingCodec template,
+        ICodec<T> innerCodec,
+        CodecMetadata? metadata = null)
         : base(in id, metadata)
     {
         _innerCodec = innerCodec;
+
+        CompiledFrom = compiledFrom;
+        Template = template;
 
         AddConverter(From, To);
     }
@@ -108,7 +119,7 @@ internal sealed class RangeCodec<T>
             upperBound = _innerCodec.Deserialize(ref reader, context);
         }
 
-        return new Range<T>(lowerBound, upperBound, (flags & RangeFlags.IncudeLowerBound) != 0,
+        return new Range<T>(lowerBound, upperBound, (flags & RangeFlags.IncludeLowerBound) != 0,
             (flags & RangeFlags.IncludeUpperBound) != 0);
     }
 
@@ -116,7 +127,7 @@ internal sealed class RangeCodec<T>
     {
         var flags = value.IsEmpty
             ? RangeFlags.Empty
-            : (value.IncludeLower ? RangeFlags.IncudeLowerBound : 0) |
+            : (value.IncludeLower ? RangeFlags.IncludeLowerBound : 0) |
               (value.IncludeUpper ? RangeFlags.IncludeUpperBound : 0) |
               (!value.Lower.HasValue ? RangeFlags.InfiniteLowerBound : 0) |
               (!value.Upper.HasValue ? RangeFlags.InfiniteUpperBound : 0);
