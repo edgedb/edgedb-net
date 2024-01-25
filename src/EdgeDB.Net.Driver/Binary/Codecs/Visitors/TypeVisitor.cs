@@ -1,3 +1,4 @@
+using EdgeDB.Binary.Builders.Wrappers;
 using EdgeDB.DataTypes;
 using EdgeDB.Utils;
 using Microsoft.Extensions.Logging;
@@ -239,8 +240,26 @@ internal sealed class TypeVisitor : CodecVisitor
         return context.Type;
     }
 
-    private record TypeVisitorContext(Type Type)
+    private record TypeVisitorContext
     {
+        private readonly Type _type;
+
+        public Type Type
+        {
+            get => _type;
+            init
+            {
+                // remove the wrapper if ones present
+                var temp = value;
+                while (IWrapper.TryGetWrapper(temp, out var wrapper))
+                {
+                    temp = wrapper.GetInnerType(temp);
+                }
+
+                _type = temp;
+            }
+        }
+
         public bool IsDynamicResult
             => Type == typeof(object);
 
@@ -252,6 +271,18 @@ internal sealed class TypeVisitor : CodecVisitor
 
         public string FormattedDepth
             => "".PadRight(Depth, '>') + (Depth > 0 ? " " : "");
+
+        public TypeVisitorContext(Type type)
+        {
+            // remove the wrapper if ones present
+            var temp = type;
+            while (IWrapper.TryGetWrapper(temp, out var wrapper))
+            {
+                temp = wrapper.GetInnerType(temp);
+            }
+
+            _type = temp;
+        }
     }
 
 }
