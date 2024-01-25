@@ -138,15 +138,20 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
         }
     }
 
+    internal readonly record struct ExecuteResult(
+        ProtocolExecuteResult ProtocolResult,
+        ObjectBuilder.PreheatedCodec? PreheatedCodec
+    );
+
     /// <exception cref="EdgeDBException">A general error occored.</exception>
     /// <exception cref="EdgeDBErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
-    internal virtual async Task<ProtocolExecuteResult> ExecuteInternalAsync(string query,
+    internal virtual async Task<ExecuteResult> ExecuteInternalAsync(string query,
         IDictionary<string, object?>? args = null, Cardinality? cardinality = null,
         Capabilities? capabilities = Capabilities.Modifications, IOFormat format = IOFormat.Binary,
         bool isRetry = false, bool implicitTypeName = false,
-        Func<ParseResult, Task>? preheat = null,
+        Func<ParseResult, Task<ObjectBuilder.PreheatedCodec>>? preheat = null,
         CancellationToken token = default)
     {
         // if the current client is not connected, reconnect it
@@ -176,12 +181,13 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
                     _protocolProvider.ExecuteQueryAsync(arguments, parseResult, linkedTokenSource.Token);
 
 #if DEBUG
-                    async Task PreheatWithTrace(ParseResult p)
+                    async Task<ObjectBuilder.PreheatedCodec> PreheatWithTrace(ParseResult p)
                     {
                         var stopwatch = Stopwatch.StartNew();
-                        await preheat(p);
+                        var preheated = await preheat(p);
                         stopwatch.Stop();
                         Logger.LogDebug("Preheating of codecs took {@PreheatTime}ms", Math.Round(stopwatch.Elapsed.TotalMilliseconds, 4));
+                        return preheated;
                     }
 
                     var preheatTask = PreheatWithTrace(parseResult);
@@ -194,10 +200,10 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
                     executeTask
                 );
 
-                return executeTask.Result;
+                return new(executeTask.Result, preheatTask.Result);
             }
 
-            return await _protocolProvider.ExecuteQueryAsync(arguments, parseResult, linkedTokenSource.Token);
+            return new(await _protocolProvider.ExecuteQueryAsync(arguments, parseResult, linkedTokenSource.Token), null);
         }
         catch (OperationCanceledException ce)
         {
@@ -244,6 +250,15 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
         }
     }
 
+    private ValueTask<ObjectBuilder.PreheatedCodec> GetPreheatedCodecAsync<T>(ExecuteResult result, CancellationToken token)
+    {
+        if (result.PreheatedCodec.HasValue)
+            return new ValueTask<ObjectBuilder.PreheatedCodec>(result.PreheatedCodec.Value);
+
+        return new ValueTask<ObjectBuilder.PreheatedCodec>(
+            ObjectBuilder.PreheatCodecAsync<T>(this, result.ProtocolResult.OutCodecInfo.Codec, token));
+    }
+
     /// <inheritdoc />
     /// <exception cref="EdgeDBException">A general error occored.</exception>
     /// <exception cref="EdgeDBErrorException">The client received an <see cref="IProtocolError" />.</exception>
@@ -275,18 +290,26 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
             Cardinality.Many,
             capabilities,
             implicitTypeName: implicitTypeName,
-            preheat: parseResult =>
-                Task.Run(() => ObjectBuilder.PreheatCodec<TResult>(this, parseResult.OutCodecInfo.Codec), token),
+            preheat: parseResult => ObjectBuilder.PreheatCodecAsync<TResult>(this, parseResult.OutCodecInfo.Codec, token),
             token: token);
 
-        var array = new TResult?[result.Data.Length];
+        var array = new TResult?[result.ProtocolResult.Data.Length];
 
-        var codec = result.OutCodecInfo.Codec;
+        var codec = await GetPreheatedCodecAsync<TResult>(result, token);
 
-        for (var i = 0; i != result.Data.Length; i++)
+        if (result.ProtocolResult.Data.Length <= 7)
         {
-            var obj = ObjectBuilder.BuildResult<TResult>(this, codec, in result.Data[i]);
-            array[i] = obj;
+            for (var i = 0; i != result.ProtocolResult.Data.Length; i++)
+            {
+                array[i] = ObjectBuilder.BuildResult<TResult>(this, codec, result.ProtocolResult.Data[i]);
+            }
+        }
+        else
+        {
+            Parallel.ForEach(result.ProtocolResult.Data, (x, state, i) =>
+            {
+                array[i] = ObjectBuilder.BuildResult<TResult>(this, codec, x);
+            });
         }
 
         return array.ToImmutableArray();
@@ -314,16 +337,17 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
             Cardinality.AtMostOne,
             capabilities,
             implicitTypeName: implicitTypeName,
-            preheat: parseResult =>
-                Task.Run(() => ObjectBuilder.PreheatCodec<TResult>(this, parseResult.OutCodecInfo.Codec), token),
+            preheat: parseResult => ObjectBuilder.PreheatCodecAsync<TResult>(this, parseResult.OutCodecInfo.Codec, token),
             token: token);
 
-        if (result.Data.Length > 1)
+        if (result.ProtocolResult.Data.Length > 1)
             throw new ResultCardinalityMismatchException(Cardinality.AtMostOne, Cardinality.Many);
 
-        return result.Data.Length == 0
+        var codec = await GetPreheatedCodecAsync<TResult>(result, token);
+
+        return result.ProtocolResult.Data.Length == 0
             ? default
-            : ObjectBuilder.BuildResult<TResult>(this, result.OutCodecInfo.Codec, in result.Data[0]);
+            : ObjectBuilder.BuildResult<TResult>(this, codec, result.ProtocolResult.Data[0]);
     }
 
     /// <inheritdoc />
@@ -348,18 +372,18 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
             Cardinality.AtMostOne,
             capabilities,
             implicitTypeName: implicitTypeName,
-            preheat: parseResult =>
-                Task.Run(() => ObjectBuilder.PreheatCodec<TResult>(this, parseResult.OutCodecInfo.Codec), token),
+            preheat: parseResult => ObjectBuilder.PreheatCodecAsync<TResult>(this, parseResult.OutCodecInfo.Codec, token),
             token: token);
 
-        if (result.Data.Length is > 1 or 0)
+        if (result.ProtocolResult.Data.Length is > 1 or 0)
             throw new ResultCardinalityMismatchException(Cardinality.One,
-                result.Data.Length > 1 ? Cardinality.Many : Cardinality.AtMostOne);
+                result.ProtocolResult.Data.Length > 1 ? Cardinality.Many : Cardinality.AtMostOne);
 
 
-        return result.Data.Length != 1
+        return result.ProtocolResult.Data.Length != 1
             ? throw new MissingRequiredException()
-            : ObjectBuilder.BuildResult<TResult>(this, result.OutCodecInfo.Codec, in result.Data[0])!;
+            : ObjectBuilder.BuildResult<TResult>(this, await GetPreheatedCodecAsync<TResult>(result, token),
+                result.ProtocolResult.Data[0])!;
     }
 
     /// <inheritdoc />
@@ -374,8 +398,8 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
         var result =
             await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, IOFormat.Json, token: token);
 
-        return result.Data.Length == 1
-            ? (string)result.OutCodecInfo.Codec.Deserialize(this, in result.Data[0])!
+        return result.ProtocolResult.Data.Length == 1
+            ? (string)result.ProtocolResult.OutCodecInfo.Codec.Deserialize(this, in result.ProtocolResult.Data[0])!
             : "[]";
     }
 
@@ -391,8 +415,8 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
         var result = await ExecuteInternalAsync(query, args, Cardinality.Many, capabilities, IOFormat.JsonElements,
             token: token);
 
-        return result.Data.Any()
-            ? result.Data.Select(x => new Json((string?)result.OutCodecInfo.Codec.Deserialize(this, in x)))
+        return result.ProtocolResult.Data.Any()
+            ? result.ProtocolResult.Data.Select(x => new Json((string?)result.ProtocolResult.OutCodecInfo.Codec.Deserialize(this, in x)))
                 .ToImmutableArray()
             : ImmutableArray<Json>.Empty;
     }

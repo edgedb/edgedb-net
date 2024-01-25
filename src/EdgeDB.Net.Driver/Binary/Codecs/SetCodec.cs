@@ -3,15 +3,25 @@ using EdgeDB.Binary.Protocol.Common.Descriptors;
 namespace EdgeDB.Binary.Codecs;
 
 internal sealed class SetCodec<T>
-    : BaseCodec<IEnumerable<T?>>, IWrappingCodec, ICacheableCodec
+    : BaseCodec<IEnumerable<T?>>, IWrappingCodec, ICacheableCodec, ICompiledCodec
 {
+    public Type CompiledFrom { get; }
+    public CompilableWrappingCodec Template { get; }
+
     private readonly bool _isSetOfArray;
     internal ICodec<T> InnerCodec;
 
-    public SetCodec(in Guid id, ICodec<T> innerCodec, CodecMetadata? metadata = null)
+    public SetCodec(
+        in Guid id,
+        Type compiledFrom,
+        CompilableWrappingCodec template,
+        ICodec<T> innerCodec,
+        CodecMetadata? metadata = null)
         : base(in id, metadata)
     {
         InnerCodec = innerCodec;
+        CompiledFrom = compiledFrom;
+        Template = template;
         var codecType = innerCodec.GetType();
         _isSetOfArray = codecType.IsGenericType && codecType.GetGenericTypeDefinition() == typeof(ArrayCodec<>);
     }

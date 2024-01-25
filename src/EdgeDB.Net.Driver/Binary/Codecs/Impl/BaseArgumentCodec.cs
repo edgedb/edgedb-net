@@ -9,8 +9,8 @@ internal abstract class BaseArgumentCodec<T> : BaseCodec<T>, IArgumentCodec<T>
     {
     }
 
-    public abstract void SerializeArguments(ref PacketWriter writer, T? value, CodecContext context);
+    public abstract void SerializeArguments(ref PacketWriter writer, T? value, ArgumentCodecContext context);
 
-    void IArgumentCodec.SerializeArguments(ref PacketWriter writer, object? value, CodecContext context)
+    void IArgumentCodec.SerializeArguments(ref PacketWriter writer, object? value, ArgumentCodecContext context)
         => SerializeArguments(ref writer, (T?)value, context);
 }

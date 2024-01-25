@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 
 namespace EdgeDB.Binary.Codecs;
 
-internal sealed class CodecContext
+internal class CodecContext
 {
     public CodecContext(EdgeDBBinaryClient client)
     {

@@ -5,18 +5,6 @@ namespace EdgeDB;
 
 internal static class CodecExtensions
 {
-    #region IArgumentCodec
-
-    public static ReadOnlyMemory<byte> SerializeArguments(this IArgumentCodec codec, EdgeDBBinaryClient client,
-        object? value)
-    {
-        var writer = new PacketWriter();
-        codec.SerializeArguments(ref writer, value, client.CodecContext);
-        return writer.GetBytes();
-    }
-
-    #endregion
-
     #region ICodec
 
     public static object? Deserialize(this ICodec codec, EdgeDBBinaryClient client, in ReadOnlySpan<byte> buffer)
