@@ -60,14 +60,14 @@ namespace EdgeDB
             }
         }
 
-        public static QueryStringWriter.Proxy Proxy(Expression expression, ExpressionContext context)
+        public static WriterProxy Proxy(Expression expression, ExpressionContext context)
         {
             return writer => ContextualTranslate(expression, context, writer);
         }
 
-        protected static QueryStringWriter.Proxy[] Proxy(ExpressionContext context, params Expression[] expressions)
+        protected static WriterProxy[] Proxy(ExpressionContext context, params Expression[] expressions)
         {
-            var proxies = new QueryStringWriter.Proxy[expressions.Length];
+            var proxies = new WriterProxy[expressions.Length];
 
             for (var i = 0; i != expressions.Length; i++)
             {

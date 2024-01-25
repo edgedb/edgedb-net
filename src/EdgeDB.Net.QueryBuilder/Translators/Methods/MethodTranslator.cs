@@ -195,10 +195,10 @@ namespace EdgeDB.Translators
         ///     The argument with the prefix if its <see langword="not"/> <see langword="null"/>;
         ///     otherwise an empty string.
         /// </returns>
-        protected QueryStringWriter.Value OptionalArg(TranslatedParameter? arg)
+        protected Value OptionalArg(TranslatedParameter? arg)
         {
             if (arg is null)
-                return QueryStringWriter.Value.Empty;
+                return Value.Empty;
             else
                 return arg;
         }

@@ -16,10 +16,10 @@ namespace EdgeDB.QueryNodes
     /// </summary>
     internal class SelectNode : QueryNode<SelectContext>
     {
-        private QueryStringWriter.Proxy? _filter;
-        private QueryStringWriter.Proxy? _limit;
-        private QueryStringWriter.Proxy? _offset;
-        private QueryStringWriter.Proxy? _orderBy;
+        private WriterProxy? _filter;
+        private WriterProxy? _limit;
+        private WriterProxy? _offset;
+        private WriterProxy? _orderBy;
         private SelectShape? _shape;
 
         /// <inheritdoc/>
@@ -90,7 +90,7 @@ namespace EdgeDB.QueryNodes
                     if(node.Context.SetAsGlobal && !string.IsNullOrEmpty(node.Context.GlobalName))
                     {
                         // wrap global name
-                        writer.Append(node.Context.GlobalName);
+                        writer.Append(node.Context.GlobalName).Append(' ');
                     }
                     else
                         throw new InvalidOperationException($"Cannot resolve parent node {Parent}'s query");
@@ -114,7 +114,9 @@ namespace EdgeDB.QueryNodes
                         .Append("select ");
 
                     if (Context.SelectName is not null)
-                        expressionWriter.Append(Context.SelectName).Append(' ');
+                        expressionWriter
+                            .Append(Context.SelectName)
+                            .Append(' ');
 
                     TranslateExpression(Context.Expression, expressionWriter);
                 }
@@ -127,7 +129,9 @@ namespace EdgeDB.QueryNodes
                     .Append("select ");
 
                 if (!Context.IsFreeObject)
-                    shapeWriter.Append(Context.SelectName ?? OperatingType.GetEdgeDBTypeName());
+                    shapeWriter
+                        .Append(Context.SelectName ?? OperatingType.GetEdgeDBTypeName())
+                        .Append(' ');
 
                 _shape.Compile(shapeWriter, (writer, expression) =>
                 {

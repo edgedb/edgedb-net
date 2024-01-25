@@ -71,7 +71,7 @@ namespace EdgeDB.Translators.Expressions
                                     for (var i = 1; i != path.Length; i++)
                                     {
                                         var element = path[i - 1];
-                                        arguments[i] = new QueryStringWriter.Value(
+                                        arguments[i] = new WriterProxy(
                                             s => s.Append('\'').Append(element).Append('\'')
                                         );
                                     }

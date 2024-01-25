@@ -84,7 +84,7 @@ namespace EdgeDB.Translators.Expressions
         private static void CompileInsertExpression(
             Type propertyType,
             QueryStringWriter subQuery,
-            QueryStringWriter.Proxy shapeProxy,
+            WriterProxy shapeProxy,
             ObjectType objectInfo,
             ExpressionContext context)
         {

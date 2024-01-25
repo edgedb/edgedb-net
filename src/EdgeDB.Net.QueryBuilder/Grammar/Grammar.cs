@@ -30,7 +30,7 @@ namespace EdgeDB
                 _method = method;
             }
 
-            public void Build(QueryStringWriter writer, params QueryStringWriter.Proxy[] args)
+            public void Build(QueryStringWriter writer, params WriterProxy[] args)
             {
                 var arr = new object?[args.Length + 1];
                 arr[0] = writer;
@@ -62,11 +62,11 @@ namespace EdgeDB
             }
         }
 
-        private static Operator? SearchForBestMatch(ExpressionType type, QueryStringWriter.Proxy[] args)
+        private static Operator? SearchForBestMatch(ExpressionType type, WriterProxy[] args)
             => _operators.FirstOrDefault(x => x.ExpressionTypes.Contains(type) && x.ParameterCount == args.Length);
 
         public static bool TryBuildOperator(ExpressionType type, QueryStringWriter writer,
-            params QueryStringWriter.Proxy[] args)
+            params WriterProxy[] args)
         {
             var op = SearchForBestMatch(type, args);
 
@@ -81,7 +81,7 @@ namespace EdgeDB
             => TryBuildOperator(
                 type,
                 writer,
-                args.Select(x => new QueryStringWriter.Proxy(writer => writer
+                args.Select(x => new WriterProxy(writer => writer
                     .Append(x)
                 )).ToArray()
             );

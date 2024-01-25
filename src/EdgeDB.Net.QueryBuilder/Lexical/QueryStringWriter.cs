@@ -6,108 +6,6 @@ namespace EdgeDB;
 
 internal class QueryStringWriter
 {
-    public delegate void Proxy(QueryStringWriter writer);
-
-    public readonly struct Value
-    {
-        public static readonly Value Empty = new((object?)null);
-
-        private readonly Proxy? _callback;
-        private readonly object? _value;
-        private readonly string? _str;
-        private readonly char? _ch;
-
-        public Value(string? str)
-        {
-            _str = str;
-        }
-
-        public Value(char ch)
-        {
-            _ch = ch;
-        }
-
-        public Value(Proxy? callback)
-        {
-            _callback = callback;
-        }
-
-        public Value(object? value)
-        {
-            _value = value;
-        }
-
-        public void WriteTo(QueryStringWriter writer)
-        {
-            if (_callback is not null)
-                _callback(writer);
-            else
-            {
-                if (_value is QueryStringWriter qsw)
-                    writer.Append(qsw);
-                else if (_str is not null)
-                    writer.Append(_str);
-                else if (_ch is not null)
-                    writer.Append(_ch.Value);
-                else
-                    writer.Append(_value);
-            }
-        }
-
-        public void WriteAt(QueryStringWriter writer, int index)
-        {
-            if (_callback is not null)
-                _callback(writer.GetPositionalWriter(index));
-            else
-            {
-                if (_value is QueryStringWriter qsw)
-                    writer.Insert(index, qsw);
-                else if (_str is not null)
-                    writer.Insert(index, _str);
-                else if (_ch is not null)
-                    writer.Insert(index, _ch.Value);
-                else
-                    writer.Insert(index, _value);
-            }
-        }
-
-
-        public static implicit operator Value(string? value) => new(value);
-        public static implicit operator Value(char value) => new(value);
-        public static implicit operator Value(QueryStringWriter writer) => new(writer);
-        public static implicit operator Value(Proxy callback) => new(callback);
-    }
-
-    public sealed class Marker
-    {
-        public int Position { get; private set; }
-        public int Size { get; }
-
-        private readonly QueryStringWriter _writer;
-
-        internal Marker(QueryStringWriter writer, int size, int position)
-        {
-            _writer = writer;
-            Size = size;
-            Position = position;
-        }
-
-        internal void Update(int delta)
-        {
-            Position += delta;
-        }
-
-        public void Replace(Value value)
-        {
-            _writer
-                .Remove(Position, Size)
-                .Insert(Position, value);
-        }
-
-        public void Replace(Proxy value)
-            => Replace(new Value(value));
-    }
-
     private sealed class PositionedQueryStringWriter(int position, QueryStringWriter parent)
         : QueryStringWriter(parent._builder, parent._chunks, parent._labels)
     {
@@ -200,7 +98,7 @@ internal class QueryStringWriter
     public Value Val(object? value)
         => new(value);
 
-    public Value Val(Proxy writer)
+    public Value Val(WriterProxy writer)
         => new(writer);
 
     public QueryStringWriter GetPositionalWriter(int index = -1)
@@ -211,28 +109,28 @@ internal class QueryStringWriter
         return new PositionedQueryStringWriter(index, this);
     }
 
-    public QueryStringWriter Label(string name, Value value)
+    public QueryStringWriter Label(MarkerType type, string name, Value value)
     {
         if (!_labels.TryGetValue(name, out var labels))
             _labels[name] = labels = new();
 
         var pos = Position;
         Append(value);
-        labels.Add(new Marker(this, Position - pos, pos));
+        labels.Add(new Marker(type, this, Position - pos, pos));
         return this;
     }
 
-    public QueryStringWriter Label(string value)
-        => Label(value, value);
+    public QueryStringWriter Label(MarkerType type, string value)
+        => Label(type, value, value);
 
-    public QueryStringWriter Label(string name, Action<string, QueryStringWriter> func)
+    public QueryStringWriter Label(MarkerType type, string name, Action<string, QueryStringWriter> func)
     {
         if (!_labels.TryGetValue(name, out var labels))
             _labels[name] = labels = new();
 
         var pos = Position;
         func(name, this);
-        labels.Add(new Marker(this, Position - pos, pos));
+        labels.Add(new Marker(type, this, Position - pos, pos));
         return this;
     }
 
@@ -357,7 +255,7 @@ internal class QueryStringWriter
         return this;
     }
 
-    public QueryStringWriter Append(Proxy value)
+    public QueryStringWriter Append(WriterProxy value)
         => Append(new Value(value));
 
     public QueryStringWriter Append(Value value)
@@ -392,7 +290,7 @@ internal class QueryStringWriter
     public QueryStringWriter Assignment(object name, Value value)
         => Append(name).Append(" := ").Append(value);
 
-    public QueryStringWriter Assignment(object name, Proxy value)
+    public QueryStringWriter Assignment(object name, WriterProxy value)
         => Append(name).Append(" := ").Append(value);
 
     public QueryStringWriter QueryArgument(object? type, Value name)
@@ -407,7 +305,7 @@ internal class QueryStringWriter
     public QueryStringWriter TypeCast(Value type)
         => Append('<').Append(type).Append('>');
 
-    public QueryStringWriter Wrapped(Proxy func, string chars = "()")
+    public QueryStringWriter Wrapped(WriterProxy func, string chars = "()")
         => Wrapped(new Value(func), chars);
 
     public QueryStringWriter Wrapped(Value value, string chars = "()")
@@ -489,7 +387,7 @@ internal class QueryStringWriter
         public static implicit operator FunctionArg(Value value) => new(value);
         public static implicit operator FunctionArg(string? str) => new(str);
         public static implicit operator FunctionArg(char ch) => new(ch);
-        public static implicit operator FunctionArg(Proxy proxy) => new(proxy);
+        public static implicit operator FunctionArg(WriterProxy writerProxy) => new(writerProxy);
     }
 
     public QueryStringWriter Function(object function, params FunctionArg[] args)

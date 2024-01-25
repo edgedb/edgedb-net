@@ -20,7 +20,7 @@ namespace EdgeDB.Translators.Methods
         /// <summary>
         ///     Gets the translated value of the parameter.
         /// </summary>
-        public QueryStringWriter.Proxy ValueProxy { get; }
+        public WriterProxy ValueProxy { get; }
 
         /// <summary>
         ///     Gets the raw expression of the parameter.
@@ -57,7 +57,7 @@ namespace EdgeDB.Translators.Methods
         /// <param name="type">The type of the parameter.</param>
         /// <param name="value">The proxy to translate the value of the parameter.</param>
         /// <param name="raw">The raw expression of the parameter.</param>
-        public TranslatedParameter(Type type, QueryStringWriter.Proxy value, Expression raw)
+        public TranslatedParameter(Type type, WriterProxy value, Expression raw)
         {
             ParameterType = type;
             ValueProxy = value;
@@ -69,7 +69,7 @@ namespace EdgeDB.Translators.Methods
             ValueProxy(writer);
         }
 
-        public static implicit operator QueryStringWriter.Value(TranslatedParameter param) => new(param.ValueProxy);
+        public static implicit operator Value(TranslatedParameter param) => new(param.ValueProxy);
         public static implicit operator QueryStringWriter.FunctionArg(TranslatedParameter param) => new(param.ValueProxy);
     }
 }

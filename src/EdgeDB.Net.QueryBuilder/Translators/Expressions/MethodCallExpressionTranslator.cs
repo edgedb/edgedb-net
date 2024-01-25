@@ -52,14 +52,14 @@ namespace EdgeDB.Translators.Expressions
             if (!EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var type))
             {
                 // if we can't, add it as a global
-                writer.Label(context.GetOrAddGlobal(expression, expressionResult));
+                writer.Label(MarkerType.Global, context.GetOrAddGlobal(expression, expressionResult));
                 return;
                 //throw new InvalidOperationException("Expected a scalar type for ");
             }
 
             // return the variable name containing the result of the method.
             writer
-                .Label(context.AddVariable(expressionResult), (variable, writer) => writer
+                .Label(MarkerType.Global, context.AddVariable(expressionResult), (variable, writer) => writer
                     .TypeCast(type)
                     .Append(variable)
                 );

@@ -432,7 +432,7 @@ namespace EdgeDB.QueryNodes
                                                     .Function(
                                                         "json_get",
                                                         jsonValue.Name,
-                                                        new QueryStringWriter.Value(writer => writer
+                                                        new Value(writer => writer
                                                             .Append('\'')
                                                             .Append(x.Name)
                                                             .Append('\'')
@@ -803,7 +803,7 @@ namespace EdgeDB.QueryNodes
             // if were in a query with the type or the query requires introspection add it as a global
             if (_subQueryMap.Contains(type) || value.RequiresIntrospection)
             {
-                writer.Append(GetOrAddGlobal(reference, value));
+                writer.Label(MarkerType.Global, GetOrAddGlobal(reference, value));
                 return;
             }
 

@@ -12,7 +12,7 @@ namespace EdgeDB.QueryNodes
     /// </summary>
     internal class UpdateNode : QueryNode<UpdateContext>
     {
-        private QueryStringWriter.Proxy? _filter;
+        private WriterProxy? _filter;
 
         /// <inheritdoc/>
         public UpdateNode(NodeBuilder builder) : base(builder) { }

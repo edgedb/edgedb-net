@@ -128,7 +128,7 @@ namespace EdgeDB.StandardLibGenerator
 
                     var name = Math.Abs(HashCode.Combine(opName, op.Parameters));
 
-                    using (_ = writer.BeginScope($"public static void Op_{name}(QueryStringWriter writer, {string.Join(", ", op.Parameters!.Select(x => $"QueryStringWriter.Proxy {x.Name}Param"))})"))
+                    using (_ = writer.BeginScope($"public static void Op_{name}(QueryStringWriter writer, {string.Join(", ", op.Parameters!.Select(x => $"WriterProxy {x.Name}Param"))})"))
                     {
                         writer.AppendLine($"{expression};");
                     }

@@ -42,10 +42,6 @@ namespace EdgeDB.ExampleApp.Examples
 
         private static async Task QueryBuilderDemo(EdgeDBClient client)
         {
-            var test = QueryBuilder.SelectExpression(() => EdgeQL.Range<int>(5, 10, true, false, false));
-
-            var result = test.Build();
-
             // Selecting a type with autogen shape
             var query = QueryBuilder.Select<Person>().Build().Prettify();
 
