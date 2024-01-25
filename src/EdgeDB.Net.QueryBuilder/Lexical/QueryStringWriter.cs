@@ -7,7 +7,7 @@ namespace EdgeDB;
 internal class QueryStringWriter
 {
     private sealed class PositionedQueryStringWriter(int position, QueryStringWriter parent)
-        : QueryStringWriter(parent._builder, parent._chunks, parent._labels)
+        : QueryStringWriter(parent._builder, parent._chunks, parent.Labels)
     {
         protected override void OnExternalWrite(int position1, int length)
         {
@@ -36,7 +36,7 @@ internal class QueryStringWriter
         }
     }
 
-    private readonly Dictionary<string, List<Marker>> _labels;
+    internal readonly Dictionary<string, List<Marker>> Labels;
     private readonly StringBuilder _builder;
     private readonly SortedList<int, IntrospectionChunk> _chunks;
 
@@ -56,7 +56,7 @@ internal class QueryStringWriter
     {
         _builder = stringBuilder;
         _chunks = chunks;
-        _labels = labels;
+        Labels = labels;
     }
 
     [return: NotNullIfNotNull(nameof(o))]
@@ -71,7 +71,7 @@ internal class QueryStringWriter
 
     protected void UpdateLabels(int pos, int sz)
     {
-        foreach (var label in _labels.Values.SelectMany(x => x).Where(x => x.Position <= pos))
+        foreach (var label in Labels.Values.SelectMany(x => x).Where(x => x.Position <= pos))
         {
             label.Update(sz);
         }
@@ -111,8 +111,8 @@ internal class QueryStringWriter
 
     public QueryStringWriter Label(MarkerType type, string name, Value value)
     {
-        if (!_labels.TryGetValue(name, out var labels))
-            _labels[name] = labels = new();
+        if (!Labels.TryGetValue(name, out var labels))
+            Labels[name] = labels = new();
 
         var pos = Position;
         Append(value);
@@ -125,8 +125,8 @@ internal class QueryStringWriter
 
     public QueryStringWriter Label(MarkerType type, string name, Action<string, QueryStringWriter> func)
     {
-        if (!_labels.TryGetValue(name, out var labels))
-            _labels[name] = labels = new();
+        if (!Labels.TryGetValue(name, out var labels))
+            Labels[name] = labels = new();
 
         var pos = Position;
         func(name, this);
@@ -135,7 +135,7 @@ internal class QueryStringWriter
     }
 
     public bool TryGetLabeled(string name, [NotNullWhen(true)] out List<Marker>? markers)
-        => _labels.TryGetValue(name, out markers);
+        => Labels.TryGetValue(name, out markers);
 
     public int IndexOf(string value, bool ignoreCase = false, int startIndex = 0)
     {
@@ -319,17 +319,20 @@ internal class QueryStringWriter
     public QueryStringWriter Shape<T>(params T[] elements)
         where T : notnull
     {
-        Append('{');
-
-        for (var i = 0; i != elements.Length;)
+        Label(MarkerType.Shape, $"shape_{elements.GetHashCode()}", (name, writer) =>
         {
-            Append(elements[i++]);
+            writer.Append('{');
 
-            if (i != elements.Length)
-                Append(", ");
-        }
+            for (var i = 0; i != elements.Length;)
+            {
+                writer.Append(elements[i++]);
 
-        Append('}');
+                if (i != elements.Length)
+                    writer.Append(", ");
+            }
+
+            writer.Append('}');
+        });
 
         return this;
     }
@@ -340,32 +343,35 @@ internal class QueryStringWriter
         if (shapeChars.Length is not 2)
             throw new ArgumentOutOfRangeException(nameof(shapeChars), "must contain 2 characters");
 
-        Append(shapeChars[0]);
-
-        using var enumerator = elements.GetEnumerator();
-
-        enumerator.MoveNext();
-
-        loop:
-
-        // check for empty entries
-        var i = Position;
-        writer(this, enumerator.Current);
-
-        // if nothing was written, continue the iteration without adding a delimiter
-        if (i == Position)
+        Label(MarkerType.Shape, $"shape_{elements.GetHashCode()}", (name, wt) =>
         {
+            wt.Append(shapeChars[0]);
+
+            using var enumerator = elements.GetEnumerator();
+
             enumerator.MoveNext();
-            goto loop;
-        }
 
-        if (enumerator.MoveNext())
-        {
-            Append(", ");
-            goto loop;
-        }
+            loop:
 
-        Append(shapeChars[1]);
+            // check for empty entries
+            var i = Position;
+            writer(wt, enumerator.Current);
+
+            // if nothing was written, continue the iteration without adding a delimiter
+            if (i == Position)
+            {
+                enumerator.MoveNext();
+                goto loop;
+            }
+
+            if (enumerator.MoveNext())
+            {
+                wt.Append(", ");
+                goto loop;
+            }
+
+            wt.Append(shapeChars[1]);
+        });
 
         return this;
     }
@@ -392,30 +398,33 @@ internal class QueryStringWriter
 
     public QueryStringWriter Function(object function, params FunctionArg[] args)
     {
-        Append(function).Append('(');
-
-        for (var i = 0; i < args.Length;)
+        Label(MarkerType.Function, $"func_{function}_{args.GetHashCode()}", (name, writer) =>
         {
-            var arg = args[i++];
+            writer.Append(function).Append('(');
 
-            var pos = Position;
+            for (var i = 0; i < args.Length;)
+            {
+                var arg = args[i++];
 
-            Append(arg.Value);
+                var pos = Position;
 
-            if (pos == Position)
-                continue;
+                writer.Append(arg.Value);
 
-            // append the named part if its specified
-            if (arg.Named is not null)
-                GetPositionalWriter(pos + 1)
-                    .Append(arg.Named)
-                    .Append(" := ");
+                if (pos == Position)
+                    continue;
 
-            if (i != args.Length)
-                Append(", ");
-        }
+                // append the named part if its specified
+                if (arg.Named is not null)
+                    writer.GetPositionalWriter(pos + 1)
+                        .Append(arg.Named)
+                        .Append(" := ");
 
-        Append(')');
+                if (i != args.Length)
+                    writer.Append(", ");
+            }
+
+            writer.Append(')');
+        });
 
         return this;
     }

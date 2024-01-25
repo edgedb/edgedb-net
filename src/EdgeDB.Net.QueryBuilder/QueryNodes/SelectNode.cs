@@ -121,7 +121,7 @@ namespace EdgeDB.QueryNodes
                     TranslateExpression(Context.Expression, expressionWriter);
                 }
                 else
-                    writer.Insert(0, $"select {Context.SelectName ?? OperatingType.GetEdgeDBTypeName()}");
+                    writer.Append($"select {Context.SelectName ?? OperatingType.GetEdgeDBTypeName()}");
             }
             else if (_shape is not null)
             {

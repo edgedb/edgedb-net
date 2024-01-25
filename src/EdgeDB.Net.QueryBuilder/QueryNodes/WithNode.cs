@@ -38,7 +38,9 @@ namespace EdgeDB.QueryNodes
                 if (EdgeDBTypeUtils.IsLink(operatingType, out _, out _) && bannedTypes.Contains(operatingType))
                     continue;
 
-                node.ReplaceSubqueryAsLiteral(writer, global, CompileGlobalValue);
+                NodeReducer.Apply(writer, global, CompileGlobalValue);
+
+                //node.ReplaceSubqueryAsLiteral(writer, global, (global, writer) => CompileGlobalValue(global, writer, ShapeReducer.Create(writer, global)));
                 count--;
             }
 
@@ -72,12 +74,12 @@ namespace EdgeDB.QueryNodes
             }
         }
 
-        private void CompileGlobalValue(QueryGlobal global, QueryStringWriter writer)
+        private void CompileGlobalValue(QueryGlobal global, QueryStringWriter writer, Action<QueryNode>? preFinalizerModifier = null)
         {
             // if its a query builder, build it and add it as a sub-query.
             if (global.Value is IQueryBuilder queryBuilder)
             {
-                writer.Wrapped(writer => queryBuilder.WriteTo(writer, this));
+                writer.Wrapped(writer => queryBuilder.WriteTo(writer, this, preFinalizerModifier: preFinalizerModifier));
                 return;
             }
 
