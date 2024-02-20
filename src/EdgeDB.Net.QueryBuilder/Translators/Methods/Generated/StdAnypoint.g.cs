@@ -9,13 +9,13 @@ namespace EdgeDB.Translators
     internal partial class StdAnypointMethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.RangeGetUpper))]
-        public void RangeGetUpperTranslator(QueryStringWriter writer, TranslatedParameter rParam)
+        public void RangeGetUpperTranslator(QueryWriter writer, TranslatedParameter rParam)
         {
             writer.Function("std::range_get_upper", rParam);
         }
 
         [MethodName(nameof(EdgeQL.RangeGetLower))]
-        public void RangeGetLowerTranslator(QueryStringWriter writer, TranslatedParameter rParam)
+        public void RangeGetLowerTranslator(QueryWriter writer, TranslatedParameter rParam)
         {
             writer.Function("std::range_get_lower", rParam);
         }

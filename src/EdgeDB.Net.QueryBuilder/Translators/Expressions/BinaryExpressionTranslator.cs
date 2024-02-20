@@ -13,7 +13,7 @@ namespace EdgeDB.Translators.Expressions
     internal class BinaryExpressionTranslator : ExpressionTranslator<BinaryExpression>
     {
         /// <inheritdoc/>
-        public override void Translate(BinaryExpression expression, ExpressionContext context, QueryStringWriter writer)
+        public override void Translate(BinaryExpression expression, ExpressionContext context, QueryWriter writer)
         {
             // special case for exists keyword
             if ((expression.Right is ConstantExpression { Value: null } ||

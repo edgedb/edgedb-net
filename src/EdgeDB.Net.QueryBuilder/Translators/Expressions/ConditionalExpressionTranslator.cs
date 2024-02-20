@@ -16,7 +16,7 @@ namespace EdgeDB.Translators.Expressions
         public override void Translate(
             ConditionalExpression expression,
             ExpressionContext context,
-            QueryStringWriter writer)
+            QueryWriter writer)
         {
             TranslateExpression(expression.IfTrue, context, writer);
             writer.Append(" IF ");

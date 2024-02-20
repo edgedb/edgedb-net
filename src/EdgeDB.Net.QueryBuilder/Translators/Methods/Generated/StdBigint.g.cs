@@ -9,7 +9,7 @@ namespace EdgeDB.Translators
     internal partial class StdBigintMethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.ToBigint))]
-        public void ToBigintTranslator(QueryStringWriter writer, TranslatedParameter sParam, TranslatedParameter? fmtParam)
+        public void ToBigintTranslator(QueryWriter writer, TranslatedParameter sParam, TranslatedParameter? fmtParam)
         {
             writer.Function("std::to_bigint", sParam, OptionalArg(fmtParam));
         }

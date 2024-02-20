@@ -9,19 +9,19 @@ namespace EdgeDB.Translators
     internal partial class StdBytesMethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.ToBytes))]
-        public void ToBytesTranslator(QueryStringWriter writer, TranslatedParameter sParam)
+        public void ToBytesTranslator(QueryWriter writer, TranslatedParameter sParam)
         {
             writer.Function("std::to_bytes", sParam);
         }
 
         [MethodName(nameof(EdgeQL.Base64Decode))]
-        public void Base64DecodeTranslator(QueryStringWriter writer, TranslatedParameter dataParam, TranslatedParameter alphabetParam, TranslatedParameter paddingParam)
+        public void Base64DecodeTranslator(QueryWriter writer, TranslatedParameter dataParam, TranslatedParameter alphabetParam, TranslatedParameter paddingParam)
         {
-            writer.Function("std::enc::base64_decode", dataParam, new QueryStringWriter.FunctionArg(alphabetParam, "alphabet"), new QueryStringWriter.FunctionArg(paddingParam, "padding"));
+            writer.Function("std::enc::base64_decode", dataParam, new Terms.FunctionArg(alphabetParam, "alphabet"), new Terms.FunctionArg(paddingParam, "padding"));
         }
 
         [MethodName(nameof(EdgeQL.Concat))]
-        public void Concat(QueryStringWriter writer, TranslatedParameter lParam, TranslatedParameter rParam)
+        public void Concat(QueryWriter writer, TranslatedParameter lParam, TranslatedParameter rParam)
         {
             writer.Append(lParam).Wrapped("++", "  ").Append(rParam);
         }

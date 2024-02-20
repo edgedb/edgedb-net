@@ -14,7 +14,7 @@ namespace EdgeDB.Translators.Expressions
     internal class NewExpressionTranslator : ExpressionTranslator<NewExpression>
     {
         /// <inheritdoc/>
-        public override void Translate(NewExpression expression, ExpressionContext context, QueryStringWriter writer)
+        public override void Translate(NewExpression expression, ExpressionContext context, QueryWriter writer)
         {
             var map = new Dictionary<PropertyInfo, EdgeDBPropertyInfo>(
                 EdgeDBPropertyMapInfo.Create(expression.Type).Properties

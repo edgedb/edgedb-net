@@ -16,7 +16,7 @@ namespace EdgeDB
         /// <summary>
         ///     Represents a function used to compile a sub query.
         /// </summary>
-        internal delegate void SubQueryBuilder(SchemaInfo schema, QueryStringWriter result);
+        internal delegate void SubQueryBuilder(SchemaInfo schema, QueryWriter result);
 
         /// <summary>
         ///     Gets the query string for this subquery.
@@ -24,7 +24,7 @@ namespace EdgeDB
         /// <remarks>
         ///     This property is null when <see cref="RequiresIntrospection"/> is <see langword="true"/>.
         /// </remarks>
-        public Action<QueryStringWriter>? Query { get; init; }
+        public WriterProxy? Query { get; init; }
 
         /// <summary>
         ///     Gets whether or not this query requires introspection to generate.
@@ -52,7 +52,7 @@ namespace EdgeDB
         ///     Constructs a new <see cref="SubQuery"/>.
         /// </summary>
         /// <param name="writer">The <see cref="QueryStringWriter"/> containing the subquery.</param>
-        public SubQuery(Action<QueryStringWriter> writer)
+        public SubQuery(WriterProxy writer)
         {
             Query = writer;
             RequiresIntrospection = false;
@@ -66,7 +66,7 @@ namespace EdgeDB
         /// <returns>
         ///     A <see cref="SubQuery"/> representing the built form of this queyr.
         /// </returns>
-        public void Build(SchemaInfo info, QueryStringWriter result)
+        public void Build(SchemaInfo info, QueryWriter result)
         {
             if (RequiresIntrospection)
             {

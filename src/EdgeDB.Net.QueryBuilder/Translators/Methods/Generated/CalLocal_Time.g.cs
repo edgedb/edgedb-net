@@ -9,7 +9,7 @@ namespace EdgeDB.Translators
     internal partial class CalLocal_TimeMethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.ToLocalTime))]
-        public void ToLocalTimeTranslator(QueryStringWriter writer, TranslatedParameter sParam, TranslatedParameter? fmtParam)
+        public void ToLocalTimeTranslator(QueryWriter writer, TranslatedParameter sParam, TranslatedParameter? fmtParam)
         {
             writer.Function("cal::to_local_time", sParam, OptionalArg(fmtParam));
         }

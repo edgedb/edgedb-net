@@ -1,6 +1,8 @@
-﻿using System;
+﻿using EdgeDB.Schema;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -54,6 +56,21 @@ namespace EdgeDB
             Name = name;
             Value = value;
             Reference = reference;
+        }
+
+        public Value[] Compile(IQueryBuilder source, QueryWriter writer, CompileContext? context = null, SchemaInfo? info = null)
+        {
+            return Value switch
+            {
+                // if its a query builder, build it and add it as a sub-query.
+                IQueryBuilder queryBuilder => writer.Span(writer =>
+                    writer.Wrapped(writer => queryBuilder.WriteTo(writer, source))),
+                // if its a sub query that requires introspection, build it and add it.
+                SubQuery {RequiresIntrospection: true} when info is null => throw new InvalidOperationException(
+                    "Cannot build without introspection! A node requires query introspection."),
+                SubQuery {RequiresIntrospection: true} subQuery => writer.Span(writer => subQuery.Build(info, writer)),
+                _ => writer.Span(writer => QueryUtils.ParseObject(writer, Value))
+            };
         }
     }
 }

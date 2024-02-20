@@ -319,7 +319,7 @@ namespace EdgeDB
 
         /// <summary>
         ///     Builds the current query builder into its <see cref="BuiltQuery"/>
-        ///     form and exlcudes globals from the query text and puts them in
+        ///     form and excludes globals from the query text and puts them in
         ///     <see cref="BuiltQuery.Globals"/>.
         /// </summary>
         /// <param name="preFinalizerModifier">
@@ -330,7 +330,6 @@ namespace EdgeDB
         /// </returns>
         internal BuiltQuery BuildWithGlobals(Action<QueryNode>? preFinalizerModifier = null);
 
-        internal void InternalBuild(QueryStringWriter writer, bool? includeGlobalsInQuery = true,
-            Action<QueryNode>? preFinalizerModifier = null, bool includeAutoGenNodes = true);
+        internal void InternalBuild(QueryWriter writer, CompileContext? context = null);
     }
 }

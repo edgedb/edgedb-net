@@ -9,19 +9,19 @@ namespace EdgeDB.Translators
     internal partial class CalRelative_DurationMethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.ToRelativeDuration))]
-        public void ToRelativeDurationTranslator(QueryStringWriter writer, TranslatedParameter yearsParam, TranslatedParameter monthsParam, TranslatedParameter daysParam, TranslatedParameter hoursParam, TranslatedParameter minutesParam, TranslatedParameter secondsParam, TranslatedParameter microsecondsParam)
+        public void ToRelativeDurationTranslator(QueryWriter writer, TranslatedParameter yearsParam, TranslatedParameter monthsParam, TranslatedParameter daysParam, TranslatedParameter hoursParam, TranslatedParameter minutesParam, TranslatedParameter secondsParam, TranslatedParameter microsecondsParam)
         {
-            writer.Function("cal::to_relative_duration", new QueryStringWriter.FunctionArg(yearsParam, "years"), new QueryStringWriter.FunctionArg(monthsParam, "months"), new QueryStringWriter.FunctionArg(daysParam, "days"), new QueryStringWriter.FunctionArg(hoursParam, "hours"), new QueryStringWriter.FunctionArg(minutesParam, "minutes"), new QueryStringWriter.FunctionArg(secondsParam, "seconds"), new QueryStringWriter.FunctionArg(microsecondsParam, "microseconds"));
+            writer.Function("cal::to_relative_duration", new Terms.FunctionArg(yearsParam, "years"), new Terms.FunctionArg(monthsParam, "months"), new Terms.FunctionArg(daysParam, "days"), new Terms.FunctionArg(hoursParam, "hours"), new Terms.FunctionArg(minutesParam, "minutes"), new Terms.FunctionArg(secondsParam, "seconds"), new Terms.FunctionArg(microsecondsParam, "microseconds"));
         }
 
         [MethodName(nameof(EdgeQL.DurationNormalizeHours))]
-        public void DurationNormalizeHoursTranslator(QueryStringWriter writer, TranslatedParameter durParam)
+        public void DurationNormalizeHoursTranslator(QueryWriter writer, TranslatedParameter durParam)
         {
             writer.Function("cal::duration_normalize_hours", durParam);
         }
 
         [MethodName(nameof(EdgeQL.DurationNormalizeDays))]
-        public void DurationNormalizeDaysTranslator(QueryStringWriter writer, TranslatedParameter durParam)
+        public void DurationNormalizeDaysTranslator(QueryWriter writer, TranslatedParameter durParam)
         {
             writer.Function("cal::duration_normalize_days", durParam);
         }

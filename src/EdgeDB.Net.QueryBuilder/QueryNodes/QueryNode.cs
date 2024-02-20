@@ -117,7 +117,7 @@ namespace EdgeDB.QueryNodes
         ///     Finalizes the nodes query, completing the second and final phase of this
         ///     nodes build process by writing the nodes query string to the writer.
         /// </summary>
-        public abstract void FinalizeQuery(QueryStringWriter writer);
+        public abstract void FinalizeQuery(QueryWriter writer);
 
         /// <summary>
         ///     Sets a query variable with the given name.
@@ -175,7 +175,7 @@ namespace EdgeDB.QueryNodes
         /// </remarks>
         /// <param name="expression">The expression to translate.</param>
         /// <param name="writer">The query string writer to append the translated expression to.</param>
-        protected void TranslateExpression(LambdaExpression expression, QueryStringWriter writer)
+        protected void TranslateExpression(LambdaExpression expression, QueryWriter writer)
         {
             using var consumer = NodeTranslationContext.CreateContextConsumer(expression);
             ExpressionTranslator.Translate(expression, consumer, writer);
@@ -192,15 +192,15 @@ namespace EdgeDB.QueryNodes
         /// <param name="expression">The expression to translate.</param>
         /// <param name="writer">The query string writer to write the translated edgeql.</param>
         /// <returns>The EdgeQL version of the expression.</returns>
-        protected void TranslateExpression(LambdaExpression root, Expression expression, QueryStringWriter writer)
+        protected void TranslateExpression(LambdaExpression root, Expression expression, QueryWriter writer)
         {
             using var consumer = NodeTranslationContext.CreateContextConsumer(root);
             ExpressionTranslator.ContextualTranslate(expression, consumer, writer);
         }
 
-        internal void ReplaceSubqueryAsLiteral(QueryStringWriter writer, QueryGlobal global, Action<QueryGlobal, QueryStringWriter> compile)
+        internal void ReplaceSubqueryAsLiteral(QueryWriter writer, QueryGlobal global, Action<QueryGlobal, QueryWriter> compile)
         {
-            if (!writer.TryGetLabeled(global.Name, out var markers))
+            if (!writer.TryGetMarker(global.Name, out var markers))
                 return;
 
             foreach (var marker in markers)

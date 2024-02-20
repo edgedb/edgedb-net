@@ -4,5 +4,7 @@ public enum MarkerType
 {
     Global,
     Function,
-    Shape
+    Shape,
+    Variable,
+    Verbose
 }

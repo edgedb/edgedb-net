@@ -13,7 +13,7 @@ namespace EdgeDB.Translators.Expressions
     internal class UnaryExpressionTranslator : ExpressionTranslator<UnaryExpression>
     {
         /// <inheritdoc/>
-        public override void Translate(UnaryExpression expression, ExpressionContext context, QueryStringWriter writer)
+        public override void Translate(UnaryExpression expression, ExpressionContext context, QueryWriter writer)
         {
             switch (expression.NodeType)
             {
@@ -25,10 +25,6 @@ namespace EdgeDB.Translators.Expressions
                 // convert is a type change, so we translate the dotnet form '(type)value' to '<type>value'
                 case ExpressionType.Convert:
                 {
-                    var index = writer.Position;
-
-                    TranslateExpression(expression.Operand, context, writer);
-
                     // this is a selector-based expression converting value types to objects, for
                     // this case we can just return the value
                     if (expression.Type == typeof(object))
@@ -46,7 +42,9 @@ namespace EdgeDB.Translators.Expressions
                         ? edgedbType.ToString()
                         : expression.Type.GetEdgeDBTypeName();
 
-                    writer.Insert(index, $"<{type}>");
+                    writer
+                        .TypeCast(type)
+                        .Append(Proxy(expression.Operand, context));
                     return;
                 }
                 case ExpressionType.ArrayLength:

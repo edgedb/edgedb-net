@@ -23,7 +23,7 @@ namespace EdgeDB.Translators.Methods
         /// <param name="source">The source collection to count.</param>
         /// <returns>The EdgeQL equivalent of the method.</returns>
         [MethodName(nameof(Enumerable.Count))]
-        public void Count(QueryStringWriter writer, TranslatedParameter source)
+        public void Count(QueryWriter writer, TranslatedParameter source)
         {
             if (source.IsScalarArrayType || source.IsScalarType)
                 writer.Function("len", source);
@@ -39,7 +39,7 @@ namespace EdgeDB.Translators.Methods
         /// <param name="target">The value to locate within the collection.</param>
         /// <returns>The EdgeQL equivalent of the method.</returns>
         [MethodName(nameof(Enumerable.Contains))]
-        public void Contains(QueryStringWriter writer, TranslatedParameter source, TranslatedParameter target)
+        public void Contains(QueryWriter writer, TranslatedParameter source, TranslatedParameter target)
         {
             if (source.IsScalarArrayType || source.IsScalarType)
                 writer.Function("contains", source);
@@ -55,7 +55,7 @@ namespace EdgeDB.Translators.Methods
         /// <param name="index">The index of the element to get</param>
         /// <returns>The EdgeQL equivalent of the method.</returns>
         [MethodName(nameof(Enumerable.ElementAt))]
-        public void ElementAt(QueryStringWriter writer, TranslatedParameter source, TranslatedParameter index)
+        public void ElementAt(QueryWriter writer, TranslatedParameter source, TranslatedParameter index)
             => writer.Function("array_get", source, index);
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace EdgeDB.Translators.Methods
         /// <param name="defaultValue">The default value if the <paramref name="filterOrDefault"/> was a filter.</param>
         /// <returns>The EdgeQL equivalent of the method.</returns>
         [MethodName(nameof(Enumerable.FirstOrDefault))]
-        public void FirstOrDefault(QueryStringWriter writer, TranslatedParameter source, TranslatedParameter filterOrDefault, TranslatedParameter? defaultValue)
+        public void FirstOrDefault(QueryWriter writer, TranslatedParameter source, TranslatedParameter filterOrDefault, TranslatedParameter? defaultValue)
         {
             if (filterOrDefault.IsScalarType)
             {
@@ -93,10 +93,10 @@ namespace EdgeDB.Translators.Methods
                 .TypeCast(EdgeDBTypeUtils.GetEdgeDBScalarOrTypeName(returnType))
                 .Function(
                     "array_get",
-                    writer.Val(writer => writer
+                    Value.Of(writer => writer
                         .Function(
                             "array_agg",
-                            writer.Val(writer => writer
+                            Value.Of(writer => writer
                                 .Wrapped(writer => writer
                                     .Append("select ")
                                     .Assignment(name!, set)

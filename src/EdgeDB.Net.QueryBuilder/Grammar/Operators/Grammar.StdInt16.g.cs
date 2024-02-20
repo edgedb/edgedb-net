@@ -10,37 +10,37 @@ namespace EdgeDB
     {
         [EquivalentExpression(ExpressionType.Add, ExpressionType.AddChecked)]
         [EdgeQLOp("std::+")]
-        public static void Op_236799167(QueryStringWriter writer, WriterProxy lParam, WriterProxy rParam)
+        public static void Op_236799167(QueryWriter writer, WriterProxy lParam, WriterProxy rParam)
         {
             writer.Append(lParam).Wrapped("+", "  ").Append(rParam);
         }
         [EquivalentExpression(ExpressionType.Add, ExpressionType.AddChecked)]
         [EdgeQLOp("std::+")]
-        public static void Op_1985440573(QueryStringWriter writer, WriterProxy lParam)
+        public static void Op_1985440573(QueryWriter writer, WriterProxy lParam)
         {
             writer.Append("+").Append(lParam);
         }
         [EquivalentExpression(ExpressionType.Subtract, ExpressionType.Negate)]
         [EdgeQLOp("std::-")]
-        public static void Op_1691862771(QueryStringWriter writer, WriterProxy lParam, WriterProxy rParam)
+        public static void Op_1691862771(QueryWriter writer, WriterProxy lParam, WriterProxy rParam)
         {
             writer.Append(lParam).Wrapped("-", "  ").Append(rParam);
         }
         [EquivalentExpression(ExpressionType.Subtract, ExpressionType.Negate)]
         [EdgeQLOp("std::-")]
-        public static void Op_1937850094(QueryStringWriter writer, WriterProxy lParam)
+        public static void Op_1937850094(QueryWriter writer, WriterProxy lParam)
         {
             writer.Append("-").Append(lParam);
         }
         [EquivalentExpression(ExpressionType.Multiply)]
         [EdgeQLOp("std::*")]
-        public static void Op_1268379140(QueryStringWriter writer, WriterProxy lParam, WriterProxy rParam)
+        public static void Op_1268379140(QueryWriter writer, WriterProxy lParam, WriterProxy rParam)
         {
             writer.Append(lParam).Wrapped("*", "  ").Append(rParam);
         }
         [EquivalentExpression(ExpressionType.Modulo)]
         [EdgeQLOp("std::%")]
-        public static void Op_591740093(QueryStringWriter writer, WriterProxy nParam, WriterProxy dParam)
+        public static void Op_591740093(QueryWriter writer, WriterProxy nParam, WriterProxy dParam)
         {
             writer.Append(nParam).Wrapped("%", "  ").Append(dParam);
         }

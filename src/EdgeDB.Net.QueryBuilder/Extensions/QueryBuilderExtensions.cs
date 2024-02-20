@@ -9,8 +9,7 @@ namespace EdgeDB
 {
     internal static class QueryBuilderExtensions
     {
-        public static void WriteTo(this IQueryBuilder source, QueryStringWriter writer, IQueryBuilder target, bool? includeGlobalsInQuery = true,
-            Action<QueryNode>? preFinalizerModifier = null, bool includeAutoGenNodes = true)
+        public static void WriteTo(this IQueryBuilder source, QueryWriter writer, IQueryBuilder target, CompileContext? context = null)
         {
             if (source.Variables.Any(variable => !target.Variables.TryAdd(variable.Key, variable.Value)))
             {
@@ -20,27 +19,29 @@ namespace EdgeDB
 
             target.Globals.AddRange(source.Globals);
 
-            source.InternalBuild(writer, includeGlobalsInQuery, preFinalizerModifier, includeAutoGenNodes);
+            source.InternalBuild(writer, context);
         }
 
-        public static void WriteTo(this IQueryBuilder source, QueryStringWriter writer, ExpressionContext context, bool? includeGlobalsInQuery = true,
-            Action<QueryNode>? preFinalizerModifier = null, bool includeAutoGenNodes = true)
+        public static void WriteTo(
+            this IQueryBuilder source,
+            QueryWriter writer,
+            ExpressionContext expressionContext,
+            CompileContext? compileContext = null)
         {
             foreach (var variable in source.Variables)
             {
-                context.SetVariable(variable.Key, variable.Value);
+                expressionContext.SetVariable(variable.Key, variable.Value);
             }
 
             foreach (var global in source.Globals)
             {
-                context.SetGlobal(global.Name, global.Value, global.Reference);
+                expressionContext.SetGlobal(global.Name, global.Value, global.Reference);
             }
 
-            source.InternalBuild(writer, includeGlobalsInQuery, preFinalizerModifier, includeAutoGenNodes);
+            source.InternalBuild(writer, compileContext);
         }
 
-        public static void WriteTo(this IQueryBuilder source, QueryStringWriter writer, QueryNode node, bool? includeGlobalsInQuery = true,
-            Action<QueryNode>? preFinalizerModifier = null, bool includeAutoGenNodes = true)
+        public static void WriteTo(this IQueryBuilder source, QueryWriter writer, QueryNode node, CompileContext? compileContext = null)
         {
             if (source.Variables.Any(variable => !node.Builder.QueryVariables.TryAdd(variable.Key, variable.Value)))
             {
@@ -50,7 +51,7 @@ namespace EdgeDB
 
             node.Builder.QueryGlobals.AddRange(source.Globals);
 
-            source.InternalBuild(writer, includeGlobalsInQuery, preFinalizerModifier, includeAutoGenNodes);
+            source.InternalBuild(writer, compileContext);
         }
     }
 }

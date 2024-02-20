@@ -128,7 +128,7 @@ namespace EdgeDB.StandardLibGenerator
 
                     var name = Math.Abs(HashCode.Combine(opName, op.Parameters));
 
-                    using (_ = writer.BeginScope($"public static void Op_{name}(QueryStringWriter writer, {string.Join(", ", op.Parameters!.Select(x => $"WriterProxy {x.Name}Param"))})"))
+                    using (_ = writer.BeginScope($"public static void Op_{name}(QueryWriter writer, {string.Join(", ", op.Parameters!.Select(x => $"WriterProxy {x.Name}Param"))})"))
                     {
                         writer.AppendLine($"{expression};");
                     }
@@ -179,21 +179,21 @@ namespace EdgeDB.StandardLibGenerator
                         if (op.Parameters!.Length != 1)
                             throw new ArgumentException("Expected 1 parameter for Postfix");
 
-                        return $"writer.Append({op.Parameters[0].Name + "Param"}).Append(\"{operation}\")";
+                        return $"writer.Append({op.Parameters[0].Name + "Param"}, {operation})";
                     }
                 case OperatorKind.Prefix:
                     {
                         if (op.Parameters!.Length != 1)
                             throw new ArgumentException("Expected 1 parameter for Prefix");
 
-                        return $"writer.Append(\"{operation}\").Append({op.Parameters[0].Name + "Param"})";
+                        return $"writer.Append(\"{operation}\", {op.Parameters[0].Name + "Param"})";
                     }
                 case OperatorKind.Ternary:
                     {
                         if (op.Parameters!.Length != 3)
                             throw new ArgumentException("Expected 3 parameters for Ternary");
 
-                        return $"writer.Append({op.Parameters[0].Name + "Param"}).Append(\" IF \").Append({op.Parameters[1].Name + "Param"}).Append(\" ELSE \").Append({op.Parameters[2].Name + "Param"})";
+                        return $"writer.Append({op.Parameters[0].Name + "Param"}, \" IF \", {op.Parameters[1].Name + "Param"}, \" ELSE \", {op.Parameters[2].Name + "Param"})";
                     }
                 default:
                     throw new Exception("Unknown operator kind " + op.OperatorKind);

@@ -21,7 +21,7 @@ namespace EdgeDB.Translators.Methods
         /// <param name="replacement">The replacement value to replace matches with.</param>
         /// <returns>The EdgeQL equivalent of the method.</returns>
         [MethodName(nameof(Regex.Replace))]
-        public void Replace(QueryStringWriter writer, TranslatedParameter input, TranslatedParameter pattern,
+        public void Replace(QueryWriter writer, TranslatedParameter input, TranslatedParameter pattern,
             TranslatedParameter replacement)
             => writer.Function("re_replace", pattern, replacement, input);
 
@@ -33,7 +33,7 @@ namespace EdgeDB.Translators.Methods
         /// <param name="pattern">The regex pattern.</param>
         /// <returns>The EdgeQL equivalent of the method.</returns>
         [MethodName(nameof(Regex.IsMatch))]
-        public void Test(QueryStringWriter writer, TranslatedParameter testString, TranslatedParameter pattern)
+        public void Test(QueryWriter writer, TranslatedParameter testString, TranslatedParameter pattern)
             => writer.Function("re_test", pattern, testString);
     }
 }

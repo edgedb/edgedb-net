@@ -40,7 +40,7 @@ namespace EdgeDB.QueryNodes
         /// <inheritdoc/>
         public override void Visit()
         {
-            if (Context.IncludeShape && Context.Expression is null)
+            if (Context is {IncludeShape: true, Expression: null})
             {
                 // build the shape
                 var shape = Context.Shape ?? BaseShapeBuilder.CreateDefault(GetOperatingType());
@@ -62,7 +62,7 @@ namespace EdgeDB.QueryNodes
         }
 
         /// <inheritdoc/>
-        public override void FinalizeQuery(QueryStringWriter writer)
+        public override void FinalizeQuery(QueryWriter writer)
         {
             if(SubNodes.Count > 1)
             {
@@ -81,11 +81,8 @@ namespace EdgeDB.QueryNodes
 
                 writer.Append($"select ").Wrapped(writer =>
                 {
-                    var pos = writer.Position;
-                    node.FinalizeQuery(writer);
-
-                    // no query was written?
-                    if (pos != writer.Position) return;
+                    if (writer.AppendIsEmpty(Value.Of(node.FinalizeQuery)))
+                        return;
 
                     if(node.Context.SetAsGlobal && !string.IsNullOrEmpty(node.Context.GlobalName))
                     {
@@ -195,7 +192,7 @@ namespace EdgeDB.QueryNodes
         /// <param name="offset">The number of elements to offset by.</param>
         internal void Offset(long offset)
         {
-            _offset ??= writer => writer.Append(" offset ").Append(offset);
+            _offset ??= writer => writer.Append(" offset ", offset);
         }
 
         /// <summary>
@@ -217,7 +214,7 @@ namespace EdgeDB.QueryNodes
         /// <param name="limit">The number of element to limit to.</param>
         internal void Limit(long limit)
         {
-            _limit ??= writer => writer.Append(" limit ").Append(limit);
+            _limit ??= writer => writer.Append(" limit ", limit);
         }
 
         /// <summary>

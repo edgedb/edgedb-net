@@ -9,7 +9,7 @@ namespace EdgeDB.Translators
     internal partial class StdInt32MethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.ToInt32))]
-        public void ToInt32Translator(QueryStringWriter writer, TranslatedParameter sParam, TranslatedParameter? fmtParam)
+        public void ToInt32Translator(QueryWriter writer, TranslatedParameter sParam, TranslatedParameter? fmtParam)
         {
             writer.Function("std::to_int32", sParam, OptionalArg(fmtParam));
         }

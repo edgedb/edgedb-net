@@ -24,7 +24,7 @@ namespace EdgeDB
         /// <exception cref="InvalidOperationException">
         ///     The conflict statement cannot be generated because of query grammar limitations.
         /// </exception>
-        public static void GenerateExclusiveConflictStatement(QueryStringWriter writer, ObjectType type, bool hasElse)
+        public static void GenerateExclusiveConflictStatement(QueryWriter writer, ObjectType type, bool hasElse)
         {
             // does the type have any object level exclusive constraints?
             if (type.Constraints?.Any(x => x.IsExclusive) ?? false)

@@ -1,5 +1,9 @@
-﻿namespace EdgeDB;
+﻿using System.Diagnostics;
+using System.Text;
 
+namespace EdgeDB;
+
+[DebuggerDisplay("{DebugDisplay()}")]
 internal readonly struct Value
 {
     public static readonly Value Empty = new((object?)null);
@@ -29,15 +33,18 @@ internal readonly struct Value
         _value = value;
     }
 
-    public void WriteTo(QueryStringWriter writer)
+    public static Value Of(WriterProxy proxy) => new(proxy);
+
+    public void WriteTo(QueryWriter queryWriter, StringBuilder writer, ref LooseLinkedList<Value>.Node self, int index)
     {
         if (_callback is not null)
-            _callback(writer);
+        {
+            using var positional = queryWriter.CreatePositionalWriter(index, ref self);
+            _callback(positional.Writer);
+        }
         else
         {
-            if (_value is QueryStringWriter qsw)
-                writer.Append(qsw);
-            else if (_str is not null)
+            if (_str is not null)
                 writer.Append(_str);
             else if (_ch is not null)
                 writer.Append(_ch.Value);
@@ -46,26 +53,20 @@ internal readonly struct Value
         }
     }
 
-    public void WriteAt(QueryStringWriter writer, int index)
+    private string DebugDisplay()
     {
         if (_callback is not null)
-            _callback(writer.GetPositionalWriter(index));
-        else
-        {
-            if (_value is QueryStringWriter qsw)
-                writer.Insert(index, qsw);
-            else if (_str is not null)
-                writer.Insert(index, _str);
-            else if (_ch is not null)
-                writer.Insert(index, _ch.Value);
-            else
-                writer.Insert(index, _value);
-        }
-    }
+            return $"callback<{_callback}>";
 
+        if (_str is not null)
+            return $"str \"{_str}\"";
+
+        return _ch is not null ? $"char \'{_ch}\'" : $"value {_value}";
+    }
 
     public static implicit operator Value(string? value) => new(value);
     public static implicit operator Value(char value) => new(value);
-    public static implicit operator Value(QueryStringWriter writer) => new(writer);
     public static implicit operator Value(WriterProxy callback) => new(callback);
+    public static implicit operator Value(int v) => new(v.ToString());
+    public static implicit operator Value(long v) => new(v.ToString());
 }

@@ -16,7 +16,7 @@ namespace EdgeDB.Translators.Expressions
         public override void Translate(
             ConstantExpression expression,
             ExpressionContext context,
-            QueryStringWriter writer)
+            QueryWriter writer)
         {
             // return the string form if the context requests its raw string
             // form, otherwise parse the constant value.

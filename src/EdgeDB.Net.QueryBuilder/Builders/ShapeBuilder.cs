@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 
 namespace EdgeDB.Builders
 {
-    internal delegate void SelectShapeExpressionTranslatorCallback(QueryStringWriter writer, ShapeElementExpression expression);
+    internal delegate void SelectShapeExpressionTranslatorCallback(QueryWriter writer, ShapeElementExpression expression);
 
     internal class SelectShape
     {
@@ -30,19 +30,12 @@ namespace EdgeDB.Builders
             _shape = shape.ToArray();
         }
 
-        public void Compile(QueryStringWriter writer, SelectShapeExpressionTranslatorCallback translator)
+        public void Compile(QueryWriter writer, SelectShapeExpressionTranslatorCallback translator)
         {
-            writer.Append("{ ");
-
-            for (int i = 0; i != _shape.Length;)
+            writer.Shape($"shape_{_shape.GetHashCode()}", _shape, (writer, x) =>
             {
-                _shape[i].Compile(writer, translator);
-
-                if (++i != _shape.Length)
-                    writer.Append(", ");
-            }
-
-            writer.Append(" }");
+                x.Compile(writer, translator);
+            });
         }
     }
 
@@ -69,20 +62,16 @@ namespace EdgeDB.Builders
             ElementShape = shape;
         }
 
-        public void Compile(QueryStringWriter writer, SelectShapeExpressionTranslatorCallback translator)
+        public void Compile(QueryWriter writer, SelectShapeExpressionTranslatorCallback translator)
         {
             if (ElementValue.HasValue)
             {
-                writer
-                    .Append(Name)
-                    .Append(" := ");
+                writer.Append(Name, " := ");
                 translator(writer, ElementValue.Value);
             }
             else if (ElementShape is not null)
             {
-                writer
-                    .Append(Name)
-                    .Append(": ");
+                writer.Append(Name, ": ");
                 ElementShape.Compile(writer, translator);
             }
             else

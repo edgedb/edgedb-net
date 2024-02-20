@@ -12,7 +12,7 @@ internal class StringMethodTranslators : MethodTranslator<string>
     /// <param name="instance">The instance of the string to concat against.</param>
     /// <param name="variableArgs">The variable arguments that should be concatenated together.</param>
     [MethodName(nameof(string.Concat))]
-    public void Concat(QueryStringWriter writer, TranslatedParameter? instance,
+    public void Concat(QueryWriter writer, TranslatedParameter? instance,
         params TranslatedParameter[] variableArgs)
     {
         if (variableArgs.Length == 0)
@@ -41,7 +41,7 @@ internal class StringMethodTranslators : MethodTranslator<string>
     /// <param name="instance">The instance of the string to concat against.</param>
     /// <param name="target">The value to check whether or not its within the instance</param>
     [MethodName(nameof(string.Contains))]
-    public void Contains(QueryStringWriter writer, TranslatedParameter instance, TranslatedParameter target)
+    public void Contains(QueryWriter writer, TranslatedParameter instance, TranslatedParameter target)
         => writer.Function("contains", instance, target);
 
     /// <summary>
@@ -51,7 +51,7 @@ internal class StringMethodTranslators : MethodTranslator<string>
     /// <param name="instance">The instance of the string.</param>
     /// <param name="target">The target substring to find within the instance.</param>
     [MethodName(nameof(string.IndexOf))]
-    public void Find(QueryStringWriter writer, TranslatedParameter instance, TranslatedParameter target)
+    public void Find(QueryWriter writer, TranslatedParameter instance, TranslatedParameter target)
         => writer.Function("find", instance, target);
 
     /// <summary>
@@ -62,7 +62,7 @@ internal class StringMethodTranslators : MethodTranslator<string>
     /// <returns>The EdgeQL equivalent of the method.</returns>
     [MethodName(nameof(string.ToLower))]
     [MethodName(nameof(string.ToLowerInvariant))]
-    public void ToLower(QueryStringWriter writer, TranslatedParameter instance)
+    public void ToLower(QueryWriter writer, TranslatedParameter instance)
         => writer.Function("str_lower", instance);
 
     /// <summary>
@@ -73,7 +73,7 @@ internal class StringMethodTranslators : MethodTranslator<string>
     /// <returns>The EdgeQL equivalent of the method.</returns>
     [MethodName(nameof(string.ToUpper))]
     [MethodName(nameof(string.ToUpperInvariant))]
-    public void ToUpper(QueryStringWriter writer, TranslatedParameter instance)
+    public void ToUpper(QueryWriter writer, TranslatedParameter instance)
         => writer.Function("str_upper", instance);
 
     /// <summary>
@@ -85,7 +85,7 @@ internal class StringMethodTranslators : MethodTranslator<string>
     /// <param name="fill">The fill character to pad with</param>
     /// <returns>The EdgeQL equivalent of the method.</returns>
     [MethodName(nameof(string.PadLeft))]
-    public void PadLeft(QueryStringWriter writer, TranslatedParameter instance, TranslatedParameter amount,
+    public void PadLeft(QueryWriter writer, TranslatedParameter instance, TranslatedParameter amount,
         TranslatedParameter? fill)
         => writer.Function(
             "str_pad_start",
@@ -103,7 +103,7 @@ internal class StringMethodTranslators : MethodTranslator<string>
     /// <param name="fill">The fill character to pad with</param>
     /// <returns>The EdgeQL equivalent of the method.</returns>
     [MethodName(nameof(string.PadRight))]
-    public void PadRight(QueryStringWriter writer, TranslatedParameter instance, TranslatedParameter amount,
+    public void PadRight(QueryWriter writer, TranslatedParameter instance, TranslatedParameter amount,
         TranslatedParameter? fill)
         => writer.Function("str_pad_end", instance, amount, OptionalArg(fill));
 
@@ -115,7 +115,7 @@ internal class StringMethodTranslators : MethodTranslator<string>
     /// <param name="trimChars">The characters to trim.</param>
     /// <returns>The EdgeQL equivalent of the method.</returns>
     [MethodName(nameof(string.Trim))]
-    public void Trim(QueryStringWriter writer, TranslatedParameter instance,
+    public void Trim(QueryWriter writer, TranslatedParameter instance,
         params TranslatedParameter[]? trimChars)
     {
         if (trimChars is not null && trimChars.Any())
@@ -124,8 +124,8 @@ internal class StringMethodTranslators : MethodTranslator<string>
                 .Function(
                     "str_trim",
                     instance,
-                    writer.Val(writer => writer
-                        .SingleQuoted(writer.Val(writer =>
+                    Value.Of(writer => writer
+                        .SingleQuoted(Value.Of(writer =>
                         {
                             foreach (var trimChar in trimChars)
                                 writer.Append(trimChar);
@@ -146,7 +146,7 @@ internal class StringMethodTranslators : MethodTranslator<string>
     /// <param name="trimChars">The characters to trim.</param>
     /// <returns>The EdgeQL equivalent of the method.</returns>
     [MethodName(nameof(string.TrimStart))]
-    public void TrimStart(QueryStringWriter writer, TranslatedParameter instance,
+    public void TrimStart(QueryWriter writer, TranslatedParameter instance,
         params TranslatedParameter[]? trimChars)
     {
         if (trimChars != null && trimChars.Any())
@@ -155,8 +155,8 @@ internal class StringMethodTranslators : MethodTranslator<string>
                 .Function(
                     "str_trim_start",
                     instance,
-                    writer.Val(writer => writer
-                        .SingleQuoted(writer.Val(writer =>
+                    Value.Of(writer => writer
+                        .SingleQuoted(Value.Of(writer =>
                         {
                             foreach (var trimChar in trimChars)
                                 writer.Append(trimChar);
@@ -177,7 +177,7 @@ internal class StringMethodTranslators : MethodTranslator<string>
     /// <param name="trimChars">The characters to trim.</param>
     /// <returns>The EdgeQL equivalent of the method.</returns>
     [MethodName(nameof(string.TrimEnd))]
-    public void TrimEnd(QueryStringWriter writer, TranslatedParameter instance,
+    public void TrimEnd(QueryWriter writer, TranslatedParameter instance,
         params TranslatedParameter[]? trimChars)
     {
         if (trimChars != null && trimChars.Any())
@@ -186,8 +186,8 @@ internal class StringMethodTranslators : MethodTranslator<string>
                 .Function(
                     "str_trim_end",
                     instance,
-                    writer.Val(writer => writer
-                        .SingleQuoted(writer.Val(writer =>
+                    Value.Of(writer => writer
+                        .SingleQuoted(Value.Of(writer =>
                         {
                             foreach (var trimChar in trimChars)
                                 writer.Append(trimChar);
@@ -209,7 +209,7 @@ internal class StringMethodTranslators : MethodTranslator<string>
     /// <param name="newStr">The new string to replace the old one.</param>
     /// <returns>The EdgeQL equivalent of the method.</returns>
     [MethodName(nameof(string.Replace))]
-    public void Replace(QueryStringWriter writer, TranslatedParameter instance, TranslatedParameter old,
+    public void Replace(QueryWriter writer, TranslatedParameter instance, TranslatedParameter old,
         TranslatedParameter newStr)
         => writer.Function("str_replace", instance, old, newStr);
 
@@ -221,6 +221,6 @@ internal class StringMethodTranslators : MethodTranslator<string>
     /// <param name="separator">The char to split by.</param>
     /// <returns>The EdgeQL equivalent of the method.</returns>
     [MethodName(nameof(string.Split))]
-    public void Split(QueryStringWriter writer, TranslatedParameter instance, TranslatedParameter separator)
+    public void Split(QueryWriter writer, TranslatedParameter instance, TranslatedParameter separator)
         => writer.Function("str_split", instance, separator);
 }

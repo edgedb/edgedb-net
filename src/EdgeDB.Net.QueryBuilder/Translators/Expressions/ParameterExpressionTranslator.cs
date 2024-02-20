@@ -18,7 +18,7 @@ namespace EdgeDB.Translators.Expressions
     internal class ParameterExpressionTranslator : ExpressionTranslator<ParameterExpression>
     {
         /// <inheritdoc/>
-        public override void Translate(ParameterExpression expression, ExpressionContext context, QueryStringWriter writer)
+        public override void Translate(ParameterExpression expression, ExpressionContext context, QueryWriter writer)
         {
             writer.Append(expression.Name!);
         }

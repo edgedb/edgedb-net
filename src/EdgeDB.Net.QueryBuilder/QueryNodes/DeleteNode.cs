@@ -17,9 +17,9 @@ namespace EdgeDB.QueryNodes
         }
 
         /// <inheritdoc/>
-        public override void FinalizeQuery(QueryStringWriter writer)
+        public override void FinalizeQuery(QueryWriter writer)
         {
-            writer.Append($"delete {Context.SelectName ?? OperatingType.GetEdgeDBTypeName()}");
+            writer.Append("delete ", Context.SelectName ?? OperatingType.GetEdgeDBTypeName());
         }
     }
 }

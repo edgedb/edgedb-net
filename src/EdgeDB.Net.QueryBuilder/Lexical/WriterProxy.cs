@@ -1,4 +1,4 @@
 ﻿namespace EdgeDB;
 
-internal delegate void WriterProxy(QueryStringWriter writer);
+internal delegate void WriterProxy(QueryWriter writer);
 

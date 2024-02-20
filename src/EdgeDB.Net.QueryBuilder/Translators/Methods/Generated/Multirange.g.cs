@@ -9,7 +9,7 @@ namespace EdgeDB.Translators
     internal partial class MultirangeMethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.Multirange))]
-        public void MultirangeTranslator(QueryStringWriter writer, TranslatedParameter rangesParam)
+        public void MultirangeTranslator(QueryWriter writer, TranslatedParameter rangesParam)
         {
             writer.Function("std::multirange", rangesParam);
         }

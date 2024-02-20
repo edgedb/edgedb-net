@@ -24,13 +24,13 @@ namespace EdgeDB
         /// <param name="expression">The expression to translate.</param>
         /// <param name="context">The context for the translation.</param>
         /// <param name="writer">The query string builder to populate with the translated expression.</param>
-        public abstract void Translate(TExpression expression, ExpressionContext context, QueryStringWriter writer);
+        public abstract void Translate(TExpression expression, ExpressionContext context, QueryWriter writer);
 
         /// <summary>
         ///     Overrides the default translation method to call the generic one.
         /// </summary>
         /// <inheritdoc/>
-        public override void Translate(Expression expression, ExpressionContext context, QueryStringWriter writer)
+        public override void Translate(Expression expression, ExpressionContext context, QueryWriter writer)
             => Translate((TExpression)expression, context, writer);
     }
 
@@ -60,9 +60,18 @@ namespace EdgeDB
             }
         }
 
-        public static WriterProxy Proxy(Expression expression, ExpressionContext context)
+        public static WriterProxy Proxy(Expression expression, ExpressionContext expressionContext, string? label = null)
         {
-            return writer => ContextualTranslate(expression, context, writer);
+            if (label is not null)
+            {
+                return writer =>
+                    writer.LabelVerbose(
+                        label,
+                        Value.Of(writer => ContextualTranslate(expression, expressionContext, writer))
+                    );
+            }
+
+            return writer => ContextualTranslate(expression, expressionContext, writer);
         }
 
         protected static WriterProxy[] Proxy(ExpressionContext context, params Expression[] expressions)
@@ -84,7 +93,7 @@ namespace EdgeDB
         /// <param name="context">The context for the translation.</param>
         /// <param name="writer">The query string builder to populate with the translated expression.</param>
         /// <returns>The string form of the expression.</returns>
-        public abstract void Translate(Expression expression, ExpressionContext context, QueryStringWriter writer);
+        public abstract void Translate(Expression expression, ExpressionContext context, QueryWriter writer);
 
         /// <summary>
         ///     Translates a lambda expression into the EdgeQL equivalent.
@@ -102,7 +111,7 @@ namespace EdgeDB
             IDictionary<string, object?> queryArguments,
             NodeContext nodeContext,
             List<QueryGlobal> globals,
-            QueryStringWriter writer)
+            QueryWriter writer)
         {
             var context = new ExpressionContext(nodeContext, expression, queryArguments, globals);
             TranslateExpression(expression.Body, context, writer);
@@ -117,7 +126,7 @@ namespace EdgeDB
         /// <param name="expression">The expression to translate.</param>
         /// <param name="context">The translation context.</param>
         /// <param name="writer">The query string builder to populate with the translated expression.</param>
-        public static void Translate(LambdaExpression expression, ExpressionContext context, QueryStringWriter writer)
+        public static void Translate(LambdaExpression expression, ExpressionContext context, QueryWriter writer)
             => TranslateExpression(expression.Body, context, writer);
 
         /// <summary>
@@ -130,7 +139,7 @@ namespace EdgeDB
         protected static void TranslateExpression(
             Expression expression,
             ExpressionContext context,
-            QueryStringWriter writer)
+            QueryWriter writer)
         {
             // special fallthru for lambda functions
             if (expression is LambdaExpression lambda)
@@ -171,7 +180,7 @@ namespace EdgeDB
         internal static void ContextualTranslate(
             Expression expression,
             ExpressionContext context,
-            QueryStringWriter writer)
+            QueryWriter writer)
             => TranslateExpression(expression, context, writer);
     }
 }

@@ -17,10 +17,10 @@ namespace EdgeDB.Translators.Expressions
     {
         /// <inheritdoc/>
         public override void Translate(MemberInitExpression expression, ExpressionContext context,
-            QueryStringWriter writer)
+            QueryWriter writer)
 
         {
-            List<(EdgeDBPropertyInfo, Expression)> expressions = new();
+            List<(EdgeDBPropertyInfo, Expression)> expressions = [];
 
             var map = new Dictionary<PropertyInfo, EdgeDBPropertyInfo>(
                 EdgeDBPropertyMapInfo.Create(expression.Type).Properties

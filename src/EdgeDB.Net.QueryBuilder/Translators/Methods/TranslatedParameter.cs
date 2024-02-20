@@ -64,12 +64,12 @@ namespace EdgeDB.Translators.Methods
             RawValue = raw;
         }
 
-        public void WriteTo(QueryStringWriter writer)
+        public void WriteTo(QueryWriter writer)
         {
             ValueProxy(writer);
         }
 
         public static implicit operator Value(TranslatedParameter param) => new(param.ValueProxy);
-        public static implicit operator QueryStringWriter.FunctionArg(TranslatedParameter param) => new(param.ValueProxy);
+        public static implicit operator Terms.FunctionArg(TranslatedParameter param) => new(param.ValueProxy);
     }
 }

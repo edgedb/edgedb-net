@@ -194,7 +194,7 @@ namespace EdgeDB.StandardLibGenerator
                             return t;
                         }));
 
-                        var parsedMappedParameters = "QueryStringWriter writer";
+                        var parsedMappedParameters = "QueryWriter writer";
 
                         if (parameters.Length > 0)
                         {
@@ -236,7 +236,7 @@ namespace EdgeDB.StandardLibGenerator
 
                                     if (param.Kind is ParameterKind.NamedOnlyParam)
                                     {
-                                        methodBody += $"new QueryStringWriter.FunctionArg({value}, \"{param.Name}\")";
+                                        methodBody += $"new Terms.FunctionArg({value}, \"{param.Name}\")";
                                     }
                                     else
                                     {
@@ -306,7 +306,7 @@ namespace EdgeDB.StandardLibGenerator
                     });
                     writer.AppendLine($"[MethodName(nameof(EdgeQL.{translator.TargetName}))]");
                     writer.AppendLine(
-                        $"public void {translator.TargetName}(QueryStringWriter writer, {string.Join(", ", translatorParams)})");
+                        $"public void {translator.TargetName}(QueryWriter writer, {string.Join(", ", translatorParams)})");
 
                     using (_ = writer.BeginScope())
                     {

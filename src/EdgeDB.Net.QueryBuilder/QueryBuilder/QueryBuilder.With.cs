@@ -73,7 +73,7 @@ namespace EdgeDB
                         new QueryGlobal(
                             property.Name,
                             new SubQuery(writer => writer
-                                .QueryArgument(scalarInfo, varName)
+                                .QueryArgument(scalarInfo.ToString(), varName)
                             )
                         )
                     );

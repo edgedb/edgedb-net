@@ -14,7 +14,7 @@ namespace EdgeDB.Translators.Expressions
     internal class MemberExpressionTranslator : ExpressionTranslator<MemberExpression>
     {
         /// <inheritdoc/>
-        public override void Translate(MemberExpression expression, ExpressionContext context, QueryStringWriter writer)
+        public override void Translate(MemberExpression expression, ExpressionContext context, QueryWriter writer)
         {
             // deconstruct the member access tree.
             var deconstructed = ExpressionUtils.DisassembleExpression(expression).ToArray();
@@ -65,7 +65,7 @@ namespace EdgeDB.Translators.Expressions
                                     if (!EdgeDBTypeUtils.TryGetScalarType(deconstructed[0].Type, out var scalarInfo))
                                         throw new InvalidOperationException($"json value access must be scalar, path: {deconstructed[0].ToString()}");
 
-                                    var arguments = new QueryStringWriter.FunctionArg[path.Length + 1];
+                                    var arguments = new Terms.FunctionArg[path.Length + 1];
 
                                     arguments[0] = jsonGlobal.Name;
                                     for (var i = 1; i != path.Length; i++)
@@ -77,7 +77,7 @@ namespace EdgeDB.Translators.Expressions
                                     }
 
                                     writer
-                                        .TypeCast(scalarInfo)
+                                        .TypeCast(scalarInfo.ToString())
                                         .Function(
                                             "json_get",
                                             arguments
@@ -138,7 +138,7 @@ namespace EdgeDB.Translators.Expressions
                 if (!EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var type))
                     throw new NotSupportedException($"Cannot use {expression.Type} as no edgeql equivalent can be found");
 
-                writer.QueryArgument(type, varName);
+                writer.QueryArgument(type.ToString(), varName);
                 return;
             }
 

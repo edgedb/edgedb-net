@@ -9,7 +9,7 @@ namespace EdgeDB.Translators
     internal partial class StdInt16MethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.ToInt16))]
-        public void ToInt16Translator(QueryStringWriter writer, TranslatedParameter sParam, TranslatedParameter? fmtParam)
+        public void ToInt16Translator(QueryWriter writer, TranslatedParameter sParam, TranslatedParameter? fmtParam)
         {
             writer.Function("std::to_int16", sParam, OptionalArg(fmtParam));
         }

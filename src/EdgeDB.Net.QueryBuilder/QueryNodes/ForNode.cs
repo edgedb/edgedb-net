@@ -34,7 +34,7 @@ namespace EdgeDB.QueryNodes
         /// <exception cref="ArgumentException">
         ///     A type cannot be used as a parameter to a 'FOR' expression
         /// </exception>
-        private void ParseExpression(QueryStringWriter writer, string name, string varName, string json)
+        private void ParseExpression(QueryWriter writer, string name, string varName, string json)
         {
             // check if we're returning a query builder
             if (Context.Expression!.ReturnType == typeof(IQueryBuilder))
@@ -86,7 +86,7 @@ namespace EdgeDB.QueryNodes
         }
 
         /// <inheritdoc/>
-        public override void FinalizeQuery(QueryStringWriter writer)
+        public override void FinalizeQuery(QueryWriter writer)
         {
             if (_name is null || _jsonName is null || _json is null)
                 throw new InvalidOperationException("No initialization of this node was preformed");

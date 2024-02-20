@@ -9,7 +9,7 @@ namespace EdgeDB.Translators
     internal partial class StdAnyrealMethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.Abs))]
-        public void AbsTranslator(QueryStringWriter writer, TranslatedParameter xParam)
+        public void AbsTranslator(QueryWriter writer, TranslatedParameter xParam)
         {
             writer.Function("math::abs", xParam);
         }

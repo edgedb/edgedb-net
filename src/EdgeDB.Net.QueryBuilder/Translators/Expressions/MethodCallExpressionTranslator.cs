@@ -32,7 +32,7 @@ namespace EdgeDB.Translators.Expressions
         }
 
         public override void Translate(MethodCallExpression expression, ExpressionContext context,
-            QueryStringWriter writer)
+            QueryWriter writer)
         {
             // figure out if the method is something we should translate or something that we should
             // call to pull the result from.
@@ -52,17 +52,18 @@ namespace EdgeDB.Translators.Expressions
             if (!EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var type))
             {
                 // if we can't, add it as a global
-                writer.Label(MarkerType.Global, context.GetOrAddGlobal(expression, expressionResult));
+                writer.Marker(MarkerType.Global, context.GetOrAddGlobal(expression, expressionResult));
                 return;
                 //throw new InvalidOperationException("Expected a scalar type for ");
             }
 
             // return the variable name containing the result of the method.
+            var varName = context.AddVariable(expressionResult);
             writer
-                .Label(MarkerType.Global, context.AddVariable(expressionResult), (variable, writer) => writer
-                    .TypeCast(type)
-                    .Append(variable)
-                );
+                .Marker(MarkerType.Global, varName, Value.Of(writer => writer
+                    .TypeCast(type.ToString())
+                    .Append(varName)
+                ));
         }
 
         private bool ShouldTranslate(MethodCallExpression expression, ExpressionContext context)
@@ -90,7 +91,7 @@ namespace EdgeDB.Translators.Expressions
         }
 
         private static void TranslateToEdgeQL(MethodCallExpression expression, ExpressionContext context,
-            QueryStringWriter writer)
+            QueryWriter writer)
         {
             // if our method is within the query context class
             if (expression.Method.DeclaringType?.IsAssignableTo(typeof(IQueryContext)) ?? false)

@@ -50,7 +50,7 @@ namespace EdgeDB.Tests.Integration.QueryBuilder.Expressions
 
         public static void AssertExpression(Func<ExpressionContext> contextFactory, Expression expression, string expected)
         {
-            var writer = new QueryStringWriter();
+            var writer = new QueryWriter();
             ExpressionTranslator.ContextualTranslate(expression, contextFactory(), writer);
 
             Assert.AreEqual(expected, writer.Compile().ToString());
@@ -78,7 +78,7 @@ namespace EdgeDB.Tests.Integration.QueryBuilder.Expressions
         public static void AssertException<TException>(Func<ExpressionContext> contextFactory, Expression expression)
             where TException : Exception
         {
-            var writer = new QueryStringWriter();
+            var writer = new QueryWriter();
             Assert.ThrowsException<TException>(() => ExpressionTranslator.ContextualTranslate(expression, contextFactory(), writer));
         }
     }

@@ -6,6 +6,8 @@ internal sealed class Marker
     public int Position { get; private set; }
     public int Size { get; }
 
+    public RefBox<LooseLinkedList<Value>.Node> Start { get; set; }
+
     /// <summary>
     ///     Gets the closest parent to this marker
     /// </summary>
@@ -15,22 +17,20 @@ internal sealed class Marker
         {
             Marker? bestMatch = null;
 
-            foreach (var marker in _writer.Labels.Values.SelectMany(x => x))
+            foreach (var marker in _writer.Markers.Values.SelectMany(x => x))
             {
                 if(marker == this)
                     continue;
 
-                if (marker.Position <= Position && marker.Size >= Size)
+                if (marker.Position > Position || marker.Size < Size) continue;
+                if (bestMatch is null)
                 {
-                    if (bestMatch is null)
-                    {
-                        bestMatch = marker;
-                        continue;
-                    }
-
-                    if (marker.Position > bestMatch.Position || marker.Size < bestMatch.Size)
-                        bestMatch = marker;
+                    bestMatch = marker;
+                    continue;
                 }
+
+                if (marker.Position > bestMatch.Position || marker.Size < bestMatch.Size)
+                    bestMatch = marker;
             }
 
             return bestMatch;
@@ -44,19 +44,20 @@ internal sealed class Marker
     {
         get
         {
-            return _writer.Labels.Values.SelectMany(x => x).Where(x => x != this && x.Position <= Position && x.Size >= Size)
+            return _writer.Markers.Values.SelectMany(x => x).Where(x => x != this && x.Position <= Position && x.Size >= Size)
                 .OrderBy(x => Position - x.Position + x.Size);
         }
     }
 
-    private readonly QueryStringWriter _writer;
+    private readonly QueryWriter _writer;
 
-    internal Marker(MarkerType type, QueryStringWriter writer, int size, int position)
+    internal Marker(MarkerType type, QueryWriter writer, int size, int position, ref LooseLinkedList<Value>.Node start)
     {
         Type = type;
         _writer = writer;
         Size = size;
         Position = position;
+        Start = new RefBox<LooseLinkedList<Value>.Node>(ref start);
     }
 
     internal void Update(int delta)
@@ -67,8 +68,7 @@ internal sealed class Marker
     public void Replace(Value value)
     {
         _writer
-            .Remove(Position, Size)
-            .Insert(Position, value);
+            .Replace(ref Start.Value, Position, Size, value);
     }
 
     public void Replace(WriterProxy value)

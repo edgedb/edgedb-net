@@ -9,31 +9,31 @@ namespace EdgeDB.Translators
     internal partial class StdDatetimeMethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.DatetimeCurrent))]
-        public void DatetimeCurrentTranslator(QueryStringWriter writer)
+        public void DatetimeCurrentTranslator(QueryWriter writer)
         {
             writer.Function("std::datetime_current");
         }
 
         [MethodName(nameof(EdgeQL.DatetimeOfTransaction))]
-        public void DatetimeOfTransactionTranslator(QueryStringWriter writer)
+        public void DatetimeOfTransactionTranslator(QueryWriter writer)
         {
             writer.Function("std::datetime_of_transaction");
         }
 
         [MethodName(nameof(EdgeQL.DatetimeOfStatement))]
-        public void DatetimeOfStatementTranslator(QueryStringWriter writer)
+        public void DatetimeOfStatementTranslator(QueryWriter writer)
         {
             writer.Function("std::datetime_of_statement");
         }
 
         [MethodName(nameof(EdgeQL.DatetimeTruncate))]
-        public void DatetimeTruncateTranslator(QueryStringWriter writer, TranslatedParameter dtParam, TranslatedParameter unitParam)
+        public void DatetimeTruncateTranslator(QueryWriter writer, TranslatedParameter dtParam, TranslatedParameter unitParam)
         {
             writer.Function("std::datetime_truncate", dtParam, unitParam);
         }
 
         [MethodName(nameof(EdgeQL.ToDatetime))]
-        public void ToDatetimeTranslator(QueryStringWriter writer, TranslatedParameter sParam, TranslatedParameter? fmtParam)
+        public void ToDatetimeTranslator(QueryWriter writer, TranslatedParameter sParam, TranslatedParameter? fmtParam)
         {
             writer.Function("std::to_datetime", sParam, OptionalArg(fmtParam));
         }

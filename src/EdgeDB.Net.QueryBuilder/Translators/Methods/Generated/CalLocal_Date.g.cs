@@ -9,7 +9,7 @@ namespace EdgeDB.Translators
     internal partial class CalLocal_DateMethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.ToLocalDate))]
-        public void ToLocalDateTranslator(QueryStringWriter writer, TranslatedParameter sParam, TranslatedParameter? fmtParam)
+        public void ToLocalDateTranslator(QueryWriter writer, TranslatedParameter sParam, TranslatedParameter? fmtParam)
         {
             writer.Function("cal::to_local_date", sParam, OptionalArg(fmtParam));
         }

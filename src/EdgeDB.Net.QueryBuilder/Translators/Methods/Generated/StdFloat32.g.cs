@@ -9,7 +9,7 @@ namespace EdgeDB.Translators
     internal partial class StdFloat32MethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.ToFloat32))]
-        public void ToFloat32Translator(QueryStringWriter writer, TranslatedParameter sParam, TranslatedParameter? fmtParam)
+        public void ToFloat32Translator(QueryWriter writer, TranslatedParameter sParam, TranslatedParameter? fmtParam)
         {
             writer.Function("std::to_float32", sParam, OptionalArg(fmtParam));
         }

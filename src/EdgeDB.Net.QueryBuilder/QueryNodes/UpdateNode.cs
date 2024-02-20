@@ -24,7 +24,7 @@ namespace EdgeDB.QueryNodes
             RequiresIntrospection = Context.ChildQueries.Any(x => x.Value.RequiresIntrospection);
         }
 
-        private void AppendUpdateStatement(QueryStringWriter writer)
+        private void AppendUpdateStatement(QueryWriter writer)
         {
             // resolve and append the UPDATE ... statement
             writer.Append("update ");
@@ -56,10 +56,10 @@ namespace EdgeDB.QueryNodes
         }
 
         /// <inheritdoc/>
-        public override void FinalizeQuery(QueryStringWriter writer)
+        public override void FinalizeQuery(QueryWriter writer)
         {
             // if the builder wants this node to be a global
-            if (Context.SetAsGlobal && Context.GlobalName != null)
+            if (Context is {SetAsGlobal: true, GlobalName: not null})
             {
                 SetGlobal(Context.GlobalName, new SubQuery(writer => writer
                     .Wrapped(AppendUpdateStatement)

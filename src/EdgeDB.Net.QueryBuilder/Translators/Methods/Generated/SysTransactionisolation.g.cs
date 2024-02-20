@@ -9,7 +9,7 @@ namespace EdgeDB.Translators
     internal partial class SysTransactionisolationMethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.GetTransactionIsolation))]
-        public void GetTransactionIsolationTranslator(QueryStringWriter writer)
+        public void GetTransactionIsolationTranslator(QueryWriter writer)
         {
             writer.Function("sys::get_transaction_isolation");
         }

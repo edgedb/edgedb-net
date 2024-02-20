@@ -13,40 +13,41 @@ namespace EdgeDB
         /// <summary>
         ///     Parses a given object into its equivilant edgeql form.
         /// </summary>
+        /// <param name="writer">The writer to append the result to.</param>
         /// <param name="obj">The object to parse.</param>
-        /// <returns>The string representation for the given object.</returns>
-        internal static void ParseObject(QueryStringWriter writer, object? obj)
+        internal static void ParseObject(QueryWriter writer, object? obj)
         {
-            if (obj is null)
+            switch (obj)
             {
-                writer.Append("{}");
-                return;
-            }
-
-            if (obj is Enum enm)
-            {
-                var type = enm.GetType();
-                var att = type.GetCustomAttribute<EnumSerializerAttribute>();
-
-                if (att is not null)
+                case null:
+                    writer.Append("{}");
+                    return;
+                case Enum enm:
                 {
-                    switch (att.Method)
+                    var type = enm.GetType();
+                    var att = type.GetCustomAttribute<EnumSerializerAttribute>();
+
+                    if (att is not null)
                     {
-                        case SerializationMethod.Lower:
-                            writer.SingleQuoted(obj?.ToString()?.ToLower());
-                            break;
-                        case SerializationMethod.Numeric:
-                            writer.Append(Convert.ChangeType(obj, type.BaseType ?? typeof(int)).ToString() ?? "{}");
-                            break;
-                        default:
-                            writer.Append("{}");
-                            break;
+                        switch (att.Method)
+                        {
+                            case SerializationMethod.Lower:
+                                writer.SingleQuoted(obj?.ToString()?.ToLower());
+                                break;
+                            case SerializationMethod.Numeric:
+                                writer.Append(Convert.ChangeType(obj, type.BaseType ?? typeof(int)).ToString() ?? "{}");
+                                break;
+                            default:
+                                writer.Append("{}");
+                                break;
+                        }
+
+                        return;
                     }
 
-                    return;
+                    writer.SingleQuoted(obj.ToString());
+                    break;
                 }
-
-                writer.SingleQuoted(obj.ToString());
             }
 
             switch (obj)
@@ -55,8 +56,7 @@ namespace EdgeDB
                     if (subQuery.RequiresIntrospection)
                         throw new InvalidOperationException("Subquery required introspection to build");
 
-                    if (subQuery.Query is not null)
-                        subQuery.Query(writer);
+                    subQuery.Query?.Invoke(writer);
                     break;
                 case string str:
                     writer.SingleQuoted(str);
@@ -65,13 +65,12 @@ namespace EdgeDB
                     writer.SingleQuoted(ch);
                     break;
                 case Type type:
-                    if (EdgeDBTypeUtils.TryGetScalarType(type, out var info))
-                        writer.Append(info);
-                    else
-                        writer.Append(type.GetEdgeDBTypeName());
+                    writer.Append(EdgeDBTypeUtils.TryGetScalarType(type, out var info)
+                        ? info.ToString()
+                        : type.GetEdgeDBTypeName());
                     break;
                 default:
-                    writer.Append(obj);
+                    writer.Append(obj.ToString());
                     break;
             }
         }

@@ -14,7 +14,7 @@ namespace EdgeDB.Translators.Expressions
     internal class NewArrayExpressionTranslator : ExpressionTranslator<NewArrayExpression>
     {
         /// <inheritdoc/>
-        public override void Translate(NewArrayExpression expression, ExpressionContext context, QueryStringWriter writer)
+        public override void Translate(NewArrayExpression expression, ExpressionContext context, QueryWriter writer)
         {
             var brackets = EdgeDBTypeUtils.IsLink(expression.Type, out _, out _)
                 ? "{}"

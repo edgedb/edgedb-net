@@ -9,9 +9,9 @@ namespace EdgeDB.Translators
     internal partial class CalDate_DurationMethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.ToDateDuration))]
-        public void ToDateDurationTranslator(QueryStringWriter writer, TranslatedParameter yearsParam, TranslatedParameter monthsParam, TranslatedParameter daysParam)
+        public void ToDateDurationTranslator(QueryWriter writer, TranslatedParameter yearsParam, TranslatedParameter monthsParam, TranslatedParameter daysParam)
         {
-            writer.Function("cal::to_date_duration", new QueryStringWriter.FunctionArg(yearsParam, "years"), new QueryStringWriter.FunctionArg(monthsParam, "months"), new QueryStringWriter.FunctionArg(daysParam, "days"));
+            writer.Function("cal::to_date_duration", new Terms.FunctionArg(yearsParam, "years"), new Terms.FunctionArg(monthsParam, "months"), new Terms.FunctionArg(daysParam, "days"));
         }
 
     }

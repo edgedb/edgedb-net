@@ -143,7 +143,7 @@ namespace EdgeDB.Translators
         /// <returns>
         ///     <see langword="true"/> if the <paramref name="methodCall"/> was translated; otherwise <see langword="false"/>.
         /// </returns>
-        public static bool TryTranslateMethod(QueryStringWriter writer, MethodCallExpression methodCall,
+        public static bool TryTranslateMethod(QueryWriter writer, MethodCallExpression methodCall,
             ExpressionContext context)
         {
             try
@@ -161,7 +161,7 @@ namespace EdgeDB.Translators
         /// <param name="methodCall">The method call expression to translate.</param>
         /// <param name="context">The current context for the method call expression.</param>
         /// <exception cref="NotSupportedException">No translator could be found for the given method expression.</exception>
-        public static void TranslateMethod(QueryStringWriter writer, MethodCallExpression methodCall,
+        public static void TranslateMethod(QueryWriter writer, MethodCallExpression methodCall,
             ExpressionContext context)
         {
             var type = methodCall.Method.DeclaringType;
@@ -212,7 +212,7 @@ namespace EdgeDB.Translators
         /// <exception cref="NotSupportedException">
         ///     No translator could be found for the given method.
         /// </exception>
-        protected void Translate(QueryStringWriter writer, MethodCallExpression methodCall, ExpressionContext context)
+        protected void Translate(QueryWriter writer, MethodCallExpression methodCall, ExpressionContext context)
         {
             // try to get a method for translating the expression
             if (!_methodTranslators.TryGetValue(methodCall.Method.Name, out var methodInfo))
@@ -229,9 +229,9 @@ namespace EdgeDB.Translators
             if (methodParameters.Length <= 0)
                 throw new InvalidOperationException("Malformed method translator, expecting at least 1 argument");
 
-            if (methodParameters[0].ParameterType != typeof(QueryStringWriter))
+            if (methodParameters[0].ParameterType != typeof(QueryWriter))
                 throw new InvalidOperationException(
-                    $"Malformed method translator, expecting first parameter to be a {nameof(QueryStringWriter)}"
+                    $"Malformed method translator, expecting first parameter to be a {nameof(QueryWriter)}"
                 );
 
             // slice out the query string writer

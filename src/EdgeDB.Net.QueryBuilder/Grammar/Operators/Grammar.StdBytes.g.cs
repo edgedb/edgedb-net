@@ -9,13 +9,13 @@ namespace EdgeDB
     internal partial class Grammar
     {
         [EdgeQLOp("std::++")]
-        public static void Op_87239952(QueryStringWriter writer, WriterProxy lParam, WriterProxy rParam)
+        public static void Op_87239952(QueryWriter writer, WriterProxy lParam, WriterProxy rParam)
         {
             writer.Append(lParam).Wrapped("++", "  ").Append(rParam);
         }
         [EquivalentExpression(ExpressionType.ArrayIndex)]
         [EdgeQLOp("std::[]")]
-        public static void Op_932868899(QueryStringWriter writer, WriterProxy lParam, WriterProxy rParam)
+        public static void Op_932868899(QueryWriter writer, WriterProxy lParam, WriterProxy rParam)
         {
             writer.Append(lParam).Wrapped(rParam, "[]");
         }

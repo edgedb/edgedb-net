@@ -17,7 +17,7 @@ namespace EdgeDB.Translators.Methods
         /// <param name="writer">The query string writer to append the translated method to.</param>
         /// <returns>The EdgeQL equivalent of the method.</returns>
         [MethodName(nameof(Guid.NewGuid))]
-        public void Generate(QueryStringWriter writer)
+        public void Generate(QueryWriter writer)
             => writer.Function("uuid_generate_v4");
     }
 }
