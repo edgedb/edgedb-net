@@ -2,7 +2,7 @@
 
 namespace EdgeDB;
 
-internal sealed class ValueSpan : IDisposable
+internal sealed class ValueSpan : INodeObserver, IDisposable
 {
     private readonly List<Value> _nodes;
 

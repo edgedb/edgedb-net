@@ -137,17 +137,10 @@ namespace EdgeDB.QueryNodes
                 });
             }
 
-            if (_filter is not null)
-                writer.Append(_filter);
-
-            if (_orderBy is not null)
-                writer.Append(_orderBy);
-
-            if (_offset is not null)
-                writer.Append(_offset);
-
-            if (_limit is not null)
-                writer.Append(_limit);
+            _filter?.Invoke(writer);
+            _orderBy?.Invoke(writer);
+            _offset?.Invoke(writer);
+            _limit?.Invoke(writer);
         }
 
         /// <summary>

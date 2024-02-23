@@ -493,7 +493,7 @@ namespace EdgeDB.QueryNodes
                                             );
 
                                         writer
-                                            .Append(" else ").Wrapped("select ", typeName);
+                                            .Append(" else ").WrappedValues(values: ["select ", typeName]);
                                     }));
                             });
                     });

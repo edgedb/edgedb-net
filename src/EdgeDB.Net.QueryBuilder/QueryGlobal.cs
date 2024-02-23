@@ -64,7 +64,7 @@ namespace EdgeDB
             {
                 // if its a query builder, build it and add it as a sub-query.
                 IQueryBuilder queryBuilder => writer.Span(writer =>
-                    writer.Wrapped(writer => queryBuilder.WriteTo(writer, source))),
+                    writer.Wrapped(writer => queryBuilder.WriteTo(writer, source, context))),
                 // if its a sub query that requires introspection, build it and add it.
                 SubQuery {RequiresIntrospection: true} when info is null => throw new InvalidOperationException(
                     "Cannot build without introspection! A node requires query introspection."),

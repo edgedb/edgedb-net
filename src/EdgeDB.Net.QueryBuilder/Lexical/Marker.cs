@@ -51,13 +51,13 @@ internal sealed class Marker
 
     private readonly QueryWriter _writer;
 
-    internal Marker(MarkerType type, QueryWriter writer, int size, int position, ref LooseLinkedList<Value>.Node start)
+    internal Marker(MarkerType type, QueryWriter writer, int size, int position, RefBox<LooseLinkedList<Value>.Node> start)
     {
         Type = type;
         _writer = writer;
         Size = size;
         Position = position;
-        Start = new RefBox<LooseLinkedList<Value>.Node>(ref start);
+        Start = start;
     }
 
     internal void Update(int delta)

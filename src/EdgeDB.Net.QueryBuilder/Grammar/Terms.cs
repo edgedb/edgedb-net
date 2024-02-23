@@ -9,18 +9,31 @@ internal static class Terms
         => writer.Marker(MarkerType.Verbose, name, values);
     #endregion
 
-    public static QueryWriter Wrapped(this QueryWriter writer, Value value)
-        => writer.Append('(', value, ')');
-
-    public static QueryWriter Wrapped(this QueryWriter writer, WriterProxy value)
-        => writer.Append('(', value, ')');
-
-    public static QueryWriter Wrapped(this QueryWriter writer, params Value[] values)
+    public static QueryWriter Wrapped(this QueryWriter writer, Value value, string separator = "()")
     {
+        if (separator.Length != 2)
+            throw new ArgumentOutOfRangeException(nameof(separator));
+
+        return writer.Append(separator[0], value, separator[1]);
+    }
+
+    public static QueryWriter Wrapped(this QueryWriter writer, WriterProxy value, string separator = "()")
+    {
+         if (separator.Length != 2)
+                    throw new ArgumentOutOfRangeException(nameof(separator));
+
+         return writer.Append('(', value, ')');
+    }
+
+    public static QueryWriter WrappedValues(this QueryWriter writer, string separator = "()", params Value[] values)
+    {
+        if (separator.Length != 2)
+            throw new ArgumentOutOfRangeException(nameof(separator));
+
         var value = new Value[values.Length + 2];
-        value[0] = '(';
-        value[^1] = ')';
-        value.CopyTo(value[1..^1].AsSpan());
+        value[0] = separator[0];
+        value[^1] = separator[1];
+        values.CopyTo(value[1..^1].AsSpan());
 
         return writer.Append(value);
     }
@@ -28,10 +41,10 @@ internal static class Terms
     public static QueryWriter Shape(this QueryWriter writer, string name, params Value[] values)
     {
         var value = new Value[values.Length + 2];
-        value[0] = '{';
-        value[^1] = '}';
+        value[0] = "{ ";
+        value[^1] = " }";
 
-        value.CopyTo(value[1..^1].AsSpan());
+        values.CopyTo(value[1..^1].AsSpan());
 
         return writer.Marker(MarkerType.Shape, name, value);
     }
@@ -45,7 +58,7 @@ internal static class Terms
         return writer.Marker(MarkerType.Shape, name, new Value(
             writer =>
             {
-                writer.Append(parentheses[0]);
+                writer.Append(parentheses[0], ' ');
 
                 for (var i = 0; i < elements.Length; i++)
                 {
@@ -55,7 +68,7 @@ internal static class Terms
                         writer.Append(", ");
                 }
 
-                writer.Append(parentheses[1]);
+                writer.Append(' ', parentheses[1]);
             })
         );
     }
@@ -66,14 +79,14 @@ internal static class Terms
         return writer.Marker(MarkerType.Shape, name, new Value(
             writer =>
             {
-                writer.Append('{');
+                writer.Append("{ ");
 
                 for (var i = 0; i < elements.Length; i++)
                 {
                     elements[i].Write(writer);
                 }
 
-                writer.Append('}');
+                writer.Append(" }");
             })
         );
     }
@@ -112,12 +125,12 @@ internal static class Terms
                 {
                     var arg = args[i++];
 
-                    if(writer.AppendIsEmpty(arg.Value, out _, out var node))
+                    if(writer.AppendIsEmpty(arg.Value, out _, out var nodeRef))
                         continue;
 
                     // append the named part if its specified
                     if (arg.Named is not null)
-                        writer.Prepend(ref node, Value.Of(writer => writer.Append(arg.Named, " := ")));
+                        writer.Prepend(ref nodeRef.Value, Value.Of(writer => writer.Append(arg.Named, " := ")));
 
                     if (i != args.Length)
                         writer.Append(", ");

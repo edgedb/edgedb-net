@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace EdgeDB;
@@ -6,6 +8,10 @@ namespace EdgeDB;
 [DebuggerDisplay("{DebugDisplay()}")]
 internal readonly struct Value
 {
+    [MemberNotNullWhen(false, nameof(_callback))]
+    public bool IsScalar
+        => _callback is null;
+
     public static readonly Value Empty = new((object?)null);
 
     private readonly WriterProxy? _callback;
@@ -35,22 +41,37 @@ internal readonly struct Value
 
     public static Value Of(WriterProxy proxy) => new(proxy);
 
-    public void WriteTo(QueryWriter queryWriter, StringBuilder writer, ref LooseLinkedList<Value>.Node self, int index)
+    public ref LooseLinkedList<Value>.Node Proxy(QueryWriter writer, out bool success)
+    {
+        if (IsScalar)
+        {
+            success = false;
+            return ref Unsafe.NullRef<LooseLinkedList<Value>.Node>();
+        }
+
+        using var nodeObserver = new LastNodeObserver(writer);
+        _callback(writer);
+
+        if (!nodeObserver.HasValue)
+            throw new InvalidOperationException("Provided proxy wrote no value");
+
+        success = true;
+        return ref nodeObserver.Value;
+    }
+
+    public void WriteTo(StringBuilder writer)
     {
         if (_callback is not null)
         {
-            using var positional = queryWriter.CreatePositionalWriter(index, ref self);
-            _callback(positional.Writer);
+            throw new InvalidOperationException("Cannot compile callbacks");
         }
+
+        if (_str is not null)
+            writer.Append(_str);
+        else if (_ch is not null)
+            writer.Append(_ch.Value);
         else
-        {
-            if (_str is not null)
-                writer.Append(_str);
-            else if (_ch is not null)
-                writer.Append(_ch.Value);
-            else
-                writer.Append(_value);
-        }
+            writer.Append(_value);
     }
 
     private string DebugDisplay()

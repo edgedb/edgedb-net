@@ -8,7 +8,7 @@ internal sealed class ShapeReducer : IReducer
     // - Shapes are not included in function arguments
     public void Reduce(IQueryBuilder builder, QueryWriter writer)
     {
-        foreach (var global in builder.Globals)
+        foreach (var global in builder.Globals.ToArray())
         {
             if(!writer.TryGetMarker(global.Name, out var markers) || !CanReduce(global, builder))
                 continue;
@@ -29,6 +29,8 @@ internal sealed class ShapeReducer : IReducer
                     )
                 );
             }
+
+            builder.Globals.Remove(global);
         }
     }
 
