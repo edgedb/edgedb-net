@@ -64,7 +64,7 @@ namespace EdgeDB.Schema
                             ? ctx.UnsafeLocal<bool>("required") ? DataTypes.Cardinality.One : DataTypes.Cardinality.AtMostOne
                             : ctx.UnsafeLocal<bool>("required") ? DataTypes.Cardinality.AtLeastOne : DataTypes.Cardinality.Many,
                         TargetId = ctx.UnsafeLocal<Guid>("target.id"),
-                        IsLink = ctx.Raw<object>("[IS schema::Link]") != null,
+                        IsLink = ctx.Raw<object?>("[IS schema::Link]") != null,
                         IsExclusive = ctx.Raw<bool>("exists (select .constraints filter .name = 'std::exclusive')"),
                         IsComputed = EdgeQL.Len(ctx.UnsafeLocal<object[]>("computed_fields")) != 0,
                         IsReadonly = ctx.UnsafeLocal<bool>("readonly"),

@@ -16,9 +16,6 @@ namespace EdgeDB.QueryNodes
             if (Context.Values is null || !Context.Values.Any())
                 return;
 
-            if (Context.Values.Count > 0)
-                return;
-
             writer.Append("with ");
 
             for (var i = 0; i != Context.Values.Count; i++)

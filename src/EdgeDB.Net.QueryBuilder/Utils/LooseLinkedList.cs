@@ -452,7 +452,7 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
         if (Unsafe.IsNullRef(ref node))
             throw new ArgumentNullException(nameof(node));
 
-        if (node.List != this)
+        if (this != node.List)
             throw new InvalidOperationException("The provided node isn't apart of this list");
     }
 

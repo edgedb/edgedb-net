@@ -237,6 +237,9 @@ namespace EdgeDB
             {
                 nodes[i].FinalizeQuery(writer);
                 parameters.Add(nodes[i].Builder.QueryVariables);
+
+                if (i != nodes.Count - 1)
+                    writer.Append(' ');
             }
 
             // reduce the query
@@ -256,10 +259,13 @@ namespace EdgeDB
                 };
 
                 // visit the with node and add it to the front of our local collection of nodes.
-                using (var positional = writer.CreatePositionalWriter(0))
+                using (var _ = writer.PositionalScopeFromStart())
                 {
-                    with.FinalizeQuery(positional.Writer);
+                    with.FinalizeQuery(writer);
+                    writer.Append(' ');
                 }
+
+
 
                 nodes = nodes.Prepend(with).ToList();
             }

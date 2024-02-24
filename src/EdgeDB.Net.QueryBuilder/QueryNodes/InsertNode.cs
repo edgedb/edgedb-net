@@ -115,12 +115,15 @@ namespace EdgeDB.QueryNodes
             /// </summary>
             private readonly ShapeSetter[] _shape;
 
+            private readonly string _name;
+
             /// <summary>
             ///     Constructs a new <see cref="ShapeDefinition"/> with the given shape body.
             /// </summary>
             /// <param name="shape"></param>
-            public ShapeDefinition(WriterProxy shape)
+            public ShapeDefinition(string name, WriterProxy shape)
             {
+                _name = name;
                 _rawShape = shape;
                 _shape = Array.Empty<ShapeSetter>();
                 RequiresIntrospection = false;
@@ -130,8 +133,9 @@ namespace EdgeDB.QueryNodes
             ///     Constructs a new <see cref="ShapeDefinition"/> with the given shape body.
             /// </summary>
             /// <param name="shape"></param>
-            public ShapeDefinition(IEnumerable<ShapeSetter> shape)
+            public ShapeDefinition(string name, IEnumerable<ShapeSetter> shape)
             {
+                _name = name;
                 _shape = shape.ToArray();
                 _rawShape = null;
                 RequiresIntrospection = _shape.Any(x => x.RequiresIntrospection);
@@ -154,7 +158,7 @@ namespace EdgeDB.QueryNodes
                     throw new InvalidOperationException(
                         "Cannot build insert shape, some properties require introspection");
 
-                writer.Shape("", _shape);
+                writer.Shape($"shape_{_name}", _shape);
             }
 
             /// <summary>
@@ -175,7 +179,7 @@ namespace EdgeDB.QueryNodes
                     throw new InvalidOperationException("Introspection is required to build this shape definition");
 
                 if (RequiresIntrospection)
-                    writer.Shape("", _shape, (w, x) => x.Write(w, info!));
+                    writer.Shape($"shape_{_name}", _shape, (w, x) => x.Write(w, info!));
                 else
                     Build(writer);
             }
@@ -576,7 +580,7 @@ namespace EdgeDB.QueryNodes
             }
 
             // return out our insert shape
-            return new ShapeDefinition(elements);
+            return new ShapeDefinition($"json_{jsonValue.Name}:{jsonValue.VariableName}", elements);
         }
 
         /// <summary>
@@ -600,7 +604,7 @@ namespace EdgeDB.QueryNodes
             // if the value is an expression we can just directly translate it
             if (value is LambdaExpression expression)
             {
-                return new ShapeDefinition(writer =>
+                return new ShapeDefinition($"type_{type.GetEdgeDBTypeName()}:{type}", writer =>
                 {
                     writer.Append('{');
                     TranslateExpression(expression, writer);
@@ -724,7 +728,7 @@ namespace EdgeDB.QueryNodes
                     $"Failed to find method to serialize the property \"{property.Type.Name}\" on type {type.Name}");
             }
 
-            return new ShapeDefinition(setters);
+            return new ShapeDefinition($"type_{type.GetEdgeDBTypeName()}:{type}", setters);
         }
 
         /// <summary>

@@ -8,66 +8,21 @@ namespace EdgeDB;
 
 internal sealed class QueryWriter : IDisposable
 {
-    public readonly struct PositionalQueryWriter : IDisposable
+    private sealed class PositionalTrack : IDisposable
     {
-        public readonly QueryWriter Writer = new();
+        private readonly RefBox<ValueNode> _oldRef;
+        private readonly QueryWriter _writer;
 
-        private readonly QueryWriter _parent;
-        private readonly int _position;
-        private readonly RefBox<ValueNode> _from;
-
-        public PositionalQueryWriter(QueryWriter parent, int position)
+        public PositionalTrack(QueryWriter writer, ref ValueNode from)
         {
-            _parent = parent;
-            _position = position;
-            _from = RefBox<ValueNode>.From(ref _parent.FastGetNodeFromIndex(_position));
+            _oldRef = RefBox<ValueNode>.From(ref writer._track.Value);
+            writer._track.Set(ref from);
+            _writer = writer;
         }
 
-        public PositionalQueryWriter(QueryWriter parent, int position, ref ValueNode from)
+        public void Dispose()
         {
-            _parent = parent;
-            _position = position;
-            _from = RefBox<ValueNode>.From(ref from);
-        }
-
-        public unsafe void Dispose()
-        {
-            // copy markers and tokens
-            if (Unsafe.IsNullRef(ref _from.Value))
-                throw new IndexOutOfRangeException("Position is not within the span of tokens");
-
-            var tokenSet = new Dictionary<IntPtr, IntPtr>();
-
-            ref var currentNode = ref Writer._tokens.First;
-            while (!Unsafe.IsNullRef(ref currentNode))
-            {
-                tokenSet.Add(
-                    (IntPtr) Unsafe.AsPointer(ref currentNode),
-                    (IntPtr) Unsafe.AsPointer(ref _parent._tokens.AddBefore(ref _from.Value, currentNode.Value))
-                );
-
-                currentNode = ref currentNode.Next;
-            }
-
-            foreach (var marker in Writer._markers)
-            {
-                if (!_parent._markers.TryGetValue(marker.Key, out var markers))
-                    markers = _parent._markers[marker.Key] = new();
-
-                foreach (var item in marker.Value)
-                {
-                    item.Start =
-                        RefBox<ValueNode>.From(
-                            ref Unsafe.AsRef<ValueNode>(tokenSet[(IntPtr)item.Start.Pointer].ToPointer())
-                        );
-
-                    _parent._markersRef.Add(item);
-                    markers.AddLast(item);
-                }
-            }
-
-            Writer.Dispose();
-            _parent.UpdateMarkers(_position, Writer._tokens.Count);
+            _writer._track.Set(ref _oldRef.Value);
         }
     }
 
@@ -93,6 +48,23 @@ internal sealed class QueryWriter : IDisposable
         _track = RefBox<ValueNode>.Null;
     }
 
+    /// <summary>
+    ///     Creates a new scope that appends the next tokens at the start of this writer until the
+    ///     <see cref="IDisposable"/> is disposed.
+    /// </summary>
+    /// <returns>A <see cref="IDisposable"/> that represents the lifetime of the scope.</returns>
+    public IDisposable PositionalScopeFromStart()
+        => PositionalScope(ref Unsafe.NullRef<ValueNode>());
+
+    /// <summary>
+    ///     Creates a new scope that appends the next tokens after the provided node until the
+    ///     <see cref="IDisposable"/> is disposed.
+    /// </summary>
+    /// <param name="from">The node to append tokens after.</param>
+    /// <returns>A <see cref="IDisposable"/> that represents the lifetime of the scope.</returns>
+    public IDisposable PositionalScope(ref ValueNode from)
+        => new PositionalTrack(this, ref from);
+
     private delegate ref ValueNode ValueNodeInsertFunc(ref ValueNode node, in Value value);
 
     private ref ValueNode AddAfterTracked(in Value value)
@@ -110,21 +82,11 @@ internal sealed class QueryWriter : IDisposable
                 _track.Set(ref node);
         }
         else if (_track.IsNull)
-            _track.Set(ref _tokens.AddLast(in value));
+            _track.Set(ref _tokens.AddFirst(in value));
         else
             _track.Set(ref insertFunc(ref _track.Value, in value));
 
         return ref _track.Value;
-    }
-
-    public PositionalQueryWriter CreatePositionalWriter(int position)
-    {
-        return new PositionalQueryWriter(this, position);
-    }
-
-    public PositionalQueryWriter CreatePositionalWriter(int position, ref ValueNode from)
-    {
-        return new PositionalQueryWriter(this, position, ref from);
     }
 
     public void AddObserver(INodeObserver observer)
@@ -405,7 +367,7 @@ internal sealed class QueryWriter : IDisposable
         var index = TailIndex;
         Append(in value, out node);
         size = TailIndex - index;
-        return size > 0;
+        return size == 0;
     }
 
     public StringBuilder Compile(StringBuilder? builder = null)

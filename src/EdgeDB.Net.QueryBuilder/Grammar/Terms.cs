@@ -84,6 +84,9 @@ internal static class Terms
                 for (var i = 0; i < elements.Length; i++)
                 {
                     elements[i].Write(writer);
+
+                    if (i + 1 != elements.Length)
+                        writer.Append(", ");
                 }
 
                 writer.Append(" }");

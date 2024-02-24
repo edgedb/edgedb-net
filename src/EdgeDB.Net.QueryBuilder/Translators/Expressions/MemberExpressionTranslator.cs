@@ -68,10 +68,10 @@ namespace EdgeDB.Translators.Expressions
                                     var arguments = new Terms.FunctionArg[path.Length + 1];
 
                                     arguments[0] = jsonGlobal.Name;
-                                    for (var i = 1; i != path.Length; i++)
+                                    for (var i = 0; i != path.Length; i++)
                                     {
-                                        var element = path[i - 1];
-                                        arguments[i] = new WriterProxy(
+                                        var element = path[i];
+                                        arguments[i + 1] = new WriterProxy(
                                             s => s.Append('\'').Append(element).Append('\'')
                                         );
                                     }
