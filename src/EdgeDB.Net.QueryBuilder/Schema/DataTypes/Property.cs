@@ -9,7 +9,7 @@ namespace EdgeDB.Schema.DataTypes
     /// <summary>
     ///     Represents the cardinality of a <see cref="Property"/>.
     /// </summary>
-    internal enum Cardinality
+    public enum Cardinality
     {
         One,
         AtMostOne,

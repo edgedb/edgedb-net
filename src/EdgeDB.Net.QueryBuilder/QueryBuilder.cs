@@ -202,7 +202,7 @@ namespace EdgeDB
         {
             context ??= new CompileContext();
 
-            var writer = new QueryWriter();
+            using var writer = new QueryWriter();
 
             InternalBuild(writer, context);
 

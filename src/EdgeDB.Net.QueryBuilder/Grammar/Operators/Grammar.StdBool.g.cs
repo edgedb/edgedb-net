@@ -68,6 +68,7 @@ namespace EdgeDB
         {
             writer.Append(aParam).Wrapped("AND", "  ").Append(bParam);
         }
+        [EquivalentExpression(ExpressionType.Not)]
         [EdgeQLOp("std::NOT")]
         public static void Op_948960421(QueryWriter writer, WriterProxy vParam)
         {

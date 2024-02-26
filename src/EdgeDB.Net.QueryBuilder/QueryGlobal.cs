@@ -1,4 +1,5 @@
-﻿using EdgeDB.Schema;
+﻿using EdgeDB.QueryNodes;
+using EdgeDB.Schema;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -58,13 +59,30 @@ namespace EdgeDB
             Reference = reference;
         }
 
-        public Value[] Compile(IQueryBuilder source, QueryWriter writer, CompileContext? context = null, SchemaInfo? info = null)
+        public Value[] Compile(IQueryBuilder source, QueryWriter writer, CompileContext? context = null,
+            SchemaInfo? info = null)
+            => Compile(source, QueryBuilderExtensions.WriteTo, writer, context, info);
+
+        public Value[] Compile(ExpressionContext source, QueryWriter writer, CompileContext? context = null,
+            SchemaInfo? info = null)
+            => Compile(source, QueryBuilderExtensions.WriteTo, writer, context, info);
+
+        public Value[] Compile(QueryNode source, QueryWriter writer, CompileContext? context = null,
+            SchemaInfo? info = null)
+            => Compile(source, QueryBuilderExtensions.WriteTo, writer, context, info);
+
+        private Value[] Compile<T>(T source, Action<IQueryBuilder, QueryWriter, T, CompileContext?> compileBuilder, QueryWriter writer, CompileContext? context = null,
+            SchemaInfo? info = null)
         {
             return Value switch
             {
                 // if its a query builder, build it and add it as a sub-query.
-                IQueryBuilder queryBuilder => writer.Span(writer =>
-                    writer.Wrapped(writer => queryBuilder.WriteTo(writer, source, context))),
+                IQueryBuilder queryBuilder => writer
+                    .Span(writer =>
+                        writer.Wrapped(
+                            writer => compileBuilder(queryBuilder, writer, source, context)
+                        )
+                    ),
                 // if its a sub query that requires introspection, build it and add it.
                 SubQuery {RequiresIntrospection: true} when info is null => throw new InvalidOperationException(
                     "Cannot build without introspection! A node requires query introspection."),

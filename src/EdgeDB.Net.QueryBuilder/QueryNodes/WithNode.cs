@@ -25,42 +25,11 @@ namespace EdgeDB.QueryNodes
                 writer.Append(global.Name)
                     .Append(" := ");
 
-                CompileGlobalValue(global, writer);
+                global.Compile(this, writer, null, SchemaInfo);
 
                 if (i + 1 < Context.Values.Count)
                     writer.Append(", ");
             }
-        }
-
-        private void CompileGlobalValue(QueryGlobal global, QueryWriter writer, Action<QueryNode>? preFinalizerModifier = null)
-        {
-            // if its a query builder, build it and add it as a sub-query.
-            if (global.Value is IQueryBuilder queryBuilder)
-            {
-                writer.Wrapped(writer => queryBuilder.WriteTo(writer, this, new CompileContext { PreFinalizerModifier = preFinalizerModifier}));
-                return;
-            }
-
-            // if its a sub query that requires introspection, build it and add it.
-            if (global.Value is SubQuery subQuery && subQuery.RequiresIntrospection)
-            {
-                if (SchemaInfo is null)
-                    throw new InvalidOperationException("Cannot build without introspection! A node requires query introspection.");
-
-                subQuery.Build(SchemaInfo, writer);
-                return;
-            }
-
-            // if its an expression, translate it and then return the subquery form
-            if(global.Value is Expression expression && global.Reference is LambdaExpression root)
-            {
-                writer.Append('(');
-                TranslateExpression(root, expression, writer);
-                writer.Append(')');
-                return;
-            }
-
-            QueryUtils.ParseObject(writer, global.Value);
         }
     }
 }

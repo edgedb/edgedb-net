@@ -28,6 +28,8 @@ namespace EdgeDB.Translators.Expressions
                         : expression.Right,
                     context,
                     writer);
+
+                return;
             }
 
             // try to build an operator for the given binary operator

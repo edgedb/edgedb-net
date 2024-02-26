@@ -65,14 +65,12 @@ internal sealed class QueryWriter : IDisposable
     public IDisposable PositionalScope(ref ValueNode from)
         => new PositionalTrack(this, ref from);
 
-    private delegate ref ValueNode ValueNodeInsertFunc(ref ValueNode node, in Value value);
-
     private ref ValueNode AddAfterTracked(in Value value)
-        => ref AddTracked(in value, _tokens.AddAfter);
+        => ref AddTracked(in value, true);
     private ref ValueNode AddBeforeTracked(in Value value)
-        => ref AddTracked(in value, _tokens.AddBefore);
+        => ref AddTracked(in value, false);
 
-    private ref ValueNode AddTracked(in Value value, ValueNodeInsertFunc insertFunc)
+    private ref ValueNode AddTracked(in Value value, bool after)
     {
         ref var node = ref value.Proxy(this, out var success);
 
@@ -84,7 +82,13 @@ internal sealed class QueryWriter : IDisposable
         else if (_track.IsNull)
             _track.Set(ref _tokens.AddFirst(in value));
         else
-            _track.Set(ref insertFunc(ref _track.Value, in value));
+        {
+            ref var newTrack = ref after
+                ? ref _tokens.AddAfter(ref _track.Value, in value)
+                : ref _tokens.AddBefore(ref _track.Value, in value);
+
+            _track.Set(ref newTrack);
+        }
 
         return ref _track.Value;
     }

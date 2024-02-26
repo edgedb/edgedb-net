@@ -25,6 +25,7 @@ namespace EdgeDB.StandardLibGenerator
             {"std::!=", new ExpressionType[] { ExpressionType.NotEqual } },
             {"std::?!=", new ExpressionType[] { ExpressionType.NotEqual } },
             {"std::OR", new ExpressionType[] { ExpressionType.OrElse} },
+            {"std::NOT", new ExpressionType[] { ExpressionType.Not } },
             {"std::^", new ExpressionType[] { ExpressionType.Power } },
             {"std::=", new ExpressionType[] { ExpressionType.Equal} },
             {"std::?=", new ExpressionType[] { ExpressionType.Equal} },

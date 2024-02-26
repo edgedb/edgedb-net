@@ -5,7 +5,7 @@ using System.Text;
 
 namespace EdgeDB;
 
-[DebuggerDisplay("{DebugDisplay()}")]
+//[DebuggerDisplay("{DebugDisplay()}")]
 internal readonly struct Value
 {
     [MemberNotNullWhen(false, nameof(_callback))]
@@ -82,7 +82,7 @@ internal readonly struct Value
         if (_str is not null)
             return $"str \"{_str}\"";
 
-        return _ch is not null ? $"char \'{_ch}\'" : $"value {_value}";
+        return _ch is not null ? $"char \'{_ch}\'" : _value is null ? "null" : $"value {_value}";
     }
 
     public static implicit operator Value(string? value) => new(value);

@@ -18,11 +18,13 @@ namespace EdgeDB.Translators.Expressions
             ExpressionContext context,
             QueryWriter writer)
         {
-            TranslateExpression(expression.IfTrue, context, writer);
-            writer.Append(" IF ");
-            TranslateExpression(expression.Test, context, writer);
-            writer.Append(" ELSE ");
-            TranslateExpression(expression.IfFalse, context, writer);
+            writer.Append(
+                Proxy(expression.IfTrue, context),
+                " IF ",
+                Proxy(expression.Test, context),
+                " ELSE ",
+                Proxy(expression.IfFalse, context)
+            );
         }
     }
 }

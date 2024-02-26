@@ -136,8 +136,6 @@ namespace EdgeDB.ExampleApp.Examples
                 }
             };
 
-            QueryBuilder.For(data, x => QueryBuilder.Insert(x));
-
             var tquery = await QueryBuilder.For(data,
                 x => QueryBuilder.Insert(x)
             ).BuildAsync(client);

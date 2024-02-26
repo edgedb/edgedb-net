@@ -46,7 +46,7 @@ namespace EdgeDB
                     }
 
                     writer.SingleQuoted(obj.ToString());
-                    break;
+                    return;
                 }
             }
 

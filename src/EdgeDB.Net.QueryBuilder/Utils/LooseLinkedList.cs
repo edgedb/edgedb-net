@@ -10,6 +10,12 @@ namespace EdgeDB;
 /// <summary>
 ///     A non-circular linked list implementation.
 /// </summary>
+/// <remarks>
+///     It's important to note that this lists reference is critical to validation of inserts. DO NOT capture this
+///     class in a delegate!!! it will produce unexpected behaviour with node validation since each node in the list
+///     points to the list that created it, when a delegate captures this list, it will not be able to validate the
+///     nodes.
+/// </remarks>
 /// <typeparam name="T">The type to store in this linked list.</typeparam>
 public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
 {
@@ -18,7 +24,7 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     /// <summary>
     ///     Represents a node inside of the current linked list.
     /// </summary>
-    [DebuggerDisplay("{DebugDisplay}")]
+    [DebuggerDisplay("{DebugDisplay}"), StructLayout(LayoutKind.Sequential)]
     public struct Node
     {
         [DebuggerHidden]
@@ -53,15 +59,17 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
         /// </summary>
         internal Node* PreviousPtr;
 
-        /// <summary>
-        ///     The value within the node.
-        /// </summary>
-        public T Value;
-
+        // NOTE: 'List' must appear before 'T' since its a 'constant' size field. The CLR gets mixed up when 'T' fields
+        // appear and anything that tries to get referenced after them in the layout seem to get borked.
         /// <summary>
         ///     The list that owns this node.
         /// </summary>
         internal LooseLinkedList<T> List;
+
+        /// <summary>
+        ///     The value within the node.
+        /// </summary>
+        public T Value;
 
         /// <summary>
         ///     Sets the next node of this node.
@@ -271,6 +279,7 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
         }
 
         _head = null;
+        _tail = null;
         Count = 0;
     }
 
@@ -449,11 +458,46 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     /// <exception cref="InvalidOperationException">The node isn't apart of this list.</exception>
     private void ValidateNode(ref Node node)
     {
+        if (!Allocator.IsOwned(ref node))
+            throw new ArgumentException("Node isn't created by a list or was copied into CLR memory", nameof(node));
+
         if (Unsafe.IsNullRef(ref node))
             throw new ArgumentNullException(nameof(node));
 
         if (this != node.List)
+        {
+            // sanity
+            ValidateList();
             throw new InvalidOperationException("The provided node isn't apart of this list");
+        }
+    }
+
+    private void ValidateList()
+    {
+        var invalids = new List<RefBox<Node>>();
+
+        ref var current = ref First;
+        while (!Unsafe.IsNullRef(ref current))
+        {
+            if (!Allocator.IsOwned(ref current))
+                throw new InvalidOperationException("List is malformed");
+
+            if (current.List != this)
+            {
+                invalids.Add(RefBox<Node>.From(ref current));
+            }
+
+            current = ref current.Next;
+        }
+
+        if (invalids.Count == Count)
+        {
+            // we're fucked, somethings captured a reference of the list and 'this' is that captured reference...
+            throw new AccessViolationException(
+                "The reference to 'this' was polluted by a captured reference, ex: delegate; etc..");
+        }
+
+        invalids.Clear();
     }
 
     /// <summary>
@@ -521,7 +565,7 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     {
         ref var node = ref Allocator.Allocate<Node>();
         node.Value = value;
-        node.List = this!;
+        node.List = this;
         node.NextPtr = null;
         node.PreviousPtr = null;
         return ref node;

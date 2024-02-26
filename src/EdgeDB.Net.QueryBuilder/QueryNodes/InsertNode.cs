@@ -195,12 +195,12 @@ namespace EdgeDB.QueryNodes
         /// </summary>
         private bool _autogenerateUnlessConflict;
 
-        private LambdaExpression? _unlessConflictExpression;
+        private WriterProxy? _unlessConflictExpression;
 
         /// <summary>
         ///     The else clause if any.
         /// </summary>
-        private Action<QueryWriter>? _elseStatement;
+        private WriterProxy? _elseStatement;
 
         /// <summary>
         ///     The list of currently inserted types used to determine if
@@ -224,7 +224,7 @@ namespace EdgeDB.QueryNodes
                 ? BuildJsonShape()
                 : BuildInsertShape();
 
-            RequiresIntrospection = _shape.RequiresIntrospection;
+            RequiresIntrospection |= _shape.RequiresIntrospection;
         }
 
         /// <inheritdoc/>
@@ -248,7 +248,11 @@ namespace EdgeDB.QueryNodes
 
             _shape.Build(writer, SchemaInfo);
 
-            if (_autogenerateUnlessConflict)
+            if (_unlessConflictExpression is not null)
+            {
+                _unlessConflictExpression(writer);
+            }
+            else if (_autogenerateUnlessConflict)
             {
                 if (SchemaInfo is null)
                     throw new InvalidOperationException(
@@ -835,7 +839,7 @@ namespace EdgeDB.QueryNodes
         /// <param name="selector">The property selector for the conflict clause.</param>
         public void UnlessConflictOn(LambdaExpression selector)
         {
-            _unlessConflictExpression = selector;
+            _unlessConflictExpression ??= writer => TranslateExpression(selector, writer);
         }
 
         /// <summary>

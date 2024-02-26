@@ -14,7 +14,7 @@ internal static unsafe class Allocator
     public static ref T Allocate<T>()
         where T : struct
     {
-        var ptr = NativeMemory.Alloc((nuint)sizeof(T));
+        var ptr = NativeMemory.AllocZeroed((nuint)sizeof(T));
 
         Allocs.Add((nuint)ptr);
 
