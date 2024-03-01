@@ -147,18 +147,22 @@ internal sealed class EdgeDBTcpClient : EdgeDBBinaryClient, ITransactibleClient
 
         var deferMode = $"{(!deferrable ? "not " : "")}deferrable";
 
-        await ExecuteInternalAsync($"start transaction isolation {isolationMode}, {readMode}, {deferMode}",
-            capabilities: Capabilities.Transaction, token: token).ConfigureAwait(false);
+        await ExecuteInternalAsync(
+            $"start transaction isolation {isolationMode}, {readMode}, {deferMode}",
+            capabilities: Capabilities.Transaction,
+            format: IOFormat.None,
+            token: token
+        ).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
     async Task ITransactibleClient.CommitAsync(CancellationToken token)
-        => await ExecuteInternalAsync("commit", capabilities: Capabilities.Transaction, token: token)
+        => await ExecuteInternalAsync("commit", capabilities: Capabilities.Transaction, token: token, format: IOFormat.None)
             .ConfigureAwait(false);
 
     /// <inheritdoc />
     async Task ITransactibleClient.RollbackAsync(CancellationToken token)
-        => await ExecuteInternalAsync("rollback", capabilities: Capabilities.Transaction, token: token)
+        => await ExecuteInternalAsync("rollback", capabilities: Capabilities.Transaction, token: token, format: IOFormat.None)
             .ConfigureAwait(false);
 
     /// <inheritdoc />
