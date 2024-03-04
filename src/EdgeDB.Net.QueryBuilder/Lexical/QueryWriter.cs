@@ -10,19 +10,19 @@ internal sealed class QueryWriter : IDisposable
 {
     private sealed class PositionalTrack : IDisposable
     {
-        private readonly RefBox<ValueNode> _oldRef;
+        private readonly ValueNode? _oldRef;
         private readonly QueryWriter _writer;
 
-        public PositionalTrack(QueryWriter writer, ref ValueNode from)
+        public PositionalTrack(QueryWriter writer, ValueNode? from)
         {
-            _oldRef = RefBox<ValueNode>.From(ref writer._track.Value);
-            writer._track.Set(ref from);
+            _oldRef = writer._track;
+            writer._track = from;
             _writer = writer;
         }
 
         public void Dispose()
         {
-            _writer._track.Set(ref _oldRef.Value);
+            _writer._track = _oldRef;
         }
     }
 
@@ -36,7 +36,7 @@ internal sealed class QueryWriter : IDisposable
 
     private readonly List<INodeObserver> _observers = [];
 
-    private readonly RefBox<ValueNode> _track;
+    private ValueNode? _track;
 
     private int TailIndex => _tokens.Count - 1;
 
@@ -45,7 +45,7 @@ internal sealed class QueryWriter : IDisposable
         _tokens = new();
         _markers = new();
         _markersRef = new();
-        _track = RefBox<ValueNode>.Null;
+        _track = null;
     }
 
     /// <summary>
@@ -54,7 +54,7 @@ internal sealed class QueryWriter : IDisposable
     /// </summary>
     /// <returns>A <see cref="IDisposable"/> that represents the lifetime of the scope.</returns>
     public IDisposable PositionalScopeFromStart()
-        => PositionalScope(ref Unsafe.NullRef<ValueNode>());
+        => PositionalScope(null);
 
     /// <summary>
     ///     Creates a new scope that appends the next tokens after the provided node until the
@@ -62,35 +62,30 @@ internal sealed class QueryWriter : IDisposable
     /// </summary>
     /// <param name="from">The node to append tokens after.</param>
     /// <returns>A <see cref="IDisposable"/> that represents the lifetime of the scope.</returns>
-    public IDisposable PositionalScope(ref ValueNode from)
-        => new PositionalTrack(this, ref from);
+    public IDisposable PositionalScope(ValueNode? from)
+        => new PositionalTrack(this, from);
 
-    private ref ValueNode AddAfterTracked(in Value value)
-        => ref AddTracked(in value, true);
-    private ref ValueNode AddBeforeTracked(in Value value)
-        => ref AddTracked(in value, false);
+    private ValueNode AddAfterTracked(in Value value)
+        => AddTracked(in value, true);
+    private ValueNode AddBeforeTracked(in Value value)
+        => AddTracked(in value, false);
 
-    private ref ValueNode AddTracked(in Value value, bool after)
+    private ValueNode AddTracked(in Value value, bool after)
     {
-        ref var node = ref value.Proxy(this, out var success);
-
-        if (success)
+        if (value.TryProxy(this, out var node))
         {
-            if(!_track.Value.ReferenceEquals(ref node))
-                _track.Set(ref node);
+            _track = node;
         }
-        else if (_track.IsNull)
-            _track.Set(ref _tokens.AddFirst(in value));
+        else if (_track is null)
+            _track = _tokens.AddFirst(in value); //Set(ref _tokens.AddFirst(in value));
         else
         {
-            ref var newTrack = ref after
-                ? ref _tokens.AddAfter(ref _track.Value, in value)
-                : ref _tokens.AddBefore(ref _track.Value, in value);
-
-            _track.Set(ref newTrack);
+            _track = after
+                ? _tokens.AddAfter(_track, in value)
+                : _tokens.AddBefore(_track, in value);
         }
 
-        return ref _track.Value;
+        return _track;
     }
 
     public void AddObserver(INodeObserver observer)
@@ -99,51 +94,51 @@ internal sealed class QueryWriter : IDisposable
     public void RemoveObserver(INodeObserver observer)
         => _observers.Remove(observer);
 
-    private void OnNodeAdd(ref ValueNode node)
+    private void OnNodeAdd(ValueNode node)
     {
         foreach(var observer in _observers)
-            observer.OnAdd(ref node);
+            observer.OnAdd(node);
     }
 
-    private void OnNodeRemove(ref ValueNode node)
+    private void OnNodeRemove(ValueNode node)
     {
         foreach (var observer in _observers)
-            observer.OnRemove(ref node);
+            observer.OnRemove(node);
     }
 
-    private int GetIndexOfNode(ref ValueNode node)
+    private int GetIndexOfNode(ValueNode node)
     {
-        ref var current = ref _tokens.First;
-        for (int i = 0; !Unsafe.IsNullRef(ref current); i++)
+        var current = _tokens.First;
+        for (var i = 0; current is not null; i++)
         {
-            if (current.ReferenceEquals(ref node))
+            if (current == node)
                 return i;
 
-            current = ref current.Next;
+            current = current.Next;
         }
 
         return -1;
     }
 
-    private ref ValueNode Traverse(ref ValueNode from, int count, bool dir)
+    private ValueNode? Traverse(ValueNode from, int count, bool dir)
     {
-        ref var node = ref from;
-        while (count > 0 && !Unsafe.IsNullRef(ref node))
+        var node = from;
+        while (count > 0 && node is not null)
         {
-            node = dir ? ref node.Next : ref node.Previous;
+            node = dir ? node.Next : node.Previous;
             count--;
         }
-        return ref node;
+        return node;
     }
 
-    private ref ValueNode FastGetNodeFromIndex(int index)
+    private ValueNode? FastGetNodeFromIndex(int index)
     {
         // check for start/end node
         if (index == 0)
-            return ref _tokens.First;
+            return _tokens.First;
 
         if (index == TailIndex)
-            return ref _tokens.Last;
+            return _tokens.Last;
 
         // get a distance we'll have to traverse in worst case scenario
         var normalizedDistance = Math.Min(TailIndex - index, index);
@@ -187,12 +182,12 @@ internal sealed class QueryWriter : IDisposable
             var distance = Math.Abs(marker.Position - index);
 
             if(distance <= normalizedDistance)
-                return ref Traverse(ref marker.Start.Value, Math.Abs(marker.Position - index), index > marker.Position);
+                return Traverse(marker.Start, Math.Abs(marker.Position - index), index > marker.Position);
         }
 
-        return ref normalizedDistance == index
-            ? ref Traverse(ref _tokens.First!, index, true)
-            : ref Traverse(ref _tokens.Last!, _tokens.Count - index, false);
+        return normalizedDistance == index
+            ? Traverse(_tokens.First!, index, true)
+            : Traverse(_tokens.Last!, _tokens.Count - index, false);
     }
 
     private void UpdateMarkers(int position, int delta)
@@ -251,70 +246,59 @@ internal sealed class QueryWriter : IDisposable
         return this;
     }
 
-    public QueryWriter Remove(int position, ref ValueNode head, int count = 1)
+    public QueryWriter Remove(int position, ValueNode head, int count = 1)
     {
-        var resetHead = false;
+        var headPrev = head.Previous;
 
-        ref var headPrev = ref head.Previous;
-
-        _tokens.Remove(ref head, count, (ref ValueNode node) =>
+        _tokens.Remove(head, count, (node) =>
         {
-            // we don't set track here since 'head' would be captured and copied by the delegate.
-            if (!resetHead && node.ReferenceEquals(ref _track.Value))
-            {
-                resetHead = true;
-            }
+            if (node == _track)
+                _track = headPrev;
         });
-
-        if (resetHead)
-        {
-            _track.Set(ref headPrev);
-        }
 
         UpdateMarkers(position, -count);
 
         return this;
     }
 
-    public QueryWriter Replace(ref ValueNode node, int position, int size, in Value value)
+    public QueryWriter Replace(ValueNode node, int position, int size, in Value value)
     {
-        ref var oldTrack = ref _track.Value;
+        var oldTrack = _track;
 
-        _track.Set(ref node);
-        OnNodeAdd(ref AddBeforeTracked(in value));
-        _track.Set(ref oldTrack);
+        _track = node;
+        OnNodeAdd(AddBeforeTracked(in value));
+        _track = oldTrack;
 
-        Remove(position, ref node, size);
+        Remove(position, node, size);
         return this;
     }
 
-    public QueryWriter Prepend(ref ValueNode node, in Value value)
+    public QueryWriter Prepend(ValueNode node, in Value value)
     {
-        var index = GetIndexOfNode(ref node);
+        var index = GetIndexOfNode(node);
 
         if (index == -1)
             throw new InvalidOperationException("Node cannot be found in collection of tokens");
 
         // change the track to the node
-        ref var oldTrack = ref _track.Value;
+        var oldTrack = _track;
 
-        _track.Set(ref node);
-        OnNodeAdd(ref AddBeforeTracked(in value));
-        _track.Set(ref oldTrack);
+        _track = node;
+        OnNodeAdd(AddBeforeTracked(in value));
+        _track = oldTrack;
 
         UpdateMarkers(index - 1, 1);
 
         return this;
     }
 
-    public QueryWriter Append(in Value value, out RefBox<ValueNode> nodeRef)
+    public QueryWriter Append(in Value value, out ValueNode node)
     {
-        ref var node = ref AddAfterTracked(in value);
+        node = AddAfterTracked(in value);
 
-        OnNodeAdd(ref node);
+        OnNodeAdd(node);
         UpdateMarkers(TailIndex, 1);
 
-        nodeRef = RefBox<ValueNode>.From(ref node);
         return this;
     }
 
@@ -325,7 +309,7 @@ internal sealed class QueryWriter : IDisposable
     {
         for (var i = 0; i != values.Length; i++)
         {
-            OnNodeAdd(ref AddAfterTracked(in values[i]));
+            OnNodeAdd(AddAfterTracked(in values[i]));
         }
 
         UpdateMarkers(_tokens.Count - 1, values.Length);
@@ -333,24 +317,21 @@ internal sealed class QueryWriter : IDisposable
         return this;
     }
 
-    public QueryWriter Append(out RefBox<ValueNode> startNode, params Value[] values)
+    public QueryWriter Append(out ValueNode node, params Value[] values)
     {
         if (values.Length == 0)
         {
-            startNode = RefBox<ValueNode>.From(ref _track.Value);
-            return this;
+            throw new ArgumentException("Values must contain at least 1 value");
         }
 
-        ref var node = ref AddAfterTracked(in values[0]);
+        node = AddAfterTracked(in values[0]);
 
-        OnNodeAdd(ref node);
+        OnNodeAdd(node);
 
         for (var i = 1; i < values.Length; i++)
-            OnNodeAdd(ref AddAfterTracked(in values[i]));
+            OnNodeAdd(AddAfterTracked(in values[i]));
 
         UpdateMarkers(_tokens.Count - 1, values.Length);
-
-        startNode = RefBox<ValueNode>.From(ref node);
 
         return this;
     }
@@ -366,7 +347,7 @@ internal sealed class QueryWriter : IDisposable
     public bool AppendIsEmpty(in Value value, out int size)
         => AppendIsEmpty(in value, out size, out _);
 
-    public bool AppendIsEmpty(in Value value, out int size, out RefBox<ValueNode> node)
+    public bool AppendIsEmpty(in Value value, out int size, out ValueNode node)
     {
         var index = TailIndex;
         Append(in value, out node);
@@ -378,12 +359,12 @@ internal sealed class QueryWriter : IDisposable
     {
         builder ??= new StringBuilder();
 
-        ref var current = ref _tokens.First;
+        var current = _tokens.First;
 
-        while (!Unsafe.IsNullRef(ref current))
+        while (current is not null)
         {
             current.Value.WriteTo(builder);
-            current = ref current.Next;
+            current = current.Next;
         }
 
         return builder;

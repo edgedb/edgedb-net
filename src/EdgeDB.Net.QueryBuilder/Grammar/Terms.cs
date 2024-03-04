@@ -19,10 +19,10 @@ internal static class Terms
 
     public static QueryWriter Wrapped(this QueryWriter writer, WriterProxy value, string separator = "()")
     {
-         if (separator.Length != 2)
+        if (separator.Length != 2)
                     throw new ArgumentOutOfRangeException(nameof(separator));
 
-         return writer.Append('(', value, ')');
+        return writer.Append(separator[0], value, separator[1]);
     }
 
     public static QueryWriter WrappedValues(this QueryWriter writer, string separator = "()", params Value[] values)
@@ -128,12 +128,12 @@ internal static class Terms
                 {
                     var arg = args[i++];
 
-                    if(writer.AppendIsEmpty(arg.Value, out _, out var nodeRef))
+                    if(writer.AppendIsEmpty(arg.Value, out _, out var node))
                         continue;
 
                     // append the named part if its specified
                     if (arg.Named is not null)
-                        writer.Prepend(ref nodeRef.Value, Value.Of(writer => writer.Append(arg.Named, " := ")));
+                        writer.Prepend(node, Value.Of(writer => writer.Append(arg.Named, " := ")));
 
                     if (i != args.Length)
                         writer.Append(", ");

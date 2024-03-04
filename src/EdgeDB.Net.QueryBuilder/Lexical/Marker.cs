@@ -6,7 +6,7 @@ internal sealed class Marker
     public int Position { get; private set; }
     public int Size { get; }
 
-    public RefBox<LooseLinkedList<Value>.Node> Start { get; set; }
+    public LooseLinkedList<Value>.Node Start { get; set; }
 
     /// <summary>
     ///     Gets the closest parent to this marker
@@ -51,7 +51,7 @@ internal sealed class Marker
 
     private readonly QueryWriter _writer;
 
-    internal Marker(MarkerType type, QueryWriter writer, int size, int position, RefBox<LooseLinkedList<Value>.Node> start)
+    internal Marker(MarkerType type, QueryWriter writer, int size, int position, LooseLinkedList<Value>.Node start)
     {
         Type = type;
         _writer = writer;
@@ -68,7 +68,7 @@ internal sealed class Marker
     public void Replace(Value value)
     {
         _writer
-            .Replace(ref Start.Value, Position, Size, value);
+            .Replace(Start, Position, Size, value);
     }
 
     public void Replace(WriterProxy value)

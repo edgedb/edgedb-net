@@ -2,6 +2,6 @@
 
 internal interface INodeObserver
 {
-    void OnAdd(ref LooseLinkedList<Value>.Node node);
-    void OnRemove(ref LooseLinkedList<Value>.Node node);
+    void OnAdd(LooseLinkedList<Value>.Node node);
+    void OnRemove(LooseLinkedList<Value>.Node node);
 }

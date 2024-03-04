@@ -42,6 +42,9 @@ namespace EdgeDB.ExampleApp.Examples
 
         private static async Task QueryBuilderDemo(EdgeDBClient client)
         {
+            QueryBuilder
+                .SelectExpression(x => EdgeQL.Count(QueryBuilder.Select<Person>()));
+
             // Selecting a type with autogen shape
             var query = QueryBuilder.Select<Person>().Build().Prettify();
 

@@ -41,12 +41,12 @@ internal readonly struct Value
 
     public static Value Of(WriterProxy proxy) => new(proxy);
 
-    public ref LooseLinkedList<Value>.Node Proxy(QueryWriter writer, out bool success)
+    public bool TryProxy(QueryWriter writer, [MaybeNullWhen(false)] out LooseLinkedList<Value>.Node result)
     {
         if (IsScalar)
         {
-            success = false;
-            return ref Unsafe.NullRef<LooseLinkedList<Value>.Node>();
+            result = null;
+            return false;
         }
 
         using var nodeObserver = new LastNodeObserver(writer);
@@ -55,8 +55,8 @@ internal readonly struct Value
         if (!nodeObserver.HasValue)
             throw new InvalidOperationException("Provided proxy wrote no value");
 
-        success = true;
-        return ref nodeObserver.Value;
+        result = nodeObserver.Value;
+        return true;
     }
 
     public void WriteTo(StringBuilder writer)

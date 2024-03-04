@@ -1,17 +1,16 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace EdgeDB;
 
 internal sealed class LastNodeObserver : INodeObserver, IDisposable
 {
+    [MemberNotNullWhen(true, nameof(Value))]
     public bool HasValue
-        => !_resultBox.IsNull;
+        => Value is not null;
 
-    public ref LooseLinkedList<Value>.Node Value
-        => ref _resultBox.Value;
+    public LooseLinkedList<Value>.Node? Value { get; private set; }
 
-
-    private readonly RefBox<LooseLinkedList<Value>.Node> _resultBox = RefBox<LooseLinkedList<Value>.Node>.Null;
 
     private readonly QueryWriter _writer;
 
@@ -21,17 +20,16 @@ internal sealed class LastNodeObserver : INodeObserver, IDisposable
         _writer.AddObserver(this);
     }
 
-    public void OnAdd(ref LooseLinkedList<Value>.Node node)
+    public void OnAdd(LooseLinkedList<Value>.Node node)
     {
-        _resultBox.Set(ref node);
+        Value = node;
     }
 
-    public void OnRemove(ref LooseLinkedList<Value>.Node node)
+    public void OnRemove(LooseLinkedList<Value>.Node node)
     {
-        unsafe
+        if (Value == node)
         {
-            if(_resultBox.Pointer == Unsafe.AsPointer(ref node))
-                _resultBox.Set(ref Unsafe.NullRef<LooseLinkedList<Value>.Node>());
+            Value = null;
         }
     }
 

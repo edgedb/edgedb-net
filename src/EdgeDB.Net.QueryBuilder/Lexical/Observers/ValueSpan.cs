@@ -4,7 +4,7 @@ namespace EdgeDB;
 
 internal sealed class ValueSpan : INodeObserver, IDisposable
 {
-    private readonly List<Value> _nodes;
+    private readonly List<ValueNode> _nodes;
 
     private readonly QueryWriter _writer;
 
@@ -15,14 +15,14 @@ internal sealed class ValueSpan : INodeObserver, IDisposable
         writer.AddObserver(this);
     }
 
-    public void OnAdd(ref ValueNode node)
+    public void OnAdd(ValueNode node)
     {
-        _nodes.Add(node.Value);
+        _nodes.Add(node);
     }
 
-    public void OnRemove(ref ValueNode node)
+    public void OnRemove(ValueNode node)
     {
-        _nodes.Remove(node.Value);
+        _nodes.Remove(node);
     }
 
     public void Dispose()
@@ -32,6 +32,6 @@ internal sealed class ValueSpan : INodeObserver, IDisposable
 
     public Value[] ToTokens()
     {
-        return _nodes.ToArray();
+        return _nodes.Select(x => x.Value).ToArray();
     }
 }

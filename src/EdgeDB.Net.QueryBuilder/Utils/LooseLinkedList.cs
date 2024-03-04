@@ -10,101 +10,47 @@ namespace EdgeDB;
 /// <summary>
 ///     A non-circular linked list implementation.
 /// </summary>
-/// <remarks>
-///     It's important to note that this lists reference is critical to validation of inserts. DO NOT capture this
-///     class in a delegate!!! it will produce unexpected behaviour with node validation since each node in the list
-///     points to the list that created it, when a delegate captures this list, it will not be able to validate the
-///     nodes.
-/// </remarks>
 /// <typeparam name="T">The type to store in this linked list.</typeparam>
-public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
+public sealed class LooseLinkedList<T> : IDisposable, IEnumerable<T>
 {
-    public delegate void NodeAction(ref Node node);
+    public delegate void NodeAction(Node? node);
 
     /// <summary>
     ///     Represents a node inside of the current linked list.
     /// </summary>
     [DebuggerDisplay("{DebugDisplay}"), StructLayout(LayoutKind.Sequential)]
-    public struct Node
+    public sealed class Node(T value, LooseLinkedList<T> list)
     {
         [DebuggerHidden]
         private string DebugDisplay
-            => $"Value({Value}) HasNext={NextPtr is not null} HasPrevious={PreviousPtr is not null}";
+            => $"Value({Value}) HasNext={Next is not null} HasPrevious={Previous is not null}";
 
         /// <summary>
         ///     Gets the next node within the list.
         /// </summary>
-        /// <remarks>
-        ///     This value can be a by-ref null.
-        /// </remarks>
-        public ref Node Next
-            => ref Unsafe.AsRef<Node>(NextPtr);
+        public Node? Next { get; internal set; }
 
         /// <summary>
         ///     Gets the previous node within the list.
         /// </summary>
-        /// <remarks>
-        ///     This value can be a by-ref null.
-        /// </remarks>
-        public ref Node Previous
-            => ref Unsafe.AsRef<Node>(PreviousPtr);
+        public Node? Previous { get; internal set; }
 
-        /// <summary>
-        ///     The pointer to the next node.
-        /// </summary>
-        internal Node* NextPtr;
-
-        /// <summary>
-        ///     The pointer to the previous node.
-        /// </summary>
-        internal Node* PreviousPtr;
-
-        // NOTE: 'List' must appear before 'T' since its a 'constant' size field. The CLR gets mixed up when 'T' fields
-        // appear and anything that tries to get referenced after them in the layout seem to get borked.
         /// <summary>
         ///     The list that owns this node.
         /// </summary>
-        internal LooseLinkedList<T> List;
+        internal LooseLinkedList<T> List = list;
 
         /// <summary>
         ///     The value within the node.
         /// </summary>
-        public T Value;
+        public T Value { get; private set; } = value;
 
-        /// <summary>
-        ///     Sets the next node of this node.
-        /// </summary>
-        /// <param name="next">The by-ref next node.</param>
-        internal void SetNext(ref Node next)
-            => NextPtr = (Node*)Unsafe.AsPointer(ref next);
-
-        /// <summary>
-        ///     Sets the previous node of this node.
-        /// </summary>
-        /// <param name="previous">The by-ref previous node.</param>
-        internal void SetPrevious(ref Node previous)
-            => PreviousPtr = (Node*)Unsafe.AsPointer(ref previous);
-
-        /// <summary>
-        ///     Determines if the provided by-ref node is <i>is the same reference</i> ; i.e. their pointer address
-        ///     is the same.
-        /// </summary>
-        /// <param name="other">The other by-ref node to compare.</param>
-        /// <returns><c>true</c> if the nodes' reference is equal to this ones; otherwise <c>false</c>.</returns>
-        public bool ReferenceEquals(ref Node other)
-            => Unsafe.AsPointer(ref this) == Unsafe.AsPointer(ref other);
-
-        /// <summary>
-        ///     Destroys this node, freeing its memory.
-        /// </summary>
-        internal void Destroy()
+        public void Destroy()
         {
-            NextPtr = null;
-            PreviousPtr = null;
+            Next = null;
             Value = default!;
+            Previous = null;
             List = null!;
-
-            Allocator.Free(ref this);
         }
     }
 
@@ -114,34 +60,29 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     public int Count { get; private set; }
 
     /// <summary>
-    ///     Gets the first node in this list as by-ref.
+    ///     Gets the first node in this list.
     /// </summary>
-    public ref Node First
-        => ref Unsafe.AsRef<Node>(_head);
+    public Node? First { get; private set; }
 
     /// <summary>
-    ///     Gets the last node in this list as by-ref.
+    ///     Gets the last node in this list.
     /// </summary>
-    public ref Node Last
-        => ref Unsafe.AsRef<Node>(_tail);
-
-    private Node* _head;
-    private Node* _tail;
+    public Node? Last { get; private set; }
 
     /// <summary>
     ///     Adds a value after a specified node.
     /// </summary>
     /// <param name="node">The node to add the value after.</param>
     /// <param name="value">The value to add.</param>
-    /// <returns>The newly added values' node as a by-ref value.</returns>
-    public ref Node AddAfter(ref Node node, in T value)
+    /// <returns>The newly added values' node.</returns>
+    public Node AddAfter(Node node, in T value)
     {
-        ValidateNode(ref node);
+        ValidateNode(node);
 
-        ref var newNode = ref CreateNode(in value);
-        InsertNodeAfter(ref node, ref newNode);
+        var newNode = CreateNode(in value);
+        InsertNodeAfter(node, newNode);
 
-        return ref newNode;
+        return newNode;
     }
 
     /// <summary>
@@ -149,12 +90,12 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     /// </summary>
     /// <param name="node">The node to add the new node after.</param>
     /// <param name="newNode">The new node to add.</param>
-    public void AddAfter(ref Node node, ref Node newNode)
+    public void AddAfter(Node node, Node newNode)
     {
-        ValidateNode(ref node);
-        ValidateNode(ref newNode);
+        ValidateNode(node);
+        ValidateNode(newNode);
 
-        InsertNodeAfter(ref node, ref newNode);
+        InsertNodeAfter(node, newNode);
     }
 
     /// <summary>
@@ -162,15 +103,15 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     /// </summary>
     /// <param name="node">The node to add the value before.</param>
     /// <param name="value">The value to add.</param>
-    /// <returns>The newly added node as a by-ref value.</returns>
-    public ref Node AddBefore(ref Node node, in T value)
+    /// <returns>The newly added node.</returns>
+    public Node AddBefore(Node node, in T value)
     {
-        ValidateNode(ref node);
+        ValidateNode(node);
 
-        ref var newNode = ref CreateNode(in value);
-        InsertNodeBefore(ref node, ref newNode);
+        var newNode = CreateNode(in value);
+        InsertNodeBefore(node, newNode);
 
-        return ref newNode;
+        return newNode;
     }
 
     /// <summary>
@@ -178,50 +119,50 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     /// </summary>
     /// <param name="node">The node to add the value before.</param>
     /// <param name="newNode">the new node to add.</param>
-    public void AddBefore(ref Node node, ref Node newNode)
+    public void AddBefore(Node node, Node newNode)
     {
-        ValidateNode(ref node);
-        ValidateNode(ref newNode);
+        ValidateNode(node);
+        ValidateNode(newNode);
 
-        InsertNodeBefore(ref node, ref newNode);
+        InsertNodeBefore(node, newNode);
     }
 
     /// <summary>
     ///     Adds a value to the front of this list.
     /// </summary>
     /// <param name="value">The value to add.</param>
-    /// <returns>The newly added node as a by-ref value.</returns>
-    public ref Node AddFirst(in T value)
+    /// <returns>The newly added node.</returns>
+    public Node AddFirst(in T value)
     {
-        ref var newNode = ref CreateNode(in value);
+        var newNode = CreateNode(in value);
 
-        if (_head is null)
+        if (First is null)
         {
-            InsertNodeEmpty(ref newNode);
+            InsertNodeEmpty(newNode);
         }
         else
         {
-            InsertNodeBefore(ref First, ref newNode);
+            InsertNodeBefore(First, newNode);
         }
 
-        return ref newNode;
+        return newNode;
     }
 
     /// <summary>
     ///     Adds a node to the front of the list.
     /// </summary>
     /// <param name="node">The node to add.</param>
-    public void AddFirst(ref Node node)
+    public void AddFirst(Node node)
     {
-        ValidateNode(ref node);
+        ValidateNode(node);
 
-        if (_head is null)
+        if (First is null)
         {
-            InsertNodeEmpty(ref node);
+            InsertNodeEmpty(node);
         }
         else
         {
-            InsertNodeBefore(ref First, ref node);
+            InsertNodeBefore(First, node);
         }
     }
 
@@ -229,38 +170,38 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     ///     Adds a value to the end of the list.
     /// </summary>
     /// <param name="value">The value to add.</param>
-    /// <returns>The newly added node as a by-ref value.</returns>
-    public ref Node AddLast(in T value)
+    /// <returns>The newly added node.</returns>
+    public Node AddLast(in T value)
     {
-        ref var node = ref CreateNode(in value);
+        var node = CreateNode(in value);
 
-        if (_tail is null)
+        if (Last is null)
         {
-            InsertNodeEmpty(ref node);
+            InsertNodeEmpty(node);
         }
         else
         {
-            InsertNodeAfter(ref Last, ref node);
+            InsertNodeAfter(Last, node);
         }
 
-        return ref node;
+        return node;
     }
 
     /// <summary>
     ///     Adds a node to the end of the list.
     /// </summary>
     /// <param name="node">The node to add.</param>
-    public void AddLast(ref Node node)
+    public void AddLast(Node node)
     {
-        ValidateNode(ref node);
+        ValidateNode(node);
 
-        if (_tail is null)
+        if (Last is null)
         {
-            InsertNodeEmpty(ref node);
+            InsertNodeEmpty(node);
         }
         else
         {
-            InsertNodeAfter(ref Last, ref node);
+            InsertNodeAfter(Last, node);
         }
     }
 
@@ -269,17 +210,17 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     /// </summary>
     public void Clear()
     {
-        ref var current = ref First;
+        var current = First;
 
-        while (!Unsafe.IsNullRef(ref current))
+        while (current is not null)
         {
-            ref var temp = ref current;
-            current = ref current.Next;
+            var temp = current;
+            current = current.Next;
             temp.Destroy();
         }
 
-        _head = null;
-        _tail = null;
+        First = null;
+        Last = null;
         Count = 0;
     }
 
@@ -287,40 +228,40 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     ///     Finds a specific value within this list.
     /// </summary>
     /// <remarks>
-    ///     The result of this method can be a by-ref null.
+    ///     The result of this method can be null.
     /// </remarks>
     /// <param name="value">The value to find.</param>
     /// <returns>
-    ///     The node containing the provided value as a by-ref value if found; otherwise a by-ref null.
+    ///     The node containing the provided value if found; otherwise null.
     /// </returns>
-    public ref Node Find(in T value)
+    public Node? Find(in T value)
     {
-        ref var node = ref First;
+        var node = First;
         var comparer = EqualityComparer<T>.Default;
 
-        if (Unsafe.IsNullRef(ref node))
-            return ref node;
+        if (node is null)
+            return node;
 
         if (value is null)
         {
             do
             {
                 if (node.Value is null)
-                    return ref node;
-                node = ref node.Next;
-            } while (!Unsafe.IsNullRef(ref node));
+                    return node;
+                node = node.Next;
+            } while (node is not null);
         }
         else
         {
             do
             {
                 if (comparer.Equals(node.Value, value))
-                    return ref node;
-                node = ref node.Next;
-            } while (!Unsafe.IsNullRef(ref node));
+                    return node;
+                node = node.Next;
+            } while (node is not null);
         }
 
-        return ref Unsafe.NullRef<Node>();
+        return null;
     }
 
     /// <summary>
@@ -330,35 +271,36 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     /// <returns><c>true</c> if the value was removed; otherwise <c>false</c>.</returns>
     public bool Remove(in T value)
     {
-        ref var node = ref Find(in value);
+        var node = Find(in value);
 
-        if (Unsafe.IsNullRef(ref node)) return false;
-        Remove(ref node);
+        if (node is null) return false;
+
+        Remove(node);
         return true;
 
     }
 
     /// <summary>
-    ///     Removes the specified by-ref node from the list.
+    ///     Removes the specified node from the list.
     /// </summary>
     /// <param name="node">The node to remove.</param>
-    public void Remove(ref Node node)
+    public void Remove(Node node)
     {
-        ValidateNode(ref node);
+        ValidateNode(node);
 
-        if (node.NextPtr is not null)
+        if (node.Next is not null)
         {
-            node.Next.SetPrevious(ref node.Previous);
+            node.Next.Previous = node.Previous;
         }
 
-        if (node.PreviousPtr is not null)
+        if (node.Previous is not null)
         {
-            node.Previous.SetNext(ref node.Next);
+            node.Previous.Next = node.Next;
         }
 
-        if (_head == (Node*)Unsafe.AsPointer(ref node))
+        if (First == node)
         {
-            _head = (Node*)Unsafe.AsPointer(ref node.Next);
+            First = node.Next;
         }
 
         node.Destroy();
@@ -371,57 +313,55 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     /// <param name="node">The node to start from.</param>
     /// <param name="count">The number of nodes to remove.</param>
     /// <param name="action">A delegate that's called right before a node is removed.</param>
-    public void Remove(ref Node node, int count, NodeAction? action = null)
+    public void Remove(Node node, int count, NodeAction? action = null)
     {
-        ValidateNode(ref node);
+        ValidateNode(node);
+        var head = node.Previous;
 
-        ref var head = ref node.Previous;
-
-        ref var current = ref node;
-        for (var i = 0; i != count - 1 && !Unsafe.IsNullRef(ref current); i++)
+        var current = node;
+        for (var i = 0; i != count - 1 && current is not null; i++)
         {
-            ref var next = ref current.Next;
-            action?.Invoke(ref current);
+            var next = current.Next;
+            action?.Invoke(current);
             current.Destroy();
-            current = ref next;
+            current = next;
             Count--;
         }
 
         // the span of nodes removed has a head and tail
-        if (!Unsafe.IsNullRef(ref current) && !Unsafe.IsNullRef(ref head))
+        if (current is not null && head is not null)
         {
-            ref var tail = ref current.Next;
-            action?.Invoke(ref current);
+            var tail = current.Next;
+            action?.Invoke(current);
             current.Destroy();
             Count--;
 
-            head.SetNext(ref tail);
-            tail.SetPrevious(ref head);
+            head.Next = tail;
+
+            if(tail is not null)
+                tail.Previous = head;
         }
-        else if (Unsafe.IsNullRef(ref current) && !Unsafe.IsNullRef(ref head))
+        else if (current is null && head is not null)
         {
             // we've removed to the end of the list, 'head' becomes the tail
-            head.NextPtr = null;
-            _tail = (Node*) Unsafe.AsPointer(ref head);
+            head.Next = null;
+            Last = head;
         }
-        else if (Unsafe.IsNullRef(ref head) && !Unsafe.IsNullRef(ref current))
+        else if (head is null && current is not null)
         {
             // we've removed from the start of the list
-            ref var tail = ref current.Next;
-            action?.Invoke(ref current);
+            var tail = current.Next;
+            action?.Invoke(current);
             current.Destroy();
-            _head = (Node*) Unsafe.AsPointer(ref tail);
+            First = tail;
             Count--;
         }
         else
         {
             // both head and current is null, meaning we've removed the entire list, ensure head and tail is null and
             // set count to 0
-            if (_head is not null)
-                _head = null;
-
-            if (_tail is not null)
-                _tail = null;
+            First = null;
+            Last = null;
 
             if (Count != 0)
                 Count = 0;
@@ -434,9 +374,9 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     /// <exception cref="InvalidOperationException">The list is empty.</exception>
     public void RemoveFirst()
     {
-        if (_head is null)
+        if (First is null)
             throw new InvalidOperationException("Cannot remove from an empty list");
-        Remove(ref First);
+        Remove(First);
     }
 
     /// <summary>
@@ -445,9 +385,9 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     /// <exception cref="InvalidOperationException">The list is empty.</exception>
     public void RemoveLast()
     {
-        if (_tail is null)
+        if (Last is null)
             throw new InvalidOperationException("Cannot remove from an empty list");
-        Remove(ref Last);
+        Remove(Last);
     }
 
     /// <summary>
@@ -456,58 +396,23 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     /// <param name="node">The node to validate.</param>
     /// <exception cref="ArgumentNullException">The node is null.</exception>
     /// <exception cref="InvalidOperationException">The node isn't apart of this list.</exception>
-    private void ValidateNode(ref Node node)
+    private void ValidateNode(Node? node)
     {
-        if (!Allocator.IsOwned(ref node))
-            throw new ArgumentException("Node isn't created by a list or was copied into CLR memory", nameof(node));
-
-        if (Unsafe.IsNullRef(ref node))
+        if (node is null)
             throw new ArgumentNullException(nameof(node));
 
-        if (this != node.List)
-        {
-            // sanity
-            ValidateList();
-            throw new InvalidOperationException("The provided node isn't apart of this list");
-        }
-    }
-
-    private void ValidateList()
-    {
-        var invalids = new List<RefBox<Node>>();
-
-        ref var current = ref First;
-        while (!Unsafe.IsNullRef(ref current))
-        {
-            if (!Allocator.IsOwned(ref current))
-                throw new InvalidOperationException("List is malformed");
-
-            if (current.List != this)
-            {
-                invalids.Add(RefBox<Node>.From(ref current));
-            }
-
-            current = ref current.Next;
-        }
-
-        if (invalids.Count == Count)
-        {
-            // we're fucked, somethings captured a reference of the list and 'this' is that captured reference...
-            throw new AccessViolationException(
-                "The reference to 'this' was polluted by a captured reference, ex: delegate; etc..");
-        }
-
-        invalids.Clear();
+        if (node.List != this)
+            throw new InvalidOperationException("The provided node isn't apart of the list");
     }
 
     /// <summary>
     ///     Inserts a new node into this empty list.
     /// </summary>
-    /// <param name="node"></param>
-    private void InsertNodeEmpty(ref Node node)
+    /// <param name="node">The node to insert.</param>
+    private void InsertNodeEmpty(Node node)
     {
-        _head = (Node*)Unsafe.AsPointer(ref node);
-        _tail = _head;
+        First = node;
+        Last = node;
         Count++;
     }
 
@@ -516,20 +421,20 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     /// </summary>
     /// <param name="node">The node to use as an anchor point.</param>
     /// <param name="newNode">The node to insert before the anchor point.</param>
-    private void InsertNodeBefore(ref Node node, ref Node newNode)
+    private void InsertNodeBefore(Node node, Node newNode)
     {
-        if (!Unsafe.IsNullRef(ref node.Previous))
+        if (node.Previous is not null)
         {
-            node.Previous.SetNext(ref newNode);
-            newNode.SetPrevious(ref node.Previous);
+            node.Previous.Next = newNode;
+            newNode.Previous = node.Previous;
         }
 
-        newNode.SetNext(ref node);
-        node.SetPrevious(ref newNode);
+        newNode.Next = node;
+        node.Previous = newNode;
 
         // change head if we're inserting before it.
-        if (_head == (Node*)Unsafe.AsPointer(ref node))
-            _head = (Node*)Unsafe.AsPointer(ref newNode);
+        if (First == node)
+            First = newNode;
 
         Count++;
     }
@@ -539,19 +444,19 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     /// </summary>
     /// <param name="node">The node to use as an anchor point.</param>
     /// <param name="newNode">The node to insert after the anchor point.</param>
-    private void InsertNodeAfter(ref Node node, ref Node newNode)
+    private void InsertNodeAfter(Node node, Node newNode)
     {
-        if (!Unsafe.IsNullRef(ref node.Next))
+        if (node.Next is not null)
         {
-            node.Next.SetPrevious(ref newNode);
-            newNode.SetNext(ref node.Next);
+            node.Next.Previous = newNode;
+            newNode.Next = node.Next;
         }
 
-        newNode.SetPrevious(ref node);
-        node.SetNext(ref newNode);
+        newNode.Previous = node;
+        node.Next = newNode;
 
-        if (_tail == (Node*)Unsafe.AsPointer(ref node))
-            _tail = (Node*)Unsafe.AsPointer(ref newNode);
+        if (Last == node)
+            Last = newNode;
 
         Count++;
     }
@@ -560,19 +465,12 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     ///     Allocates and initializes a new node
     /// </summary>
     /// <param name="value">The value to wrap the node around.</param>
-    /// <returns>The newly created node as a by-ref value.</returns>
-    private ref Node CreateNode(in T value)
-    {
-        ref var node = ref Allocator.Allocate<Node>();
-        node.Value = value;
-        node.List = this;
-        node.NextPtr = null;
-        node.PreviousPtr = null;
-        return ref node;
-    }
+    /// <returns>The newly created node.</returns>
+    private Node CreateNode(in T value)
+        => new(value, this);
 
     /// <summary>
-    ///     Clears and de-allocs all nodes within this list.
+    ///     Clears all nodes within this list.
     /// </summary>
     public void Dispose()
     {
@@ -584,14 +482,14 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
         public T Current => _current!;
 
         private readonly LooseLinkedList<T> _list;
-        private Node* _node;
+        private Node? _node;
         private T? _current;
         private int _index;
 
         internal Enumerator(LooseLinkedList<T> list)
         {
             _list = list;
-            _node = list._head;
+            _node = list.First;
             _current = default;
             _index = 0;
         }
@@ -605,8 +503,8 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
             }
 
             _index++;
-            _current = _node->Value;
-            _node = _node->NextPtr!;
+            _current = _node.Value;
+            _node = _node.Next;
 
             return true;
         }
@@ -614,7 +512,7 @@ public sealed unsafe class LooseLinkedList<T> : IDisposable, IEnumerable<T>
         void IEnumerator.Reset()
         {
             _current = default;
-            _node = _list._head;
+            _node = _list.First;
             _index = 0;
         }
 
