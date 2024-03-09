@@ -5,6 +5,7 @@ internal sealed class Marker
     public MarkerType Type { get; }
     public int Position { get; private set; }
     public int Size { get; }
+    public Deferrable<string>? DebugText { get; }
 
     public LooseLinkedList<Value>.Node Start { get; set; }
 
@@ -51,13 +52,14 @@ internal sealed class Marker
 
     private readonly QueryWriter _writer;
 
-    internal Marker(MarkerType type, QueryWriter writer, int size, int position, LooseLinkedList<Value>.Node start)
+    internal Marker(MarkerType type, QueryWriter writer, int size, int position, LooseLinkedList<Value>.Node start, Deferrable<string>? debugText)
     {
         Type = type;
         _writer = writer;
         Size = size;
         Position = position;
         Start = start;
+        DebugText = debugText;
     }
 
     internal void Update(int delta)

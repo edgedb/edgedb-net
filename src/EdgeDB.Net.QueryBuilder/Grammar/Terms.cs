@@ -3,10 +3,10 @@
 internal static class Terms
 {
     #region Markers
-    public static QueryWriter LabelVariable(this QueryWriter writer, string name, params Value[] values)
-        => writer.Marker(MarkerType.Variable, name, values);
-    public static QueryWriter LabelVerbose(this QueryWriter writer, string name, params Value[] values)
-        => writer.Marker(MarkerType.Verbose, name, values);
+    public static QueryWriter LabelVariable(this QueryWriter writer, string name, Deferrable<string>? debug = null, params Value[] values)
+        => writer.Marker(MarkerType.Variable, name, debug, values);
+    public static QueryWriter LabelVerbose(this QueryWriter writer, string name, Deferrable<string>? debug = null, params Value[] values)
+        => writer.Marker(MarkerType.Verbose, name, debug, values);
     #endregion
 
     public static QueryWriter Wrapped(this QueryWriter writer, Value value, string separator = "()")
@@ -20,7 +20,7 @@ internal static class Terms
     public static QueryWriter Wrapped(this QueryWriter writer, WriterProxy value, string separator = "()")
     {
         if (separator.Length != 2)
-                    throw new ArgumentOutOfRangeException(nameof(separator));
+            throw new ArgumentOutOfRangeException(nameof(separator));
 
         return writer.Append(separator[0], value, separator[1]);
     }
@@ -38,7 +38,7 @@ internal static class Terms
         return writer.Append(value);
     }
 
-    public static QueryWriter Shape(this QueryWriter writer, string name, params Value[] values)
+    public static QueryWriter Shape(this QueryWriter writer, string name, Deferrable<string>? debug, params Value[] values)
     {
         var value = new Value[values.Length + 2];
         value[0] = "{ ";
@@ -46,11 +46,11 @@ internal static class Terms
 
         values.CopyTo(value[1..^1].AsSpan());
 
-        return writer.Marker(MarkerType.Shape, name, value);
+        return writer.Marker(MarkerType.Shape, name, debug, value);
     }
 
     public static QueryWriter Shape<T>(this QueryWriter writer, string name, T[] elements,
-        Action<QueryWriter, T> func, string parentheses = "{}")
+        Action<QueryWriter, T> func, string parentheses = "{}", Deferrable<string>? debug = null)
     {
         if (parentheses.Length != 2)
             throw new ArgumentException("Parentheses must contain 2 characters", nameof(parentheses));
@@ -69,7 +69,8 @@ internal static class Terms
                 }
 
                 writer.Append(' ', parentheses[1]);
-            })
+            }),
+            debug
         );
     }
 
@@ -119,7 +120,7 @@ internal static class Terms
 
     public static QueryWriter Function(this QueryWriter writer, string name, params FunctionArg[] args)
     {
-        return writer.Marker(MarkerType.Function, $"func_{name}_{args.GetHashCode()}", Value.Of(
+        return writer.Marker(MarkerType.Function, $"func_{name}", Value.Of(
             writer =>
             {
                 writer.Append(name, '(');
@@ -127,13 +128,30 @@ internal static class Terms
                 for (var i = 0; i < args.Length;)
                 {
                     var arg = args[i++];
+                    bool isEmpty = false;
 
-                    if(writer.AppendIsEmpty(arg.Value, out _, out var node))
+                    writer.Marker(
+                        MarkerType.FunctionArg,
+                        $"func_{name}_arg_{i}",
+                        null,
+                        Value.Of(
+                            writer =>
+                            {
+                                if (writer.AppendIsEmpty(arg.Value, out _, out var node))
+                                {
+                                    isEmpty = true;
+                                    return;
+                                }
+
+                                // append the named part if its specified
+                                if (arg.Named is not null)
+                                    writer.Prepend(node, Value.Of(writer => writer.Append(arg.Named, " := ")));
+                            }
+                        )
+                    );
+
+                    if(isEmpty)
                         continue;
-
-                    // append the named part if its specified
-                    if (arg.Named is not null)
-                        writer.Prepend(node, Value.Of(writer => writer.Append(arg.Named, " := ")));
 
                     if (i != args.Length)
                         writer.Append(", ");
@@ -147,8 +165,8 @@ internal static class Terms
     public static QueryWriter SingleQuoted(this QueryWriter writer, Value value)
         => writer.Append('\'', value, '\'');
 
-    public static QueryWriter QueryArgument(this QueryWriter writer, Value type, string name)
-        => writer.Marker(MarkerType.Variable, name, '<', type, ">$", name);
+    public static QueryWriter QueryArgument(this QueryWriter writer, Value type, string name, Deferrable<string>? debug = null)
+        => writer.Marker(MarkerType.Variable, name, debug, '<', type, ">$", name);
 
     public static Value[] Span(this QueryWriter writer, WriterProxy proxy)
     {

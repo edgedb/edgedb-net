@@ -67,6 +67,7 @@ namespace EdgeDB
                 return writer =>
                     writer.LabelVerbose(
                         label,
+                        Defer.This(() => $"Translation of {expression}"),
                         Value.Of(writer => ContextualTranslate(expression, expressionContext, writer))
                     );
             }
@@ -157,7 +158,11 @@ namespace EdgeDB
             // if we can find a translator for the expression type, use it.
             if (_translators.TryGetValue(expType, out var translator))
             {
-                translator.Translate(expression, context, writer);
+                writer.LabelVerbose(
+                    expType.Name,
+                    Defer.This(() => $"Translated form of '{expression}'"),
+                    Value.Of(writer => translator.Translate(expression, context, writer))
+                );
                 return;
             }
 

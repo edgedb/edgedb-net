@@ -25,14 +25,17 @@ namespace EdgeDB.Builders
     {
         private readonly SelectedProperty[] _shape;
 
-        public SelectShape(IEnumerable<SelectedProperty> shape)
+        private readonly Type _type;
+
+        public SelectShape(IEnumerable<SelectedProperty> shape, Type type)
         {
             _shape = shape.ToArray();
+            _type = type;
         }
 
         public void Compile(QueryWriter writer, SelectShapeExpressionTranslatorCallback translator)
         {
-            writer.Shape($"shape_{_shape.GetHashCode()}", _shape, (writer, x) =>
+            writer.Shape($"{_type.GetEdgeDBTypeName()}_shape", _shape, (writer, x) =>
             {
                 x.Compile(writer, translator);
             });
@@ -163,7 +166,7 @@ namespace EdgeDB.Builders
 
         internal SelectShape GetShape()
         {
-            return new(SelectedProperties.Select(x => x.Value));
+            return new(SelectedProperties.Select(x => x.Value), SelectedType);
         }
 
         SelectShape IShapeBuilder.GetShape() => GetShape();
@@ -266,7 +269,7 @@ namespace EdgeDB.Builders
                 var flattened = FlattenNewExpression(info.GetMemberType(), newExpression, element.Root)
                     .Select(x => ParseShape(x.Key, x.Value));
 
-                return new SelectedProperty(info, new SelectShape(flattened));
+                return new SelectedProperty(info, new SelectShape(flattened, info.GetMemberType()));
             }
 
             // computed

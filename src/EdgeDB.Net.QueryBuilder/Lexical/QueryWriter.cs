@@ -200,7 +200,7 @@ internal sealed class QueryWriter : IDisposable
     public bool TryGetMarker(string name, [MaybeNullWhen(false)] out LinkedList<Marker> markers)
         => Markers.TryGetValue(name, out markers);
 
-    public QueryWriter Marker(MarkerType type, string name, in Value value)
+    public QueryWriter Marker(MarkerType type, string name, in Value value, Deferrable<string>? debug = null)
     {
         if (!Markers.TryGetValue(name, out var markers))
             Markers[name] = markers = new();
@@ -209,16 +209,16 @@ internal sealed class QueryWriter : IDisposable
         Append(in value, out var head);
         var size = TailIndex - currentIndex;
 
-        var marker = new Marker(type, this, size, currentIndex + 1, head);
+        var marker = new Marker(type, this, size, currentIndex + 1, head, debug);
         _markersRef.Add(marker);
         markers.AddLast(marker);
         return this;
     }
 
-    public QueryWriter Marker(MarkerType type, string name)
-        => Marker(type, name, name);
+    public QueryWriter Marker(MarkerType type, string name, Deferrable<string>? debug = null)
+        => Marker(type, name, debug, name);
 
-    public QueryWriter Marker(MarkerType type, string name, params Value[] values)
+    public QueryWriter Marker(MarkerType type, string name, Deferrable<string>? debug = null, params Value[] values)
     {
         if (values.Length == 0)
             return this;
@@ -237,7 +237,8 @@ internal sealed class QueryWriter : IDisposable
             this,
             count,
             currentIndex + 1,
-            head
+            head,
+            debug
         );
 
         _markersRef.Add(marker);

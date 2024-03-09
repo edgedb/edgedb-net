@@ -71,7 +71,13 @@ namespace EdgeDB.QueryNodes
                     foreach (var node in SubNodes)
                     {
                         node.SchemaInfo = SchemaInfo;
-                        node.FinalizeQuery(writer);
+
+                        writer.Marker(
+                            MarkerType.Verbose,
+                            $"FOR_inner_{GetHashCode()}",
+                            Defer.This(() => $"FOR iteration inner node {node.GetType().Name}"),
+                            Value.Of(writer => node.FinalizeQuery(writer))
+                        );
 
                         foreach (var variable in node.Builder.QueryVariables)
                             SetVariable(variable.Key, variable.Value);
