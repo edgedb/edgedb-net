@@ -181,6 +181,11 @@ namespace EdgeDB.QueryNodes
             ExpressionTranslator.Translate(expression, consumer, writer);
         }
 
+        protected WriterProxy ProxyExpression(LambdaExpression expression)
+        {
+            return writer => TranslateExpression(expression, writer);
+        }
+
         /// <summary>
         ///     Translates a given expression into EdgeQL.
         /// </summary>

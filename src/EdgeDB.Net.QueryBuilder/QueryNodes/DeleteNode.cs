@@ -20,6 +20,10 @@ namespace EdgeDB.QueryNodes
         public override void FinalizeQuery(QueryWriter writer)
         {
             writer.Append("delete ", Context.SelectName ?? OperatingType.GetEdgeDBTypeName());
+            FilterProxy?.Invoke(writer);
+            OrderByProxy?.Invoke(writer);
+            OffsetProxy?.Invoke(writer);
+            LimitProxy?.Invoke(writer);
         }
     }
 }

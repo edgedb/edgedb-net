@@ -265,8 +265,6 @@ namespace EdgeDB
                     writer.Append(' ');
                 }
 
-
-
                 nodes = nodes.Prepend(with).ToList();
             }
 

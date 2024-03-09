@@ -17,7 +17,8 @@ namespace EdgeDB.QueryNodes
     {
         private string? _name;
         private string? _jsonName;
-        private string? _json;
+
+        private WriterProxy? _expression;
 
         /// <inheritdoc/>
         public ForNode(NodeBuilder builder) : base(builder)
@@ -34,7 +35,7 @@ namespace EdgeDB.QueryNodes
         /// <exception cref="ArgumentException">
         ///     A type cannot be used as a parameter to a 'FOR' expression
         /// </exception>
-        private void ParseExpression(QueryWriter writer, string name, string varName, string json)
+        private WriterProxy ParseExpression(string name, string varName, string json)
         {
             // check if we're returning a query builder
             if (Context.Expression!.ReturnType == typeof(IQueryBuilder))
@@ -63,12 +64,26 @@ namespace EdgeDB.QueryNodes
                 SubNodes.AddRange(builder.Nodes);
 
                 // return indicating we need to do introspection
-                RequiresIntrospection = true;
+                RequiresIntrospection = SubNodes.Any(x => x.RequiresIntrospection);
+
+                return writer =>
+                {
+                    foreach (var node in SubNodes)
+                    {
+                        node.SchemaInfo = SchemaInfo;
+                        node.FinalizeQuery(writer);
+
+                        foreach (var variable in node.Builder.QueryVariables)
+                            SetVariable(variable.Key, variable.Value);
+
+                        // copy the globals & variables to the current builder
+                        foreach (var global in node.ReferencedGlobals)
+                            SetGlobal(global.Name, global.Value, global.Reference);
+                    }
+                };
             }
-            else
-            {
-                writer.Wrapped(writer => TranslateExpression(Context.Expression!, writer));
-            }
+
+            return writer => writer.Wrapped(writer => TranslateExpression(Context.Expression!, writer));
         }
 
         /// <inheritdoc/>
@@ -78,41 +93,23 @@ namespace EdgeDB.QueryNodes
             _name = Context.Expression!.Parameters.First(x => x.Type != typeof(QueryContext)).Name!;
 
             // serialize the collection & generate a name for the json variable
-            _json = JsonConvert.SerializeObject(Context.Set);
+            var json  = JsonConvert.SerializeObject(Context.Set);
             _jsonName = QueryUtils.GenerateRandomVariableName();
 
             // set the json variable
-            SetVariable(_jsonName, new Json(_json));
+            SetVariable(_jsonName, new Json(json));
+
+            _expression = ParseExpression(_name, _jsonName, json);
         }
 
         /// <inheritdoc/>
         public override void FinalizeQuery(QueryWriter writer)
         {
-            if (_name is null || _jsonName is null || _json is null)
+            if (_name is null || _jsonName is null || _expression is null)
                 throw new InvalidOperationException("No initialization of this node was preformed");
 
             // append the 'FOR' statement
-            writer.Append($"for {_name} in json_array_unpack(<json>${_jsonName}) union ");
-
-            // parse the iterator expression
-            ParseExpression(writer, _name, _jsonName, _json);
-
-            // finalize and build our sub nodes
-            writer.Wrapped(writer =>
-            {
-                foreach (var node in SubNodes)
-                {
-                    node.SchemaInfo = SchemaInfo;
-                    node.FinalizeQuery(writer);
-
-                    foreach (var variable in node.Builder.QueryVariables)
-                        SetVariable(variable.Key, variable.Value);
-
-                    // copy the globals & variables to the current builder
-                    foreach (var global in node.ReferencedGlobals)
-                        SetGlobal(global.Name, global.Value, global.Reference);
-                }
-            });
+            writer.Append("for ", _name, " in json_array_unpack(<json>", _jsonName, ") union ", Value.Of(writer => writer.Wrapped(_expression)));
         }
     }
 }

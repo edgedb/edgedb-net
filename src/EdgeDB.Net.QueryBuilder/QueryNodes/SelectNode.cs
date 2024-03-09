@@ -16,10 +16,10 @@ namespace EdgeDB.QueryNodes
     /// </summary>
     internal class SelectNode : QueryNode<SelectContext>
     {
-        private WriterProxy? _filter;
-        private WriterProxy? _limit;
-        private WriterProxy? _offset;
-        private WriterProxy? _orderBy;
+        protected WriterProxy? FilterProxy;
+        protected WriterProxy? LimitProxy;
+        protected WriterProxy? OffsetProxy;
+        protected WriterProxy? OrderByProxy;
         private SelectShape? _shape;
 
         /// <inheritdoc/>
@@ -137,10 +137,10 @@ namespace EdgeDB.QueryNodes
                 });
             }
 
-            _filter?.Invoke(writer);
-            _orderBy?.Invoke(writer);
-            _offset?.Invoke(writer);
-            _limit?.Invoke(writer);
+            FilterProxy?.Invoke(writer);
+            OrderByProxy?.Invoke(writer);
+            OffsetProxy?.Invoke(writer);
+            LimitProxy?.Invoke(writer);
         }
 
         /// <summary>
@@ -149,7 +149,7 @@ namespace EdgeDB.QueryNodes
         /// <param name="expression">The filter predicate to add.</param>
         public void Filter(LambdaExpression expression)
         {
-            _filter ??= writer =>
+            FilterProxy ??= writer =>
             {
                 writer.Append(" filter ");
                 TranslateExpression(expression, writer);
@@ -168,7 +168,7 @@ namespace EdgeDB.QueryNodes
         {
             var direction = asc ? "asc" : "desc";
 
-            _orderBy ??= writer =>
+            OrderByProxy ??= writer =>
             {
                 writer.Append(" order by ");
                 TranslateExpression(selector, writer);
@@ -185,7 +185,7 @@ namespace EdgeDB.QueryNodes
         /// <param name="offset">The number of elements to offset by.</param>
         internal void Offset(long offset)
         {
-            _offset ??= writer => writer.Append(" offset ", offset);
+            OffsetProxy ??= writer => writer.Append(" offset ", offset);
         }
 
         /// <summary>
@@ -194,7 +194,7 @@ namespace EdgeDB.QueryNodes
         /// <param name="exp">The expression returning the number of elements to offset by.</param>
         internal void OffsetExpression(LambdaExpression exp)
         {
-            _offset ??= writer =>
+            OffsetProxy ??= writer =>
             {
                 writer.Append(" offset ");
                 TranslateExpression(exp, writer);
@@ -207,7 +207,7 @@ namespace EdgeDB.QueryNodes
         /// <param name="limit">The number of element to limit to.</param>
         internal void Limit(long limit)
         {
-            _limit ??= writer => writer.Append(" limit ", limit);
+            LimitProxy ??= writer => writer.Append(" limit ", limit);
         }
 
         /// <summary>
@@ -216,7 +216,7 @@ namespace EdgeDB.QueryNodes
         /// <param name="exp">The expression returning the number of elements to limit to.</param>
         internal void LimitExpression(LambdaExpression exp)
         {
-            _limit ??= writer =>
+            LimitProxy ??= writer =>
             {
                 writer.Append(" limit ");
                 TranslateExpression(exp, writer);

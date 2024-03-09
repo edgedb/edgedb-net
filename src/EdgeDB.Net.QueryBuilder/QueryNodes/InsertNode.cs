@@ -529,7 +529,7 @@ namespace EdgeDB.QueryNodes
                 var edgedbName = property.GetEdgeDBPropertyName();
                 var isScalar = EdgeDBTypeUtils.TryGetScalarType(property.PropertyType, out var edgeqlType);
 
-                if (isScalar && property.PropertyType.IsValueType && !property.PropertyType.IsEnum)
+                if (isScalar && property.PropertyType is {IsValueType: true, IsEnum: false})
                 {
                     elements.Add(new ShapeSetter((writer, info) =>
                     {
@@ -610,9 +610,7 @@ namespace EdgeDB.QueryNodes
             {
                 return new ShapeDefinition($"type_{type.GetEdgeDBTypeName()}:{type}", writer =>
                 {
-                    writer.Append('{');
-                    TranslateExpression(expression, writer);
-                    writer.Append('}');
+                    writer.Append('{', ProxyExpression(expression), '}');
                 });
             }
 
@@ -663,16 +661,15 @@ namespace EdgeDB.QueryNodes
                                 $"Could not find property '{property.EdgeDBName}' on type {type!.GetEdgeDBTypeName()}"
                             );
 
-                        if (edgedbProp.Required && !edgedbProp.HasDefault)
-                        {
-                            var varName = QueryUtils.GenerateRandomVariableName();
-                            SetVariable(varName, propValue);
+                        if (edgedbProp is not {Required: true, HasDefault: false}) return;
 
-                            writer
-                                .Append(property.EdgeDBName)
-                                .Append(" := ")
-                                .QueryArgument(new(edgeqlType), varName);
-                        }
+                        var varName = QueryUtils.GenerateRandomVariableName();
+                        SetVariable(varName, propValue);
+
+                        writer
+                            .Append(property.EdgeDBName)
+                            .Append(" := ")
+                            .QueryArgument(new(edgeqlType), varName);
                     }));
                     continue;
                 }
@@ -714,8 +711,12 @@ namespace EdgeDB.QueryNodes
                             .Shape($"shape_{type.GetEdgeDBTypeName()}_prop_{property.EdgeDBName}", enumerable.Cast<object?>().ToArray(), (w, x) =>
                                 BuildLinkResolver(w, innerType!, x)
                             )));
+
+                        RequiresIntrospection = true;
                     }
-                    else // generate the link resolver and append it
+                    else
+                    {
+                        // generate the link resolver and append it
                         setters.Add(new ShapeSetter(writer =>
                         {
                             writer
@@ -724,6 +725,9 @@ namespace EdgeDB.QueryNodes
 
                             BuildLinkResolver(writer, property.Type, propValue);
                         }));
+
+                        RequiresIntrospection = true;
+                    }
 
                     continue;
                 }
@@ -767,32 +771,32 @@ namespace EdgeDB.QueryNodes
             RequiresIntrospection = true;
 
             // add a insert select statement
-            InlineOrGlobal(writer, type, new SubQuery((info, subqueryWriter) =>
+            InlineOrGlobal(writer, type, new SubQuery((info, writer) =>
             {
-                var name = type.GetEdgeDBTypeName();
-                var exclusiveProps = QueryGenerationUtils.GetProperties(info, type, true).ToArray();
+                writer.Wrapped(writer =>
+                    {
+                        var name = type.GetEdgeDBTypeName();
+                        var exclusiveProps = QueryGenerationUtils.GetProperties(info, type, true).ToArray();
 
-                subqueryWriter
-                    .Append("(insert ", name);
+                        writer.Append("insert ", name, " ");
 
-                BuildInsertShape(type, value).Build(subqueryWriter, info);
+                        BuildInsertShape(type, value).Build(writer, info);
 
-                if (!exclusiveProps.Any()) return;
+                        if (!exclusiveProps.Any()) return;
 
-                subqueryWriter
-                    .Append(" unless conflict on ");
+                        writer.Append("unless conflict on ");
 
-                if (exclusiveProps.Length is 1)
-                    subqueryWriter.Append('.', exclusiveProps[0].GetEdgeDBPropertyName());
-                else
-                    subqueryWriter.Shape(
-                        $"shape_{type.GetEdgeDBTypeName()}_prop_{name}",
-                        exclusiveProps,
-                        (writer, x) => writer.Append('.', x.GetEdgeDBPropertyName()),
-                        "()"
-                    );
-
-                subqueryWriter.Append(" else (select ", name, ')');
+                        if (exclusiveProps.Length is 1)
+                            writer.Append('.', exclusiveProps[0].GetEdgeDBPropertyName());
+                        else
+                            writer.Shape(
+                                $"shape_{type.GetEdgeDBTypeName()}_prop_{name}",
+                                exclusiveProps,
+                                (writer, x) => writer.Append('.', x.GetEdgeDBPropertyName()),
+                                "()"
+                            );
+                        writer.Append(" else (select ", name, ")");
+                    });
             }), value);
         }
 
@@ -839,7 +843,7 @@ namespace EdgeDB.QueryNodes
         /// <param name="selector">The property selector for the conflict clause.</param>
         public void UnlessConflictOn(LambdaExpression selector)
         {
-            _unlessConflictExpression ??= writer => TranslateExpression(selector, writer);
+            _unlessConflictExpression ??= writer => writer.Append("unless conflict on ", ProxyExpression(selector));
         }
 
         /// <summary>
