@@ -42,28 +42,35 @@ namespace EdgeDB.Translators.Expressions
                 return;
             }
 
-            // invoke and translate the result
-            var expressionResult = Expression
-                .Lambda(expression, context.RootExpression.Parameters)
-                .Compile()
-                .DynamicInvoke();
-
-            // attempt to get the scalar type of the result of the method.
-            if (!EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var type))
+            try
             {
-                // if we can't, add it as a global
-                writer.Marker(MarkerType.GlobalReference, context.GetOrAddGlobal(expression, expressionResult));
-                return;
-                //throw new InvalidOperationException("Expected a scalar type for ");
-            }
+                // invoke and translate the result
+                var expressionResult = Expression
+                    .Lambda(expression, context.RootExpression.Parameters)
+                    .Compile()
+                    .DynamicInvoke(new object[context.RootExpression.Parameters.Count]);
 
-            // return the variable name containing the result of the method.
-            var varName = context.AddVariable(expressionResult);
-            writer
-                .Marker(MarkerType.GlobalReference, varName, Value.Of(writer => writer
-                    .TypeCast(type.ToString())
-                    .Append(varName)
-                ));
+                // attempt to get the scalar type of the result of the method.
+                if (!EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var type))
+                {
+                    // if we can't, add it as a global
+                    writer.Marker(MarkerType.GlobalReference, context.GetOrAddGlobal(expression, expressionResult));
+                    return;
+                    //throw new InvalidOperationException("Expected a scalar type for ");
+                }
+
+                // return the variable name containing the result of the method.
+                var varName = context.AddVariable(expressionResult);
+                writer
+                    .Marker(MarkerType.GlobalReference, varName, Value.Of(writer => writer
+                        .TypeCast(type.ToString())
+                        .Append(varName)
+                    ));
+            }
+            catch(Exception x)
+            {
+                Console.Write(x);
+            }
         }
 
         private bool ShouldTranslate(MethodCallExpression expression, ExpressionContext context)
@@ -98,6 +105,12 @@ namespace EdgeDB.Translators.Expressions
             {
                 switch (expression.Method.Name)
                 {
+                    case nameof(QueryContext.QueryArgument):
+                        writer.QueryArgument(
+                            EdgeDBTypeUtils.GetEdgeDBScalarOrTypeName(expression.Method.GetGenericArguments()[0]),
+                            ExpressionAsString(expression.Arguments[0])
+                        );
+                        return;
                     case nameof(QueryContext.Global):
                         TranslateExpression(expression.Arguments[0], context.Enter(x => x.StringWithoutQuotes = true),
                             writer);

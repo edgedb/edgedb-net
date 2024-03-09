@@ -12,6 +12,7 @@ namespace EdgeDB
 {
     public static partial class QueryBuilder
     {
+
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(Expression{Func{QueryContext, TType}}, bool)"/>
         public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(Expression<Func<QueryContext<TType>, TType>> value, bool returnInsertedValue)
             => new QueryBuilder<TType>().Insert(value, returnInsertedValue);
@@ -28,17 +29,51 @@ namespace EdgeDB
         public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(TType value)
             where TType : class
             => new QueryBuilder<TType>().Insert(value, false);
+
+        public static IInsertQuery<object, QueryContext<object>> Insert(Type type, IDictionary<string, object?> values)
+            => new QueryBuilder<object>().Insert(type, values);
+
+        public static IInsertQuery<object, QueryContext<object>> Insert(Type type, IDictionary<string, object?> values,  bool returnInsertedValue)
+            => new QueryBuilder<object>().Insert(type, values, returnInsertedValue);
+
+        public static IInsertQuery<T, QueryContext<T>> Insert<T>(Type type, Expression<Func<T>> shape)
+            => new QueryBuilder<T>().Insert(type, shape);
+
+        public static IInsertQuery<T, QueryContext<T>> Insert<T>(Type type, Expression<Func<QueryContext, T>> shape)
+            => new QueryBuilder<T>().Insert(type, shape);
     }
 
     public partial class QueryBuilder<TType, TContext>
     {
+        public IInsertQuery<TType, TContext> Insert(Type type, LambdaExpression expression,
+            bool returnInsertedValue = true)
+        {
+            var insertNode = AddNode<InsertNode>(new InsertContext(type, expression));
+
+            if (returnInsertedValue)
+            {
+                AddNode<SelectNode>(new SelectContext(type), true, insertNode);
+            }
+
+            return this;
+        }
+
+        public IInsertQuery<TType, TContext> Insert(Type type, IDictionary<string, object?> values, bool returnInsertedValue = true)
+        {
+            var insertNode = AddNode<InsertNode>(new InsertContext(type, InsertNode.InsertValue.FromRaw(type, values)));
+
+            if (returnInsertedValue)
+            {
+                AddNode<SelectNode>(new SelectContext(type), true, insertNode);
+            }
+
+            return this;
+        }
+
         /// <inheritdoc/>
         public IInsertQuery<TType, TContext> Insert(TType value, bool returnInsertedValue = true)
         {
-            var insertNode = AddNode<InsertNode>(new InsertContext(typeof(TType))
-            {
-                Value = value,
-            });
+            var insertNode = AddNode<InsertNode>(new InsertContext(typeof(TType), value));
 
             if (returnInsertedValue)
             {
@@ -55,10 +90,7 @@ namespace EdgeDB
         /// <inheritdoc/>
         public IInsertQuery<TType, TContext> Insert(Expression<Func<TContext, TType>> value, bool returnInsertedValue = true)
         {
-            var insertNode = AddNode<InsertNode>(new InsertContext(typeof(TType))
-            {
-                Value = value,
-            });
+            var insertNode = AddNode<InsertNode>(new InsertContext(typeof(TType), value));
 
             if (returnInsertedValue)
             {

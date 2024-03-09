@@ -101,14 +101,6 @@ internal static class Terms
     public static QueryWriter TypeCast(this QueryWriter writer, Value type)
         => writer.Append("<", type, ">");
 
-    public static QueryWriter Variable(this QueryWriter writer, Value type, Value name)
-        => writer.Marker(
-            MarkerType.Variable,
-            $"variable_{name}",
-            debug: null,
-            Value.Of(writer => writer.TypeCast(type).Append(name))
-        );
-
     public readonly struct FunctionArg
     {
         public readonly Value Value;
@@ -173,8 +165,8 @@ internal static class Terms
     public static QueryWriter SingleQuoted(this QueryWriter writer, Value value)
         => writer.Append('\'', value, '\'');
 
-    public static QueryWriter QueryArgument(this QueryWriter writer, Value type, string name, Deferrable<string>? debug = null)
-        => writer.Marker(MarkerType.Variable, name, debug, '<', type, ">$", name);
+    public static QueryWriter QueryArgument(this QueryWriter writer, Value type, Value name, Deferrable<string>? debug = null)
+        => writer.Marker(MarkerType.Variable, $"variable_{name}", debug, '<', type, ">$", name);
 
     public static Value[] Span(this QueryWriter writer, WriterProxy proxy)
     {

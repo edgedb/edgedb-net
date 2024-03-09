@@ -91,7 +91,7 @@ namespace EdgeDB
         /// </summary>
         private static readonly Regex _pathResolverRegex = new(@"\[\d+?](?>\.(.*?)$|$)");
 
-        public static List<DepthNode> BuildDepthMap(string mappingName, IJsonVariable jsonVariable)
+        public static List<DepthNode> BuildDepthMap(IJsonVariable jsonVariable)
         {
             var elements = jsonVariable.GetObjectsAtDepth(0);
 
@@ -102,13 +102,13 @@ namespace EdgeDB
                 var type = ResolveTypeFromPath(jsonVariable.InnerType, element.Path);
                 var node = new DepthNode(type, element, 0);
                 nodes.Add(node);
-                GetNodes(mappingName, node, jsonVariable, nodes);
+                GetNodes(node, jsonVariable, nodes);
             }
 
             return nodes.ToList();
         }
 
-        private static void GetNodes(string mappingName, DepthNode node, IJsonVariable jsonValue, NodeCollection nodes)
+        private static void GetNodes(DepthNode node, IJsonVariable jsonValue, NodeCollection nodes)
         {
             var currentDepth = node.Depth;
 
@@ -126,12 +126,12 @@ namespace EdgeDB
                     nodes.Add(childNode);
 
                     // get each sub node of the child
-                    GetNodes(mappingName, childNode, jsonValue, nodes);
+                    GetNodes(childNode, jsonValue, nodes);
 
                     // mutate the node
                     node.JsonNode[prop.Name] = new JObject()
                     {
-                        new JProperty($"{mappingName}_depth_index", nodes.GetNodeRelativeDepthIndex(childNode)),
+                        new JProperty("index", nodes.GetNodeRelativeDepthIndex(childNode)),
                     };
                 }
                 else if (prop.Value is JArray jArray && jArray.All(x => x is JObject))
@@ -148,14 +148,14 @@ namespace EdgeDB
                     {
                         var subNode = new DepthNode(type, (JObject)element, mapIndex);
                         nodes.Add(subNode);
-                        GetNodes(mappingName, subNode, jsonValue, nodes);
+                        GetNodes(subNode, jsonValue, nodes);
                     }
 
                     // populate the mutable one with the location of the nested object
                     node.JsonNode[prop.Name] = new JObject()
                     {
-                        new JProperty($"{mappingName}_depth_from", indx),
-                        new JProperty($"{mappingName}_depth_to", indx + jArray.Count)
+                        new JProperty($"from", indx),
+                        new JProperty($"to", indx + jArray.Count)
                     };
                 }
             }
@@ -186,7 +186,7 @@ namespace EdgeDB
             {
                 result = ResolveTypeFromPath(result, pathSections[i]);
                 //result = result.GetMember(pathSections[i]).First(x => x is PropertyInfo or FieldInfo)!.GetMemberType();
-            }    
+            }
 
             if (EdgeDBTypeUtils.IsLink(result, out var isMultiLink, out var innerType) && isMultiLink)
                 return innerType!;

@@ -216,6 +216,7 @@ namespace EdgeDB
 
         internal void CompileInternal(QueryWriter writer, CompileContext? context = null)
         {
+            _schemaInfo ??= context?.SchemaInfo;
             context ??= new();
 
             List<IDictionary<string, object?>> parameters = new();
@@ -579,6 +580,8 @@ namespace EdgeDB
 
 
         #region IQueryBuilder<TType>
+
+        SchemaInfo? IQueryBuilder.SchemaInfo => _schemaInfo;
         IReadOnlyCollection<QueryNode> IQueryBuilder.Nodes => _nodes;
         List<QueryGlobal> IQueryBuilder.Globals => _queryGlobals;
         Dictionary<string, object?> IQueryBuilder.Variables => _queryVariables;

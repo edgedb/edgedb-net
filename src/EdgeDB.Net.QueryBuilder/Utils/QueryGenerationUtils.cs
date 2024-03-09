@@ -1,4 +1,5 @@
 using EdgeDB.Schema;
+using EdgeDB.Schema.DataTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -75,6 +76,17 @@ namespace EdgeDB
                     (!exclusive.HasValue || x.IsExclusive == exclusive.Value) &&
                     (!@readonly.HasValue || x.IsReadonly == @readonly.Value));
             });
+        }
+
+        public static Dictionary<EdgeDBPropertyInfo, Property> MapProperties(SchemaInfo schemaInfo, Type type)
+        {
+            var map = EdgeDBPropertyMapInfo.Create(type);
+
+            if (!schemaInfo.TryGetObjectInfo(type, out var info))
+                throw new NotSupportedException($"Cannot use {type.Name} as there is no schema information for it.");
+
+            return map.Properties.ToDictionary(x => x,
+                x => info.Properties!.First(y => y.Name == x.EdgeDBName)!);
         }
 
         /// <summary>

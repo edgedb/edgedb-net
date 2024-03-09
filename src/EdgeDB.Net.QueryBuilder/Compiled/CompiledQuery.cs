@@ -7,6 +7,8 @@ public class CompiledQuery(string query, Dictionary<string, object?>? variables)
 {
     public string Query { get; } = query;
 
+    public string Prettied => Prettify();
+
     public IReadOnlyDictionary<string, object?>? Variables { get; }
         = variables?.ToImmutableDictionary();
 

@@ -22,6 +22,9 @@ namespace EdgeDB
                 case null:
                     writer.Append("{}");
                     return;
+                case WriterProxy proxy:
+                    writer.Append(proxy);
+                    break;
                 case Enum enm:
                 {
                     var type = enm.GetType();
@@ -48,10 +51,6 @@ namespace EdgeDB
                     writer.SingleQuoted(obj.ToString());
                     return;
                 }
-            }
-
-            switch (obj)
-            {
                 case SubQuery subQuery:
                     if (subQuery.RequiresIntrospection)
                         throw new InvalidOperationException("Subquery required introspection to build");

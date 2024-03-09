@@ -198,7 +198,7 @@ namespace EdgeDB
         {
             type ??= EnterType(type);
 
-            var insertNode = AddNode<InsertNode>(new InsertContext(type) { Value = value });
+            var insertNode = AddNode<InsertNode>(new InsertContext(type, InsertNode.InsertValue.FromType(type, value)));
 
             if (returnInsertedValue)
             {
@@ -489,6 +489,8 @@ namespace EdgeDB
         #endregion
 
         #region IQueryBuilder
+
+        SchemaInfo? IQueryBuilder.SchemaInfo => _schemaInfo;
 
         IReadOnlyCollection<QueryNode> IQueryBuilder.Nodes
             => _nodes.ToImmutableArray();

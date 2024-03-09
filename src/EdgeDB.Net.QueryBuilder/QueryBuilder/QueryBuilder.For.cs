@@ -15,6 +15,16 @@ namespace EdgeDB
         public static IMultiCardinalityExecutable<TType> For<TType>(IEnumerable<TType> collection,
             Expression<Func<JsonCollectionVariable<TType>, IQueryBuilder>> iterator)
             => new QueryBuilder<TType>().For(collection, iterator);
+
+        public static IMultiCardinalityExecutable<TType> For<TType>(
+            Expression<Func<IEnumerable<TType>>> collection,
+            Expression<Func<JsonCollectionVariable<TType>, IQueryBuilder>> iterator
+        ) => new QueryBuilder<TType>().For(collection, iterator);
+
+        public static IMultiCardinalityExecutable<TType> For<TType>(
+            Expression<Func<QueryContext, IEnumerable<TType>>> collection,
+            Expression<Func<JsonCollectionVariable<TType>, IQueryBuilder>> iterator
+        ) => new QueryBuilder<TType>().For(collection, iterator);
     }
 
     public partial class QueryBuilder<TType, TContext>
@@ -25,6 +35,16 @@ namespace EdgeDB
             {
                 Expression = iterator,
                 Set = collection
+            });
+
+            return this;
+        }
+        public IMultiCardinalityExecutable<TType> For(LambdaExpression collection, Expression<Func<JsonCollectionVariable<TType>, IQueryBuilder>> iterator)
+        {
+            AddNode<ForNode>(new ForContext(typeof(TType))
+            {
+                Expression = iterator,
+                SetExpression = collection
             });
 
             return this;

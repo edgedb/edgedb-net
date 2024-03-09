@@ -23,6 +23,8 @@ namespace EdgeDB.QueryNodes
         /// </summary>
         public IEnumerable? Set { get; init; }
 
+        public LambdaExpression? SetExpression { get; init; }
+
         /// <inheritdoc/>
         public ForContext(Type currentType) : base(currentType)
         {

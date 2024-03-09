@@ -3,6 +3,7 @@ using EdgeDB.Compiled;
 using EdgeDB.Interfaces;
 using EdgeDB.Interfaces.Queries;
 using EdgeDB.QueryNodes;
+using EdgeDB.Schema;
 using System.Linq.Expressions;
 
 namespace EdgeDB
@@ -297,6 +298,8 @@ namespace EdgeDB
         ///     Gets a read-only dictionary of query variables defined within the query builder.
         /// </summary>
         internal Dictionary<string, object?> Variables { get; }
+
+        internal SchemaInfo? SchemaInfo { get; }
 
         /// <summary>
         ///     Compiles the current query.

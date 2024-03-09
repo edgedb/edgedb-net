@@ -7,10 +7,15 @@ using System.Threading.Tasks;
 
 namespace EdgeDB
 {
+    public interface IJsonVariable<T> : IJsonVariable
+    {
+        Type IJsonVariable.InnerType => typeof(T);
+    }
+
     /// <summary>
     ///     Represents an abstracted form of <see cref="JsonCollectionVariable{T}"/>.
     /// </summary>
-    internal interface IJsonVariable
+    public interface IJsonVariable
     {
         /// <summary>
         ///     Gets the depth of the json.
@@ -46,7 +51,7 @@ namespace EdgeDB
     ///     A class representing a singleton, user defined json variable.
     /// </summary>
     /// <typeparam name="T">The type that this json variable was initialized with.</typeparam>
-    public class JsonReferenceVariable<T> : IJsonVariable
+    public class JsonReferenceVariable<T> : IJsonVariable<T>
     {
         /// <summary>
         ///     Gets the value this <see cref="JsonReferenceVariable{T}"/> represents.
@@ -85,10 +90,6 @@ namespace EdgeDB
             => VariableName ?? throw new InvalidOperationException("Cannot access variable name until reference variable initializes");
 
         /// <inheritdoc/>
-        Type IJsonVariable.InnerType
-            => typeof(T);
-
-        /// <inheritdoc/>
         IEnumerable<JObject> IJsonVariable.GetObjectsAtDepth(int targetDepth)
             => Array.Empty<JObject>();
     }
@@ -97,7 +98,7 @@ namespace EdgeDB
     ///     Represents a json value used within queries.
     /// </summary>
     /// <typeparam name="T">The inner type that the json value represents.</typeparam>
-    public class JsonCollectionVariable<T> : IJsonVariable
+    public class JsonCollectionVariable<T> : IJsonVariable<T>
     {
         /// <summary>
         ///     Gets the name of the json variable.
@@ -108,9 +109,9 @@ namespace EdgeDB
         ///     Gets a mock reference of the json variable.
         /// </summary>
         /// <remarks>
-        ///     This property can only be accessed within query builder lambda 
-        ///     functions. Attempting to access this property outside of a query 
-        ///     builder context will result in a <see cref="InvalidOperationException"/> 
+        ///     This property can only be accessed within query builder lambda
+        ///     functions. Attempting to access this property outside of a query
+        ///     builder context will result in a <see cref="InvalidOperationException"/>
         ///     being thrown.
         /// </remarks>
         public T Value
@@ -200,7 +201,6 @@ namespace EdgeDB
         }
 
         string IJsonVariable.Name => Name;
-        Type IJsonVariable.InnerType => typeof(T);
         IEnumerable<JObject> IJsonVariable.GetObjectsAtDepth(int targetDepth) => GetObjectsAtDepth(targetDepth);
         int IJsonVariable.Depth => CalculateDepth();
         string IJsonVariable.VariableName => VariableName;

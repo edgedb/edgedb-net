@@ -16,6 +16,15 @@ namespace EdgeDB
         public TSelf Self { get; } = default!;
 
         /// <summary>
+        ///     References a defined query argument with the given name.
+        /// </summary>
+        /// <param name="name">The name of the query argument.</param>
+        /// <typeparam name="TType">The type of the query argument.</typeparam>
+        /// <returns>A mock reference to a global with the given <paramref name="name"/>.</returns>
+        public TType QueryArgument<TType>(string name)
+            => default!;
+
+        /// <summary>
         ///     References a defined query global given a name.
         /// </summary>
         /// <typeparam name="TType">The type of the global.</typeparam>

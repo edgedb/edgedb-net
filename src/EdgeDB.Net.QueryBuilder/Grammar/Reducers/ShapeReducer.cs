@@ -25,7 +25,7 @@ internal sealed class ShapeReducer : IReducer
                 marker.Replace(writer => writer
                     .AppendSpanned(
                         ref tokens,
-                        writer => global.Compile(builder, writer, new CompileContext { PreFinalizerModifier = modifier } )
+                        writer => global.Compile(builder, writer, new CompileContext { PreFinalizerModifier = modifier, SchemaInfo = builder.SchemaInfo } )
                     )
                 );
             }

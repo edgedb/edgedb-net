@@ -16,7 +16,7 @@ namespace EdgeDB.QueryNodes
     internal class ForNode : QueryNode<ForContext>
     {
         private string? _name;
-        private string? _jsonName;
+        private WriterProxy? _set;
 
         private WriterProxy? _expression;
 
@@ -98,30 +98,39 @@ namespace EdgeDB.QueryNodes
             // pull the name of the value that the user has specified
             _name = Context.Expression!.Parameters.First(x => x.Type != typeof(QueryContext)).Name!;
 
-            // serialize the collection & generate a name for the json variable
-            var json  = JsonConvert.SerializeObject(Context.Set);
-            _jsonName = QueryUtils.GenerateRandomVariableName();
+            if (Context.Set is not null)
+            {
+                // serialize the collection & generate a name for the json variable
+                var json = JsonConvert.SerializeObject(Context.Set);
+                var variableName = QueryUtils.GenerateRandomVariableName();
+                _set = writer => writer.Function(
+                    "json_array_unpack",
+                    Value.Of(writer => writer.QueryArgument("json", variableName))
+                );
 
-            // set the json variable
-            SetVariable(_jsonName, new Json(json));
-
-            _expression = ParseExpression(_name, _jsonName, json);
+                // set the json variable
+                SetVariable(variableName, new Json(json));
+                _expression = ParseExpression(_name, variableName, json);
+            }
+            else if (Context.SetExpression is not null)
+            {
+                _set = ProxyExpression(Context.SetExpression);
+                _expression = ProxyExpression(Context.Expression);
+            }
+            else throw new InvalidOperationException("Cannot compile for expression: missing set specifier");
         }
 
         /// <inheritdoc/>
         public override void FinalizeQuery(QueryWriter writer)
         {
-            if (_name is null || _jsonName is null || _expression is null)
+            if (_name is null || _set is null || _expression is null)
                 throw new InvalidOperationException("No initialization of this node was preformed");
 
             writer.Append(
                 "for ",
                 _name,
                 " in ",
-                Value.Of(writer => writer.Function(
-                    "json_array_unpack",
-                    Value.Of(writer => writer.Variable("json", _jsonName))
-                )),
+                _set,
                 " union ",
                 Value.Of(writer => writer.Wrapped(_expression))
             );
