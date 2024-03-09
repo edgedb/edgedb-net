@@ -23,6 +23,9 @@ internal sealed class Marker
                 if(marker == this)
                     continue;
 
+                if (marker.Type is MarkerType.Verbose)
+                    continue;
+
                 if (marker.Position > Position || marker.Size < Size) continue;
                 if (bestMatch is null)
                 {
@@ -45,7 +48,7 @@ internal sealed class Marker
     {
         get
         {
-            return _writer.Markers.Values.SelectMany(x => x).Where(x => x != this && x.Position <= Position && x.Size >= Size)
+            return _writer.Markers.Values.SelectMany(x => x).Where(x => x.Type is not MarkerType.Verbose && x != this && x.Position <= Position && x.Size >= Size)
                 .OrderBy(x => Position - x.Position + x.Size);
         }
     }

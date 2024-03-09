@@ -18,7 +18,7 @@ internal sealed class ShapeReducer : IReducer
             {
                 Action<QueryNode>? modifier = marker switch
                 {
-                    _ when marker.Parent?.Type is MarkerType.Function => ApplyShapeReducer,
+                    _ when marker.Parent?.Type is MarkerType.FunctionArg => ApplyShapeReducer,
                     _ => null
                 };
 
