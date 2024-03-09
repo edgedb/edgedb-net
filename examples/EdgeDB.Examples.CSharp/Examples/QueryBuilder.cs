@@ -32,6 +32,35 @@ namespace EdgeDB.ExampleApp.Examples
         {
             try
             {
+                var tests = await QueryBuilder
+                    .Select<ObjectType>(shape =>
+                    {
+                        shape.IncludeMultiLink(x => x.Constraints);
+                        shape.IncludeMultiLink(x => x.Properties, shape =>
+                            shape.Computeds((ctx, prop) => new
+                            {
+                                Cardinality = (string)ctx.UnsafeLocal<object>("cardinality") == "One"
+                                    ? ctx.UnsafeLocal<bool>("required")
+                                        ? Cardinality.One
+                                        : Cardinality.AtMostOne
+                                    : ctx.UnsafeLocal<bool>("required")
+                                        ? Cardinality.AtLeastOne
+                                        : Cardinality.Many,
+                                TargetId = ctx.UnsafeLocal<Guid>("target.id"),
+                                IsLink = ctx.Raw<object?>("[IS schema::Link]") != null,
+                                IsExclusive =
+                                    ctx.Raw<bool>("exists (select .constraints filter .name = 'std::exclusive')"),
+                                IsComputed = EdgeQL.Len(ctx.UnsafeLocal<object[]>("computed_fields")) != 0,
+                                IsReadonly = ctx.UnsafeLocal<bool>("readonly"),
+                                HasDefault =
+                                    ctx.Raw<bool>(
+                                        "EXISTS .default or (\"std::sequence\" in .target[IS schema::ScalarType].ancestors.name)")
+                            })
+                        );
+                    })
+                    .Filter((x, ctx) => !ctx.UnsafeLocal<bool>("builtin"))
+                    .CompileAsync(client, true);
+
                 await QueryBuilderDemo(client);
             }
             catch (Exception x)
@@ -46,14 +75,13 @@ namespace EdgeDB.ExampleApp.Examples
             var query = QueryBuilder.Select<Person>().Compile().Prettify();
 
             // Adding a filter, orderby, offset, and limit
-            query = QueryBuilder
+            var queryTest = QueryBuilder
                 .Select<Person>()
                 .Filter(x => EdgeQL.ILike(x.Name, "e%"))
                 .OrderByDesending(x => x.Name)
                 .Offset(2)
                 .Limit(10)
-                .Compile()
-                .Prettify();
+                .Compile(true);
 
             // Specifying a shape
             query = QueryBuilder.Select<Person>(shape =>
@@ -117,12 +145,11 @@ namespace EdgeDB.ExampleApp.Examples
                 .Prettify();
 
             // Autogenerating unless conflict with introspection
-            query = (await QueryBuilder
+            queryTest = (await QueryBuilder
                     .Insert(person)
                     .UnlessConflict()
                     .ElseReturn()
-                    .CompileAsync(client))
-                .Prettify();
+                    .CompileAsync(client, true));
 
             // Bulk inserts
             var data = new Person[]

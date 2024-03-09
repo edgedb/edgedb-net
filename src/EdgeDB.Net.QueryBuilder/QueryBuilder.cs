@@ -1,4 +1,5 @@
 using EdgeDB.Builders;
+using EdgeDB.Compiled;
 using EdgeDB.Interfaces;
 using EdgeDB.Interfaces.Queries;
 using EdgeDB.QueryNodes;
@@ -206,7 +207,11 @@ namespace EdgeDB
 
             CompileInternal(writer, context);
 
-            return new CompiledQuery(writer.Compile().ToString(), _queryVariables);
+            if (!context.Debug) return new CompiledQuery(writer.Compile().ToString(), _queryVariables);
+
+            var compiled = writer.CompileDebug();
+            return new DebugCompiledQuery(compiled.Query, _queryVariables, compiled.Markers);
+
         }
 
         internal void CompileInternal(QueryWriter writer, CompileContext? context = null)
@@ -274,12 +279,12 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
-        public CompiledQuery Compile()
-            => CompileInternal();
+        public CompiledQuery Compile(bool debug = false)
+            => CompileInternal(new CompileContext {Debug = debug});
 
         /// <inheritdoc/>
-        public ValueTask<CompiledQuery> CompileAsync(IEdgeDBQueryable edgedb, CancellationToken token = default)
-            => IntrospectAndCompileAsync(edgedb, token);
+        public ValueTask<CompiledQuery> CompileAsync(IEdgeDBQueryable edgedb, bool debug = false, CancellationToken token = default)
+            => IntrospectAndCompileAsync(edgedb, debug, token);
 
         /// <summary>
         ///     Preforms introspection and then compiles this query builder into a <see cref="CompiledQuery"/>.
@@ -290,12 +295,12 @@ namespace EdgeDB
         ///     A ValueTask representing the (a)sync introspection and compiling operation.
         ///     The result is the compiled form of this query builder.
         /// </returns>
-        private async ValueTask<CompiledQuery> IntrospectAndCompileAsync(IEdgeDBQueryable edgedb, CancellationToken token)
+        private async ValueTask<CompiledQuery> IntrospectAndCompileAsync(IEdgeDBQueryable edgedb, bool debug, CancellationToken token)
         {
             if (_nodes.Any(x => x.RequiresIntrospection) || _queryGlobals.Any(x => x.Value is SubQuery subQuery && subQuery.RequiresIntrospection))
                 _schemaInfo ??= await SchemaIntrospector.GetOrCreateSchemaIntrospectionAsync(edgedb, token).ConfigureAwait(false);
 
-            var result = Compile();
+            var result = Compile(debug);
             _nodes.Clear();
             _queryGlobals.Clear();
 
@@ -546,7 +551,7 @@ namespace EdgeDB
         async Task<IReadOnlyCollection<TType?>> IMultiCardinalityExecutable<TType>.ExecuteAsync(IEdgeDBQueryable edgedb,
             Capabilities? capabilities, CancellationToken token)
         {
-            var result = await IntrospectAndCompileAsync(edgedb, token).ConfigureAwait(false);
+            var result = await IntrospectAndCompileAsync(edgedb, false, token).ConfigureAwait(false);
             return await edgedb.QueryAsync<TType>(result.Query, result.RawVariables, capabilities, token).ConfigureAwait(false);
         }
 
@@ -554,21 +559,21 @@ namespace EdgeDB
         async Task<TType?> ISingleCardinalityExecutable<TType>.ExecuteAsync(IEdgeDBQueryable edgedb,
             Capabilities? capabilities, CancellationToken token)
         {
-            var result = await IntrospectAndCompileAsync(edgedb, token).ConfigureAwait(false);
+            var result = await IntrospectAndCompileAsync(edgedb, false, token).ConfigureAwait(false);
             return await edgedb.QuerySingleAsync<TType>(result.Query, result.RawVariables, capabilities, token).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         async Task<TType?> IMultiCardinalityExecutable<TType>.ExecuteSingleAsync(IEdgeDBQueryable edgedb, Capabilities? capabilities, CancellationToken token)
         {
-            var result = await IntrospectAndCompileAsync(edgedb, token).ConfigureAwait(false);
+            var result = await IntrospectAndCompileAsync(edgedb, false, token).ConfigureAwait(false);
             return await edgedb.QuerySingleAsync<TType>(result.Query, result.RawVariables, capabilities, token).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         async Task<TType> IMultiCardinalityExecutable<TType>.ExecuteRequiredSingleAsync(IEdgeDBQueryable edgedb, Capabilities? capabilities, CancellationToken token)
         {
-            var result = await IntrospectAndCompileAsync(edgedb, token).ConfigureAwait(false);
+            var result = await IntrospectAndCompileAsync(edgedb, false, token).ConfigureAwait(false);
             return await edgedb.QueryRequiredSingleAsync<TType>(result.Query, result.RawVariables, capabilities, token).ConfigureAwait(false);
         }
 

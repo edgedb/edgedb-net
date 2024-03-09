@@ -70,9 +70,10 @@ internal sealed class QueryWriter : IDisposable
 
     private ValueNode AddTracked(in Value value, bool after)
     {
-        if (value.TryProxy(this, out var node))
+        if (value.TryProxy(this, out var head, out _))
         {
-            _track = node;
+            // track is already updated.
+            return head;
         }
         else if (_track is null)
             _track = _tokens.AddFirst(in value); //Set(ref _tokens.AddFirst(in value));
@@ -366,6 +367,60 @@ internal sealed class QueryWriter : IDisposable
         }
 
         return builder;
+    }
+
+    private sealed class ActiveMarkerTrack(int index, Marker marker, string name, StringBuilder builder, int count)
+    {
+        public string Name { get; } = name;
+        public int Index { get; } = index;
+        public Marker Marker { get; } = marker;
+        public StringBuilder Builder { get; } = builder;
+        public bool TryWrite(Value value)
+        {
+            if (count == 0)
+                return false;
+
+            value.WriteTo(Builder);
+            count--;
+            return true;
+        }
+    }
+
+    public (string Query, LinkedList<QuerySpan> Markers) CompileDebug()
+    {
+        var query = new StringBuilder();
+        var activeMarkers = new List<ActiveMarkerTrack>();
+        var spans = new LinkedList<QuerySpan>();
+        var markers = new HashSet<(string, Marker)>(Markers.SelectMany(x => x.Value.Select(y => (x.Key, y))));
+
+        var current = _tokens.First;
+
+        while (current is not null)
+        {
+            foreach (var activeMarker in activeMarkers.ToArray())
+            {
+                if (activeMarker.TryWrite(current.Value)) continue;
+
+                activeMarkers.Remove(activeMarker);
+                var content = activeMarker.Builder.ToString();
+                spans.AddLast(new QuerySpan(activeMarker.Index..(activeMarker.Index + content.Length), content, activeMarker.Marker, activeMarker.Name));
+            }
+
+            foreach (var startingMarker in markers.Where(x => x.Item2.Start == current))
+            {
+                markers.Remove(startingMarker);
+                var sb = new StringBuilder();
+
+                activeMarkers.Add(new (query.Length, startingMarker.Item2, startingMarker.Item1, sb, startingMarker.Item2.Size - 1));
+                current.Value.WriteTo(sb);
+            }
+
+            current.Value.WriteTo(query);
+
+            current = current.Next;
+        }
+
+        return (query.ToString(), spans);
     }
 
     public void Dispose()

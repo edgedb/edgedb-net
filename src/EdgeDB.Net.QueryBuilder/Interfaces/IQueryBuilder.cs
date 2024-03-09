@@ -305,18 +305,20 @@ namespace EdgeDB
         ///     If the query requires introspection please use
         ///     <see cref="CompileAsync"/>.
         /// </remarks>
+        /// <param name="debug">Whether or not to compile the query in a debug fashion, returning a <see cref="DebugCompiledQuery"/>.</param>
         /// <returns>
         ///     A <see cref="CompiledQuery"/>.
         /// </returns>
-        CompiledQuery Compile();
+        CompiledQuery Compile(bool debug = false);
 
         /// <summary>
         ///     Compiles the current query asynchronously, allowing database introspection.
         /// </summary>
         /// <param name="edgedb">The client to preform introspection with.</param>
+        /// <param name="debug">Whether or not to compile the query in a debug fashion, returning a <see cref="DebugCompiledQuery"/>.</param>
         /// <param name="token">A cancellation token to cancel the asynchronous operation.</param>
         /// <returns>A <see cref="CompiledQuery"/>.</returns>
-        ValueTask<CompiledQuery> CompileAsync(IEdgeDBQueryable edgedb, CancellationToken token = default);
+        ValueTask<CompiledQuery> CompileAsync(IEdgeDBQueryable edgedb, bool debug = false, CancellationToken token = default);
 
         internal void CompileInternal(QueryWriter writer, CompileContext? context = null);
     }

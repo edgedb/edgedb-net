@@ -376,7 +376,7 @@ namespace EdgeDB
                 _schemaInfo ??= await SchemaIntrospector.GetOrCreateSchemaIntrospectionAsync(edgedb, token)
                     .ConfigureAwait(false);
 
-            var result = Compile();
+            var result = Compile(false);
             _nodes.Clear();
             _queryGlobals.Clear();
 
@@ -479,11 +479,11 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
-        public CompiledQuery Compile()
+        public CompiledQuery Compile(bool debug)
             => CompileInternal();
 
         /// <inheritdoc/>
-        public ValueTask<CompiledQuery> CompileAsync(IEdgeDBQueryable edgedb, CancellationToken token = default)
+        public ValueTask<CompiledQuery> CompileAsync(IEdgeDBQueryable edgedb, bool debug, CancellationToken token = default)
             => IntrospectAndBuildAsync(edgedb, token);
 
         #endregion

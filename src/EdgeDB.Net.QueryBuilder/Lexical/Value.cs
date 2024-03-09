@@ -5,7 +5,7 @@ using System.Text;
 
 namespace EdgeDB;
 
-//[DebuggerDisplay("{DebugDisplay()}")]
+[DebuggerDisplay("{DebugDisplay()}")]
 internal readonly struct Value
 {
     [MemberNotNullWhen(false, nameof(_callback))]
@@ -41,21 +41,26 @@ internal readonly struct Value
 
     public static Value Of(WriterProxy proxy) => new(proxy);
 
-    public bool TryProxy(QueryWriter writer, [MaybeNullWhen(false)] out LooseLinkedList<Value>.Node result)
+    public bool TryProxy(
+        QueryWriter writer,
+        [MaybeNullWhen(false)] out LooseLinkedList<Value>.Node first,
+        [MaybeNullWhen(false)] out LooseLinkedList<Value>.Node last)
     {
         if (IsScalar)
         {
-            result = null;
+            first = null;
+            last = null;
             return false;
         }
 
-        using var nodeObserver = new LastNodeObserver(writer);
+        using var nodeObserver = new RangeNodeObserver(writer);
         _callback(writer);
 
         if (!nodeObserver.HasValue)
             throw new InvalidOperationException("Provided proxy wrote no value");
 
-        result = nodeObserver.Value;
+        first = nodeObserver.First;
+        last = nodeObserver.Last;
         return true;
     }
 
