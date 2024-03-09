@@ -369,14 +369,14 @@ namespace EdgeDB
 
         #region Building
 
-        private async ValueTask<BuiltQuery> IntrospectAndBuildAsync(IEdgeDBQueryable edgedb, CancellationToken token)
+        private async ValueTask<CompiledQuery> IntrospectAndBuildAsync(IEdgeDBQueryable edgedb, CancellationToken token)
         {
             if (_nodes.Any(x => x.RequiresIntrospection) ||
                 _queryGlobals.Any(x => x.Value is SubQuery subQuery && subQuery.RequiresIntrospection))
                 _schemaInfo ??= await SchemaIntrospector.GetOrCreateSchemaIntrospectionAsync(edgedb, token)
                     .ConfigureAwait(false);
 
-            var result = Build();
+            var result = Compile();
             _nodes.Clear();
             _queryGlobals.Clear();
 
@@ -384,24 +384,21 @@ namespace EdgeDB
         }
 
         /// <summary>
-        ///     Builds the current query builder into its <see cref="BuiltQuery"/> form.
+        ///     Compiles the current query builder into its <see cref="CompiledQuery"/> form.
         /// </summary>
         /// <returns>
-        ///     A <see cref="BuiltQuery"/> which is the current query this builder has constructed.
+        ///     A <see cref="CompiledQuery"/>.
         /// </returns>
-        internal BuiltQuery InternalBuild(CompileContext? context = null)
+        internal CompiledQuery CompileInternal(CompileContext? context = null)
         {
             var writer = new QueryWriter();
 
-            InternalBuild(writer, context);
+            CompileInternal(writer, context);
 
-            return new BuiltQuery(writer.Compile().ToString())
-            {
-                Parameters = _queryVariables, Globals = _queryGlobals
-            };
+            return new CompiledQuery(writer.Compile().ToString(), _queryVariables);
         }
 
-        internal void InternalBuild(QueryWriter writer, CompileContext? context = null)
+        internal void CompileInternal(QueryWriter writer, CompileContext? context = null)
         {
             context ??= new();
 
@@ -482,20 +479,12 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
-        public BuiltQuery Build()
-            => InternalBuild();
+        public CompiledQuery Compile()
+            => CompileInternal();
 
         /// <inheritdoc/>
-        public ValueTask<BuiltQuery> BuildAsync(IEdgeDBQueryable edgedb, CancellationToken token = default)
+        public ValueTask<CompiledQuery> CompileAsync(IEdgeDBQueryable edgedb, CancellationToken token = default)
             => IntrospectAndBuildAsync(edgedb, token);
-
-        /// <inheritdoc cref="IQueryBuilder.BuildWithGlobals"/>
-        public BuiltQuery BuildWithGlobals(Action<QueryNode>? preFinalizerModifier = null)
-            => InternalBuild(new CompileContext()
-            {
-                IncludeGlobalsInQuery = false,
-                PreFinalizerModifier = preFinalizerModifier
-            });
 
         #endregion
 
@@ -510,8 +499,8 @@ namespace EdgeDB
         Dictionary<string, object?> IQueryBuilder.Variables
             => _queryVariables;
 
-        void IQueryBuilder.InternalBuild(QueryWriter writer, CompileContext? context) =>
-            InternalBuild(writer, context);
+        void IQueryBuilder.CompileInternal(QueryWriter writer, CompileContext? context) =>
+            CompileInternal(writer, context);
 
         #endregion
     }

@@ -19,9 +19,9 @@ namespace EdgeDB
 
             var transient = queryable.Provider.ToTransient();
 
-            var builtQuery = await transient.Compile().BuildAsync(client, token);
+            var builtQuery = await transient.Compile().CompileAsync(client, token);
 
-            return await client.QueryAsync<T>(builtQuery.Query, builtQuery.Parameters, token: token);
+            return await client.QueryAsync<T>(builtQuery.Query, builtQuery.RawVariables, token: token);
         }
 
         public static async Task<T?> ExecuteSingleAsync<T>(
@@ -34,9 +34,9 @@ namespace EdgeDB
 
             var transient = queryable.Provider.ToTransient();
 
-            var builtQuery = await transient.Compile().BuildAsync(client, token);
+            var builtQuery = await transient.Compile().CompileAsync(client, token);
 
-            return await client.QuerySingleAsync<T>(builtQuery.Query, builtQuery.Parameters, token: token);
+            return await client.QuerySingleAsync<T>(builtQuery.Query, builtQuery.RawVariables, token: token);
         }
     }
 }

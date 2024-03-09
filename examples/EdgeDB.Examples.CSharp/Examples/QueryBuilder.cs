@@ -43,7 +43,7 @@ namespace EdgeDB.ExampleApp.Examples
         private static async Task QueryBuilderDemo(EdgeDBClient client)
         {
             // Selecting a type with autogen shape
-            var query = QueryBuilder.Select<Person>().Build().Prettify();
+            var query = QueryBuilder.Select<Person>().Compile().Prettify();
 
             // Adding a filter, orderby, offset, and limit
             query = QueryBuilder
@@ -52,19 +52,19 @@ namespace EdgeDB.ExampleApp.Examples
                 .OrderByDesending(x => x.Name)
                 .Offset(2)
                 .Limit(10)
-                .Build()
+                .Compile()
                 .Prettify();
 
             // Specifying a shape
             query = QueryBuilder.Select<Person>(shape =>
                 shape
                     .Explicitly(p => new { p.Name, p.Email, p.BestFriend })
-            ).Build().Prettify();
+            ).Compile().Prettify();
 
             // selecting things that are not types
             query = QueryBuilder.SelectExpression(() =>
                 EdgeQL.Count(QueryBuilder.Select<Person>())
-            ).Build().Prettify();
+            ).Compile().Prettify();
 
             // selecting 'free objects'
             query = QueryBuilder.SelectExpression(ctx => new
@@ -73,7 +73,7 @@ namespace EdgeDB.ExampleApp.Examples
                 MyNumber = 42,
                 SeveralNumbers = new long[] { 1, 2, 3 },
                 People = ctx.SubQuery(QueryBuilder.Select<Person>())
-            }).Build().Prettify();
+            }).Compile().Prettify();
 
             // Backlinks
             query = QueryBuilder.Select<Person>(shape => shape
@@ -85,7 +85,7 @@ namespace EdgeDB.ExampleApp.Examples
                     // you can pass in a string instead of an expression to select out a 'EdgeDBObject' type.
                     ReferencedFriends = ctx.BackLink<Person>(x => x.Friends)
                 })
-            ).Build().Prettify();
+            ).Compile().Prettify();
 
             // With object variables
             query = QueryBuilder
@@ -93,19 +93,19 @@ namespace EdgeDB.ExampleApp.Examples
                 .SelectExpression(ctx => new
                 {
                     PassedName = ctx.Variables.Args.Value.Name, PassedEmail = ctx.Variables.Args.Value.Email
-                }).Build().Prettify();
+                }).Compile().Prettify();
 
             // Inserting a new type
             var person = new Person { Email = "example@example.com", Name = "example" };
 
-            query = QueryBuilder.Insert(person).Build().Prettify();
+            query = QueryBuilder.Insert(person).Compile().Prettify();
 
             // Complex insert with links & dealing with conflicts
             query = (await QueryBuilder
                     .Insert(new Person { BestFriend = person, Name = "example2", Email = "example2@example.com" })
                     .UnlessConflict()
                     .ElseReturn()
-                    .BuildAsync(client))
+                    .CompileAsync(client))
                 .Prettify();
 
             // Manual conflicts
@@ -113,7 +113,7 @@ namespace EdgeDB.ExampleApp.Examples
                 .Insert(person)
                 .UnlessConflictOn(x => x.Email)
                 .ElseReturn()
-                .Build()
+                .Compile()
                 .Prettify();
 
             // Autogenerating unless conflict with introspection
@@ -121,7 +121,7 @@ namespace EdgeDB.ExampleApp.Examples
                     .Insert(person)
                     .UnlessConflict()
                     .ElseReturn()
-                    .BuildAsync(client))
+                    .CompileAsync(client))
                 .Prettify();
 
             // Bulk inserts
@@ -138,7 +138,7 @@ namespace EdgeDB.ExampleApp.Examples
 
             var tquery = await QueryBuilder.For(data,
                 x => QueryBuilder.Insert(x)
-            ).BuildAsync(client);
+            ).CompileAsync(client);
 
             // Else statements (upsert demo)
             query = (await QueryBuilder
@@ -147,21 +147,21 @@ namespace EdgeDB.ExampleApp.Examples
                     .Else(q =>
                         q.Update(old => new Person { Name = old!.Name!.ToLower() })
                     )
-                    .BuildAsync(client))
+                    .CompileAsync(client))
                 .Prettify();
 
             // Updating a type
             query = QueryBuilder
                 .Update<Person>(old => new Person { Name = "example new name" })
                 .Filter(x => x.Email == "example@example.com")
-                .Build()
+                .Compile()
                 .Prettify();
 
             // Deleting types
             query = QueryBuilder
                 .Delete<Person>()
                 .Filter(x => EdgeQL.ILike(x.Name, "e%"))
-                .Build()
+                .Compile()
                 .Prettify();
         }
     }

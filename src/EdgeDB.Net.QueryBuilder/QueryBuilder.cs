@@ -193,27 +193,23 @@ namespace EdgeDB
         }
 
         /// <summary>
-        ///     Builds the current query builder into its <see cref="BuiltQuery"/> form.
+        ///     Compiles the current query builder into its <see cref="CompiledQuery"/> form.
         /// </summary>
         /// <returns>
-        ///     A <see cref="BuiltQuery"/> which is the current query this builder has constructed.
+        ///     A <see cref="CompiledQuery"/>.
         /// </returns>
-        internal BuiltQuery InternalBuild(CompileContext? context = null)
+        internal CompiledQuery CompileInternal(CompileContext? context = null)
         {
             context ??= new CompileContext();
 
             using var writer = new QueryWriter();
 
-            InternalBuild(writer, context);
+            CompileInternal(writer, context);
 
-            return new BuiltQuery(writer.Compile().ToString())
-            {
-                Parameters = _queryVariables,
-                Globals = _queryGlobals
-            };
+            return new CompiledQuery(writer.Compile().ToString(), _queryVariables);
         }
 
-        internal void InternalBuild(QueryWriter writer, CompileContext? context = null)
+        internal void CompileInternal(QueryWriter writer, CompileContext? context = null)
         {
             context ??= new();
 
@@ -268,24 +264,6 @@ namespace EdgeDB
                 nodes = nodes.Prepend(with).ToList();
             }
 
-            // // build each node starting at the last node.
-            // for (int i = nodes.Count - 1; i >= 0; i--)
-            // {
-            //     var node = nodes[i];
-            //
-            //     var result = node.Build();
-            //
-            //     // add the nodes query string if its not null or empty.
-            //     if (!string.IsNullOrEmpty(result.Query))
-            //         query.Add(result.Query);
-            //
-            //     // add any parameters the node has.
-            //     parameters.Add(result.Parameters);
-            // }
-
-            // // reverse our query string since we built our nodes in reverse.
-            // query.Reverse();
-
             // flatten our parameters into a single collection and make it distinct.
             var variables = parameters
                             .SelectMany(x => x)
@@ -293,48 +271,31 @@ namespace EdgeDB
 
             // add any variables that might have been added by other builders in a sub-query context.
             variables = variables.Concat(_queryVariables.Where(x => !variables.Any(x => x.Key == x.Key)));
-
-            // // construct a built query with our query text, variables, and globals.
-            // return new BuiltQuery(string.Join(' ', query))
-            // {
-            //     Parameters = variables
-            //                 .ToDictionary(x => x.Key, x => x.Value),
-            //
-            //     Globals = !includeGlobalsInQuery ? _queryGlobals : null
-            // };
         }
 
         /// <inheritdoc/>
-        public BuiltQuery Build()
-            => InternalBuild();
+        public CompiledQuery Compile()
+            => CompileInternal();
 
         /// <inheritdoc/>
-        public ValueTask<BuiltQuery> BuildAsync(IEdgeDBQueryable edgedb, CancellationToken token = default)
-            => IntrospectAndBuildAsync(edgedb, token);
-
-        /// <inheritdoc cref="IQueryBuilder.BuildWithGlobals"/>
-        internal BuiltQuery BuildWithGlobals(Action<QueryNode>? preFinalizerModifier = null)
-            => InternalBuild(new CompileContext()
-            {
-                IncludeGlobalsInQuery = false,
-                PreFinalizerModifier = preFinalizerModifier
-            });
+        public ValueTask<CompiledQuery> CompileAsync(IEdgeDBQueryable edgedb, CancellationToken token = default)
+            => IntrospectAndCompileAsync(edgedb, token);
 
         /// <summary>
-        ///     Preforms introspection and then builds this query builder into a <see cref="BuiltQuery"/>.
+        ///     Preforms introspection and then compiles this query builder into a <see cref="CompiledQuery"/>.
         /// </summary>
         /// <param name="edgedb">The client to preform introspection with.</param>
         /// <param name="token">A cancellation token to cancel the introspection query.</param>
         /// <returns>
-        ///     A ValueTask representing the (a)sync introspection and building operation.
-        ///     The result is the built form of this query builder.
+        ///     A ValueTask representing the (a)sync introspection and compiling operation.
+        ///     The result is the compiled form of this query builder.
         /// </returns>
-        private async ValueTask<BuiltQuery> IntrospectAndBuildAsync(IEdgeDBQueryable edgedb, CancellationToken token)
+        private async ValueTask<CompiledQuery> IntrospectAndCompileAsync(IEdgeDBQueryable edgedb, CancellationToken token)
         {
             if (_nodes.Any(x => x.RequiresIntrospection) || _queryGlobals.Any(x => x.Value is SubQuery subQuery && subQuery.RequiresIntrospection))
                 _schemaInfo ??= await SchemaIntrospector.GetOrCreateSchemaIntrospectionAsync(edgedb, token).ConfigureAwait(false);
 
-            var result = Build();
+            var result = Compile();
             _nodes.Clear();
             _queryGlobals.Clear();
 
@@ -585,30 +546,30 @@ namespace EdgeDB
         async Task<IReadOnlyCollection<TType?>> IMultiCardinalityExecutable<TType>.ExecuteAsync(IEdgeDBQueryable edgedb,
             Capabilities? capabilities, CancellationToken token)
         {
-            var result = await IntrospectAndBuildAsync(edgedb, token).ConfigureAwait(false);
-            return await edgedb.QueryAsync<TType>(result.Query, result.Parameters, capabilities, token).ConfigureAwait(false);
+            var result = await IntrospectAndCompileAsync(edgedb, token).ConfigureAwait(false);
+            return await edgedb.QueryAsync<TType>(result.Query, result.RawVariables, capabilities, token).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         async Task<TType?> ISingleCardinalityExecutable<TType>.ExecuteAsync(IEdgeDBQueryable edgedb,
             Capabilities? capabilities, CancellationToken token)
         {
-            var result = await IntrospectAndBuildAsync(edgedb, token).ConfigureAwait(false);
-            return await edgedb.QuerySingleAsync<TType>(result.Query, result.Parameters, capabilities, token).ConfigureAwait(false);
+            var result = await IntrospectAndCompileAsync(edgedb, token).ConfigureAwait(false);
+            return await edgedb.QuerySingleAsync<TType>(result.Query, result.RawVariables, capabilities, token).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         async Task<TType?> IMultiCardinalityExecutable<TType>.ExecuteSingleAsync(IEdgeDBQueryable edgedb, Capabilities? capabilities, CancellationToken token)
         {
-            var result = await IntrospectAndBuildAsync(edgedb, token).ConfigureAwait(false);
-            return await edgedb.QuerySingleAsync<TType>(result.Query, result.Parameters, capabilities, token).ConfigureAwait(false);
+            var result = await IntrospectAndCompileAsync(edgedb, token).ConfigureAwait(false);
+            return await edgedb.QuerySingleAsync<TType>(result.Query, result.RawVariables, capabilities, token).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         async Task<TType> IMultiCardinalityExecutable<TType>.ExecuteRequiredSingleAsync(IEdgeDBQueryable edgedb, Capabilities? capabilities, CancellationToken token)
         {
-            var result = await IntrospectAndBuildAsync(edgedb, token).ConfigureAwait(false);
-            return await edgedb.QueryRequiredSingleAsync<TType>(result.Query, result.Parameters, capabilities, token).ConfigureAwait(false);
+            var result = await IntrospectAndCompileAsync(edgedb, token).ConfigureAwait(false);
+            return await edgedb.QueryRequiredSingleAsync<TType>(result.Query, result.RawVariables, capabilities, token).ConfigureAwait(false);
         }
 
 
@@ -616,99 +577,11 @@ namespace EdgeDB
         IReadOnlyCollection<QueryNode> IQueryBuilder.Nodes => _nodes;
         List<QueryGlobal> IQueryBuilder.Globals => _queryGlobals;
         Dictionary<string, object?> IQueryBuilder.Variables => _queryVariables;
-        BuiltQuery IQueryBuilder.BuildWithGlobals(Action<QueryNode>? preFinalizerModifier) => BuildWithGlobals(preFinalizerModifier);
 
-        void IQueryBuilder.InternalBuild(QueryWriter writer, CompileContext? context) =>
-            InternalBuild(writer, context);
+        void IQueryBuilder.CompileInternal(QueryWriter writer, CompileContext? context) =>
+            CompileInternal(writer, context);
 
         #endregion
     }
 
-
-    /// <summary>
-    ///     Represents a built query.
-    /// </summary>
-    [System.Diagnostics.DebuggerDisplay(@"{Query,nq}")]
-    public class BuiltQuery
-    {
-        /// <summary>
-        ///     Gets the query text.
-        /// </summary>
-        public string Query { get; internal init; }
-
-        /// <summary>
-        ///     Gets a collection of parameters for the query.
-        /// </summary>
-        public IDictionary<string, object?>? Parameters { get; internal init; }
-
-        /// <summary>
-        ///     Gets a prettified version of this query.
-        /// </summary>
-        public string Pretty
-            => Prettify();
-
-        internal List<QueryGlobal>? Globals { get; init; }
-
-        /// <summary>
-        ///     Creates a new built query.
-        /// </summary>
-        /// <param name="query">The query text.</param>
-        internal BuiltQuery(string query)
-        {
-            Query = query;
-        }
-
-        /// <summary>
-        ///     Prettifies the query text.
-        /// </summary>
-        /// <remarks>
-        ///     This method uses alot of regex and can be unreliable, if
-        ///     you're using this in a production setting please use with care.
-        /// </remarks>
-        /// <returns>A prettified version of <see cref="Query"/>.</returns>
-        public string Prettify()
-        {
-            // add newlines
-            var result = Regex.Replace(Query, @"({|\(|\)|}|,)", m =>
-            {
-                switch (m.Groups[1].Value)
-                {
-                    case "{" or "(" or ",":
-                        if (m.Groups[1].Value == "{" && Query[m.Index + 1] == '}')
-                            return m.Groups[1].Value;
-
-                        return $"{m.Groups[1].Value}\n";
-
-                    default:
-                        return $"{((m.Groups[1].Value == "}" && (Query[m.Index - 1] == '{' || Query[m.Index - 1] == '}')) ? "" : "\n")}{m.Groups[1].Value}{((Query.Length != m.Index + 1 && (Query[m.Index + 1] != ',')) ? "\n" : "")}";
-                }
-            }).Trim().Replace("\n ", "\n");
-
-            // clean up newline func
-            result = Regex.Replace(result, "\n\n", m => "\n");
-
-            // add indentation
-            result = Regex.Replace(result, "^", m =>
-            {
-                int indent = 0;
-
-                foreach (var c in result[..m.Index])
-                {
-                    if (c is '(' or '{')
-                        indent++;
-                    if (c is ')' or '}')
-                        indent--;
-                }
-
-                var next = result.Length != m.Index ? result[m.Index] : '\0';
-
-                if (next is '}' or ')')
-                    indent--;
-
-                return "".PadLeft(indent * 2);
-            }, RegexOptions.Multiline);
-
-            return result;
-        }
-    }
 }

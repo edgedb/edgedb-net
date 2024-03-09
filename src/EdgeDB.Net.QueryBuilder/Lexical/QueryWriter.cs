@@ -26,13 +26,11 @@ internal sealed class QueryWriter : IDisposable
         }
     }
 
-    public IReadOnlyDictionary<string, LinkedList<Marker>> Markers
-        => _markers;
+    public readonly Dictionary<string, LinkedList<Marker>> Markers;
 
     private readonly List<Marker> _markersRef;
 
     private readonly LooseLinkedList<Value> _tokens;
-    private readonly Dictionary<string, LinkedList<Marker>> _markers;
 
     private readonly List<INodeObserver> _observers = [];
 
@@ -43,7 +41,7 @@ internal sealed class QueryWriter : IDisposable
     public QueryWriter()
     {
         _tokens = new();
-        _markers = new();
+        Markers = new();
         _markersRef = new();
         _track = null;
     }
@@ -199,12 +197,12 @@ internal sealed class QueryWriter : IDisposable
     }
 
     public bool TryGetMarker(string name, [MaybeNullWhen(false)] out LinkedList<Marker> markers)
-        => _markers.TryGetValue(name, out markers);
+        => Markers.TryGetValue(name, out markers);
 
     public QueryWriter Marker(MarkerType type, string name, in Value value)
     {
-        if (!_markers.TryGetValue(name, out var markers))
-            _markers[name] = markers = new();
+        if (!Markers.TryGetValue(name, out var markers))
+            Markers[name] = markers = new();
 
         var currentIndex = TailIndex;
         Append(in value, out var head);
@@ -224,8 +222,8 @@ internal sealed class QueryWriter : IDisposable
         if (values.Length == 0)
             return this;
 
-        if (!_markers.TryGetValue(name, out var markers))
-            _markers[name] = markers = new();
+        if (!Markers.TryGetValue(name, out var markers))
+            Markers[name] = markers = new();
 
         var currentIndex = TailIndex;
 
@@ -372,7 +370,7 @@ internal sealed class QueryWriter : IDisposable
 
     public void Dispose()
     {
-        _markers.Clear();
+        Markers.Clear();
         _tokens.Clear();
         _observers.Clear();
         _markersRef.Clear();

@@ -15,24 +15,18 @@ namespace EdgeDB.Translators.Expressions
     {
         public static Dictionary<MemberInfo, Expression> PullInitializationExpression(Expression expression)
         {
-            if(expression is MemberInitExpression memberInit)
+            return expression switch
             {
-                return memberInit.Bindings.ToDictionary(
-                    x => x.Member,
+                MemberInitExpression memberInit => memberInit.Bindings.ToDictionary(x => x.Member,
                     x => x is not MemberAssignment assignment
                         ? throw new InvalidOperationException($"Expected MemberAssignment, but got {x.GetType().Name}")
-                        : assignment.Expression
-                );
-            }
-            else if (expression is NewExpression newExpression)
-            {
-                if (newExpression.Members is null)
-                    throw new NullReferenceException("New expression must contain arguments");
-
-                return newExpression.Members.Zip(newExpression.Arguments).ToDictionary(x => x.First, x => x.Second);
-            }
-
-            throw new ArgumentException($"expression is not an initialization expression", nameof(expression));
+                        : assignment.Expression),
+                NewExpression {Members: null} => throw new NullReferenceException(
+                    "New expression must contain arguments"),
+                NewExpression newExpression => newExpression.Members!.Zip(newExpression.Arguments)
+                    .ToDictionary(x => x.First, x => x.Second),
+                _ => throw new ArgumentException($"expression is not an initialization expression", nameof(expression))
+            };
         }
 
         private static SubQuery? GenerateMultiLinkInserter(Type innerType, IEnumerable collection, ExpressionContext context)
@@ -50,34 +44,14 @@ namespace EdgeDB.Translators.Expressions
             if (!collection.Any())
                 return null;
 
-            return new SubQuery((info, subQuery) =>
+            return new SubQuery((info, writer) =>
             {
-                var builder = new QueryBuilder<T>(info);
-
-                var builtQuery = builder
+                new QueryBuilder<T>(info)
                     .For(collection, x => QueryBuilder
                         .Insert(x)
                         .UnlessConflict()
                     )
-                    .BuildWithGlobals();
-
-                if(builtQuery.Parameters is not null)
-                {
-                    foreach (var param in builtQuery.Parameters)
-                    {
-                        context.SetVariable(param.Key, param.Value);
-                    }
-                }
-
-                if(builtQuery.Globals is not null)
-                {
-                    foreach(var global in builtQuery.Globals)
-                    {
-                        context.SetGlobal(global.Name, global.Value, global.Reference);
-                    }
-                }
-
-                subQuery.Append(builtQuery.Query);
+                    .WriteTo(writer, context);
             });
         }
 

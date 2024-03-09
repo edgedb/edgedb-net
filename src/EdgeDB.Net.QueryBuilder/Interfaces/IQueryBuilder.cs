@@ -1,4 +1,5 @@
 using EdgeDB.Builders;
+using EdgeDB.Compiled;
 using EdgeDB.Interfaces;
 using EdgeDB.Interfaces.Queries;
 using EdgeDB.QueryNodes;
@@ -298,38 +299,25 @@ namespace EdgeDB
         internal Dictionary<string, object?> Variables { get; }
 
         /// <summary>
-        ///     Builds the current query.
+        ///     Compiles the current query.
         /// </summary>
         /// <remarks>
         ///     If the query requires introspection please use
-        ///     <see cref="BuildAsync(IEdgeDBQueryable, CancellationToken)"/>.
+        ///     <see cref="CompileAsync"/>.
         /// </remarks>
         /// <returns>
-        ///     A <see cref="BuiltQuery"/>.
+        ///     A <see cref="CompiledQuery"/>.
         /// </returns>
-        BuiltQuery Build();
+        CompiledQuery Compile();
 
         /// <summary>
-        ///     Builds the current query asynchronously, allowing database introspection.
+        ///     Compiles the current query asynchronously, allowing database introspection.
         /// </summary>
         /// <param name="edgedb">The client to preform introspection with.</param>
         /// <param name="token">A cancellation token to cancel the asynchronous operation.</param>
-        /// <returns>A <see cref="BuiltQuery"/>.</returns>
-        ValueTask<BuiltQuery> BuildAsync(IEdgeDBQueryable edgedb, CancellationToken token = default);
+        /// <returns>A <see cref="CompiledQuery"/>.</returns>
+        ValueTask<CompiledQuery> CompileAsync(IEdgeDBQueryable edgedb, CancellationToken token = default);
 
-        /// <summary>
-        ///     Builds the current query builder into its <see cref="BuiltQuery"/>
-        ///     form and excludes globals from the query text and puts them in
-        ///     <see cref="BuiltQuery.Globals"/>.
-        /// </summary>
-        /// <param name="preFinalizerModifier">
-        ///     A modifier delegate to change nodes behaviour before the finalizer is called.
-        /// </param>
-        /// <returns>
-        ///     A <see cref="BuiltQuery"/> which is the current query this builder has constructed.
-        /// </returns>
-        internal BuiltQuery BuildWithGlobals(Action<QueryNode>? preFinalizerModifier = null);
-
-        internal void InternalBuild(QueryWriter writer, CompileContext? context = null);
+        internal void CompileInternal(QueryWriter writer, CompileContext? context = null);
     }
 }

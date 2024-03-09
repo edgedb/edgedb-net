@@ -19,7 +19,7 @@ namespace EdgeDB
 
             target.Globals.AddRange(source.Globals);
 
-            source.InternalBuild(writer, context);
+            source.CompileInternal(writer, context);
         }
 
         public static void WriteTo(
@@ -38,7 +38,7 @@ namespace EdgeDB
                 expressionContext.SetGlobal(global.Name, global.Value, global.Reference);
             }
 
-            source.InternalBuild(writer, compileContext);
+            source.CompileInternal(writer, compileContext);
         }
 
         public static void WriteTo(this IQueryBuilder source, QueryWriter writer, QueryNode node, CompileContext? compileContext = null)
@@ -51,7 +51,7 @@ namespace EdgeDB
 
             node.Builder.QueryGlobals.AddRange(source.Globals);
 
-            source.InternalBuild(writer, compileContext);
+            source.CompileInternal(writer, compileContext);
         }
     }
 }
