@@ -2,7 +2,8 @@
 
 public enum MarkerType
 {
-    Global,
+    GlobalReference,
+    GlobalDeclaration,
     Function,
     FunctionArg,
     Shape,

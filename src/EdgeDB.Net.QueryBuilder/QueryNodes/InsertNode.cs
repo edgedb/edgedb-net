@@ -824,7 +824,7 @@ namespace EdgeDB.QueryNodes
             if (_subQueryMap.Contains(type) || value.RequiresIntrospection)
             {
                 writer.Marker(
-                    MarkerType.Global,
+                    MarkerType.GlobalReference,
                     GetOrAddGlobal(reference, value),
                     Defer.This(() => $"Global of type {type}")
                 );

@@ -90,6 +90,18 @@ internal readonly struct Value
         return _ch is not null ? $"char \'{_ch}\'" : _value is null ? "null" : $"value {_value}";
     }
 
+    public override string ToString()
+    {
+        if (_callback is not null)
+            return "<callback>";
+        if (_str is not null)
+            return "<str>";
+        if (_ch.HasValue)
+            return "<char>";
+
+        return "<object>";
+    }
+
     public static implicit operator Value(string? value) => new(value);
     public static implicit operator Value(char value) => new(value);
     public static implicit operator Value(WriterProxy callback) => new(callback);

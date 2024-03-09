@@ -74,21 +74,33 @@ namespace EdgeDB
         private Value[] Compile<T>(T source, Action<IQueryBuilder, QueryWriter, T, CompileContext?> compileBuilder, QueryWriter writer, CompileContext? context = null,
             SchemaInfo? info = null)
         {
-            return Value switch
-            {
-                // if its a query builder, build it and add it as a sub-query.
-                IQueryBuilder queryBuilder => writer
-                    .Span(writer =>
-                        writer.Wrapped(
-                            writer => compileBuilder(queryBuilder, writer, source, context)
-                        )
-                    ),
-                // if its a sub query that requires introspection, build it and add it.
-                SubQuery {RequiresIntrospection: true} when info is null => throw new InvalidOperationException(
-                    "Cannot build without introspection! A node requires query introspection."),
-                SubQuery {RequiresIntrospection: true} subQuery => writer.Span(writer => subQuery.Build(info, writer)),
-                _ => writer.Span(writer => QueryUtils.ParseObject(writer, Value))
-            };
+            return writer.Span(writer => writer
+                .Marker(
+                    MarkerType.GlobalDeclaration,
+                    Name,
+                    Defer.This(() => $"Reference?: {Reference?.GetType().ToString() ?? "null"}, Value?: {Value?.GetType().ToString() ?? "null"}"),
+                    EdgeDB.Value.Of(writer =>
+                    {
+                        switch (Value)
+                        {
+                            case IQueryBuilder queryBuilder:
+                                writer.Wrapped(writer =>
+                                    compileBuilder(queryBuilder, writer, source, context));
+                                break;
+                            case SubQuery {RequiresIntrospection: true} when info is null:
+                                throw new
+                                    InvalidOperationException(
+                                        "Cannot build without introspection! A node requires query introspection.");
+                            case SubQuery {RequiresIntrospection: true} subQuery:
+                                subQuery.Build(info, writer);
+                                break;
+                            default:
+                                QueryUtils.ParseObject(writer, Value);
+                                break;
+                        }
+                    })
+
+            ));
         }
     }
 }

@@ -101,6 +101,14 @@ internal static class Terms
     public static QueryWriter TypeCast(this QueryWriter writer, Value type)
         => writer.Append("<", type, ">");
 
+    public static QueryWriter Variable(this QueryWriter writer, Value type, Value name)
+        => writer.Marker(
+            MarkerType.Variable,
+            $"variable_{name}",
+            debug: null,
+            Value.Of(writer => writer.TypeCast(type).Append(name))
+        );
+
     public readonly struct FunctionArg
     {
         public readonly Value Value;

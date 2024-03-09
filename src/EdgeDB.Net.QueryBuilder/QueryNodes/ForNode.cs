@@ -114,8 +114,17 @@ namespace EdgeDB.QueryNodes
             if (_name is null || _jsonName is null || _expression is null)
                 throw new InvalidOperationException("No initialization of this node was preformed");
 
-            // append the 'FOR' statement
-            writer.Append("for ", _name, " in json_array_unpack(<json>", _jsonName, ") union ", Value.Of(writer => writer.Wrapped(_expression)));
+            writer.Append(
+                "for ",
+                _name,
+                " in ",
+                Value.Of(writer => writer.Function(
+                    "json_array_unpack",
+                    Value.Of(writer => writer.Variable("json", _jsonName))
+                )),
+                " union ",
+                Value.Of(writer => writer.Wrapped(_expression))
+            );
         }
     }
 }

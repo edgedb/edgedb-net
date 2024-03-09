@@ -14,7 +14,7 @@ internal sealed class ShapeReducer : IReducer
                 continue;
 
             Value[]? tokens = null;
-            foreach (var marker in markers)
+            foreach (var marker in markers.ToArray())
             {
                 Action<QueryNode>? modifier = marker switch
                 {
