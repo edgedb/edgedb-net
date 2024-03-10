@@ -191,16 +191,6 @@ namespace EdgeDB.QueryNodes
             public readonly Type Type = type;
             public readonly EdgeDBPropertyMapInfo? PropertyMapInfo = propertyMapInfo;
 
-            public static InsertValue FromType<T>(T value)
-            {
-                var map = EdgeDBPropertyMapInfo.Create(typeof(T));
-                return new InsertValue(
-                    typeof(T),
-                    map.Properties.ToDictionary(x => x.EdgeDBName, x => x.PropertyInfo.GetValue(value)),
-                    map
-                );
-            }
-
             public static InsertValue FromType(Type type, object value)
             {
                 var map = EdgeDBPropertyMapInfo.Create(type);
@@ -506,7 +496,7 @@ namespace EdgeDB.QueryNodes
 
                         writer.Append("insert ", name, " ");
 
-                        BuildInsertShape(type, Union<LambdaExpression, InsertValue, IJsonVariable>.From(value, () => InsertValue.FromType(value))).Build(writer, info);
+                        BuildInsertShape(type, Union<LambdaExpression, InsertValue, IJsonVariable>.From(value, () => InsertValue.FromType(type, value))).Build(writer, info);
 
                         if (!exclusiveProps.Any()) return;
 
@@ -574,7 +564,7 @@ namespace EdgeDB.QueryNodes
         /// <param name="selector">The property selector for the conflict clause.</param>
         public void UnlessConflictOn(LambdaExpression selector)
         {
-            _unlessConflictExpression ??= writer => writer.Append("unless conflict on ", ProxyExpression(selector));
+            _unlessConflictExpression ??= writer => writer.Append(" unless conflict on ", ProxyExpression(selector));
         }
 
         /// <summary>

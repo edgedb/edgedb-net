@@ -21,7 +21,7 @@ namespace EdgeDB.QueryNodes
         public InsertContext(Type currentType, object? value) : base(currentType)
         {
             Value = value is not null
-                ? Union<LambdaExpression, InsertNode.InsertValue, IJsonVariable>.From(value, () => InsertNode.InsertValue.FromType(value))
+                ? Union<LambdaExpression, InsertNode.InsertValue, IJsonVariable>.From(value, () => InsertNode.InsertValue.FromType(currentType, value))
                 : null;
         }
     }
