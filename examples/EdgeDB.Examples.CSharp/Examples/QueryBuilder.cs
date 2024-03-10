@@ -32,52 +32,6 @@ namespace EdgeDB.ExampleApp.Examples
         {
             try
             {
-                // depth of 4
-                var data = new Person[]
-                {
-                    new Person
-                    {
-                        Email = "test1@mail.com",
-                        Name = "test1",
-                    },
-                    new Person
-                    {
-                        Email = "test2@mail.com",
-                        Name = "test2",
-                        BestFriend = new Person
-                        {
-                            Email = "test3@mail.com",
-                            Name = "test3",
-                            Friends = new List<Person>()
-                            {
-                                new Person()
-                                {
-                                    Name = "test4",
-                                    Email = "test4@mail.com",
-                                    BestFriend = new Person()
-                                    {
-                                        Name = "test4.1",
-                                        Email = "test4.1@mail.com"
-                                    }
-                                },
-                                new Person()
-                                {
-                                    Name = "test5",
-                                    Email = "test5@mail.com",
-                                    BestFriend = new Person()
-                                    {
-                                        Name = "test5.1",
-                                        Email = "test5.1@mail.com"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                };
-
-                var query = await QueryBuilder.For(data,
-                    x => QueryBuilder.Insert(x)
-                ).CompileAsync(client, true);
                 await QueryBuilderDemo(client);
             }
             catch (Exception x)

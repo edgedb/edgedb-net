@@ -160,11 +160,11 @@ public sealed class DebugCompiledQuery : CompiledQuery
         else
         {
             sb.AppendLine(query);
-            sb.AppendLine();
         }
 
         if (variables.Count > 0)
         {
+            sb.AppendLine();
             sb.AppendLine("Variables: ");
 
             foreach (var (name, value) in variables)
@@ -178,20 +178,29 @@ public sealed class DebugCompiledQuery : CompiledQuery
 
     private static List<List<QuerySpan>> CreateMarkerView(LinkedList<QuerySpan> spans)
     {
-        var ordered = new Queue<QuerySpan>(spans.OrderBy(x => x.Range.End.Value - x.Range.Start.Value)); // order by 'size'
+        var orderedTemp = spans.OrderBy(x => x.Range.End.Value - x.Range.Start.Value).ToList();
+        var ordered = new Queue<QuerySpan>(orderedTemp); // order by 'size'
         var result = new List<List<QuerySpan>>();
         var row = new List<QuerySpan>();
 
         while (ordered.TryDequeue(out var span))
         {
-            var head = row.LastOrDefault();
-            if (head is null)
+            foreach (var prevRow in result)
+            {
+                if (prevRow.All(y => !span.Range.Overlaps(y.Range)))
+                {
+                    prevRow.Add(span);
+                    goto end_iter;
+                }
+            }
+
+            if (row.Count == 0)
             {
                 row.Add(span);
                 continue;
             }
 
-            if (head.Range.End.Value >= span.Range.Start.Value)
+            if (row.Any(x => x.Range.Overlaps(span.Range)))
             {
                 // overlap
                 result.Add(row);
@@ -200,6 +209,8 @@ public sealed class DebugCompiledQuery : CompiledQuery
             }
 
             row.Add(span);
+
+            end_iter: ;
         }
 
         result.Add(row);
