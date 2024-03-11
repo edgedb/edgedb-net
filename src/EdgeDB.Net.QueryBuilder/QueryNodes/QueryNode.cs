@@ -175,15 +175,17 @@ namespace EdgeDB.QueryNodes
         /// </remarks>
         /// <param name="expression">The expression to translate.</param>
         /// <param name="writer">The query string writer to append the translated expression to.</param>
-        protected void TranslateExpression(LambdaExpression expression, QueryWriter writer)
+        /// <param name="context">Context to provide to the translation.</param>
+        protected void TranslateExpression(LambdaExpression expression, QueryWriter writer, Action<ExpressionContext>? context = null)
         {
             using var consumer = NodeTranslationContext.CreateContextConsumer(expression);
+            context?.Invoke(consumer);
             ExpressionTranslator.Translate(expression, consumer, writer);
         }
 
-        protected WriterProxy ProxyExpression(LambdaExpression expression)
+        protected WriterProxy ProxyExpression(LambdaExpression expression, Action<ExpressionContext>? context = null)
         {
-            return writer => TranslateExpression(expression, writer);
+            return writer => TranslateExpression(expression, writer, context);
         }
 
         /// <summary>

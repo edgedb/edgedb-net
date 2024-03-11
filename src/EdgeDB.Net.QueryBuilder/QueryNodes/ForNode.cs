@@ -48,7 +48,7 @@ namespace EdgeDB.QueryNodes
                 {
                     return x switch
                     {
-                        _ when x.Type == typeof(QueryContext) => new QueryContext(),
+                        _ when x.Type == typeof(QueryContext) => null!,
                         _ when ReflectionUtils.IsSubclassOfRawGeneric(typeof(JsonCollectionVariable<>), x.Type)
                             => typeof(JsonCollectionVariable<>).MakeGenericType(Context.CurrentType)
                                 .GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, new Type[] { typeof(string), typeof(string), typeof(JArray)})!

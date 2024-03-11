@@ -24,7 +24,7 @@ namespace EdgeDB
         ///     Gets the root lambda function that is currently being translated.
         /// </summary>
         public LambdaExpression RootExpression { get; set; }
-        
+
         /// <summary>
         ///     Gets a collection of method parameters within the <see cref="RootExpression"/>.
         /// </summary>
@@ -46,17 +46,22 @@ namespace EdgeDB
         public bool IsShape { get; set; }
 
         /// <summary>
-        ///     Gets or sets whether or not the current expression has an initialization 
+        ///     Gets or sets whether or not the current expression has an initialization
         ///     operator, ex: ':=, +=, -='.
         /// </summary>
-        public bool HasInitializationOperator { get; set; }
+        public bool UseInitializationOperator { get; set; }
 
         /// <summary>
         ///     Gets or sets whether or not to include a self reference.
         ///     Ex: <see langword="true"/>: '.name', <see langword="false"/>: 'name'
         /// </summary>
-        /// 
+        ///
         public bool IncludeSelfReference { get; set; } = true;
+
+        /// <summary>
+        ///     Gets or sets whether or not to wrap new expressions in brackets.
+        /// </summary>
+        public bool WrapNewExpressionInBrackets { get; set; } = true;
 
         /// <summary>
         ///     Gets whether or not the current expression tree is a free object.
@@ -88,7 +93,7 @@ namespace EdgeDB
         /// <param name="queryArguments">The query arguments collection.</param>
         /// <param name="globals">The query global collection.</param>
         /// <param name="node">The query node constructing this translation context.</param>
-        public ExpressionContext(NodeContext context, LambdaExpression rootExpression, 
+        public ExpressionContext(NodeContext context, LambdaExpression rootExpression,
             IDictionary<string, object?> queryArguments, List<QueryGlobal> globals,
             QueryNode? node = null)
         {
@@ -127,7 +132,7 @@ namespace EdgeDB
         /// <param name="reference">The reference of the global.</param>
         /// <param name="global">The out parameter containing the global.</param>
         /// <returns>
-        ///     <see langword="true"/> if a global could be found with the reference; 
+        ///     <see langword="true"/> if a global could be found with the reference;
         ///     otherwise <see langword="false"/>.
         /// </returns>
         public bool TryGetGlobal(object? reference, [MaybeNullWhen(false)]out QueryGlobal global)
@@ -142,7 +147,7 @@ namespace EdgeDB
         /// <param name="name">The name of the global.</param>
         /// <param name="global">The out parameter containing the global.</param>
         /// <returns>
-        ///     <see langword="true"/> if a global could be found with the reference; 
+        ///     <see langword="true"/> if a global could be found with the reference;
         ///     otherwise <see langword="false"/>.
         /// </returns>
         public bool TryGetGlobal(string? name, [MaybeNullWhen(false)] out QueryGlobal global)
@@ -161,7 +166,7 @@ namespace EdgeDB
         {
             if (reference is not null && TryGetGlobal(reference, out var global))
                 return global.Name;
-           
+
             var name = QueryUtils.GenerateRandomVariableName();
             SetGlobal(name, value, reference);
             return name;

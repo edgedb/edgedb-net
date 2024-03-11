@@ -31,7 +31,14 @@ namespace EdgeDB.Translators.Expressions
 
                 switch (memberExpression.Member.Name)
                 {
-                    case nameof(QueryContext<object, object>.Variables):
+                    case nameof(QueryContextUsing<object>.Using):
+                        // get the reference
+                        if(deconstructed[^3] is not MemberExpression targetMemberExpression)
+                            throw new NotSupportedException($"Cannot use expression type {deconstructed[^3] .NodeType} as a variable access");
+
+                        writer.Append(targetMemberExpression.Member.GetEdgeDBPropertyName());
+                        break;
+                    case nameof(QueryContextVars<object>.Variables):
                         // get the reference
                         var target = deconstructed[^3];
 
@@ -94,7 +101,7 @@ namespace EdgeDB.Translators.Expressions
                             default:
                                 throw new NotSupportedException($"Cannot use expression type {target.NodeType} as a variable access");
                         }
-                    case nameof(QueryContext.Self):
+                    case nameof(QueryContextSelf<object>.Self):
                         var paths = deconstructed[..^2];
                         writer.Append('.');
                         for (var i = 0; i != paths.Length; i++)

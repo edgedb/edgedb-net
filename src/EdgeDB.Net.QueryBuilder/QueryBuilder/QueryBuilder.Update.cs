@@ -13,45 +13,45 @@ namespace EdgeDB
     public static partial class QueryBuilder
     {
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{TType, TType}}, bool)"/>
-        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(Expression<Func<TType, TType>> updateFunc, bool returnUpdatedValue)
+        public static IUpdateQuery<TType, QueryContextSelf<TType>> Update<TType>(Expression<Func<TType, TType>> updateFunc, bool returnUpdatedValue)
             => new QueryBuilder<TType>().Update(updateFunc, returnUpdatedValue);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{TType, TType}})"/>
-        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(Expression<Func<TType, TType>> updateFunc)
+        public static IUpdateQuery<TType, QueryContextSelf<TType>> Update<TType>(Expression<Func<TType, TType>> updateFunc)
             => new QueryBuilder<TType>().Update(updateFunc, false);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{QueryContext, TType, TType}}, bool)"/>
-        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(Expression<Func<QueryContext<TType>, TType, TType>> updateFunc, bool returnUpdatedValue)
+        public static IUpdateQuery<TType, QueryContextSelf<TType>> Update<TType>(Expression<Func<QueryContextSelf<TType>, TType, TType>> updateFunc, bool returnUpdatedValue)
             => new QueryBuilder<TType>().Update(updateFunc, returnUpdatedValue);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{QueryContext, TType, TType}})"/>
-        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(Expression<Func<QueryContext<TType>, TType, TType>> updateFunc)
+        public static IUpdateQuery<TType, QueryContextSelf<TType>> Update<TType>(Expression<Func<QueryContextSelf<TType>, TType, TType>> updateFunc)
             => new QueryBuilder<TType>().Update(updateFunc, false);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{QueryContext, TType}}, Expression{Func{QueryContext, TType, TType}}, bool)"/>
-        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(
-            Expression<Func<QueryContext<TType>, TType>> selector,
-            Expression<Func<QueryContext<TType>, TType, TType>> updateFunc,
+        public static IUpdateQuery<TType, QueryContextSelf<TType>> Update<TType>(
+            Expression<Func<QueryContextSelf<TType>, TType>> selector,
+            Expression<Func<QueryContextSelf<TType>, TType, TType>> updateFunc,
             bool returnUpdatedValue)
             => new QueryBuilder<TType>().Update(selector, updateFunc, returnUpdatedValue);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{QueryContext, TType}}, Expression{Func{TType, TType}}, bool)"/>
-        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(
-            Expression<Func<QueryContext<TType>, TType>> selector,
+        public static IUpdateQuery<TType, QueryContextSelf<TType>> Update<TType>(
+            Expression<Func<QueryContextSelf<TType>, TType>> selector,
             Expression<Func<TType, TType>> updateFunc,
             bool returnUpdatedValue)
             => new QueryBuilder<TType>().Update(selector, updateFunc, returnUpdatedValue);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{QueryContext, TType}}, Expression{Func{TType, TType}})"/>
-        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(
-            Expression<Func<QueryContext<TType>, TType>> selector,
+        public static IUpdateQuery<TType, QueryContextSelf<TType>> Update<TType>(
+            Expression<Func<QueryContextSelf<TType>, TType>> selector,
             Expression<Func<TType, TType>> updateFunc)
             => new QueryBuilder<TType>().Update(selector, updateFunc);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Update(Expression{Func{QueryContext, TType}}, Expression{Func{QueryContext, TType, TType}})"/>
-        public static IUpdateQuery<TType, QueryContext<TType>> Update<TType>(
-            Expression<Func<QueryContext<TType>, TType>> selector,
-            Expression<Func<QueryContext<TType>, TType, TType>> updateFunc)
+        public static IUpdateQuery<TType, QueryContextSelf<TType>> Update<TType>(
+            Expression<Func<QueryContextSelf<TType>, TType>> selector,
+            Expression<Func<QueryContextSelf<TType>, TType, TType>> updateFunc)
             => new QueryBuilder<TType>().Update(selector, updateFunc);
     }
 

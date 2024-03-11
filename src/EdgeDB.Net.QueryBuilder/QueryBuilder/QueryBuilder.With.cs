@@ -11,26 +11,30 @@ namespace EdgeDB
     public static partial class QueryBuilder
     {
         /// <inheritdoc cref="IQueryBuilder{TType, TContext}.With{TVariables}(TVariables)"/>
-        public static IQueryBuilder<dynamic, QueryContext<dynamic, TVariables>> With<TVariables>(TVariables variables)
-            => QueryBuilder<dynamic>.With(variables);
+        public static IQueryBuilder<dynamic, QueryContextVars<TVariables>> With<TVariables>(TVariables variables)
+            => new QueryBuilder<dynamic, QueryContextVars<TVariables>>()
+                .With(variables).EnterNewContext<QueryContextVars<TVariables>>();
 
         /// <inheritdoc cref="IQueryBuilder{TType, TContext}.With{TVariables}(TVariables)"/>
-        public static IQueryBuilder<dynamic, QueryContext<dynamic, TVariables>> With<TVariables>(Expression<Func<QueryContext<dynamic>, TVariables>> variables)
-            => QueryBuilder<dynamic>.With(variables);
+        public static IQueryBuilder<dynamic, QueryContextVars<TVariables>> With<TVariables>(
+            Expression<Func<QueryContext, TVariables>> variables)
+            => new QueryBuilder<dynamic, QueryContextVars<TVariables>>()
+                .With(variables).EnterNewContext<QueryContextVars<TVariables>>(); // QueryBuilder<dynamic>.With(variables);
     }
 
     public partial class QueryBuilder<TType>
     {
-        new public static IQueryBuilder<TType, QueryContext<TType, TVariables>> With<TVariables>(TVariables variables)
-            => new QueryBuilder<TType, TVariables>().With(variables);
+        public new static IQueryBuilder<TType, QueryContextSelfVars<TType, TVariables>> With<TVariables>(TVariables variables)
+            => new QueryBuilder<TType, QueryContextSelfVars<TType, TVariables>>().With(variables);
 
-        new public static IQueryBuilder<TType, QueryContext<TType, TVariables>> With<TVariables>(Expression<Func<QueryContext<TType>, TVariables>> variables)
-            => new QueryBuilder<TType, TVariables>().With(variables);
+        public static IQueryBuilder<TType, QueryContextSelfVars<TType, TVariables>> With<TVariables>(Expression<Func<QueryContextSelf<TType>, TVariables>> variables)
+            => new QueryBuilder<TType, QueryContextSelfVars<TType, TVariables>>().WithInternal<TVariables>(variables);
     }
 
     public partial class QueryBuilder<TType, TContext>
     {
-        public QueryBuilder<TType, QueryContext<TType, TVariables>> With<TVariables>(Expression<Func<QueryContext<TType>, TVariables>> variables)
+        internal QueryBuilder<TType, QueryContextSelfVars<TType, TVariables>> WithInternal<TVariables>(
+            LambdaExpression variables)
         {
             if (variables is null)
                 throw new NullReferenceException("Variables cannot be null");
@@ -45,13 +49,17 @@ namespace EdgeDB
             // add each as a global
             foreach (var initialization in initializations)
             {
-                _queryGlobals.Add(new QueryGlobal(initialization.Key.Name, initialization.Value, variables));
+                QueryGlobals.Add(new QueryGlobal(initialization.Key.Name, initialization.Value, variables));
             }
 
-            return EnterNewContext<QueryContext<TType, TVariables>>();
+            return EnterNewContext<QueryContextSelfVars<TType, TVariables>>();
         }
 
-        public QueryBuilder<TType, QueryContext<TType, TVariables>> With<TVariables>(TVariables variables)
+        public QueryBuilder<TType, QueryContextSelfVars<TType, TVariables>> With<TVariables>(
+            Expression<Func<QueryContext, TVariables>> variables)
+            => WithInternal<TVariables>(variables);
+
+        public QueryBuilder<TType, QueryContextSelfVars<TType, TVariables>> With<TVariables>(TVariables variables)
         {
             if (variables is null)
                 throw new NullReferenceException("Variables cannot be null");
@@ -68,8 +76,8 @@ namespace EdgeDB
                 if (EdgeDBTypeUtils.TryGetScalarType(property.PropertyType, out var scalarInfo))
                 {
                     var varName = QueryUtils.GenerateRandomVariableName();
-                    _queryVariables.Add(varName, value);
-                    _queryGlobals.Add(
+                    QueryVariables.Add(varName, value);
+                    QueryGlobals.Add(
                         new QueryGlobal(
                             property.Name,
                             new SubQuery(writer => writer
@@ -81,7 +89,7 @@ namespace EdgeDB
                 else if (property.PropertyType.IsAssignableTo(typeof(IQueryBuilder)))
                 {
                     // add it as a sub-query
-                    _queryGlobals.Add(new QueryGlobal(property.Name, value));
+                    QueryGlobals.Add(new QueryGlobal(property.Name, value));
                 }
                 // TODO: revisit references
                 //else if (
@@ -96,8 +104,8 @@ namespace EdgeDB
                     // serialize and add as global and variable
                     var referenceValue = property.PropertyType.GetProperty("Value")!.GetValue(value);
                     var jsonVarName = QueryUtils.GenerateRandomVariableName();
-                    _queryVariables.Add(jsonVarName, DataTypes.Json.Serialize(referenceValue));
-                    _queryGlobals.Add(new QueryGlobal(property.Name, new SubQuery(writer => writer
+                    QueryVariables.Add(jsonVarName, DataTypes.Json.Serialize(referenceValue));
+                    QueryGlobals.Add(new QueryGlobal(property.Name, new SubQuery(writer => writer
                         .QueryArgument("json", jsonVarName)
                     ), value));
                 }
@@ -105,10 +113,10 @@ namespace EdgeDB
                     throw new InvalidOperationException($"Cannot serialize {property.Name}: No serialization strategy found for {property.PropertyType}");
             }
 
-            return EnterNewContext<QueryContext<TType, TVariables>>();
+            return EnterNewContext<QueryContextSelfVars<TType, TVariables>>();
         }
 
-        IQueryBuilder<TType, QueryContext<TType, TVariables>> IQueryBuilder<TType, TContext>.With<TVariables>(TVariables variables) => With(variables);
-        IQueryBuilder<TType, QueryContext<TType, TVariables>> IQueryBuilder<TType, TContext>.With<TVariables>(Expression<Func<QueryContext<TType>, TVariables>> variables) => With(variables);
+        IQueryBuilder<TType, QueryContextSelfVars<TType, TVariables>> IQueryBuilder<TType, TContext>.With<TVariables>(TVariables variables) => With(variables);
+        IQueryBuilder<TType, QueryContextSelfVars<TType, TVariables>> IQueryBuilder<TType, TContext>.With<TVariables>(Expression<Func<QueryContextSelf<TType>, TVariables>> variables) => WithInternal<TVariables>(variables);
     }
 }

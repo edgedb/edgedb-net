@@ -11,7 +11,7 @@ namespace EdgeDB.Interfaces
     /// </summary>
     /// <typeparam name="TType">The type which this <c>UNLESS CONFLICT ON</c> query is querying against.</typeparam>
     /// <typeparam name="TContext">The type of context representing the current builder.</typeparam>
-    public interface IUnlessConflictOn<TType, TContext> : ISingleCardinalityExecutable<TType>
+    public interface IUnlessConflictOn<TType, TContext> : ISingleCardinalityExecutable<TType> where TContext : IQueryContext
     {
         /// <summary>
         ///     Adds an <c>ELSE (SELECT ...)</c> statment to the current query returning the conflicting object.

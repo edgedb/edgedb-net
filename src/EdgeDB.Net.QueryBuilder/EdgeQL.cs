@@ -4,6 +4,12 @@ namespace EdgeDB
 {
     public sealed partial class EdgeQL
     {
+        public static T Rollup<T>(T value)
+            => default!;
+
+        public static T Cube<T>(T value)
+            => default!;
+
         public static JsonReferenceVariable<T> AsJson<T>(T value) => new(value);
 
         public static long Count<TType>(IMultiCardinalityExecutable<TType> a) { return default!; }

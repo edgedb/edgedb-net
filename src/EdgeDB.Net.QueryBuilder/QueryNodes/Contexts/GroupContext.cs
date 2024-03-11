@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EdgeDB.Builders;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -9,10 +10,13 @@ namespace EdgeDB.QueryNodes
 {
     internal class GroupContext : NodeContext
     {
-        public Expression? PropertyExpression { get; init; }
-        public Expression? BuilderExpression { get; init; }
+        public bool IncludeShape { get; set; } = true;
+        public LambdaExpression? Selector { get; init; }
+        public IShapeBuilder? Shape { get; init; }
+
         public GroupContext(Type currentType) : base(currentType)
         {
+
         }
     }
 }

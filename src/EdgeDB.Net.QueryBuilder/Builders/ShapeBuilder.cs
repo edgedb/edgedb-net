@@ -220,7 +220,7 @@ namespace EdgeDB.Builders
             return this;
         }
 
-        public ShapeBuilder<T> Computeds<TAnon>(Expression<Func<QueryContext<T>, T, TAnon>> computedsSelector)
+        public ShapeBuilder<T> Computeds<TAnon>(Expression<Func<QueryContextSelf<T>, T, TAnon>> computedsSelector)
         {
             var computeds = FlattenAnonymousExpression(SelectedType, computedsSelector);
 

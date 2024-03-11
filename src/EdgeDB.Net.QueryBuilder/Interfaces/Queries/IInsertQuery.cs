@@ -12,7 +12,7 @@ namespace EdgeDB.Interfaces.Queries
     /// </summary>
     /// <typeparam name="TType">The type which this <c>INSERT</c> query is querying against.</typeparam>
     /// <typeparam name="TContext">The type of context representing the current builder.</typeparam>
-    public interface IInsertQuery<TType, TContext> : ISingleCardinalityExecutable<TType>
+    public interface IInsertQuery<TType, TContext> : ISingleCardinalityExecutable<TType> where TContext : IQueryContext
     {
         /// <summary>
         ///     Automatically adds an <c>UNLESS CONFLICT ON ...</c> statement to the current insert
@@ -33,7 +33,7 @@ namespace EdgeDB.Interfaces.Queries
         /// </param>
         /// <returns>The current query.</returns>
         IUnlessConflictOn<TType, TContext> UnlessConflictOn(Expression<Func<TType, object?>> propertySelector);
-        
+
         /// <inheritdoc cref="UnlessConflictOn(Expression{Func{TType, object?}})"/>
         IUnlessConflictOn<TType, TContext> UnlessConflictOn(Expression<Func<TType, TContext, object?>> propertySelector);
     }

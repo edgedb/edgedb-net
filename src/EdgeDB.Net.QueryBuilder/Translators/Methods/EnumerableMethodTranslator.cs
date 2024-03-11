@@ -74,10 +74,12 @@ namespace EdgeDB.Translators.Methods
                 ElementAt(
                     writer,
                     source,
-                    new TranslatedParameter(typeof(long), writer => writer
-                        .Append("0"),
-                    Expression.Constant(0L)
-                ));
+                    new TranslatedParameter(
+                        typeof(long),
+                        Expression.Constant(0L),
+                        source.Context
+                    )
+                );
                 writer
                     .Append(" ?? ")
                     .Append(filterOrDefault);

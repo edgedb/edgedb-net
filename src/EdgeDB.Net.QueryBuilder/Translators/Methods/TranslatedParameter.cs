@@ -18,9 +18,9 @@ namespace EdgeDB.Translators.Methods
         public Type ParameterType { get; }
 
         /// <summary>
-        ///     Gets the translated value of the parameter.
+        ///     Gets the context for translating the <see cref="RawValue"/>.
         /// </summary>
-        public WriterProxy ValueProxy { get; }
+        public ExpressionContext Context { get; set; }
 
         /// <summary>
         ///     Gets the raw expression of the parameter.
@@ -57,19 +57,17 @@ namespace EdgeDB.Translators.Methods
         /// <param name="type">The type of the parameter.</param>
         /// <param name="value">The proxy to translate the value of the parameter.</param>
         /// <param name="raw">The raw expression of the parameter.</param>
-        public TranslatedParameter(Type type, WriterProxy value, Expression raw)
+        public TranslatedParameter(Type type, Expression raw, ExpressionContext context)
         {
             ParameterType = type;
-            ValueProxy = value;
+            Context = context;
             RawValue = raw;
         }
 
         public void WriteTo(QueryWriter writer)
-        {
-            ValueProxy(writer);
-        }
+            => ExpressionTranslator.ContextualTranslate(RawValue, Context, writer);
 
-        public static implicit operator Value(TranslatedParameter param) => new(param.ValueProxy);
-        public static implicit operator Terms.FunctionArg(TranslatedParameter param) => new(param.ValueProxy);
+        public static implicit operator Value(TranslatedParameter param) => Value.Of(param.WriteTo);
+        public static implicit operator Terms.FunctionArg(TranslatedParameter param) => new(Value.Of(param.WriteTo));
     }
 }

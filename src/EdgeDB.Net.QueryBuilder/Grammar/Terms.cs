@@ -9,12 +9,14 @@ internal static class Terms
         => writer.Marker(MarkerType.Verbose, name, debug, values);
     #endregion
 
-    public static QueryWriter Wrapped(this QueryWriter writer, Value value, string separator = "()")
+    public static QueryWriter Wrapped(this QueryWriter writer, Value value, string separator = "()", bool spaced = false)
     {
         if (separator.Length != 2)
             throw new ArgumentOutOfRangeException(nameof(separator));
 
-        return writer.Append(separator[0], value, separator[1]);
+        return spaced ?
+            writer.Append(separator[0], ' ', value, ' ', separator[1]) :
+            writer.Append(separator[0], value, separator[1]);
     }
 
     public static QueryWriter Wrapped(this QueryWriter writer, WriterProxy value, string separator = "()")

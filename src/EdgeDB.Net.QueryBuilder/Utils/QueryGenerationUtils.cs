@@ -149,7 +149,7 @@ namespace EdgeDB
         ///     A ValueTask representing the (a)sync operation of preforming the introspection query.
         ///     The result of the task is a generated filter expression.
         /// </returns>
-        public static async ValueTask<Expression<Func<TType, QueryContext<TType>, bool>>> GenerateUpdateFilterAsync<TType>(IEdgeDBQueryable edgedb, TType value, CancellationToken token = default)
+        public static async ValueTask<Expression<Func<TType, QueryContextSelf<TType>, bool>>> GenerateUpdateFilterAsync<TType>(IEdgeDBQueryable edgedb, TType value, CancellationToken token = default)
         {
             // TODO: revisit references
             // try and get object id
@@ -159,14 +159,14 @@ namespace EdgeDB
             // get exclusive properties.
             var exclusiveProperties = await GetPropertiesAsync<TType>(edgedb, exclusive: true, token: token).ConfigureAwait(false);
 
-            var unsafeLocalMethod = typeof(QueryContext<TType>).GetMethod("UnsafeLocal", genericParameterCount: 0, new Type[] {typeof(string)})!;
-            return Expression.Lambda<Func<TType, QueryContext<TType>, bool>>(
+            var unsafeLocalMethod = typeof(QueryContextSelf<TType>).GetMethod("UnsafeLocal", genericParameterCount: 0, new Type[] {typeof(string)})!;
+            return Expression.Lambda<Func<TType, QueryContextSelf<TType>, bool>>(
                 exclusiveProperties.Select(x =>
                 {
 
                     return Expression.Equal(
                         Expression.Call(
-                            Expression.Parameter(typeof(QueryContext<TType>), "ctx"),
+                            Expression.Parameter(typeof(QueryContextSelf<TType>), "ctx"),
                             unsafeLocalMethod,
                             Expression.Constant(x.GetEdgeDBPropertyName())
                         ),
@@ -174,7 +174,7 @@ namespace EdgeDB
                     );
                 }).Aggregate((x, y) => Expression.And(x, y)),
                 Expression.Parameter(typeof(TType), "x"),
-                Expression.Parameter(typeof(QueryContext<TType>), "ctx")
+                Expression.Parameter(typeof(QueryContextSelf<TType>), "ctx")
             );
         }
     }

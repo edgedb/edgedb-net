@@ -100,17 +100,17 @@ public sealed class DebugCompiledQuery : CompiledQuery
                         desc += $": {column.Marker.DebugText.Get()}";
 
 
-                    if (desc.Length - 3 > size)
+                    if (desc.Length > size)
                     {
                         desc = $"{icon} [{column.Marker.Type}] {column.Name}";
                     }
 
-                    if (desc.Length - 3 > size)
+                    if (desc.Length > size)
                     {
                         desc = $"{icon} {column.Name}";
                     }
 
-                    if (desc.Length - 3 >= size)
+                    if (desc.Length >= size)
                     {
                         desc = icon;
                     }
@@ -178,8 +178,7 @@ public sealed class DebugCompiledQuery : CompiledQuery
 
     private static List<List<QuerySpan>> CreateMarkerView(LinkedList<QuerySpan> spans)
     {
-        var orderedTemp = spans.OrderBy(x => x.Range.End.Value - x.Range.Start.Value).ToList();
-        var ordered = new Queue<QuerySpan>(orderedTemp); // order by 'size'
+        var ordered = new Queue<QuerySpan>(spans.OrderBy(x => x.Range.End.Value - x.Range.Start.Value)); // order by 'size'
         var result = new List<List<QuerySpan>>();
         var row = new List<QuerySpan>();
 

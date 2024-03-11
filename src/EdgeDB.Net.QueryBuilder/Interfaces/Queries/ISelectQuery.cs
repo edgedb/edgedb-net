@@ -12,7 +12,7 @@ namespace EdgeDB.Interfaces.Queries
     /// </summary>
     /// <typeparam name="TType">The type which this <c>SELECT</c> query is querying against.</typeparam>
     /// <typeparam name="TContext">The type of context representing the current builder.</typeparam>
-    public interface ISelectQuery<TType, TContext> : IGroupable<TType>, IMultiCardinalityExecutable<TType>
+    public interface ISelectQuery<TType, TContext> : IMultiCardinalityExecutable<TType> where TContext : IQueryContext
     {
         /// <summary>
         ///     Filters the current select query by the given predicate.
@@ -31,7 +31,7 @@ namespace EdgeDB.Interfaces.Queries
         /// <param name="nullPlacement">The order of which null values should occor.</param>
         /// <returns>The current query.</returns>
         ISelectQuery<TType, TContext> OrderBy(Expression<Func<TType, object?>> propertySelector, OrderByNullPlacement? nullPlacement = null);
-        
+
         /// <inheritdoc cref="OrderBy(Expression{Func{TType, object?}}, OrderByNullPlacement?)"/>
         ISelectQuery<TType, TContext> OrderBy(Expression<Func<TType, TContext, object?>> propertySelector, OrderByNullPlacement? nullPlacement = null);
 
@@ -42,7 +42,7 @@ namespace EdgeDB.Interfaces.Queries
         /// <param name="nullPlacement">The order of which null values should occor.</param>
         /// <returns>The current query.</returns>
         ISelectQuery<TType, TContext> OrderByDesending(Expression<Func<TType, object?>> propertySelector, OrderByNullPlacement? nullPlacement = null);
-        
+
         /// <inheritdoc cref="OrderByDesending(Expression{Func{TType, object?}}, OrderByNullPlacement?)"/>
         ISelectQuery<TType, TContext> OrderByDesending(Expression<Func<TType, TContext, object?>> propertySelector, OrderByNullPlacement? nullPlacement = null);
 

@@ -12,7 +12,7 @@ namespace EdgeDB.Interfaces.Queries
     /// </summary>
     /// <typeparam name="TType">The type which this <c>UPDATE</c> query is querying against.</typeparam>
     /// <typeparam name="TContext">The type of context representing the current builder.</typeparam>
-    public interface IUpdateQuery<TType, TContext> : IGroupable<TType>, IMultiCardinalityExecutable<TType>
+    public interface IUpdateQuery<TType, TContext> : IMultiCardinalityExecutable<TType> where TContext : IQueryContext
     {
         /// <summary>
         ///     Filters the current update query by the given predicate.

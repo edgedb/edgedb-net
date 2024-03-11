@@ -14,11 +14,11 @@ namespace EdgeDB
     public static partial class QueryBuilder
     {
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Select()"/>
-        public static ISelectQuery<TType, QueryContext<TType>> Select<TType>()
+        public static ISelectQuery<TType, QueryContextSelf<TType>> Select<TType>()
             => new QueryBuilder<TType>().Select();
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Select{TResult}(Action{ShapeBuilder{TResult}})"/>
-        public static ISelectQuery<TType, QueryContext<TType>> Select<TType>(Action<ShapeBuilder<TType>> shape)
+        public static ISelectQuery<TType, QueryContextSelf<TType>> Select<TType>(Action<ShapeBuilder<TType>> shape)
             => new QueryBuilder<TType>().Select(shape);
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace EdgeDB
         /// <returns>
         ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
         /// </returns>
-        public static ISelectQuery<TType, QueryContext<TType>> SelectExpression<TType>(Expression<Func<TType?>> expression)
+        public static ISelectQuery<TType, QueryContextSelf<TType>> SelectExpression<TType>(Expression<Func<TType?>> expression)
             => new QueryBuilder<TType>().SelectExpression(expression);
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace EdgeDB
         /// <returns>
         ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
         /// </returns>
-        public static ISelectQuery<TType, QueryContext<TType>> SelectExpression<TType>(Expression<Func<QueryContext, TType?>> expression)
+        public static ISelectQuery<TType, QueryContextSelf<TType>> SelectExpression<TType>(Expression<Func<QueryContext, TType?>> expression)
             => new QueryBuilder<TType>().SelectExp(expression);
     }
 
@@ -115,10 +115,10 @@ namespace EdgeDB
         /// <returns>
         ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
         /// </returns>
-        public ISelectQuery<TNewType, TContext> SelectExp<TQuery, TNewType>(
-            Expression<Func<TContext, TQuery?>> expression,
+        public ISelectQuery<TNewType, TContext> SelectExp<TNewType>(
+            Expression<Func<TContext, TNewType>> expression,
             Action<ShapeBuilder<TNewType>>? shape = null
-        ) where TQuery : IQuery<TNewType>
+        )
         {
             var shapeBuilder = shape is not null ? new ShapeBuilder<TNewType>() : null;
 
@@ -149,7 +149,7 @@ namespace EdgeDB
             return EnterNewType<TNewType>();
         }
 
-        ISelectQuery<TNewType, TContext> IQueryBuilder<TType, TContext>.SelectExpression<TNewType, TQuery>(Expression<Func<TContext, TQuery?>> expression, Action<ShapeBuilder<TNewType>>? shape) where TQuery : default
+        ISelectQuery<TNewType, TContext> IQueryBuilder<TType, TContext>.SelectExpression<TNewType>(Expression<Func<TContext, TNewType>> expression, Action<ShapeBuilder<TNewType>>? shape)
            => SelectExp(expression, shape);
 
         ISelectQuery<TType, TContext> ISelectQuery<TType, TContext>.Filter(Expression<Func<TType, bool>> filter)

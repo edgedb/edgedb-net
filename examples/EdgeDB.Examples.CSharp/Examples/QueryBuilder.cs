@@ -156,6 +156,103 @@ namespace EdgeDB.ExampleApp.Examples
                 .Delete<Person>()
                 .Filter(x => EdgeQL.ILike(x.Name, "e%"))
                 .Compile(true);
+
+            // grouping
+            query = QueryBuilder
+                .Group<Person>()
+                .By(x => x.Name)
+                .Compile(true);
+
+            // grouping by expressions
+            query = QueryBuilder
+                .Group<Person>()
+                .Using(person => new {StartsWithVowel = Regex.Matches(person.Name!, "(?i)^[aeiou]")})
+                .By(ctx => ctx.Using.StartsWithVowel)
+                .Compile(true);
+
+            // grouping by scalars
+            query = QueryBuilder
+                .With(ctx => new {People = ctx.SubQuerySingle(QueryBuilder.Select<Person>())})
+                .Group(ctx => ctx.Variables.People.Name)
+                .Using(name => new {StartsWithVowel = Regex.IsMatch(name!, "(?i)^[aeiou]")})
+                .By(group => group.Using.StartsWithVowel)
+                .Compile(true);
+
+            // grouping result as select
+            query = QueryBuilder
+                .With(ctx => new
+                {
+                    People = ctx.SubQuerySingle(QueryBuilder.Select<Person>()),
+                    Groups = ctx.SubQuerySingle(
+                        QueryBuilder
+                            .Group(ctx => ctx.Local<Person>("People"))
+                            .Using(person => new {Vowel = Regex.IsMatch(person.Name!, "(?i)^[aeiou]")})
+                            .By(ctx => ctx.Using.Vowel)
+                    )
+                })
+                .SelectExpression(ctx => ctx.Variables.Groups, shape => shape
+                    .Computeds((ctx, group) => new
+                    {
+                        StartsWithVowel = group.Key,
+                        Count = EdgeQL.Count(group.Elements),
+                        NameLength = EdgeQL.Len(ctx.Ref(group.Elements).Name!)
+                    })
+                )
+                .Compile(true);
+
+            // grouping by more than 1 parameter
+            query = QueryBuilder
+                .With(ctx => new
+                {
+                    People = ctx.SubQuerySingle(QueryBuilder.Select<Person>()),
+                    Groups = ctx.SubQuerySingle(
+                        QueryBuilder
+                            .Group(ctx => ctx.Local<Person>("People"))
+                            .Using(person => new
+                            {
+                                Vowel = Regex.IsMatch(person.Name!, "(?i)^[aeiou]"),
+                                NameLength = person.Name!.Length
+                            })
+                            .By(ctx => Tuple.Create(ctx.Using.Vowel, ctx.Using.NameLength))
+                    )
+                })
+                .SelectExpression(ctx => ctx.Variables.Groups, shape => shape
+                    .Computeds((ctx, group) => new
+                    {
+                        StartsWithVowel = group.Key,
+                        Count = EdgeQL.Count(group.Elements),
+                        NameLength = EdgeQL.Len(ctx.Ref(group.Elements).Name!)
+                    })
+                )
+                .Compile(true);
+
+            // grouping by grouping sets
+            query = QueryBuilder
+                .With(ctx => new
+                {
+                    People = ctx.SubQuerySingle(QueryBuilder.Select<Person>()),
+                    Groups = ctx.SubQuerySingle(
+                        QueryBuilder
+                            .Group(ctx => ctx.Local<Person>("People"))
+                            .Using(person => new
+                            {
+                                Vowel = Regex.IsMatch(person.Name!, "(?i)^[aeiou]"),
+                                NameLength = person.Name!.Length
+                            })
+                            .By(ctx => EdgeQL.Cube(new { ctx.Using.Vowel, ctx.Using.NameLength }))
+                    )
+                })
+                .SelectExpression(ctx => ctx.Variables.Groups, shape => shape
+                    .Computeds((ctx, group) => new
+                    {
+                        group.Key,
+                        group.Grouping,
+                        Count = EdgeQL.Count(group.Elements),
+                        NameLength = EdgeQL.Len(ctx.Ref(group.Elements).Name!)
+                    })
+                )
+                .OrderBy(x => EdgeQL.ArrayAgg(x.Grouping))
+                .Compile(true);
         }
     }
 }

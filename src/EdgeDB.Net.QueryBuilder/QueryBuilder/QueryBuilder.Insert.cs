@@ -14,32 +14,32 @@ namespace EdgeDB
     {
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(Expression{Func{QueryContext, TType}}, bool)"/>
-        public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(Expression<Func<QueryContext<TType>, TType>> value, bool returnInsertedValue)
+        public static IInsertQuery<TType, QueryContextSelf<TType>> Insert<TType>(Expression<Func<QueryContextSelf<TType>, TType>> value, bool returnInsertedValue)
             => new QueryBuilder<TType>().Insert(value, returnInsertedValue);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(Expression{Func{QueryContext, TType}})"/>
-        public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(Expression<Func<QueryContext<TType>, TType>> value)
+        public static IInsertQuery<TType, QueryContextSelf<TType>> Insert<TType>(Expression<Func<QueryContextSelf<TType>, TType>> value)
             => new QueryBuilder<TType>().Insert(value);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(TType, bool)"/>
-        public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(TType value, bool returnInsertedValue)
+        public static IInsertQuery<TType, QueryContextSelf<TType>> Insert<TType>(TType value, bool returnInsertedValue)
             => new QueryBuilder<TType>().Insert(value, returnInsertedValue);
 
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(TType)"/>
-        public static IInsertQuery<TType, QueryContext<TType>> Insert<TType>(TType value)
+        public static IInsertQuery<TType, QueryContextSelf<TType>> Insert<TType>(TType value)
             where TType : class
             => new QueryBuilder<TType>().Insert(value, false);
 
-        public static IInsertQuery<object, QueryContext<object>> Insert(Type type, IDictionary<string, object?> values)
+        public static IInsertQuery<object, QueryContextSelf<object>> Insert(Type type, IDictionary<string, object?> values)
             => new QueryBuilder<object>().Insert(type, values);
 
-        public static IInsertQuery<object, QueryContext<object>> Insert(Type type, IDictionary<string, object?> values,  bool returnInsertedValue)
+        public static IInsertQuery<object, QueryContextSelf<object>> Insert(Type type, IDictionary<string, object?> values,  bool returnInsertedValue)
             => new QueryBuilder<object>().Insert(type, values, returnInsertedValue);
 
-        public static IInsertQuery<T, QueryContext<T>> Insert<T>(Type type, Expression<Func<T>> shape)
+        public static IInsertQuery<T, QueryContextSelf<T>> Insert<T>(Type type, Expression<Func<T>> shape)
             => new QueryBuilder<T>().Insert(type, shape);
 
-        public static IInsertQuery<T, QueryContext<T>> Insert<T>(Type type, Expression<Func<QueryContext, T>> shape)
+        public static IInsertQuery<T, QueryContextSelf<T>> Insert<T>(Type type, Expression<Func<QueryContext, T>> shape)
             => new QueryBuilder<T>().Insert(type, shape);
     }
 

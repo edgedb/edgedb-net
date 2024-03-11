@@ -13,7 +13,7 @@ namespace EdgeDB
     public static partial class QueryBuilder
     {
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Delete"/>
-        public static IDeleteQuery<TType, QueryContext<TType>> Delete<TType>()
+        public static IDeleteQuery<TType, QueryContextSelf<TType>> Delete<TType>()
             => new QueryBuilder<TType>().Delete;
     }
 

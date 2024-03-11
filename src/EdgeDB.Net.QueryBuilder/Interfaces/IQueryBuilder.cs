@@ -20,9 +20,19 @@ namespace EdgeDB
         IDeleteQuery<TType, TContext>,
         IInsertQuery<TType, TContext>,
         IUnlessConflictOn<TType, TContext>,
-        IGroupQuery<TType>,
-        IGroupable<TType>
+        IGroupQuery<TType, TContext>,
+        IGroupUsingQuery<TType, TContext>
+        where TContext : IQueryContext
     {
+        IGroupQuery<TType, TContext> Group();
+
+        IGroupQuery<TResult, TContext> Group<TResult>(Action<ShapeBuilder<TResult>> shape);
+
+        IGroupQuery<TResult, TContext> Group<TResult>(Expression<Func<TResult>> selector);
+        IGroupQuery<TResult, TContext> Group<TResult>(Expression<Func<TContext, TResult>> selector);
+        IGroupQuery<TResult, TContext> Group<TResult>(Expression<Func<TResult>> selector, Action<ShapeBuilder<TResult>> shape);
+        IGroupQuery<TResult, TContext> Group<TResult>(Expression<Func<TContext, TResult>> selector, Action<ShapeBuilder<TResult>> shape);
+
         /// <summary>
         ///     Adds a <c>FOR</c> statement on the <paramref name="collection"/> with a <c>UNION</c>
         ///     whos inner query is the <paramref name="iterator"/>.
@@ -42,7 +52,7 @@ namespace EdgeDB
         /// <returns>
         ///     The current query.
         /// </returns>
-        IQueryBuilder<TType, QueryContext<TType, TVariables>> With<TVariables>(TVariables variables);
+        IQueryBuilder<TType, QueryContextSelfVars<TType, TVariables>> With<TVariables>(TVariables variables);
 
         /// <summary>
         ///     Adds a <c>WITH</c> statement whos variables are the properties defined in <paramref name="variables"/>.
@@ -54,7 +64,7 @@ namespace EdgeDB
         /// <returns>
         ///     The current query.
         /// </returns>
-        IQueryBuilder<TType, QueryContext<TType, TVariables>> With<TVariables>(Expression<Func<QueryContext<TType>, TVariables>> variables);
+        IQueryBuilder<TType, QueryContextSelfVars<TType, TVariables>> With<TVariables>(Expression<Func<QueryContextSelf<TType>, TVariables>> variables);
 
         /// <summary>
         ///     Adds a <c>SELECT</c> statement selecting the current <typeparamref name="TType"/> with an
@@ -105,10 +115,10 @@ namespace EdgeDB
         /// <returns>
         ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
         /// </returns>
-        ISelectQuery<TNewType, TContext> SelectExpression<TNewType, TQuery>(
-            Expression<Func<TContext, TQuery?>> expression,
+        ISelectQuery<TNewType, TContext> SelectExpression<TNewType>(
+            Expression<Func<TContext, TNewType>> expression,
             Action<ShapeBuilder<TNewType>>? shape = null
-        ) where TQuery : ISingleCardinalityExecutable<TNewType>;
+        );
 
         /// <summary>
         ///     Adds a <c>INSERT</c> statement inserting an instance of <typeparamref name="TType"/>.

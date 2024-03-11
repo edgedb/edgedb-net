@@ -46,12 +46,12 @@ namespace EdgeDB.Translators.Expressions
 
             return new SubQuery((info, writer) =>
             {
-                new QueryBuilder<T>(info)
+                new QueryBuilder<T>()
                     .For(collection, x => QueryBuilder
                         .Insert(x)
                         .UnlessConflict()
                     )
-                    .WriteTo(writer, context);
+                    .WriteTo(writer, context, new CompileContext() { SchemaInfo = info });
             });
         }
 
@@ -84,8 +84,20 @@ namespace EdgeDB.Translators.Expressions
             ExpressionContext context,
             QueryWriter writer)
         {
-            writer.Append("{ ");
+            if (context.WrapNewExpressionInBrackets)
+            {
+                writer.Wrapped(Value.Of(writer => TranslateInternal(expressions, context, writer)), "{}");
+                return;
+            }
 
+            TranslateInternal(expressions, context, writer);
+        }
+
+        private static void TranslateInternal(
+            List<(EdgeDBPropertyInfo, Expression)> expressions,
+            ExpressionContext context,
+            QueryWriter writer)
+        {
             for (var i = 0; i != expressions.Count; i++)
             {
                 var (property, expression) = expressions[i];
@@ -224,11 +236,9 @@ namespace EdgeDB.Translators.Expressions
                                 x.IsShape = false;
                             });
 
-                            bool isSetter = !(context.NodeContext is not InsertContext and not UpdateContext &&
+                            var isSetter = !(context.NodeContext is not InsertContext and not UpdateContext &&
                                 context.NodeContext.CurrentType.GetProperty(property.PropertyName) != null &&
                                 expression is not MethodCallExpression);
-
-                            writer.Append(property.EdgeDBName);
 
                             var value = ExpressionTranslator.Proxy(expression!, context);
 
@@ -236,12 +246,12 @@ namespace EdgeDB.Translators.Expressions
                             {
                                 // add the start and end shape form.
                                 writer
-                                    .Append(": {", value, '}');
+                                    .Append(property.EdgeDBName, ": {", value, '}');
                             }
-                            else if ((isSetter || context.IsFreeObject) && !newContext.HasInitializationOperator)
+                            else if ((isSetter || context.IsFreeObject) && newContext.UseInitializationOperator)
                             {
                                 writer
-                                    .Append(" := ", value);
+                                    .Append(property.EdgeDBName, " := ", value);
                             }
                             else
                             {
@@ -254,8 +264,6 @@ namespace EdgeDB.Translators.Expressions
                 if (i + 1 != expressions.Count)
                     writer.Append(", ");
             }
-
-            writer.Append('}');
         }
     }
 }

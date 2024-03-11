@@ -4,25 +4,15 @@ using System.Linq.Expressions;
 
 namespace EdgeDB
 {
-    public class QueryContext : QueryContext<dynamic> { }
-    /// <summary>
-    ///     Represents context used within query functions.
-    /// </summary>
-    public class QueryContext<TSelf> : IQueryContext
+    public abstract class QueryContext : IQueryContext
     {
-        /// <summary>
-        ///     Gets a mock reference to the current working type.
-        /// </summary>
-        public TSelf Self { get; } = default!;
-
         /// <summary>
         ///     References a defined query argument with the given name.
         /// </summary>
         /// <param name="name">The name of the query argument.</param>
         /// <typeparam name="TType">The type of the query argument.</typeparam>
         /// <returns>A mock reference to a global with the given <paramref name="name"/>.</returns>
-        public TType QueryArgument<TType>(string name)
-            => default!;
+        public abstract TType QueryArgument<TType>(string name);
 
         /// <summary>
         ///     References a defined query global given a name.
@@ -32,8 +22,7 @@ namespace EdgeDB
         /// <returns>
         ///     A mock reference to a global with the given <paramref name="name"/>.
         /// </returns>
-        public TType Global<TType>(string name)
-            => default!;
+        public abstract TType Global<TType>(string name);
 
         /// <summary>
         ///     References a contextual local.
@@ -43,8 +32,7 @@ namespace EdgeDB
         /// <returns>
         ///     A mock reference to a local with the given <paramref name="name"/>.
         /// </returns>
-        public TType Local<TType>(string name)
-            => default!;
+        public abstract TType Local<TType>(string name);
 
         /// <summary>
         ///     References a contextual local.
@@ -53,8 +41,7 @@ namespace EdgeDB
         /// <returns>
         ///     A mock reference to a local with the given <paramref name="name"/>.
         /// </returns>
-        public object? Local(string name)
-            => default!;
+        public abstract object? Local(string name);
 
         /// <summary>
         ///     References a contextual local without checking the local context.
@@ -64,8 +51,7 @@ namespace EdgeDB
         /// <returns>
         ///     A mock reference to a local with the given <paramref name="name"/>.
         /// </returns>
-        public TType UnsafeLocal<TType>(string name)
-            => default!;
+        public abstract TType UnsafeLocal<TType>(string name);
 
         /// <summary>
         ///     References a contextual local without checking the local context.
@@ -74,8 +60,7 @@ namespace EdgeDB
         /// <returns>
         ///     A mock reference to a local with the given <paramref name="name"/>.
         /// </returns>
-        public object? UnsafeLocal(string name)
-            => default!;
+        public abstract object? UnsafeLocal(string name);
 
         /// <summary>
         ///     Adds raw edgeql to the current query.
@@ -85,8 +70,7 @@ namespace EdgeDB
         /// <returns>
         ///     A mock reference of the returning type of the raw edgeql.
         /// </returns>
-        public TType Raw<TType>(string query)
-            => default!;
+        public abstract TType Raw<TType>(string query);
 
         /// <summary>
         ///     Adds a backlink to the current query.
@@ -96,8 +80,7 @@ namespace EdgeDB
         ///     A mock array of <see cref="EdgeDBObject"/> containing just the objects id.
         ///     To return a specific type use <see cref="BackLink{TType}(Expression{Func{TType, object?}})"/>.
         /// </returns>
-        public EdgeDBObject[] BackLink(string property)
-            => default!;
+        public abstract EdgeDBObject[] BackLink(string property);
 
         /// <summary>
         ///     Adds a backlink to the current query.
@@ -108,9 +91,8 @@ namespace EdgeDB
         ///     A mock collection of <see cref="EdgeDBObject"/> containing just the objects id.
         ///     To return a specific type use <see cref="BackLink{TType}(Expression{Func{TType, object?}})"/>.
         /// </returns>
-        public TCollection BackLink<TCollection>(string property)
-            where TCollection : IEnumerable<EdgeDBObject>
-            => default!;
+        public abstract TCollection BackLink<TCollection>(string property)
+            where TCollection : IEnumerable<EdgeDBObject>;
 
         /// <summary>
         ///     Adds a backlink with the given type to the current query.
@@ -120,8 +102,7 @@ namespace EdgeDB
         /// <returns>
         ///     A mock array of <typeparamref name="TType"/>.
         /// </returns>
-        public TType[] BackLink<TType>(Expression<Func<TType, object?>> propertySelector)
-            => default!;
+        public abstract TType[] BackLink<TType>(Expression<Func<TType, object?>> propertySelector);
 
         /// <summary>
         ///     Adds a backlink with the given type and shape to the current query.
@@ -132,8 +113,8 @@ namespace EdgeDB
         /// <returns>
         ///     A mock array of <typeparamref name="TType"/>.
         /// </returns>
-        public TType[] BackLink<TType>(Expression<Func<TType, object?>> propertySelector, Action<ShapeBuilder<TType>> shape)
-            => default!;
+        public abstract TType[] BackLink<TType>(Expression<Func<TType, object?>> propertySelector,
+            Action<ShapeBuilder<TType>> shape);
 
         /// <summary>
         ///     Adds a backlink with the given type and shape to the current query.
@@ -145,9 +126,9 @@ namespace EdgeDB
         /// <returns>
         ///     A mock collection of <typeparamref name="TType"/>.
         /// </returns>
-        public TCollection BackLink<TType, TCollection>(Expression<Func<TType, object?>> propertySelector, Action<ShapeBuilder<TType>> shape)
-            where TCollection : IEnumerable<TType>
-            => default!;
+        public abstract TCollection BackLink<TType, TCollection>(Expression<Func<TType, object?>> propertySelector,
+            Action<ShapeBuilder<TType>> shape)
+            where TCollection : IEnumerable<TType>;
 
         /// <summary>
         ///     Adds a sub query to the current query.
@@ -157,8 +138,7 @@ namespace EdgeDB
         /// <returns>
         ///     A single mock instance of <typeparamref name="TType"/>.
         /// </returns>
-        public TType SubQuery<TType>(ISingleCardinalityQuery<TType> query)
-            => default!;
+        public abstract TType SubQuery<TType>(ISingleCardinalityQuery<TType> query);
 
         /// <summary>
         ///     Adds a sub query to the current query.
@@ -168,8 +148,9 @@ namespace EdgeDB
         /// <returns>
         ///     A mock array of <typeparamref name="TType"/>.
         /// </returns>
-        public TType[] SubQuery<TType>(IMultiCardinalityQuery<TType> query)
-            => default!;
+        public abstract TType[] SubQuery<TType>(IMultiCardinalityQuery<TType> query);
+
+        public abstract TType SubQuerySingle<TType>(IMultiCardinalityQuery<TType> query);
 
         /// <summary>
         ///     Adds a sub query to the current query.
@@ -178,24 +159,67 @@ namespace EdgeDB
         /// <typeparam name="TCollection">The collection type to return.</typeparam>
         /// <param name="query">The multi-cardinality query to add as a sub query.</param>
         /// <returns>A mock collection of <typeparamref name="TType"/>.</returns>
-        public TCollection SubQuery<TType, TCollection>(IMultiCardinalityQuery<TType> query)
-            where TCollection : IEnumerable<TType>
-            => default!;
+        public abstract TCollection SubQuery<TType, TCollection>(IMultiCardinalityQuery<TType> query)
+            where TCollection : IEnumerable<TType>;
+
+        public abstract T Ref<T>(IEnumerable<T> collection);
     }
 
-    /// <summary>
-    ///     Represents context used within query functions containing a variable type.
-    /// </summary>
-    /// <typeparam name="TVariables">The type containing the variables defined in the query.</typeparam>
-    /// <typeparam name="TSelf">The current working type of the query.</typeparam>
-    public abstract class QueryContext<TSelf, TVariables> : QueryContext<TSelf>
+    public abstract class QueryContextSelf<TSelf> : QueryContext, IQueryContextSelf<TSelf>
     {
-        /// <summary>
-        ///     Gets a collection of variables defined in a with block.
-        /// </summary>
-        public TVariables Variables
-            => default!;
+        public abstract TSelf Self { get; }
     }
 
-    internal interface IQueryContext { }
+    public abstract class QueryContextVars<TVars> : QueryContext, IQueryContextVars<TVars>
+    {
+        public abstract TVars Variables { get; }
+    }
+
+    public abstract class QueryContextUsing<TUsing> : QueryContext, IQueryContextUsing<TUsing>
+    {
+        public abstract TUsing Using { get; }
+    }
+
+    public abstract class QueryContextSelfVars<TSelf, TVars> : QueryContext, IQueryContextSelf<TSelf>, IQueryContextVars<TVars>
+    {
+        public abstract TSelf Self { get; }
+
+        public abstract TVars Variables { get; }
+    }
+
+    public abstract class QueryContextSelfUsing<TSelf, TUsing> : QueryContext, IQueryContextUsing<TUsing>, IQueryContextSelf<TSelf>
+    {
+        public abstract TUsing Using { get; }
+        public abstract TSelf Self { get; }
+    }
+
+    public abstract class QueryContextUsingVars<TUsing, TVars> : QueryContext, IQueryContextUsing<TUsing>, IQueryContextVars<TVars>
+    {
+        public abstract TUsing Using { get; }
+        public abstract TVars Variables { get; }
+    }
+
+    public abstract class QueryContextSelfUsingVars<TSelf, TUsing, TVars> : QueryContext, IQueryContextUsing<TUsing>, IQueryContextVars<TVars>, IQueryContextSelf<TSelf>
+    {
+        public abstract TSelf Self { get; }
+        public abstract TUsing Using { get; }
+        public abstract TVars Variables { get; }
+    }
+
+    public interface IQueryContext { }
+
+    public interface IQueryContextSelf<out TSelf> : IQueryContext
+    {
+        TSelf Self { get; }
+    }
+
+    public interface IQueryContextUsing<out TUsing> : IQueryContext
+    {
+        TUsing Using { get; }
+    }
+
+    public interface IQueryContextVars<out TVars> : IQueryContext
+    {
+        TVars Variables { get; }
+    }
 }

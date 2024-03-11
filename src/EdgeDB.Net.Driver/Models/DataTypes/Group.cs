@@ -1,3 +1,4 @@
+using EdgeDB.Binary;
 using EdgeDB.DataTypes;
 using System.Collections;
 using System.Collections.Immutable;
@@ -12,6 +13,30 @@ namespace EdgeDB;
 /// <typeparam name="TElement">The type of the elements.</typeparam>
 public sealed class Group<TKey, TElement> : IGrouping<TKey, TElement>
 {
+    static Group()
+    {
+        // precache the deserializer, in case theres issues with it, this will throw before the query is run.
+        if(TypeBuilder.IsValidObjectType(typeof(TElement)))
+            TypeBuilder.GetDeserializationFactory(typeof(TElement));
+    }
+    /// <summary>
+    ///     Gets the key used to group the set of <see cref="Elements" />.
+    /// </summary>
+    [EdgeDBIgnore]
+    public TKey Key { get; }
+
+    /// <summary>
+    ///     Gets a collection of all the names of the parameters used as the key for this particular subset.
+    /// </summary>
+    [EdgeDBProperty("grouping")]
+    public IReadOnlyCollection<string> Grouping { get; }
+
+    /// <summary>
+    ///     Gets a collection of elements that have the same key as <see cref="Key" />.
+    /// </summary>
+    [EdgeDBProperty("elements")]
+    public IReadOnlyCollection<TElement> Elements { get; }
+
     /// <summary>
     ///     Constructs a new grouping.
     /// </summary>
@@ -34,24 +59,10 @@ public sealed class Group<TKey, TElement> : IGrouping<TKey, TElement>
 
         Grouping = ((string[])groupingValue!).ToImmutableArray();
         Key = BuildKey((IDictionary<string, object?>)keyValue!);
-        throw new NotImplementedException("TODO");
-        //Elements = ((IDictionary<string, object?>[])elementsValue!).Select(x => (TElement)TypeBuilder.BuildObject(typeof(TElement), x)!).ToImmutableArray();
+        Elements = elementsValue is null
+            ? Array.Empty<TElement>()
+            : ((object?[])elementsValue).Cast<TElement>().ToImmutableArray();
     }
-
-    /// <summary>
-    ///     Gets the name of the property that was grouped by.
-    /// </summary>
-    public IReadOnlyCollection<string> Grouping { get; }
-
-    /// <summary>
-    ///     Gets a collection of elements that have the same key as <see cref="Key" />.
-    /// </summary>
-    public IReadOnlyCollection<TElement> Elements { get; }
-
-    /// <summary>
-    ///     Gets the key used to group the set of <see cref="Elements" />.
-    /// </summary>
-    public TKey Key { get; }
 
     /// <inheritdoc />
     public IEnumerator<TElement> GetEnumerator()
@@ -61,26 +72,22 @@ public sealed class Group<TKey, TElement> : IGrouping<TKey, TElement>
     IEnumerator IEnumerable.GetEnumerator()
         => Elements.GetEnumerator();
 
-    private static TKey BuildKey(IDictionary<string, object?> value)
+    private static TKey BuildKey(object? value)
     {
-        if (typeof(TKey).IsAssignableTo(typeof(ITuple)))
+        switch (value)
         {
-            var types = typeof(TKey).GenericTypeArguments;
-            var transientTuple = new TransientTuple(types, value.Values.ToArray());
-
-            switch (typeof(TKey).Name.Split('`')[0])
+            case TKey key:
+                return key;
+            case IDictionary<string, object?> {Count: 2} dict when dict.ContainsKey("id"):
             {
-                case "ValueTuple":
-                    return (TKey)transientTuple.ToValueTuple();
-                case "Tuple":
-                    return (TKey)transientTuple.ToReferenceTuple();
-                default:
-                    throw new InvalidOperationException($"Cannot build tuple with the type of {typeof(TKey).Name}");
-            }
-        }
+                var keyRaw = dict.FirstOrDefault(x => x.Key != "id");
+                if (keyRaw.Value is TKey keyValue)
+                    return keyValue;
 
-        if (value.Count == 1)
-            return (TKey)value.First().Value!;
-        throw new InvalidOperationException($"Cannot build key with the type of {typeof(TKey).Name}");
+                throw new InvalidOperationException($"Key of grouping cannot be extracted from {keyRaw.Value?.GetType()}");
+            }
+            default:
+                throw new InvalidOperationException($"Cannot build key with the type of {typeof(TKey).Name}");
+        }
     }
 }

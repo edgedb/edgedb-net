@@ -135,26 +135,6 @@ namespace EdgeDB.Translators
         }
 
         /// <summary>
-        ///     Attempts to translate the given <see cref="MethodCallExpression"/> into a edgeql equivalent expression.
-        /// </summary>
-        /// <param name="writer">The query string writer to write the translated method to, if successful.</param>
-        /// <param name="methodCall">The method call expression to translate.</param>
-        /// <param name="context">The current context for the method call expression.</param>
-        /// <returns>
-        ///     <see langword="true"/> if the <paramref name="methodCall"/> was translated; otherwise <see langword="false"/>.
-        /// </returns>
-        public static bool TryTranslateMethod(QueryWriter writer, MethodCallExpression methodCall,
-            ExpressionContext context)
-        {
-            try
-            {
-                TranslateMethod(writer, methodCall, context);
-                return true;
-            }
-            catch { return false; }
-        }
-
-        /// <summary>
         ///     Translates the given <see cref="MethodCallExpression"/> into a edgeql equivalent expression.
         /// </summary>
         /// <param name="writer">The query string writer to write the translated method to.</param>
@@ -252,13 +232,8 @@ namespace EdgeDB.Translators
                 // its value to the remaining arguments to the expression and break out of the loop
                 if (parameterInfo.GetCustomAttribute<ParamArrayAttribute>() != null)
                 {
-                    var remaining = methodCall.Arguments.Skip(i).ToArray();
-                    for (var j = 0; j != remaining.Length; j++)
-                    {
-                        parsedParameters[i + j] = new TranslatedParameter(
-                            remaining[j].Type, ExpressionTranslator.Proxy(remaining[j], context), remaining[j]
-                        );
-                    }
+                    parsedParameters[i] = methodCall.Arguments.Skip(i)
+                        .Select(x => new TranslatedParameter(x.Type, x, context)).ToArray();
 
                     break;
                 }
@@ -266,8 +241,8 @@ namespace EdgeDB.Translators
                 {
                     parsedParameters[i] = new TranslatedParameter(
                         methodCall.Arguments[i].Type,
-                        ExpressionTranslator.Proxy(methodCall.Arguments[i], context),
-                        methodCall.Arguments[i]
+                        methodCall.Arguments[i],
+                        context
                     );
                 }
                 else if (parameterInfo.ParameterType == typeof(ExpressionContext))
@@ -289,8 +264,8 @@ namespace EdgeDB.Translators
                 newParameters[0] = methodCall.Object is not null
                     ? new TranslatedParameter(
                         methodCall.Object.Type,
-                        ExpressionTranslator.Proxy(methodCall.Object, context),
-                        methodCall.Object)
+                        methodCall.Object,
+                        context)
                     : null;
 
                 parsedParameters = newParameters;

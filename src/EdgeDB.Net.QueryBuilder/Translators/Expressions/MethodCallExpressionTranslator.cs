@@ -196,6 +196,7 @@ namespace EdgeDB.Translators.Expressions
                         }
                     }
                         return;
+                    case nameof(QueryContext.SubQuerySingle):
                     case nameof(QueryContext.SubQuery):
                     {
                         // pull the builder parameter and add it to a new lambda
@@ -207,19 +208,16 @@ namespace EdgeDB.Translators.Expressions
 
                         return;
                     }
+                    case nameof(QueryContext.Ref):
+                        writer.Append('.', Proxy(expression.Arguments[0], context));
+                        break;
                     default:
                         throw new NotImplementedException(
                             $"{expression.Method.Name} does not have an implementation. This is a bug, please file a github issue with your query to reproduce this exception.");
                 }
             }
 
-            // check if our method translators can translate it
-            if (MethodTranslator.TryTranslateMethod(writer, expression, context))
-            {
-                return;
-            }
-
-            throw new Exception($"Couldn't find translator for {expression.Method.Name}");
+            MethodTranslator.TranslateMethod(writer, expression, context);
         }
     }
 }

@@ -421,6 +421,12 @@ internal sealed class QueryWriter : IDisposable
             current = current.Next;
         }
 
+        foreach (var remaining in activeMarkers)
+        {
+            var content = remaining.Builder.ToString();
+            spans.AddLast(new QuerySpan(remaining.Index..(remaining.Index + content.Length), content, remaining.Marker, remaining.Name));
+        }
+
         return (query.ToString(), spans);
     }
 
