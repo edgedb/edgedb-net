@@ -8,5 +8,6 @@ public enum MarkerType
     FunctionArg,
     Shape,
     Variable,
-    Verbose
+    Verbose,
+    Cast
 }

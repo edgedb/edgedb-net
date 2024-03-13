@@ -173,5 +173,22 @@ namespace EdgeDB
 
             return IsLink(info.Type, out isMultiLink, out innerLinkType);
         }
+
+        public static bool CompareEdgeDBTypes(string a, string b)
+        {
+            if (a == b)
+                return true;
+
+            var aSpl = a.Split("::");
+            var bSpl = b.Split("::");
+
+            if (aSpl.Length == 2 && bSpl.Length == 1 && aSpl[0] == "std")
+                return aSpl[1] == b;
+
+            if (bSpl.Length == 2 && aSpl.Length == 1 && bSpl[0] == "std")
+                return bSpl[1] == a;
+
+            return false;
+        }
     }
 }

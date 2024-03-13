@@ -50,9 +50,6 @@ namespace EdgeDB.QueryNodes
 
             if(Context.Shape is not null && Context.Expression is not null)
             {
-                // TODO: what..? figure out what this did
-                //Context.SelectName = FlattenTranslateExpression(Context.Expression);
-
                 _shape = Context.Shape.GetShape();
             }
 
@@ -64,77 +61,88 @@ namespace EdgeDB.QueryNodes
         /// <inheritdoc/>
         public override void FinalizeQuery(QueryWriter writer)
         {
-            if(SubNodes.Count > 1)
+            switch (SubNodes.Count)
             {
-                throw new NotSupportedException("Got more than one child node for select statement (this is a bug)");
-            }
-
-            // if parent is defined, our select logic was generated in the
-            // visit step, we can just return out.
-            if (SubNodes.Count == 1)
-            {
-                var node = SubNodes.First();
-
-                // set introspection details & finalize
-                node.SchemaInfo = SchemaInfo;
-
-
-                writer.Append($"select ").Wrapped(writer =>
+                case > 1:
+                    throw new NotSupportedException("Got more than one child node for select statement (this is a bug)");
+                // if parent is defined, our select logic was generated in the
+                // visit step, we can just return out.
+                case 1:
                 {
-                    if (writer.AppendIsEmpty(Value.Of(node.FinalizeQuery)))
-                        return;
+                    var node = SubNodes.First();
 
-                    if(node.Context.SetAsGlobal && !string.IsNullOrEmpty(node.Context.GlobalName))
-                    {
-                        // wrap global name
-                        writer.Append(node.Context.GlobalName).Append(' ');
-                    }
-                    else
-                        throw new InvalidOperationException($"Cannot resolve parent node {Parent}'s query");
-                });
+                    // set introspection details & finalize
+                    node.SchemaInfo = SchemaInfo;
 
-                // append the shape of the parents node operating type if we should include ours
-                if (Context.IncludeShape && _shape is not null)
-                {
-                    _shape.Compile(writer, (writer, expression) =>
+
+                    writer.Append($"select ").Wrapped(writer =>
                     {
-                        using var consumer = NodeTranslationContext.CreateContextConsumer(expression.Root);
-                        ExpressionTranslator.ContextualTranslate(expression.Expression, consumer, writer);
+                        if (writer.AppendIsEmpty(Value.Of(node.FinalizeQuery)))
+                            return;
+
+                        if(node.Context.SetAsGlobal && !string.IsNullOrEmpty(node.Context.GlobalName))
+                        {
+                            // wrap global name
+                            writer.Append(node.Context.GlobalName).Append(' ');
+                        }
+                        else
+                            throw new InvalidOperationException($"Cannot resolve parent node {Parent}'s query");
                     });
+
+                    // append the shape of the parents node operating type if we should include ours
+                    if (Context.IncludeShape && _shape is not null)
+                    {
+                        _shape.Compile(writer, (writer, expression) =>
+                        {
+                            using var consumer = NodeTranslationContext.CreateContextConsumer(expression.Root);
+                            ExpressionTranslator.ContextualTranslate(expression.Expression, consumer, writer);
+                        });
+                    }
+
+                    break;
                 }
-            }
-            else if(!Context.IncludeShape)
-            {
-                if (Context.Expression is not null)
+                default:
                 {
-                    var expressionWriter = writer
-                        .Append("select ");
+                    if(!Context.IncludeShape)
+                    {
+                        if (Context.Expression is not null)
+                        {
+                            var expressionWriter = writer
+                                .Append("select ");
 
-                    if (Context.SelectName is not null)
-                        expressionWriter
-                            .Append(Context.SelectName)
-                            .Append(' ');
+                            if (Context.SelectName is not null)
+                                expressionWriter
+                                    .Append(Context.SelectName)
+                                    .Append(' ');
 
-                    TranslateExpression(Context.Expression, expressionWriter);
+                            TranslateExpression(Context.Expression, expressionWriter);
+                        }
+                        else
+                            writer.Append($"select {Context.SelectName ?? OperatingType.GetEdgeDBTypeName()}");
+                    }
+                    else if (_shape is not null)
+                    {
+                        var shapeWriter = writer
+                            .Append("select ");
+
+                        if (Context.Expression is not null)
+                        {
+                            writer.Append(ProxyExpression(Context.Expression), ' ');
+                        }
+                        else if (!Context.IsFreeObject)
+                            shapeWriter
+                                .Append(Context.SelectName ?? OperatingType.GetEdgeDBTypeName())
+                                .Append(' ');
+
+                        _shape.Compile(shapeWriter, (writer, expression) =>
+                        {
+                            using var consumer = NodeTranslationContext.CreateContextConsumer(expression.Root);
+                            ExpressionTranslator.ContextualTranslate(expression.Expression, consumer, writer);
+                        });
+                    }
+
+                    break;
                 }
-                else
-                    writer.Append($"select {Context.SelectName ?? OperatingType.GetEdgeDBTypeName()}");
-            }
-            else if (_shape is not null)
-            {
-                var shapeWriter = writer
-                    .Append("select ");
-
-                if (!Context.IsFreeObject)
-                    shapeWriter
-                        .Append(Context.SelectName ?? OperatingType.GetEdgeDBTypeName())
-                        .Append(' ');
-
-                _shape.Compile(shapeWriter, (writer, expression) =>
-                {
-                    using var consumer = NodeTranslationContext.CreateContextConsumer(expression.Root);
-                    ExpressionTranslator.ContextualTranslate(expression.Expression, consumer, writer);
-                });
             }
 
             FilterProxy?.Invoke(writer);

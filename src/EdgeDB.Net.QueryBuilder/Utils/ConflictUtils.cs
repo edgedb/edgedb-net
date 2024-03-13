@@ -30,7 +30,7 @@ namespace EdgeDB
             if (type.Constraints?.Any(x => x.IsExclusive) ?? false)
             {
                 writer
-                    .Append("unless conflict on ")
+                    .Append(" unless conflict on ")
                     .Append(type.Constraints?.First(x => x.IsExclusive).SubjectExpression);
                 return;
             }
@@ -39,7 +39,7 @@ namespace EdgeDB
             if(type.Properties!.Count(x => x.Name != "id" && x.IsExclusive) == 1)
             {
                 writer
-                    .Append("unless conflict on .")
+                    .Append(" unless conflict on .")
                     .Append(type.Properties!.First(x => x.Name != "id" && x.IsExclusive).Name);
 
                 return;
@@ -48,7 +48,7 @@ namespace EdgeDB
             // if it doesn't have an else statement we can simply add 'UNLESS CONFLICT'
             if (!hasElse)
             {
-                writer.Append("unless conflict");
+                writer.Append(" unless conflict");
                 return;
             }
 

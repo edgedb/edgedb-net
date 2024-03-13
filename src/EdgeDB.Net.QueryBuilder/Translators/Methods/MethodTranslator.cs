@@ -88,6 +88,8 @@ namespace EdgeDB.Translators
             _methodTranslators = new(tempDict);
         }
 
+        internal virtual bool CanTranslate(Type type) => type == TranslatorTargetType;
+
         /// <summary>
         ///     Statically initializes the abstract method translator and populates
         ///     <see cref="_translators"/>.
@@ -122,16 +124,31 @@ namespace EdgeDB.Translators
                 null;
         }
 
-        internal static bool TryGetTranslator(Type type, string name,
-            [NotNullWhen(true)] out MethodTranslator? translator)
+        internal static bool TryGetTranslator(MethodCallExpression methodCall,
+            [MaybeNullWhen(false)] out MethodTranslator translator)
         {
-            translator = null;
+            var type = methodCall.Method.DeclaringType;
+            List<MethodTranslator>? translators = null;
 
-            if (!_translators.TryGetValue(type, out var translators))
+            while (type != null && !_translators.TryGetValue(type, out translators))
+            {
+                type = type.BaseType;
+            }
+
+            if (translators is null)
+            {
+                translator = null;
                 return false;
+            }
 
-            return (translator = translators.FirstOrDefault(x => x._methodTranslators.TryGetValue(name, out _))) is not
-                null;
+            translators.AddRange(_translators
+                .FirstOrDefault(x => x.Value.Any(y => y.CanTranslate(methodCall.Method.DeclaringType!)))
+                .Value?.Where(x => x.CanTranslate(methodCall.Method.DeclaringType!)).ToArray() ?? Array.Empty<MethodTranslator>());
+
+            translator = translators
+                .FirstOrDefault(x => x._methodTranslators.TryGetValue(methodCall.Method.Name, out _));
+
+            return translator is not null;
         }
 
         /// <summary>
@@ -144,27 +161,14 @@ namespace EdgeDB.Translators
         public static void TranslateMethod(QueryWriter writer, MethodCallExpression methodCall,
             ExpressionContext context)
         {
-            var type = methodCall.Method.DeclaringType;
-            List<MethodTranslator>? translators = null;
+            if(!TryGetTranslator(methodCall, out var translator))
+                throw new NotSupportedException($"Cannot use method {methodCall.Method} as there is no translator for it");
 
-
-            while (type != null && !_translators.TryGetValue(type, out translators))
-            {
-                type = type.BaseType;
-            }
-
-            if (translators is null)
-                throw new NotSupportedException(
-                    $"Cannot use method {methodCall.Method} as there is no translator for it");
-
-            var translator = translators
-                .FirstOrDefault(x => x._methodTranslators.TryGetValue(methodCall.Method.Name, out _));
-
-            if (type is null || translator is null)
-                throw new NotSupportedException(
-                    $"Cannot use method {methodCall.Method} as there is no translator for it");
-
-            translator.Translate(writer, methodCall, context);
+            writer.LabelVerbose(
+                $"method_translation_{translator.GetType().Name}",
+                Defer.This(() => $"Translator type is {translator} picked for {methodCall.Method}"),
+                Value.Of(writer => translator.Translate(writer, methodCall, context))
+            );
         }
 
         /// <summary>
@@ -192,7 +196,7 @@ namespace EdgeDB.Translators
         /// <exception cref="NotSupportedException">
         ///     No translator could be found for the given method.
         /// </exception>
-        protected void Translate(QueryWriter writer, MethodCallExpression methodCall, ExpressionContext context)
+        public void Translate(QueryWriter writer, MethodCallExpression methodCall, ExpressionContext context)
         {
             // try to get a method for translating the expression
             if (!_methodTranslators.TryGetValue(methodCall.Method.Name, out var methodInfo))
@@ -224,6 +228,7 @@ namespace EdgeDB.Translators
             var parsedParameters = new object?[methodParameters.Length];
 
             // iterate over the parameters and parse them.
+            var methodCallArgsIndex = 0;
             for (var i = 0; i != methodParameters.Length; i++)
             {
                 var parameterInfo = methodParameters[i];
@@ -232,26 +237,33 @@ namespace EdgeDB.Translators
                 // its value to the remaining arguments to the expression and break out of the loop
                 if (parameterInfo.GetCustomAttribute<ParamArrayAttribute>() != null)
                 {
-                    parsedParameters[i] = methodCall.Arguments.Skip(i)
+                    parsedParameters[i] = methodCall.Arguments.Skip(methodCallArgsIndex)
                         .Select(x => new TranslatedParameter(x.Type, x, context)).ToArray();
 
                     break;
-                }
-                else if (methodCall.Arguments.Count > i)
-                {
-                    parsedParameters[i] = new TranslatedParameter(
-                        methodCall.Arguments[i].Type,
-                        methodCall.Arguments[i],
-                        context
-                    );
                 }
                 else if (parameterInfo.ParameterType == typeof(ExpressionContext))
                 {
                     // set the context
                     parsedParameters[i] = context;
                 }
+                else if (parameterInfo.Name == "method" && parameterInfo.ParameterType == typeof(MethodCallExpression))
+                {
+                    parsedParameters[i] = methodCall;
+                }
+                else if (methodCall.Arguments.Count > methodCallArgsIndex)
+                {
+                    parsedParameters[i] = new TranslatedParameter(
+                        methodCall.Arguments[methodCallArgsIndex].Type,
+                        methodCall.Arguments[methodCallArgsIndex],
+                        context
+                    );
+                    methodCallArgsIndex++;
+                }
                 else // get the default value for the parameter type
+                {
                     parsedParameters[i] = ReflectionUtils.GetDefault(parameterInfo.ParameterType);
+                }
             }
 
             // if its an instance reference, recreate our parsed array to include the instance parameter

@@ -26,9 +26,9 @@ namespace EdgeDB.Translators.Methods
         public void Count(QueryWriter writer, TranslatedParameter source)
         {
             if (source.IsScalarArrayType || source.IsScalarType)
-                writer.Function("len", source);
+                writer.Function("std::len", source);
             else
-                writer.Function("count", source);
+                writer.Function("std::count", source);
         }
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace EdgeDB.Translators.Methods
         public void Contains(QueryWriter writer, TranslatedParameter source, TranslatedParameter target)
         {
             if (source.IsScalarArrayType || source.IsScalarType)
-                writer.Function("contains", source);
+                writer.Function("std::contains", source);
             else
                 writer.Append(target).Append(" in ").Append(source);
         }

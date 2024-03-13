@@ -92,11 +92,6 @@ namespace EdgeDB.Translators
             writer.Function("std::adjacent", lParam, rParam);
         }
 
-        [MethodName(nameof(EdgeQL.Not))]
-        public void Not(QueryWriter writer, TranslatedParameter vParam)
-        {
-            writer.Append("NOT").Append(vParam);
-        }
         [MethodName(nameof(EdgeQL.In))]
         public void In(QueryWriter writer, TranslatedParameter eParam, TranslatedParameter sParam)
         {

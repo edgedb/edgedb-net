@@ -100,8 +100,13 @@ internal static class Terms
     public static QueryWriter Assignment(this QueryWriter writer, Value name, Value value)
         => writer.Append(name, " := ", value);
 
-    public static QueryWriter TypeCast(this QueryWriter writer, Value type)
-        => writer.Append("<", type, ">");
+    public static QueryWriter TypeCast(this QueryWriter writer, Value type, CastMetadata? metadata = null)
+        => writer.Marker(
+            MarkerType.Cast,
+            "cast",
+            Value.Of(writer => writer.Append('<', type, '>')),
+            metadata: metadata
+        );
 
     public readonly struct FunctionArg
     {
@@ -120,9 +125,10 @@ internal static class Terms
         public static implicit operator FunctionArg(WriterProxy writerProxy) => new(writerProxy);
     }
 
-    public static QueryWriter Function(this QueryWriter writer, string name, params FunctionArg[] args)
+    public static QueryWriter Function(this QueryWriter writer, string name, Deferrable<string>? debug,
+        FunctionMetadata? metadata, params FunctionArg[] args)
     {
-        return writer.Marker(MarkerType.Function, $"func_{name}", Value.Of(
+        return writer.Marker(MarkerType.Function, $"func_{name}", debug, new FunctionMetadata(name), Value.Of(
             writer =>
             {
                 writer.Append(name, '(');
@@ -163,6 +169,13 @@ internal static class Terms
             }
         ));
     }
+
+    public static QueryWriter Function(this QueryWriter writer, string name, Deferrable<string>? debug,
+        params FunctionArg[] args)
+        => Function(writer, name, debug, new FunctionMetadata(name), args);
+
+    public static QueryWriter Function(this QueryWriter writer, string name, params FunctionArg[] args)
+        => Function(writer, name, null, new FunctionMetadata(name), args);
 
     public static QueryWriter SingleQuoted(this QueryWriter writer, Value value)
         => writer.Append('\'', value, '\'');

@@ -26,24 +26,23 @@ internal sealed class QueryWriter : IDisposable
         }
     }
 
-    public readonly Dictionary<string, LinkedList<Marker>> Markers;
-
-    private readonly List<Marker> _markersRef;
+    public readonly MarkerCollection Markers;
 
     private readonly LooseLinkedList<Value> _tokens;
 
     private readonly List<INodeObserver> _observers = [];
 
     private ValueNode? _track;
+    private readonly bool _debug;
 
     private int TailIndex => _tokens.Count - 1;
 
-    public QueryWriter()
+    public QueryWriter(bool debug = false)
     {
         _tokens = new();
         Markers = new();
-        _markersRef = new();
         _track = null;
+        _debug = debug;
     }
 
     /// <summary>
@@ -119,112 +118,37 @@ internal sealed class QueryWriter : IDisposable
         return -1;
     }
 
-    private ValueNode? Traverse(ValueNode from, int count, bool dir)
+    public QueryWriter Marker(MarkerType type, string name, in Value value, Deferrable<string>? debug = null, IMarkerMetadata? metadata = null)
     {
-        var node = from;
-        while (count > 0 && node is not null)
+        if (type is MarkerType.Verbose && !_debug)
         {
-            node = dir ? node.Next : node.Previous;
-            count--;
+            Append(in value);
+            return this;
         }
-        return node;
-    }
-
-    private ValueNode? FastGetNodeFromIndex(int index)
-    {
-        // check for start/end node
-        if (index == 0)
-            return _tokens.First;
-
-        if (index == TailIndex)
-            return _tokens.Last;
-
-        // get a distance we'll have to traverse in worst case scenario
-        var normalizedDistance = Math.Min(TailIndex - index, index);
-
-        // check if searching through markers will be faster:
-        // binary search is log(n) but since we're searching for a range which can have jump distances, we'll add a
-        // small weight which can be tuned later to represent the jump distance within the span.
-        if (_markersRef.Count <= Math.Log(normalizedDistance) + normalizedDistance / 2.5)
-        {
-            // get a midpoint somewhere in the markers derived from the provided index
-            var i = (int)Math.Floor(_markersRef.Count * (_tokens.Count / (float)index));
-            var minJump = normalizedDistance;
-
-            // binary search
-            while (true)
-            {
-                var split = i / 2;
-
-                if (split == 0 || split == i)
-                    break;
-
-                var delta = Math.Abs(_markersRef[i].Position - index);
-
-                if (delta < minJump)
-                {
-                    minJump = delta;
-                    i -= split;
-                }
-                else if (delta > minJump)
-                {
-                    i += split;
-                }
-                else
-                {
-                    // last iter was same as this one, we can exit
-                    break;
-                }
-            }
-
-            var marker = _markersRef[i];
-            var distance = Math.Abs(marker.Position - index);
-
-            if(distance <= normalizedDistance)
-                return Traverse(marker.Start, Math.Abs(marker.Position - index), index > marker.Position);
-        }
-
-        return normalizedDistance == index
-            ? Traverse(_tokens.First!, index, true)
-            : Traverse(_tokens.Last!, _tokens.Count - index, false);
-    }
-
-    private void UpdateMarkers(int position, int delta)
-    {
-        foreach (var marker in _markersRef.Where(x => x.Position > position))
-        {
-            marker.Update(delta);
-        }
-    }
-
-    public bool TryGetMarker(string name, [MaybeNullWhen(false)] out LinkedList<Marker> markers)
-        => Markers.TryGetValue(name, out markers);
-
-    public QueryWriter Marker(MarkerType type, string name, in Value value, Deferrable<string>? debug = null)
-    {
-        if (!Markers.TryGetValue(name, out var markers))
-            Markers[name] = markers = new();
 
         var currentIndex = TailIndex;
         Append(in value, out var head);
         var size = TailIndex - currentIndex;
-
-        var marker = new Marker(type, this, size, currentIndex + 1, head, debug);
-        _markersRef.Add(marker);
-        markers.AddLast(marker);
+        Markers.Add(new Marker(name, type, this, size, currentIndex + 1, head, debug, metadata));
         return this;
     }
 
-    public QueryWriter Marker(MarkerType type, string name, Deferrable<string>? debug = null)
-        => Marker(type, name, debug, name);
+    public QueryWriter Marker(MarkerType type, string name, Deferrable<string>? debug = null, IMarkerMetadata? metadata = null)
+        => Marker(type, name, debug, metadata, name);
 
     public QueryWriter Marker(MarkerType type, string name, Deferrable<string>? debug = null, params Value[] values)
+        => Marker(type, name, debug, null, values);
+
+    public QueryWriter Marker(MarkerType type, string name, Deferrable<string>? debug = null, IMarkerMetadata? metadata = null, params Value[] values)
     {
+        if (type is MarkerType.Verbose && !_debug)
+        {
+            Append(values);
+            return this;
+        }
+
         if (values.Length == 0)
             return this;
-
-        if (!Markers.TryGetValue(name, out var markers))
-            Markers[name] = markers = new();
 
         var currentIndex = TailIndex;
 
@@ -232,17 +156,17 @@ internal sealed class QueryWriter : IDisposable
 
         var count = TailIndex - currentIndex;
 
-        var marker = new Marker(
+        Markers.Add(new Marker(
+            name,
             type,
             this,
             count,
             currentIndex + 1,
             head,
-            debug
-        );
+            debug,
+            metadata
+        ));
 
-        _markersRef.Add(marker);
-        markers.AddLast(marker);
         return this;
     }
 
@@ -256,7 +180,7 @@ internal sealed class QueryWriter : IDisposable
                 _track = headPrev;
         });
 
-        UpdateMarkers(position, -count);
+        Markers.Update(position, -count);
 
         return this;
     }
@@ -287,7 +211,7 @@ internal sealed class QueryWriter : IDisposable
         OnNodeAdd(AddBeforeTracked(in value));
         _track = oldTrack;
 
-        UpdateMarkers(index - 1, 1);
+        Markers.Update(index - 1, 1);
 
         return this;
     }
@@ -297,7 +221,8 @@ internal sealed class QueryWriter : IDisposable
         node = AddAfterTracked(in value);
 
         OnNodeAdd(node);
-        UpdateMarkers(TailIndex, 1);
+
+        Markers.Update(TailIndex, 1);
 
         return this;
     }
@@ -312,7 +237,7 @@ internal sealed class QueryWriter : IDisposable
             OnNodeAdd(AddAfterTracked(in values[i]));
         }
 
-        UpdateMarkers(_tokens.Count - 1, values.Length);
+        Markers.Update(_tokens.Count - 1, values.Length);
 
         return this;
     }
@@ -331,7 +256,7 @@ internal sealed class QueryWriter : IDisposable
         for (var i = 1; i < values.Length; i++)
             OnNodeAdd(AddAfterTracked(in values[i]));
 
-        UpdateMarkers(_tokens.Count - 1, values.Length);
+        Markers.Update(_tokens.Count - 1, values.Length);
 
         return this;
     }
@@ -392,7 +317,7 @@ internal sealed class QueryWriter : IDisposable
         var query = new StringBuilder();
         var activeMarkers = new List<ActiveMarkerTrack>();
         var spans = new LinkedList<QuerySpan>();
-        var markers = new HashSet<(string, Marker)>(Markers.SelectMany(x => x.Value.Select(y => (x.Key, y))));
+        var markers = new HashSet<(string, Marker)>(Markers.MarkersByName.SelectMany(x => x.Value.Select(y => (x.Key, y))));
 
         var current = _tokens.First;
 
@@ -435,6 +360,5 @@ internal sealed class QueryWriter : IDisposable
         Markers.Clear();
         _tokens.Clear();
         _observers.Clear();
-        _markersRef.Clear();
     }
 }

@@ -33,6 +33,12 @@ namespace EdgeDB
         public static IInsertQuery<object, QueryContextSelf<object>> Insert(Type type, IDictionary<string, object?> values)
             => new QueryBuilder<object>().Insert(type, values);
 
+        public static IInsertQuery<object, QueryContextSelf<object>> Insert<TType>(Type type, TType value)
+            => new QueryBuilder<object>().Insert(type, value, false);
+
+        public static IInsertQuery<object, QueryContextSelf<object>> Insert<TType>(Type type, TType value, bool returnInsertedValue)
+            => new QueryBuilder<object>().Insert(type, value, returnInsertedValue);
+
         public static IInsertQuery<object, QueryContextSelf<object>> Insert(Type type, IDictionary<string, object?> values,  bool returnInsertedValue)
             => new QueryBuilder<object>().Insert(type, values, returnInsertedValue);
 
@@ -78,6 +84,19 @@ namespace EdgeDB
             if (returnInsertedValue)
             {
                 AddNode<SelectNode>(new SelectContext(typeof(TType)), true, insertNode);
+            }
+
+            return this;
+        }
+
+        /// <inheritdoc/>
+        public IInsertQuery<TType, TContext> Insert(Type type, object? value, bool returnInsertedValue = true)
+        {
+            var insertNode = AddNode<InsertNode>(new InsertContext(type, value));
+
+            if (returnInsertedValue)
+            {
+                AddNode<SelectNode>(new SelectContext(type), true, insertNode);
             }
 
             return this;

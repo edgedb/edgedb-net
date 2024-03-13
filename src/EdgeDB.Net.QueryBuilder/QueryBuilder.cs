@@ -210,7 +210,7 @@ namespace EdgeDB
         {
             context ??= new CompileContext();
 
-            using var writer = new QueryWriter();
+            using var writer = new QueryWriter(context.Debug);
 
             CompileInternal(writer, context);
 
@@ -257,24 +257,26 @@ namespace EdgeDB
             // create a with block if we have any globals
             if (context.IncludeGlobalsInQuery && QueryGlobals.Any())
             {
-                var builder = new NodeBuilder(new WithContext(typeof(TType))
-                {
-                    Values = QueryGlobals,
-                }, QueryGlobals, nodes, QueryVariables);
+                var with = (WithNode?)Nodes.FirstOrDefault(x => x is WithNode);
 
-                var with = new WithNode(builder)
+                if (with is null)
                 {
-                    SchemaInfo = SchemaInfo
-                };
+                    var builder = new NodeBuilder(new WithContext(typeof(TType)), QueryGlobals, nodes, QueryVariables);
 
-                // visit the with node and add it to the front of our local collection of nodes.
-                using (var _ = writer.PositionalScopeFromStart())
-                {
-                    with.FinalizeQuery(writer);
-                    writer.Append(' ');
+                    with = new WithNode(builder)
+                    {
+                        SchemaInfo = SchemaInfo
+                    };
+
+                    // visit the with node and add it to the front of our local collection of nodes.
+                    using (var _ = writer.PositionalScopeFromStart())
+                    {
+                        with.FinalizeQuery(writer);
+                        writer.Append(' ');
+                    }
+
+                    nodes = nodes.Prepend(with).ToList();
                 }
-
-                nodes = nodes.Prepend(with).ToList();
             }
 
             // flatten our parameters into a single collection and make it distinct.

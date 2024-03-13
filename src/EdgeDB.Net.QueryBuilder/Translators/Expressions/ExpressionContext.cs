@@ -30,6 +30,8 @@ namespace EdgeDB
         /// </summary>
         public Dictionary<string, Type> Parameters { get; }
 
+        public Dictionary<ParameterExpression, string> ParameterAliases { get; } = new();
+
         /// <summary>
         ///     Gets or sets whether or not to serialize string without quotes.
         /// </summary>
@@ -49,7 +51,7 @@ namespace EdgeDB
         ///     Gets or sets whether or not the current expression has an initialization
         ///     operator, ex: ':=, +=, -='.
         /// </summary>
-        public bool UseInitializationOperator { get; set; }
+        public bool UseInitializationOperator { get; set; } = true;
 
         /// <summary>
         ///     Gets or sets whether or not to include a self reference.
@@ -62,6 +64,8 @@ namespace EdgeDB
         ///     Gets or sets whether or not to wrap new expressions in brackets.
         /// </summary>
         public bool WrapNewExpressionInBrackets { get; set; } = true;
+
+        public Dictionary<ParameterExpression, WriterProxy> ParameterPrefixes { get; set; } = new();
 
         /// <summary>
         ///     Gets whether or not the current expression tree is a free object.

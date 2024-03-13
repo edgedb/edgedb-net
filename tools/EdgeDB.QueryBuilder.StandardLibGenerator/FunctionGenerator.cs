@@ -12,6 +12,7 @@ namespace EdgeDB.StandardLibGenerator
     internal class RequiredMethodTranslator
     {
         public string? TargetName { get; init; }
+        public string? EdgeQLName { get; init; }
         public string? Group { get; init; }
         public string? Expression { get; init; }
         public Parameter[]? Parameters { get; init; }
@@ -122,6 +123,10 @@ namespace EdgeDB.StandardLibGenerator
                     {
                         var funcName = TextInfo.ToTitleCase(func.Name!.Split("::").Last().Replace("_", " "))
                             .Replace(" ", "");
+
+                        var funcSpl = func.Name.Split("::");
+                        var funcCleanName = funcSpl[^1];
+                        var funcModule = string.Join("::", funcSpl[..^1]);
 
                         if (!TypeUtils.TryGetType(func.ReturnType!.Name!, out var returnTypeInfo))
                             throw new Exception($"Failed to get type {groupType}");
@@ -274,6 +279,7 @@ namespace EdgeDB.StandardLibGenerator
                                 _edgeqlClassWriter.AppendLine("/// </summary>");
                             }
 
+                            _edgeqlClassWriter!.AppendLine($"[EdgeQLFunction(\"{funcCleanName}\", \"{funcModule}\", \"{func.ReturnType.Name}\", {(func.ReturnTypeModifier is TypeModifier.SetOfType).ToString().ToLower()}, {(func.ReturnTypeModifier is TypeModifier.OptionalType).ToString().ToLower()})]");
                             _edgeqlClassWriter!.AppendLine(
                                 $"public static {dotnetReturnType.Type} {funcName}{(formattedGenerics.Any() ? $"<{formattedGenerics}>" : "")}({strongMappedParameters})");
                             foreach (var c in parsedParameters.Where(x => x.GenericConditions.Any())
@@ -393,6 +399,11 @@ namespace EdgeDB.StandardLibGenerator
                         $"{(dotnetReturnType.Generics.Any() ? "`1" : dotnetReturnType.Type)}{translator.TargetName}{(formattedGenerics.Any() ? $"<`{formattedGenerics.Count()}>" : "")}({string.Join(", ", parsedParameters.Select(x => x.Generics.Any() ? "`1" : x.Type))})";
                     if (!_generatedPublicFuncs.Contains(genKey))
                     {
+                        var fSpl = translator.EdgeQLName.Split("::");
+                        var funcCleanName = fSpl[^1];
+                        var funcModule = string.Join("::", fSpl[..^1]);
+
+                        _edgeqlClassWriter!.AppendLine($"[EdgeQLFunction(\"{funcCleanName}\", \"{funcModule}\", \"{translator.Result.Name}\", {(translator.Modifier is TypeModifier.SetOfType).ToString().ToLower()}, {(translator.Modifier is TypeModifier.OptionalType).ToString().ToLower()})]");
                         _edgeqlClassWriter!.AppendLine(
                             $"public static {dotnetReturnType.Type} {translator.TargetName}{(formattedGenerics.Any() ? $"<{formattedGenerics}>" : "")}({strongMappedParameters})");
                         foreach (var c in parsedParameters.Where(x => x.GenericConditions.Any())

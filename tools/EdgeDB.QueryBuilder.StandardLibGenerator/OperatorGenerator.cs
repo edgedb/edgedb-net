@@ -94,6 +94,7 @@ namespace EdgeDB.StandardLibGenerator
                                 Parameters = op.Parameters,
                                 Result = op.ReturnType,
                                 TargetName = FormatName(INamingStrategy.PascalNamingStrategy.Convert(op.Name!.Split("::")[1])),
+                                EdgeQLName = opName,
                                 Modifier = op.ReturnTypeModifier
                             });
                         }
@@ -116,7 +117,8 @@ namespace EdgeDB.StandardLibGenerator
                             Parameters = op.Parameters,
                             Result = op.ReturnType,
                             TargetName = FormatName(INamingStrategy.PascalNamingStrategy.Convert(opName.Split("::")[1])),
-                            Modifier = op.ReturnTypeModifier
+                            Modifier = op.ReturnTypeModifier,
+                            EdgeQLName = opName
                         });
                     }
                     else
@@ -173,21 +175,21 @@ namespace EdgeDB.StandardLibGenerator
                             return $"writer.Append({op.Parameters[0].Name + "Param"}).Wrapped({op.Parameters[1].Name + "Param"}, \"[]\")";
                         }
 
-                        return $"writer.Append({op.Parameters[0].Name + "Param"}).Wrapped(\"{operation}\", \"  \").Append({op.Parameters[1].Name + "Param"})";
+                        return $"writer.Append({op.Parameters[0].Name + "Param"}).Append(\" {operation} \").Append({op.Parameters[1].Name + "Param"})";
                     }
                 case OperatorKind.Postfix:
                     {
                         if (op.Parameters!.Length != 1)
                             throw new ArgumentException("Expected 1 parameter for Postfix");
 
-                        return $"writer.Append({op.Parameters[0].Name + "Param"}, {operation})";
+                        return $"writer.Append({op.Parameters[0].Name + "Param"}, \" {operation}\")";
                     }
                 case OperatorKind.Prefix:
                     {
                         if (op.Parameters!.Length != 1)
                             throw new ArgumentException("Expected 1 parameter for Prefix");
 
-                        return $"writer.Append(\"{operation}\", {op.Parameters[0].Name + "Param"})";
+                        return $"writer.Append(\"{operation} \", {op.Parameters[0].Name + "Param"})";
                     }
                 case OperatorKind.Ternary:
                     {

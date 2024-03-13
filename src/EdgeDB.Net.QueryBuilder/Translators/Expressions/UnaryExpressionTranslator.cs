@@ -43,14 +43,16 @@ namespace EdgeDB.Translators.Expressions
                         : expression.Type.GetEdgeDBTypeName();
 
                     writer
-                        .TypeCast(type)
+                        .TypeCast(type, new CastMetadata(edgedbType, type))
                         .Append(Proxy(expression.Operand, context));
                     return;
                 }
                 case ExpressionType.ArrayLength:
-                    writer.Append("len(");
-                    TranslateExpression(expression.Operand, context, writer);
-                    writer.Append(')');
+                    writer.Function(
+                        "std::len",
+                        Defer.This(() => $"ArrayLength expression implicit conversion"),
+                        Value.Of(writer => TranslateExpression(expression.Operand, context, writer))
+                    );
                     return;
 
                 // default case attempts to get an IEdgeQLOperator for the given

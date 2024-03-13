@@ -135,11 +135,12 @@ namespace EdgeDB.QueryNodes
         /// <param name="name">The name of the global to set.</param>
         /// <param name="value">The value of the global to set.</param>
         /// <param name="reference">The reference of the global to set.</param>
-        protected void SetGlobal(string name, object? value, object? reference)
+        protected QueryGlobal SetGlobal(string name, object? value, object? reference)
         {
             var global = new QueryGlobal(name, value, reference);
             Builder.QueryGlobals.Add(global);
             ReferencedGlobals.Add(global);
+            return global;
         }
 
         /// <summary>
@@ -203,45 +204,6 @@ namespace EdgeDB.QueryNodes
         {
             using var consumer = NodeTranslationContext.CreateContextConsumer(root);
             ExpressionTranslator.ContextualTranslate(expression, consumer, writer);
-        }
-
-        internal void ReplaceSubqueryAsLiteral(QueryWriter writer, QueryGlobal global, Action<QueryGlobal, QueryWriter> compile)
-        {
-            if (!writer.TryGetMarker(global.Name, out var markers))
-                return;
-
-            foreach (var marker in markers)
-            {
-                marker.Replace(writer =>
-                {
-                    compile(global, writer);
-                });
-            }
-
-
-
-            // var index = writer.IndexOf(global.Name);
-            //
-            // if (index is -1)
-            //     throw new InvalidOperationException("Global could not be found within the query string");
-            //
-            // string? cached = null;
-            //
-            // while (index is not -1)
-            // {
-            //     if (cached is null)
-            //     {
-            //         var globalWriter = writer.GetPositionalWriter(index);
-            //         compile(global, globalWriter);
-            //         cached = globalWriter.ToString();
-            //     }
-            //     else
-            //     {
-            //         writer.Insert(index, cached);
-            //     }
-            //
-            //     index = writer.IndexOf(global.Name);
-            // }
         }
     }
 }

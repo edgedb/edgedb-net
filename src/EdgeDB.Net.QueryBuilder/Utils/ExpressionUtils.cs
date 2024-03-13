@@ -13,7 +13,7 @@ namespace EdgeDB
     internal static class ExpressionUtils
     {
         /// <summary>
-        ///     Disassembles an arbitrary expression into a list of expression nodes. 
+        ///     Disassembles an arbitrary expression into a list of expression nodes.
         /// </summary>
         /// <param name="expression">The expression to disassemble.</param>
         /// <returns>

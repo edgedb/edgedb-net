@@ -19,6 +19,8 @@ namespace EdgeDB.Translators.Expressions
             var newContext =
                 new ExpressionContext(context.NodeContext, expression, context.QueryArguments, context.Globals);
 
+            newContext.ParameterPrefixes = context.ParameterPrefixes;
+
             TranslateExpression(expression.Body, newContext, result);
         }
     }

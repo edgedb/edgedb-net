@@ -1,3 +1,4 @@
+using EdgeDB.QueryNodes;
 using EdgeDB.Translators.Expressions;
 using System;
 using System.Collections.Generic;
@@ -43,14 +44,7 @@ namespace EdgeDB
             if (!typeof(TVariables).IsAnonymousType())
                 throw new ArgumentException("Variables must be an anonymous type");
 
-            // pull the initialization expression
-            var initializations = InitializationTranslator.PullInitializationExpression(variables.Body);
-
-            // add each as a global
-            foreach (var initialization in initializations)
-            {
-                QueryGlobals.Add(new QueryGlobal(initialization.Key.Name, initialization.Value, variables));
-            }
+            AddNode<WithNode>(new WithContext(typeof(TType)) {ValuesExpression = variables});
 
             return EnterNewContext<QueryContextSelfVars<TType, TVariables>>();
         }

@@ -2,7 +2,7 @@
 
 namespace EdgeDB;
 
-internal sealed class ShapeReducer : IReducer
+internal sealed class GlobalReducer : IReducer
 {
     // general rules for reducing shapes:
     // - Shapes are not included in function arguments
@@ -10,22 +10,28 @@ internal sealed class ShapeReducer : IReducer
     {
         foreach (var global in builder.Globals.ToArray())
         {
-            if(!writer.TryGetMarker(global.Name, out var markers) || !CanReduce(global, builder))
+            if(!writer.Markers.MarkersByName.TryGetValue(global.Name, out var markers) || !CanReduce(global, builder))
                 continue;
 
             Value[]? tokens = null;
-            foreach (var marker in markers.ToArray())
+            foreach (var marker in markers.Where(x => x.Type is MarkerType.GlobalReference))
             {
                 Action<QueryNode>? modifier = marker switch
                 {
-                    _ when marker.Parent?.Type is MarkerType.FunctionArg => ApplyShapeReducer,
+                    _ when writer.Markers.GetDirectParents(marker).Any(x => x.Type is MarkerType.FunctionArg) => ApplyShapeReducer,
                     _ => null
                 };
 
                 marker.Replace(writer => writer
-                    .AppendSpanned(
-                        ref tokens,
-                        writer => global.Compile(builder, writer, new CompileContext { PreFinalizerModifier = modifier, SchemaInfo = builder.SchemaInfo } )
+                    .LabelVerbose(
+                        "global_reducer",
+                        Defer.This(() => $"Global {global.Name} inlined; Shaped reduced?: {modifier is not null}"),
+                        Value.Of(writer => writer
+                            .AppendSpanned(
+                                ref tokens,
+                                writer => global.Compile(builder, writer, new CompileContext { PreFinalizerModifier = modifier, SchemaInfo = builder.SchemaInfo } )
+                            )
+                        )
                     )
                 );
             }

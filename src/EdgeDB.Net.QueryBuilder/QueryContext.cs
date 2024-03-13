@@ -162,7 +162,7 @@ namespace EdgeDB
         public abstract TCollection SubQuery<TType, TCollection>(IMultiCardinalityQuery<TType> query)
             where TCollection : IEnumerable<TType>;
 
-        public abstract T Ref<T>(IEnumerable<T> collection);
+        public abstract IEnumerable<U> Aggregate<T, U>(IEnumerable<T> collection, Func<T, U> operand);
     }
 
     public abstract class QueryContextSelf<TSelf> : QueryContext, IQueryContextSelf<TSelf>

@@ -60,6 +60,27 @@ namespace EdgeDB
             }
         }
 
+        public static string? UnsafeExpressionAsString(Expression expression)
+        {
+            if (expression is ConstantExpression constantExpression &&
+                constantExpression.Type.IsAssignableTo(typeof(string)))
+                return (string?)constantExpression.Value;
+
+
+            var expressionResult = Expression
+                .Lambda(expression)
+                .Compile()
+                .DynamicInvoke();
+
+            if (expressionResult is not string strResult)
+                throw new ArgumentException(
+                    $"Expected expression {expression} to evaluate to a string, but " +
+                    $"got {expressionResult?.GetType().ToString() ?? "NULL"}"
+                );
+
+            return strResult;
+        }
+
         public static WriterProxy Proxy(Expression expression, ExpressionContext expressionContext, string? label = null)
         {
             if (label is not null)

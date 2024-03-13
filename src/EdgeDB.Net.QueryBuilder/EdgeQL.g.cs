@@ -1,1729 +1,1356 @@
-// #nullable restore
-// #pragma warning disable
-// using EdgeDB.Operators;
-// using EdgeDB.DataTypes;
-// using EdgeDB.Interfaces;
-// using System.Numerics;
-// using DateTime = System.DateTime;
-//
-// namespace EdgeDB
-// {
-//     public sealed partial class EdgeQL
-//     {
-//         #region Generic
-//
-//         #region Equals
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> ?= <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.GenericEquals))]
-//         public static bool Equals(object? a, object? b) { return default!; }
-//         #endregion
-//
-//         #region NotEqual
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> ?!= <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.GenericNotEqual))]
-//         public static bool NotEqual(object? a, object? b) { return default!; }
-//         #endregion
-//
-//         #region LessThan
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> &lt; <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.GenericLessThan))]
-//         public static bool LessThan(object? a, object? b) { return default!; }
-//         #endregion
-//
-//         #region GreaterThan
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> &gt; <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.GenericGreaterThan))]
-//         public static bool GreaterThan(object? a, object? b) { return default!; }
-//         #endregion
-//
-//         #region LessThanOrEqual
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> &lt;= <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.GenericLessThanOrEqual))]
-//         public static bool LessThanOrEqual(object? a, object? b) { return default!; }
-//         #endregion
-//
-//         #region GreaterThanOrEqual
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> &gt;= <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.GenericGreaterThanOrEqual))]
-//         public static bool GreaterThanOrEqual(object? a, object? b) { return default!; }
-//         #endregion
-//
-//         #region Length
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>len(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.GenericLength))]
-//         public static long Length(object? a) { return default!; }
-//         #endregion
-//
-//         #region Contains
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>contains(<paramref name="source"/>, <paramref name="element"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.GenericContains))]
-//         public static bool Contains(object? source, object? element) { return default!; }
-//         #endregion
-//
-//         #region Find
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>find(<paramref name="source"/>, <paramref name="element"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.GenericFind))]
-//         public static long IndexOf(object? source, object? element) { return default!; }
-//         #endregion
-//
-//         #endregion Generic
-//
-//         #region string
-//
-//         #region Index
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/>[<paramref name="b"/>]</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringIndex))]
-//         public static string? Index(string? a, long b) { return default!; }
-//         #endregion
-//
-//         #region Slice
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="str"/>[<paramref name="startIndex"/>:{2?}]</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringSlice))]
-//         public static string? Slice(string? str, long startIndex) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="str"/>[<paramref name="startIndex"/>:{2?}]</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringSlice))]
-//         public static string? Slice(string? str, long startIndex, long endIndex) { return default!; }
-//         #endregion
-//
-//         #region Concat
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> ++ <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringConcat))]
-//         public static string? Concat(string? a, string? b) { return default!; }
-//         #endregion
-//
-//         #region Like
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> like <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringLike))]
-//         public static bool Like(string? a, string? b) { return default!; }
-//         #endregion
-//
-//         #region ILike
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> ilike <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringILike))]
-//         public static bool ILike(string? a, string? b) { return default!; }
-//         #endregion
-//
-//         #region ToString
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_str(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringToString))]
-//         public static string? ToString(object? a) { return default!; }
-//         #endregion
-//
-//         #region Length
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>len(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringLength))]
-//         public static long Length(string? a) { return default!; }
-//         #endregion
-//
-//         #region Contains
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>contains(<paramref name="a"/>, <paramref name="b"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringContains))]
-//         public static bool Contains(string? a, string? b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>contains(<paramref name="a"/>, <paramref name="b"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringContains))]
-//         public static bool Contains(string? a, char b) { return default!; }
-//         #endregion
-//
-//         #region Find
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>find(<paramref name="a"/>, <paramref name="b"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringFind))]
-//         public static long Find(string? a, string? b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>find(<paramref name="a"/>, <paramref name="b"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringFind))]
-//         public static long Find(string? a, char b) { return default!; }
-//         #endregion
-//
-//         #region ToLower
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>str_lower(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringToLower))]
-//         public static string? ToLower(string? a) { return default!; }
-//         #endregion
-//
-//         #region ToUpper
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>str_upper(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringToUpper))]
-//         public static string? ToUpper(string? a) { return default!; }
-//         #endregion
-//
-//         #region ToTitle
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>str_title(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringToTitle))]
-//         public static string? ToTitle(string? a) { return default!; }
-//         #endregion
-//
-//         #region PadLeft
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>str_pad_start(<paramref name="a"/>, <paramref name="count"/>, {2?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringPadLeft))]
-//         public static string? PadLeft(string? a, long count) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>str_pad_start(<paramref name="a"/>, <paramref name="count"/>, {2?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringPadLeft))]
-//         public static string? PadLeft(string? a, long count, string? fill) { return default!; }
-//         #endregion
-//
-//         #region PadRight
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>str_pad_end(<paramref name="a"/>, <paramref name="count"/>, {2?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringPadRight))]
-//         public static string? PadRight(string? a, long count) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>str_pad_end(<paramref name="a"/>, <paramref name="count"/>, {2?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringPadRight))]
-//         public static string? PadRight(string? a, long count, string? fill) { return default!; }
-//         #endregion
-//
-//         #region Trim
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>str_trim(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringTrim))]
-//         public static string? Trim(string? a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>str_trim(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringTrim))]
-//         public static string? Trim(string? a, string? trimCharacters) { return default!; }
-//         #endregion
-//
-//         #region TrimStart
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>str_trim_start(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringTrimStart))]
-//         public static string? TrimStart(string? a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>str_trim_start(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringTrimStart))]
-//         public static string? TrimStart(string? a, string? trimCharacters) { return default!; }
-//         #endregion
-//
-//         #region TrimEnd
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>str_trim_end(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringTrimEnd))]
-//         public static string? TrimEnd(string? a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>str_trim_end(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringTrimEnd))]
-//         public static string? TrimEnd(string? a, string? trimCharacters) { return default!; }
-//         #endregion
-//
-//         #region Repeat
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>str_repeat(<paramref name="a"/>, <paramref name="count"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringRepeat))]
-//         public static string? Repeat(string? a, long count) { return default!; }
-//         #endregion
-//
-//         #region Split
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>str_split(<paramref name="a"/>, <paramref name="delimiter"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringSplit))]
-//         public static string?[] Split(string? a, string? delimiter) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>str_split(<paramref name="a"/>, <paramref name="delimiter"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringSplit))]
-//         public static string?[] Split(string? a, char delimiter) { return default!; }
-//         #endregion
-//
-//         #region Match
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>re_match(<paramref name="pattern"/>, <paramref name="input"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringMatch))]
-//         public static string?[] Match(string? pattern, string? input) { return default!; }
-//         #endregion
-//
-//         #region MatchAll
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>re_match_all(<paramref name="pattern"/>, <paramref name="input"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringMatchAll))]
-//         public static IEnumerable<string[]> MatchAll(string? pattern, string? input) { return default!; }
-//         #endregion
-//
-//         #region Replace
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>re_replace(<paramref name="pattern"/>, <paramref name="substitute"/>, <paramref name="input"/>, &lt;flags := {3?}&gt;)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringReplace))]
-//         public static string? Replace(string? pattern, string? substitute, string? input, string? flags) { return default!; }
-//         #endregion
-//
-//         #region IsMatch
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>re_test(<paramref name="pattern"/>, <paramref name="input"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.StringIsMatch))]
-//         public static bool IsMatch(string? pattern, string? input) { return default!; }
-//         #endregion
-//
-//         #endregion string
-//
-//         #region boolean
-//
-//         #region Or
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> or <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.BooleanOr))]
-//         public static bool Or(bool a, bool b) { return default!; }
-//         #endregion
-//
-//         #region And
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> and <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.BooleanAnd))]
-//         public static bool And(bool a, bool b) { return default!; }
-//         #endregion
-//
-//         #region Not
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>not <paramref name="a"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.BooleanNot))]
-//         public static bool Not(bool a) { return default!; }
-//         #endregion
-//
-//         #region All
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>all(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.BooleanAll))]
-//         public static bool All(IEnumerable<bool> a) { return default!; }
-//         #endregion
-//
-//         #region Any
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>any(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.BooleanAny))]
-//         public static bool Any(IEnumerable<bool> a) { return default!; }
-//         #endregion
-//
-//         #endregion boolean
-//
-//         #region numbers
-//
-//         #region Add
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> + <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersAdd))]
-//         public static long Add(long a, long b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> + <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersAdd))]
-//         public static short Add(short a, short b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> + <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersAdd))]
-//         public static int Add(int a, int b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> + <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersAdd))]
-//         public static double Add(double a, double b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> + <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersAdd))]
-//         public static float Add(float a, float b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> + <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersAdd))]
-//         public static decimal Add(decimal a, decimal b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> + <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersAdd))]
-//         public static byte Add(byte a, byte b) { return default!; }
-//         #endregion
-//
-//         #region Subtract
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> - <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersSubtract))]
-//         public static long Subtract(long a, long b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> - <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersSubtract))]
-//         public static short Subtract(short a, short b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> - <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersSubtract))]
-//         public static int Subtract(int a, int b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> - <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersSubtract))]
-//         public static double Subtract(double a, double b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> - <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersSubtract))]
-//         public static float Subtract(float a, float b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> - <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersSubtract))]
-//         public static decimal Subtract(decimal a, decimal b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> - <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersSubtract))]
-//         public static byte Subtract(byte a, byte b) { return default!; }
-//         #endregion
-//
-//         #region Negative
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>-<paramref name="a"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersNegative))]
-//         public static long Negative(long a, long b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>-<paramref name="a"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersNegative))]
-//         public static short Negative(short a, short b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>-<paramref name="a"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersNegative))]
-//         public static int Negative(int a, int b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>-<paramref name="a"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersNegative))]
-//         public static double Negative(double a, double b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>-<paramref name="a"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersNegative))]
-//         public static float Negative(float a, float b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>-<paramref name="a"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersNegative))]
-//         public static decimal Negative(decimal a, decimal b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>-<paramref name="a"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersNegative))]
-//         public static byte Negative(byte a, byte b) { return default!; }
-//         #endregion
-//
-//         #region Multiply
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> * <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersMultiply))]
-//         public static long Multiply(long a, long b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> * <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersMultiply))]
-//         public static short Multiply(short a, short b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> * <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersMultiply))]
-//         public static int Multiply(int a, int b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> * <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersMultiply))]
-//         public static double Multiply(double a, double b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> * <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersMultiply))]
-//         public static float Multiply(float a, float b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> * <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersMultiply))]
-//         public static decimal Multiply(decimal a, decimal b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> * <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersMultiply))]
-//         public static byte Multiply(byte a, byte b) { return default!; }
-//         #endregion
-//
-//         #region Divide
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> / <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersDivide))]
-//         public static long Divide(long a, long b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> / <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersDivide))]
-//         public static short Divide(short a, short b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> / <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersDivide))]
-//         public static int Divide(int a, int b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> / <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersDivide))]
-//         public static double Divide(double a, double b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> / <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersDivide))]
-//         public static float Divide(float a, float b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> / <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersDivide))]
-//         public static decimal Divide(decimal a, decimal b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> / <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersDivide))]
-//         public static byte Divide(byte a, byte b) { return default!; }
-//         #endregion
-//
-//         #region Floor
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> // <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersFloor))]
-//         public static long Floor(long a, long b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> // <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersFloor))]
-//         public static short Floor(short a, short b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> // <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersFloor))]
-//         public static int Floor(int a, int b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> // <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersFloor))]
-//         public static double Floor(double a, double b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> // <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersFloor))]
-//         public static float Floor(float a, float b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> // <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersFloor))]
-//         public static decimal Floor(decimal a, decimal b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> // <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersFloor))]
-//         public static byte Floor(byte a, byte b) { return default!; }
-//         #endregion
-//
-//         #region Modulo
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> % <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersModulo))]
-//         public static long Modulo(long a, long b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> % <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersModulo))]
-//         public static short Modulo(short a, short b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> % <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersModulo))]
-//         public static int Modulo(int a, int b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> % <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersModulo))]
-//         public static double Modulo(double a, double b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> % <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersModulo))]
-//         public static float Modulo(float a, float b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> % <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersModulo))]
-//         public static decimal Modulo(decimal a, decimal b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> % <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersModulo))]
-//         public static byte Modulo(byte a, byte b) { return default!; }
-//         #endregion
-//
-//         #region Power
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> ^ <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersPower))]
-//         public static long Power(long a, long b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> ^ <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersPower))]
-//         public static short Power(short a, short b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> ^ <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersPower))]
-//         public static int Power(int a, int b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> ^ <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersPower))]
-//         public static double Power(double a, double b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> ^ <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersPower))]
-//         public static float Power(float a, float b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> ^ <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersPower))]
-//         public static decimal Power(decimal a, decimal b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> ^ <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersPower))]
-//         public static byte Power(byte a, byte b) { return default!; }
-//         #endregion
-//
-//         #region Sum
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>sum(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersSum))]
-//         public static long Sum(IEnumerable<long> a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>sum(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersSum))]
-//         public static long Sum(IEnumerable<int> a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>sum(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersSum))]
-//         public static decimal Sum(IEnumerable<decimal> a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>sum(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersSum))]
-//         public static float Sum(IEnumerable<float> a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>sum(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersSum))]
-//         public static double Sum(IEnumerable<double> a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>sum(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersSum))]
-//         public static BigInteger Sum(IEnumerable<BigInteger> a) { return default!; }
-//         #endregion
-//
-//         #region Round
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>round(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersRound))]
-//         public static long Round(long a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>round(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersRound))]
-//         public static long Round(double a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>round(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersRound))]
-//         public static long Round(BigInteger a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>round(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersRound))]
-//         public static long Round(decimal a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>round(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersRound))]
-//         public static long Round(decimal a, long decimalPoint) { return default!; }
-//         #endregion
-//
-//         #region Random
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>random()</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersRandom))]
-//         public static double Random() { return default!; }
-//         #endregion
-//
-//         #region ToBigInteger
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_bigint(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToBigInteger))]
-//         public static BigInteger ToBigInteger(string? a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_bigint(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToBigInteger))]
-//         public static BigInteger ToBigInteger(string? a, string? format) { return default!; }
-//         #endregion
-//
-//         #region ToDecimal
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_decimal(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToDecimal))]
-//         public static decimal ToDecimal(string? a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_decimal(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToDecimal))]
-//         public static decimal ToDecimal(string? a, string? format) { return default!; }
-//         #endregion
-//
-//         #region ToShort
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_int16(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToShort))]
-//         public static short ToShort(string? a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_int16(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToShort))]
-//         public static short ToShort(string? a, string? format) { return default!; }
-//         #endregion
-//
-//         #region ToInt
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_int32(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToInt))]
-//         public static int ToInt(string? a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_int32(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToInt))]
-//         public static int ToInt(string? a, string? format) { return default!; }
-//         #endregion
-//
-//         #region ToLong
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_int64(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToLong))]
-//         public static long ToLong(string? a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_int64(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToLong))]
-//         public static long ToLong(string? a, string? format) { return default!; }
-//         #endregion
-//
-//         #region ToFloat
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_float32(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToFloat))]
-//         public static float ToFloat(string? a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_float32(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToFloat))]
-//         public static float ToFloat(string? a, string? format) { return default!; }
-//         #endregion
-//
-//         #region ToDouble
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_float64(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToDouble))]
-//         public static double ToDouble(string? a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_float64(<paramref name="a"/>, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.NumbersToDouble))]
-//         public static double ToDouble(string? a, string? format) { return default!; }
-//         #endregion
-//
-//         #endregion numbers
-//
-//         #region json
-//
-//         #region Index
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/>[<paramref name="index"/>]</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.JsonIndex))]
-//         public static Json Index(Json a, long index) { return default!; }
-//         #endregion
-//
-//         #region Slice
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/>[<paramref name="b"/>:{2?}]</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.JsonSlice))]
-//         public static Json Slice(Json a, long b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/>[<paramref name="b"/>:{2?}]</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.JsonSlice))]
-//         public static Json Slice(Json a, long b, long c) { return default!; }
-//         #endregion
-//
-//         #region Concat
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> ++ <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.JsonConcat))]
-//         public static Json Concat(Json a, Json b) { return default!; }
-//         #endregion
-//
-//         #region Index
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/>[<paramref name="b"/>]</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.JsonIndex))]
-//         public static Json Index(Json a, string? b) { return default!; }
-//         #endregion
-//
-//         #region ToJson
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_json(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.JsonToJson))]
-//         public static Json ToJson(string? a) { return default!; }
-//         #endregion
-//
-//         #region UnpackJsonArray
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>json_array_unpack(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.JsonUnpackJsonArray))]
-//         public static IEnumerable<Json> UnpackJsonArray(Json a) { return default!; }
-//         #endregion
-//
-//         #region JsonGet
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>json_get(<paramref name="a"/>, <paramref name="string[]"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.JsonJsonGet))]
-//         public static Json? JsonGet(Json a, params string[] path) { return default!; }
-//         #endregion
-//
-//         #region UnpackJsonObject
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>json_object_unpack(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.JsonUnpackJsonObject))]
-//         public static IEnumerable<Tuple<string, Json>> UnpackJsonObject(Json a) { return default!; }
-//         #endregion
-//
-//         #region JsonTypeof
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>json_typeof(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.JsonJsonTypeof))]
-//         public static string? JsonTypeof(Json a) { return default!; }
-//         #endregion
-//
-//         #endregion json
-//
-//         #region uuid
-//
-//         #region GenerateGuid
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>uuid_generate_v1mc()</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.UuidGenerateGuid))]
-//         public static Guid GenerateGuid() { return default!; }
-//         #endregion
-//
-//         #endregion uuid
-//
-//         #region temporal
-//
-//         #region Add
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> + <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalAdd))]
-//         public static DateTimeOffset Add(DateTimeOffset a, TimeSpan b) { return default!; }
-//         #endregion
-//
-//         #region Subtract
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> - <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalSubtract))]
-//         public static TimeSpan Subtract(TimeSpan a, TimeSpan b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> - <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalSubtract))]
-//         public static DateTimeOffset Subtract(DateTimeOffset a, TimeSpan b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> - <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalSubtract))]
-//         public static DateTimeOffset Subtract(DateTimeOffset a, DateTimeOffset b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> - <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalSubtract))]
-//         public static DateTime Subtract(DateTime a, TimeSpan b) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> - <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalSubtract))]
-//         public static DateTimeOffset Subtract(DateTime a, DateTime b) { return default!; }
-//         #endregion
-//
-//         #region GetCurrentDateTime
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>std::datetime_current()</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalGetCurrentDateTime))]
-//         public static DateTimeOffset GetCurrentDateTime() { return default!; }
-//         #endregion
-//
-//         #region GetTransactionDateTime
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>std::datetime_of_transaction()</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalGetTransactionDateTime))]
-//         public static DateTimeOffset GetTransactionDateTime() { return default!; }
-//         #endregion
-//
-//         #region GetStatementDateTime
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>std::datetime_of_statement()</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalGetStatementDateTime))]
-//         public static DateTimeOffset GetStatementDateTime() { return default!; }
-//         #endregion
-//
-//         #region GetDatetimeElement
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>datetime_get(<paramref name="a"/>, <paramref name="b"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalGetDatetimeElement))]
-//         public static double GetDatetimeElement(DateTimeOffset a, DateTimeElement b) { return default!; }
-//         #endregion
-//
-//         #region GetTimespanElement
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>cal::time_get(<paramref name="a"/>, <paramref name="b"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalGetTimespanElement))]
-//         public static double GetTimespanElement(TimeSpan a, TimeSpanElement b) { return default!; }
-//         #endregion
-//
-//         #region GetLocalDateElement
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>cal::date_get(<paramref name="a"/>, <paramref name="b"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalGetLocalDateElement))]
-//         public static double GetLocalDateElement(DateTime a, LocalDateElement b) { return default!; }
-//         #endregion
-//
-//         #region TruncateDateTimeOffset
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>datetime_truncate(<paramref name="a"/>, <paramref name="b"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalTruncateDateTimeOffset))]
-//         public static DateTimeOffset TruncateDateTimeOffset(DateTimeOffset a, DateTimeTruncateUnit b) { return default!; }
-//         #endregion
-//
-//         #region TruncateTimeSpan
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>duration_truncate(<paramref name="a"/>, <paramref name="b"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalTruncateTimeSpan))]
-//         public static TimeSpan TruncateTimeSpan(TimeSpan a, DurationTruncateUnit b) { return default!; }
-//         #endregion
-//
-//         #region ToDateTimeOffset
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_datetime(<paramref name="a"/>, {1?}, {2?}, {3?}, {4?}, {5?}, {6?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToDateTimeOffset))]
-//         public static DateTimeOffset ToDateTimeOffset(string? a, string? format) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_datetime(<paramref name="a"/>, {1?}, {2?}, {3?}, {4?}, {5?}, {6?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToDateTimeOffset))]
-//         public static DateTimeOffset ToDateTimeOffset(DateTime a, string? timezone) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_datetime(<paramref name="year"/>, {1?}, {2?}, {3?}, {4?}, {5?}, {6?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToDateTimeOffset))]
-//         public static DateTimeOffset ToDateTimeOffset(long year, long month, long day, long hour, long min, long sec, string? timezone) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_datetime(<paramref name="unixSeconds"/>, {1?}, {2?}, {3?}, {4?}, {5?}, {6?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToDateTimeOffset))]
-//         public static DateTimeOffset ToDateTimeOffset(decimal unixSeconds) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_datetime(<paramref name="unixSeconds"/>, {1?}, {2?}, {3?}, {4?}, {5?}, {6?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToDateTimeOffset))]
-//         public static DateTimeOffset ToDateTimeOffset(double unixSeconds) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_datetime(<paramref name="unixSeconds"/>, {1?}, {2?}, {3?}, {4?}, {5?}, {6?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToDateTimeOffset))]
-//         public static DateTimeOffset ToDateTimeOffset(long unixSeconds) { return default!; }
-//         #endregion
-//
-//         #region ToDateTime
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>cal::to_local_datetime(<paramref name="a"/>, {1?}, {2?}, {3?}, {4?}, {5?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToDateTime))]
-//         public static DateTime ToDateTime(string? a, string? format) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>cal::to_local_datetime(<paramref name="a"/>, {1?}, {2?}, {3?}, {4?}, {5?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToDateTime))]
-//         public static DateTime ToDateTime(DateTimeOffset a, string? timezone) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>cal::to_local_datetime(<paramref name="year"/>, {1?}, {2?}, {3?}, {4?}, {5?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToDateTime))]
-//         public static DateTime ToDateTime(long year, long month, long day, long hour, long min, long sec) { return default!; }
-//         #endregion
-//
-//         #region ToLocalDate
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>cal::to_local_date(<paramref name="a"/>, {1?}, {2?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToLocalDate))]
-//         public static DateTime ToLocalDate(string? a, string? format) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>cal::to_local_date(<paramref name="a"/>, {1?}, {2?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToLocalDate))]
-//         public static DateTime ToLocalDate(DateTimeOffset a, string? timezone) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>cal::to_local_date(<paramref name="year"/>, {1?}, {2?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToLocalDate))]
-//         public static DateTime ToLocalDate(long year, long month, long day) { return default!; }
-//         #endregion
-//
-//         #region ToLocalTime
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>cal::to_local_time(<paramref name="a"/>, {1?}, {2?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToLocalTime))]
-//         public static TimeSpan ToLocalTime(string? a, string? format) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>cal::to_local_time(<paramref name="a"/>, {1?}, {2?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToLocalTime))]
-//         public static TimeSpan ToLocalTime(DateTimeOffset a, string? timezone) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>cal::to_local_time(<paramref name="hour"/>, {1?}, {2?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToLocalTime))]
-//         public static TimeSpan ToLocalTime(long hour, long minute, double second) { return default!; }
-//         #endregion
-//
-//         #region ToTimeSpan
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>to_duration(&lt;hours := {0?}&gt;, &lt;minutes := {1?}&gt;, &lt;seconds := {2?}&gt; &lt;microseconds := {3?}&gt;)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToTimeSpan))]
-//         public static TimeSpan ToTimeSpan(long? hours = null, long? minutes = null, double? seconds = null, double? microseconds = null) { return default!; }
-//         #endregion
-//
-//         #region TimeSpanToSeconds
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>std::duration_to_seconds(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalTimeSpanToSeconds))]
-//         public static decimal TimeSpanToSeconds(TimeSpan a) { return default!; }
-//         #endregion
-//
-//         #region ToRelativeDuration
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>cal::to_relative_duration(&lt;years := {0?}&gt;, &lt;months := {1?}&gt;, &lt;days := {2?}&gt;, &lt;hours := {3?}&gt;, &lt;minutes := {4?}&gt;, &lt;seconds := {5?}&gt;, &lt;microseconds := {6?}&gt;)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TemporalToRelativeDuration))]
-//         public static TimeSpan ToRelativeDuration(long? years = null, long? months = null, long? days = null, long? hours = null, long? minutes = null, long? seconds = null, long? microseconds = null) { return default!; }
-//         #endregion
-//
-//         #endregion temporal
-//
-//         #region bytes
-//
-//         #region Index
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/>[<paramref name="index"/>]</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.BytesIndex))]
-//         public static byte[] Index(byte[] a, long index) { return default!; }
-//         #endregion
-//
-//         #region Slice
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/>[<paramref name="startIndex"/>:{2?}]</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.BytesSlice))]
-//         public static byte[] Slice(byte[] a, long startIndex) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/>[<paramref name="startIndex"/>:{2?}]</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.BytesSlice))]
-//         public static byte[] Slice(byte[] a, long startIndex, long endIndex) { return default!; }
-//         #endregion
-//
-//         #region Concat
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> ++ <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.BytesConcat))]
-//         public static byte[] Concat(byte[] a, byte[] b) { return default!; }
-//         #endregion
-//
-//         #region GetBit
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>bytes_get_bit(<paramref name="a"/>, <paramref name="bitIndex"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.BytesGetBit))]
-//         public static long GetBit(byte[] a, long bitIndex) { return default!; }
-//         #endregion
-//
-//         #endregion bytes
-//
-//         #region sequence
-//
-//         #region IncrementSequence
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>sequence_next(&lt;introspect typeof <paramref name="seq"/>&gt;)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.SequenceIncrementSequence))]
-//         public static long IncrementSequence(long seq) { return default!; }
-//         #endregion
-//
-//         #region ResetSequence
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>sequence_reset(&lt;introspect typeof <paramref name="seq"/>&gt;, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.SequenceResetSequence))]
-//         public static long ResetSequence(long seq) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>sequence_reset(&lt;introspect typeof <paramref name="seq"/>&gt;, {1?})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.SequenceResetSequence))]
-//         public static long ResetSequence(long seq, long resetTo) { return default!; }
-//         #endregion
-//
-//         #endregion sequence
-//
-//         #region array
-//
-//         #region Index<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/>[<paramref name="index"/>]</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.ArrayIndex))]
-//         public static TType Index<TType>(IEnumerable<TType> a, long index) { return default!; }
-//         #endregion
-//
-//         #region Slice<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/>[<paramref name="startIndex"/>:{2?}]</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.ArraySlice))]
-//         public static IEnumerable<TType> Slice<TType>(IEnumerable<TType> a, long startIndex) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/>[<paramref name="startIndex"/>:{2?}]</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.ArraySlice))]
-//         public static IEnumerable<TType> Slice<TType>(IEnumerable<TType> a, long startIndex, long endIndex) { return default!; }
-//         #endregion
-//
-//         #region Concat<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> ++ <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.ArrayConcat))]
-//         public static IEnumerable<TType> Concat<TType>(IEnumerable<TType> a, IEnumerable<TType> b) { return default!; }
-//         #endregion
-//
-//         #region Aggregate<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>array_agg(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.ArrayAggregate))]
-//         public static IEnumerable<TType> Aggregate<TType>(IEnumerable<TType> a) { return default!; }
-//         #endregion
-//
-//         #region IndexOrDefault<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>array_get(<paramref name="a"/>, <paramref name="index"/>, &lt;default := {2?}&gt;)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.ArrayIndexOrDefault))]
-//         public static TType? IndexOrDefault<TType>(IEnumerable<TType> a, long index, TType? defaultValue = default) { return default!; }
-//         #endregion
-//
-//         #region UnpackArray<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>array_unpack(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.ArrayUnpackArray))]
-//         public static IEnumerable<TType> UnpackArray<TType>(IEnumerable<TType> a) { return default!; }
-//         #endregion
-//
-//         #region Join
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>array_join(<paramref name="a"/>, <paramref name="delimiter"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.ArrayJoin))]
-//         public static string? Join(IEnumerable<string> a, string? delimiter) { return default!; }
-//         #endregion
-//
-//         #endregion array
-//
-//         #region sets
-//
-//         #region Distinct<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>distinct <paramref name="a"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.SetsDistinct))]
-//         public static IEnumerable<TType> Distinct<TType>(IEnumerable<TType> a) { return default!; }
-//         #endregion
-//
-//         #region Contains<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="element"/> in <paramref name="a"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.SetsContains))]
-//         public static bool Contains<TType>(IEnumerable<TType> a, TType element) { return default!; }
-//         #endregion
-//
-//         #region Union<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> union <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.SetsUnion))]
-//         public static IEnumerable<TType> Union<TType>(IEnumerable<TType> a, IEnumerable<TType> b) { return default!; }
-//         #endregion
-//
-//         #region Conditional<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="trueReturn"/> if <paramref name="condition"/> else <paramref name="falseReturn"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.SetsConditional))]
-//         public static TType Conditional<TType>(bool condition, TType trueReturn, TType falseReturn) { return default!; }
-//         #endregion
-//
-//         #region Coalesce<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> ?? <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.SetsCoalesce))]
-//         public static TType Coalesce<TType>(TType? a, TType b) { return default!; }
-//         #endregion
-//
-//         #region Detached<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>detached <paramref name="a"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.SetsDetached))]
-//         public static TType Detached<TType>(TType a) { return default!; }
-//         #endregion
-//
-//         #region NotNull<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>exists <paramref name="value"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.SetsNotNull))]
-//         public static bool NotNull<TType>(TType value) { return default!; }
-//         #endregion
-//
-//         #region CastIfTypeIs<TDesired>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/>[is <typeparamref name="TDesired"/>]</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.SetsCastIfTypeIs))]
-//         [ParameterMap(1, "TDesired")]
-//         public static TDesired CastIfTypeIs<TDesired>(object? a) { return default!; }
-//         #endregion
-//
-//         #region AssertDistinct<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>assert_distinct(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.SetsAssertDistinct))]
-//         public static IEnumerable<TType> AssertDistinct<TType>(IEnumerable<TType> a) { return default!; }
-//         #endregion
-//
-//         #region AssertSingle<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>assert_single(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.SetsAssertSingle))]
-//         public static TType AssertSingle<TType>(IEnumerable<TType> a) { return default!; }
-//         #endregion
-//
-//         #region AssertNotNull<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>assert_exists(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.SetsAssertNotNull))]
-//         public static TType AssertNotNull<TType>(TType? a) { return default!; }
-//         #endregion
-//
-//         #region Count<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>count(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.SetsCount))]
-//         public static long Count<TType>(IEnumerable<TType> a) { return default!; }
-//
-//         #endregion
-//
-//         #region Enumerate<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>enumerate(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.SetsEnumerate))]
-//         public static IEnumerable<Tuple<long, TType>> Enumerate<TType>(IEnumerable<TType> a) { return default!; }
-//         #endregion
-//
-//         #region Min<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>min(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.SetsMin))]
-//         public static TType Min<TType>(IEnumerable<TType> a) { return default!; }
-//         #endregion
-//
-//         #region Max<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>max(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.SetsMax))]
-//         public static TType Max<TType>(IEnumerable<TType> a) { return default!; }
-//         #endregion
-//
-//         #endregion sets
-//
-//         #region types
-//
-//         #region Is<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> is <typeparamref name="TType"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TypesIs))]
-//         [ParameterMap(1, "TType")]
-//         public static bool Is<TType>(object? a) { return default!; }
-//         #endregion
-//
-//         #region Is
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> is <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TypesIs))]
-//         public static bool Is(object? a, Type b) { return default!; }
-//         #endregion
-//
-//         #region IsNot<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> is not <typeparamref name="TType"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TypesIsNot))]
-//         [ParameterMap(1, "TType")]
-//         public static bool IsNot<TType>(object? a) { return default!; }
-//         #endregion
-//
-//         #region TypeUnion
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>(<paramref name="a"/> | <paramref name="b"/> { | :2+})</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TypesTypeUnion))]
-//         public static Type TypeUnion(Type a, Type b, params Type[] additional) { return default!; }
-//         #endregion
-//
-//         #region Cast<TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>&lt;<paramref name="a"/>&gt;<paramref name="a"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TypesCast))]
-//         [ParameterMap(0, "TType")]
-//         public static TType Cast<TType>(object? a) { return default!; }
-//         #endregion
-//
-//         #region GetType
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>introspect (typeof <paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TypesGetType))]
-//         public static Type GetType(object? a) { return default!; }
-//         #endregion
-//
-//         #region IsTypeOf
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> is typeof <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TypesIsTypeOf))]
-//         public static bool IsTypeOf(object? a, object? b) { return default!; }
-//         #endregion
-//
-//         #region IsNotTypeOf
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code><paramref name="a"/> is not typeof <paramref name="b"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TypesIsNotTypeOf))]
-//         public static bool IsNotTypeOf(object? a, object? b) { return default!; }
-//         #endregion
-//
-//         #region Introspect
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>introspect <paramref name="a"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.TypesIntrospect))]
-//         public static Type Introspect(Type a) { return default!; }
-//         #endregion
-//
-//         #endregion types
-//
-//         #region math
-//
-//         #region Abs
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::abs(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathAbs))]
-//         public static short Abs(short a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::abs(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathAbs))]
-//         public static int Abs(int a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::abs(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathAbs))]
-//         public static long Abs(long a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::abs(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathAbs))]
-//         public static float Abs(float a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::abs(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathAbs))]
-//         public static double Abs(double a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::abs(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathAbs))]
-//         public static decimal Abs(decimal a) { return default!; }
-//         #endregion
-//
-//         #region Ceil
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::ceil(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathCeil))]
-//         public static double Ceil(long a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::ceil(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathCeil))]
-//         public static double Ceil(double a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::ceil(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathCeil))]
-//         public static BigInteger Ceil(BigInteger a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::ceil(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathCeil))]
-//         public static decimal Ceil(decimal a) { return default!; }
-//         #endregion
-//
-//         #region Floor
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::floor(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathFloor))]
-//         public static double Floor(long a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::floor(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathFloor))]
-//         public static double Floor(double a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::floor(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathFloor))]
-//         public static BigInteger Floor(BigInteger a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::floor(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathFloor))]
-//         public static decimal Floor(decimal a) { return default!; }
-//         #endregion
-//
-//         #region NaturalLog
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::ln(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathNaturalLog))]
-//         public static double NaturalLog(long a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::ln(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathNaturalLog))]
-//         public static double NaturalLog(double a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::ln(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathNaturalLog))]
-//         public static decimal NaturalLog(decimal a) { return default!; }
-//         #endregion
-//
-//         #region Logarithm
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::lg(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathLogarithm))]
-//         public static double Logarithm(long a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::lg(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathLogarithm))]
-//         public static double Logarithm(double a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::lg(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathLogarithm))]
-//         public static decimal Logarithm(decimal a) { return default!; }
-//         #endregion
-//
-//         #region Logarithm
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::log(<paramref name="a"/> &lt;base := <paramref name="numericBase"/>&gt;)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathLogarithm))]
-//         public static decimal Logarithm(decimal a, decimal numericBase) { return default!; }
-//         #endregion
-//
-//         #region Mean
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::mean(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathMean))]
-//         public static double Mean(IEnumerable<long> a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::mean(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathMean))]
-//         public static double Mean(IEnumerable<double> a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::mean(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathMean))]
-//         public static decimal Mean(IEnumerable<decimal> a) { return default!; }
-//         #endregion
-//
-//         #region StandardDeviation
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::stddev(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathStandardDeviation))]
-//         public static double StandardDeviation(IEnumerable<long> a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::stddev(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathStandardDeviation))]
-//         public static double StandardDeviation(IEnumerable<double> a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::stddev(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathStandardDeviation))]
-//         public static decimal StandardDeviation(IEnumerable<decimal> a) { return default!; }
-//         #endregion
-//
-//         #region StandardDeviationPop
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::stddev_pop(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathStandardDeviationPop))]
-//         public static double StandardDeviationPop(IEnumerable<long> a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::stddev_pop(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathStandardDeviationPop))]
-//         public static double StandardDeviationPop(IEnumerable<double> a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::stddev_pop(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathStandardDeviationPop))]
-//         public static decimal StandardDeviationPop(IEnumerable<decimal> a) { return default!; }
-//         #endregion
-//
-//         #region Variance
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::var(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathVariance))]
-//         public static double Variance(IEnumerable<long> a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::var(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathVariance))]
-//         public static double Variance(IEnumerable<double> a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::var(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathVariance))]
-//         public static decimal Variance(IEnumerable<decimal> a) { return default!; }
-//         #endregion
-//
-//         #region VariancePop
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::var_pop(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathVariancePop))]
-//         public static double VariancePop(IEnumerable<long> a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::var_pop(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathVariancePop))]
-//         public static double VariancePop(IEnumerable<double> a) { return default!; }
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>math::var_pop(<paramref name="a"/>)</code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.MathVariancePop))]
-//         public static decimal VariancePop(IEnumerable<decimal> a) { return default!; }
-//         #endregion
-//
-//         #endregion math
-//
-//         #region links
-//
-//         #region AddLink<TSource, TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>+= <paramref name="element"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.LinksAddLink))]
-//         public static TSource AddLink<TSource, TType>(TSource source, TType element) where TSource : IEnumerable<TType>? { return default!; }
-//         #endregion
-//
-//         #region RemoveLink<TSource, TType>
-//         /// <summary>
-//         ///     A function that represents the EdgeQL version of: <code>-= <paramref name="element"/></code>
-//         /// </summary>
-//         [EquivalentOperator(typeof(EdgeDB.Operators.LinksRemoveLink))]
-//         public static TSource RemoveLink<TSource, TType>(TSource source, TType element) where TSource : IEnumerable<TType>? { return default!; }
-//         #endregion
-//
-//         #endregion links
-//
-//         #region variables
-//
-//         #endregion variables
-//
-//         internal static Dictionary<string, IEdgeQLOperator> FunctionOperators = new()
-//         {
-//             { "String.ToLower", new StringToLower()},
-//             { "String.ToUpper", new StringToUpper()},
-//             { "Enumerable.Concat", new SetsUnion()},
-//         }
-// ;
-//     }
-// }
-// #nullable restore
-// #pragma warning restore
+#nullable restore
+#pragma warning disable
+using EdgeDB.DataTypes;
+using System.Numerics;
+using EdgeDB.Models.DataTypes;
+using DateTime = System.DateTime;
+
+namespace EdgeDB
+{
+    public sealed partial class EdgeQL
+    {
+        /// <summary>
+        ///     Check that the input set contains at most one element, raise CardinalityViolationError otherwise.
+        /// </summary>
+        [EdgeQLFunction("assert_single", "std", "anytype", false, true)]
+        public static TType? AssertSingle<TType>(IEnumerable<TType> input, String? message = null)
+            => default!;
+        /// <summary>
+        ///     Check that the input set contains at least one element, raise CardinalityViolationError otherwise.
+        /// </summary>
+        [EdgeQLFunction("assert_exists", "std", "anytype", true, false)]
+        public static IEnumerable<TType> AssertExists<TType>(IEnumerable<TType> input, String? message = null)
+            => default!;
+        /// <summary>
+        ///     Check that the input set is a proper set, i.e. all elements are unique
+        /// </summary>
+        [EdgeQLFunction("assert_distinct", "std", "anytype", true, false)]
+        public static IEnumerable<TType> AssertDistinct<TType>(IEnumerable<TType> input, String? message = null)
+            => default!;
+        /// <summary>
+        ///     Return the smallest value of the input set.
+        /// </summary>
+        [EdgeQLFunction("min", "std", "anytype", false, true)]
+        public static TType? Min<TType>(IEnumerable<TType> vals)
+            => default!;
+        /// <summary>
+        ///     Return the greatest value of the input set.
+        /// </summary>
+        [EdgeQLFunction("max", "std", "anytype", false, true)]
+        public static TType? Max<TType>(IEnumerable<TType> vals)
+            => default!;
+        /// <summary>
+        ///     Return the element of *array* at the specified *index*.
+        /// </summary>
+        [EdgeQLFunction("array_get", "std", "anytype", false, true)]
+        public static TType? ArrayGet<TType>(IEnumerable<TType> array, Int64 idx, TType? @default = default)
+            => default!;
+        /// <summary>
+        ///     Return array elements as a set.
+        /// </summary>
+        [EdgeQLFunction("array_unpack", "std", "anytype", true, false)]
+        public static IEnumerable<TType> ArrayUnpack<TType>(IEnumerable<TType> array)
+            => default!;
+        [EdgeQLFunction("DISTINCT", "std", "anytype", true, false)]
+        public static IEnumerable<TType> Distinct<TType>(IEnumerable<TType> s = default)
+            => default!;
+        [EdgeQLFunction("UNION", "std", "anytype", true, false)]
+        public static IEnumerable<TType> Union<TType>(IEnumerable<TType> s1 = default, IEnumerable<TType> s2 = default)
+            => default!;
+        [EdgeQLFunction("EXCEPT", "std", "anytype", true, false)]
+        public static IEnumerable<TType> Except<TType>(IEnumerable<TType> s1 = default, IEnumerable<TType> s2 = default)
+            => default!;
+        [EdgeQLFunction("INTERSECT", "std", "anytype", true, false)]
+        public static IEnumerable<TType> Intersect<TType>(IEnumerable<TType> s1 = default, IEnumerable<TType> s2 = default)
+            => default!;
+        /// <summary>
+        ///     Assert that a boolean value is true.
+        /// </summary>
+        [EdgeQLFunction("assert", "std", "std::bool", false, false)]
+        public static Boolean Assert(Boolean input, String? message = null)
+            => default!;
+        /// <summary>
+        ///     Generalized boolean `AND` applied to the set of *values*.
+        /// </summary>
+        [EdgeQLFunction("all", "std", "std::bool", false, false)]
+        public static Boolean All(IEnumerable<Boolean> vals)
+            => default!;
+        /// <summary>
+        ///     Generalized boolean `OR` applied to the set of *values*.
+        /// </summary>
+        [EdgeQLFunction("any", "std", "std::bool", false, false)]
+        public static Boolean Any(IEnumerable<Boolean> vals)
+            => default!;
+        /// <summary>
+        ///     A polymorphic function to test if a sequence contains a certain element.
+        /// </summary>
+        [EdgeQLFunction("contains", "std", "std::bool", false, false)]
+        public static Boolean Contains(String haystack, String needle)
+            => default!;
+        /// <summary>
+        ///     A polymorphic function to test if a sequence contains a certain element.
+        /// </summary>
+        [EdgeQLFunction("contains", "std", "std::bool", false, false)]
+        public static Boolean Contains(Byte[] haystack, Byte[] needle)
+            => default!;
+        /// <summary>
+        ///     A polymorphic function to test if a sequence contains a certain element.
+        /// </summary>
+        [EdgeQLFunction("contains", "std", "std::bool", false, false)]
+        public static Boolean Contains<TType>(IEnumerable<TType> haystack, TType needle)
+            => default!;
+        /// <summary>
+        ///     A polymorphic function to test if one JSON value contains another JSON value.
+        /// </summary>
+        [EdgeQLFunction("contains", "std", "std::bool", false, false)]
+        public static Boolean Contains(Json haystack, Json needle)
+            => default!;
+        [EdgeQLFunction("strictly_above", "std", "std::bool", false, false)]
+        public static Boolean StrictlyAbove<TPoint>(MultiRange<TPoint> l, MultiRange<TPoint> r)
+            where TPoint : struct
+            => default!;
+        /// <summary>
+        ///     Test if a regular expression has a match in a string.
+        /// </summary>
+        [EdgeQLFunction("re_test", "std", "std::bool", false, false)]
+        public static Boolean ReTest(String pattern, String str)
+            => default!;
+        [EdgeQLFunction("range_is_empty", "std", "std::bool", false, false)]
+        public static Boolean RangeIsEmpty<TPoint>(Range<TPoint> val)
+            where TPoint : struct
+            => default!;
+        [EdgeQLFunction("range_is_inclusive_upper", "std", "std::bool", false, false)]
+        public static Boolean RangeIsInclusiveUpper<TPoint>(Range<TPoint> r)
+            where TPoint : struct
+            => default!;
+        [EdgeQLFunction("range_is_inclusive_lower", "std", "std::bool", false, false)]
+        public static Boolean RangeIsInclusiveLower<TPoint>(Range<TPoint> r)
+            where TPoint : struct
+            => default!;
+        [EdgeQLFunction("contains", "std", "std::bool", false, false)]
+        public static Boolean Contains<TPoint>(Range<TPoint> haystack, Range<TPoint> needle)
+            where TPoint : struct
+            => default!;
+        [EdgeQLFunction("overlaps", "std", "std::bool", false, false)]
+        public static Boolean Overlaps<TPoint>(Range<TPoint> l, Range<TPoint> r)
+            where TPoint : struct
+            => default!;
+        [EdgeQLFunction("strictly_below", "std", "std::bool", false, false)]
+        public static Boolean StrictlyBelow<TPoint>(Range<TPoint> l, Range<TPoint> r)
+            where TPoint : struct
+            => default!;
+        [EdgeQLFunction("bounded_above", "std", "std::bool", false, false)]
+        public static Boolean BoundedAbove<TPoint>(Range<TPoint> l, Range<TPoint> r)
+            where TPoint : struct
+            => default!;
+        [EdgeQLFunction("bounded_below", "std", "std::bool", false, false)]
+        public static Boolean BoundedBelow<TPoint>(Range<TPoint> l, Range<TPoint> r)
+            where TPoint : struct
+            => default!;
+        [EdgeQLFunction("adjacent", "std", "std::bool", false, false)]
+        public static Boolean Adjacent<TPoint>(Range<TPoint> l, Range<TPoint> r)
+            where TPoint : struct
+            => default!;
+        [EdgeQLFunction("contains", "std", "std::bool", false, false)]
+        public static Boolean Contains(Range<DateOnly> haystack, DateOnly needle)
+            => default!;
+        [EdgeQLFunction("contains", "std", "std::bool", false, false)]
+        public static Boolean Contains(MultiRange<DateOnly> haystack, DateOnly needle)
+            => default!;
+        [EdgeQLFunction("IN", "std", "std::bool", false, false)]
+        public static Boolean In<TType>(TType e = default, IEnumerable<TType> s = default)
+            => default!;
+        [EdgeQLFunction("NOT IN", "std", "std::bool", false, false)]
+        public static Boolean NotIn<TType>(TType e = default, IEnumerable<TType> s = default)
+            => default!;
+        [EdgeQLFunction("EXISTS", "std", "std::bool", false, false)]
+        public static Boolean Exists<TType>(IEnumerable<TType> s = default)
+            => default!;
+        [EdgeQLFunction("LIKE", "std", "std::bool", false, false)]
+        public static Boolean Like(String str = null, String pattern = null)
+            => default!;
+        [EdgeQLFunction("ILIKE", "std", "std::bool", false, false)]
+        public static Boolean ILike(String str = null, String pattern = null)
+            => default!;
+        [EdgeQLFunction("NOT LIKE", "std", "std::bool", false, false)]
+        public static Boolean NotLike(String str = null, String pattern = null)
+            => default!;
+        [EdgeQLFunction("NOT ILIKE", "std", "std::bool", false, false)]
+        public static Boolean NotILike(String str = null, String pattern = null)
+            => default!;
+        /// <summary>
+        ///     A polymorphic function to calculate a "length" of its first argument.
+        /// </summary>
+        [EdgeQLFunction("len", "std", "std::int64", false, false)]
+        public static Int64 Len(String str)
+            => default!;
+        /// <summary>
+        ///     A polymorphic function to calculate a "length" of its first argument.
+        /// </summary>
+        [EdgeQLFunction("len", "std", "std::int64", false, false)]
+        public static Int64 Len(Byte[] bytes)
+            => default!;
+        /// <summary>
+        ///     A polymorphic function to calculate a "length" of its first argument.
+        /// </summary>
+        [EdgeQLFunction("len", "std", "std::int64", false, false)]
+        public static Int64 Len<TType>(IEnumerable<TType> array)
+            => default!;
+        /// <summary>
+        ///     Return the sum of the set of numbers.
+        /// </summary>
+        [EdgeQLFunction("sum", "std", "std::int64", false, false)]
+        public static Int64 Sum(IEnumerable<Int32> s)
+            => default!;
+        /// <summary>
+        ///     Return the sum of the set of numbers.
+        /// </summary>
+        [EdgeQLFunction("sum", "std", "std::int64", false, false)]
+        public static Int64 Sum(IEnumerable<Int64> s)
+            => default!;
+        /// <summary>
+        ///     Return the number of elements in a set.
+        /// </summary>
+        [EdgeQLFunction("count", "std", "std::int64", false, false)]
+        public static Int64 Count<TType>(IEnumerable<TType> s)
+            => default!;
+        /// <summary>
+        ///     Round to the nearest value.
+        /// </summary>
+        [EdgeQLFunction("round", "std", "std::int64", false, false)]
+        public static Int64 Round(Int64 val)
+            => default!;
+        /// <summary>
+        ///     A polymorphic function to find index of an element in a sequence.
+        /// </summary>
+        [EdgeQLFunction("find", "std", "std::int64", false, false)]
+        public static Int64 Find(String haystack, String needle)
+            => default!;
+        /// <summary>
+        ///     A polymorphic function to find index of an element in a sequence.
+        /// </summary>
+        [EdgeQLFunction("find", "std", "std::int64", false, false)]
+        public static Int64 Find(Byte[] haystack, Byte[] needle)
+            => default!;
+        /// <summary>
+        ///     A polymorphic function to find index of an element in a sequence.
+        /// </summary>
+        [EdgeQLFunction("find", "std", "std::int64", false, false)]
+        public static Int64 Find<TType>(IEnumerable<TType> haystack, TType needle, Int64 from_pos = 0)
+            => default!;
+        /// <summary>
+        ///     Bitwise AND operator for 64-bit integers.
+        /// </summary>
+        [EdgeQLFunction("bit_and", "std", "std::int64", false, false)]
+        public static Int64 BitAnd(Int64 l, Int64 r)
+            => default!;
+        /// <summary>
+        ///     Bitwise OR operator for 64-bit integers.
+        /// </summary>
+        [EdgeQLFunction("bit_or", "std", "std::int64", false, false)]
+        public static Int64 BitOr(Int64 l, Int64 r)
+            => default!;
+        /// <summary>
+        ///     Bitwise exclusive OR operator for 64-bit integers.
+        /// </summary>
+        [EdgeQLFunction("bit_xor", "std", "std::int64", false, false)]
+        public static Int64 BitXor(Int64 l, Int64 r)
+            => default!;
+        /// <summary>
+        ///     Bitwise NOT operator for 64-bit integers.
+        /// </summary>
+        [EdgeQLFunction("bit_not", "std", "std::int64", false, false)]
+        public static Int64 BitNot(Int64 r)
+            => default!;
+        /// <summary>
+        ///     Bitwise right-shift operator for 64-bit integers.
+        /// </summary>
+        [EdgeQLFunction("bit_rshift", "std", "std::int64", false, false)]
+        public static Int64 BitRshift(Int64 val, Int64 n)
+            => default!;
+        /// <summary>
+        ///     Bitwise left-shift operator for 64-bit integers.
+        /// </summary>
+        [EdgeQLFunction("bit_lshift", "std", "std::int64", false, false)]
+        public static Int64 BitLshift(Int64 val, Int64 n)
+            => default!;
+        /// <summary>
+        ///     Get the *nth* bit of the *bytes* value.
+        /// </summary>
+        [EdgeQLFunction("bytes_get_bit", "std", "std::int64", false, false)]
+        public static Int64 BytesGetBit(Byte[] bytes, Int64 num)
+            => default!;
+        [EdgeQLFunction("range_unpack", "std", "std::int64", true, false)]
+        public static IEnumerable<Int64> RangeUnpack(Range<Int64> val)
+            => default!;
+        [EdgeQLFunction("range_unpack", "std", "std::int64", true, false)]
+        public static IEnumerable<Int64> RangeUnpack(Range<Int64> val, Int64 step)
+            => default!;
+        [EdgeQLFunction("sequence_reset", "std", "std::int64", false, false)]
+        public static Int64 SequenceReset(Type seq, Int64 value)
+            => default!;
+        /// <summary>
+        ///     Create a `int64` value.
+        /// </summary>
+        [EdgeQLFunction("to_int64", "std", "std::int64", false, false)]
+        public static Int64 ToInt64(String s, String? fmt = null)
+            => default!;
+        [EdgeQLFunction("sequence_reset", "std", "std::int64", false, false)]
+        public static Int64 SequenceReset(Type seq)
+            => default!;
+        [EdgeQLFunction("sequence_next", "std", "std::int64", false, false)]
+        public static Int64 SequenceNext(Type seq)
+            => default!;
+        /// <summary>
+        ///     Round up to the nearest integer.
+        /// </summary>
+        [EdgeQLFunction("ceil", "math", "std::int64", false, false)]
+        public static Int64 Ceil(Int64 x)
+            => default!;
+        /// <summary>
+        ///     Round down to the nearest integer.
+        /// </summary>
+        [EdgeQLFunction("floor", "math", "std::int64", false, false)]
+        public static Int64 Floor(Int64 x)
+            => default!;
+        /// <summary>
+        ///     Return the sum of the set of numbers.
+        /// </summary>
+        [EdgeQLFunction("sum", "std", "std::bigint", false, false)]
+        public static BigInteger Sum(IEnumerable<BigInteger> s)
+            => default!;
+        /// <summary>
+        ///     Round to the nearest value.
+        /// </summary>
+        [EdgeQLFunction("round", "std", "std::bigint", false, false)]
+        public static BigInteger Round(BigInteger val)
+            => default!;
+        /// <summary>
+        ///     Create a `bigint` value.
+        /// </summary>
+        [EdgeQLFunction("to_bigint", "std", "std::bigint", false, false)]
+        public static BigInteger ToBigint(String s, String? fmt = null)
+            => default!;
+        /// <summary>
+        ///     Round up to the nearest integer.
+        /// </summary>
+        [EdgeQLFunction("ceil", "math", "std::bigint", false, false)]
+        public static BigInteger Ceil(BigInteger x)
+            => default!;
+        /// <summary>
+        ///     Round down to the nearest integer.
+        /// </summary>
+        [EdgeQLFunction("floor", "math", "std::bigint", false, false)]
+        public static BigInteger Floor(BigInteger x)
+            => default!;
+        /// <summary>
+        ///     Return the sum of the set of numbers.
+        /// </summary>
+        [EdgeQLFunction("sum", "std", "std::decimal", false, false)]
+        public static Decimal Sum(IEnumerable<Decimal> s)
+            => default!;
+        /// <summary>
+        ///     Round to the nearest value.
+        /// </summary>
+        [EdgeQLFunction("round", "std", "std::decimal", false, false)]
+        public static Decimal Round(Decimal val)
+            => default!;
+        /// <summary>
+        ///     Round to the nearest value.
+        /// </summary>
+        [EdgeQLFunction("round", "std", "std::decimal", false, false)]
+        public static Decimal Round(Decimal val, Int64 d)
+            => default!;
+        /// <summary>
+        ///     Return duration as total number of seconds in interval.
+        /// </summary>
+        [EdgeQLFunction("duration_to_seconds", "std", "std::decimal", false, false)]
+        public static Decimal DurationToSeconds(TimeSpan dur)
+            => default!;
+        [EdgeQLFunction("range_unpack", "std", "std::decimal", true, false)]
+        public static IEnumerable<Decimal> RangeUnpack(Range<Decimal> val, Decimal step)
+            => default!;
+        /// <summary>
+        ///     Create a `decimal` value.
+        /// </summary>
+        [EdgeQLFunction("to_decimal", "std", "std::decimal", false, false)]
+        public static Decimal ToDecimal(String s, String? fmt = null)
+            => default!;
+        /// <summary>
+        ///     Round up to the nearest integer.
+        /// </summary>
+        [EdgeQLFunction("ceil", "math", "std::decimal", false, false)]
+        public static Decimal Ceil(Decimal x)
+            => default!;
+        /// <summary>
+        ///     Round down to the nearest integer.
+        /// </summary>
+        [EdgeQLFunction("floor", "math", "std::decimal", false, false)]
+        public static Decimal Floor(Decimal x)
+            => default!;
+        /// <summary>
+        ///     Return the natural logarithm of the input value.
+        /// </summary>
+        [EdgeQLFunction("ln", "math", "std::decimal", false, false)]
+        public static Decimal Ln(Decimal x)
+            => default!;
+        /// <summary>
+        ///     Return the base 10 logarithm of the input value.
+        /// </summary>
+        [EdgeQLFunction("lg", "math", "std::decimal", false, false)]
+        public static Decimal Lg(Decimal x)
+            => default!;
+        /// <summary>
+        ///     Return the logarithm of the input value in the specified *base*.
+        /// </summary>
+        [EdgeQLFunction("log", "math", "std::decimal", false, false)]
+        public static Decimal Log(Decimal x, Decimal @base)
+            => default!;
+        /// <summary>
+        ///     Return the square root of the input value.
+        /// </summary>
+        [EdgeQLFunction("sqrt", "math", "std::decimal", false, false)]
+        public static Decimal Sqrt(Decimal x)
+            => default!;
+        /// <summary>
+        ///     Return the arithmetic mean of the input set.
+        /// </summary>
+        [EdgeQLFunction("mean", "math", "std::decimal", false, false)]
+        public static Decimal Mean(IEnumerable<Decimal> vals)
+            => default!;
+        /// <summary>
+        ///     Return the sample standard deviation of the input set.
+        /// </summary>
+        [EdgeQLFunction("stddev", "math", "std::decimal", false, false)]
+        public static Decimal Stddev(IEnumerable<Decimal> vals)
+            => default!;
+        /// <summary>
+        ///     Return the population standard deviation of the input set.
+        /// </summary>
+        [EdgeQLFunction("stddev_pop", "math", "std::decimal", false, false)]
+        public static Decimal StddevPop(IEnumerable<Decimal> vals)
+            => default!;
+        /// <summary>
+        ///     Return the sample variance of the input set.
+        /// </summary>
+        [EdgeQLFunction("var", "math", "std::decimal", false, true)]
+        public static Decimal? Var(IEnumerable<Decimal> vals)
+            => default!;
+        /// <summary>
+        ///     Return the population variance of the input set.
+        /// </summary>
+        [EdgeQLFunction("var_pop", "math", "std::decimal", false, true)]
+        public static Decimal? VarPop(IEnumerable<Decimal> vals)
+            => default!;
+        /// <summary>
+        ///     Return the sum of the set of numbers.
+        /// </summary>
+        [EdgeQLFunction("sum", "std", "std::float32", false, false)]
+        public static Single Sum(IEnumerable<Single> s)
+            => default!;
+        [EdgeQLFunction("range_unpack", "std", "std::float32", true, false)]
+        public static IEnumerable<Single> RangeUnpack(Range<Single> val, Single step)
+            => default!;
+        /// <summary>
+        ///     Create a `float32` value.
+        /// </summary>
+        [EdgeQLFunction("to_float32", "std", "std::float32", false, false)]
+        public static Single ToFloat32(String s, String? fmt = null)
+            => default!;
+        /// <summary>
+        ///     Return the sum of the set of numbers.
+        /// </summary>
+        [EdgeQLFunction("sum", "std", "std::float64", false, false)]
+        public static Double Sum(IEnumerable<Double> s)
+            => default!;
+        /// <summary>
+        ///     Return a pseudo-random number in the range `0.0 <= x < 1.0`
+        /// </summary>
+        [EdgeQLFunction("random", "std", "std::float64", false, false)]
+        public static Double Random()
+            => default!;
+        /// <summary>
+        ///     Round to the nearest value.
+        /// </summary>
+        [EdgeQLFunction("round", "std", "std::float64", false, false)]
+        public static Double Round(Double val)
+            => default!;
+        /// <summary>
+        ///     Extract a specific element of input datetime by name.
+        /// </summary>
+        [EdgeQLFunction("datetime_get", "std", "std::float64", false, false)]
+        public static Double DatetimeGet(DateTimeOffset dt, String el)
+            => default!;
+        /// <summary>
+        ///     Extract a specific element of input duration by name.
+        /// </summary>
+        [EdgeQLFunction("duration_get", "std", "std::float64", false, false)]
+        public static Double DurationGet(TimeSpan dt, String el)
+            => default!;
+        [EdgeQLFunction("range_unpack", "std", "std::float64", true, false)]
+        public static IEnumerable<Double> RangeUnpack(Range<Double> val, Double step)
+            => default!;
+        /// <summary>
+        ///     Create a `float64` value.
+        /// </summary>
+        [EdgeQLFunction("to_float64", "std", "std::float64", false, false)]
+        public static Double ToFloat64(String s, String? fmt = null)
+            => default!;
+        /// <summary>
+        ///     Round up to the nearest integer.
+        /// </summary>
+        [EdgeQLFunction("ceil", "math", "std::float64", false, false)]
+        public static Double Ceil(Double x)
+            => default!;
+        /// <summary>
+        ///     Round down to the nearest integer.
+        /// </summary>
+        [EdgeQLFunction("floor", "math", "std::float64", false, false)]
+        public static Double Floor(Double x)
+            => default!;
+        /// <summary>
+        ///     Return the natural logarithm of the input value.
+        /// </summary>
+        [EdgeQLFunction("ln", "math", "std::float64", false, false)]
+        public static Double Ln(Int64 x)
+            => default!;
+        /// <summary>
+        ///     Return the natural logarithm of the input value.
+        /// </summary>
+        [EdgeQLFunction("ln", "math", "std::float64", false, false)]
+        public static Double Ln(Double x)
+            => default!;
+        /// <summary>
+        ///     Return the base 10 logarithm of the input value.
+        /// </summary>
+        [EdgeQLFunction("lg", "math", "std::float64", false, false)]
+        public static Double Lg(Int64 x)
+            => default!;
+        /// <summary>
+        ///     Return the base 10 logarithm of the input value.
+        /// </summary>
+        [EdgeQLFunction("lg", "math", "std::float64", false, false)]
+        public static Double Lg(Double x)
+            => default!;
+        /// <summary>
+        ///     Return the square root of the input value.
+        /// </summary>
+        [EdgeQLFunction("sqrt", "math", "std::float64", false, false)]
+        public static Double Sqrt(Int64 x)
+            => default!;
+        /// <summary>
+        ///     Return the square root of the input value.
+        /// </summary>
+        [EdgeQLFunction("sqrt", "math", "std::float64", false, false)]
+        public static Double Sqrt(Double x)
+            => default!;
+        /// <summary>
+        ///     Return the arithmetic mean of the input set.
+        /// </summary>
+        [EdgeQLFunction("mean", "math", "std::float64", false, false)]
+        public static Double Mean(IEnumerable<Int64> vals)
+            => default!;
+        /// <summary>
+        ///     Return the arithmetic mean of the input set.
+        /// </summary>
+        [EdgeQLFunction("mean", "math", "std::float64", false, false)]
+        public static Double Mean(IEnumerable<Double> vals)
+            => default!;
+        /// <summary>
+        ///     Return the sample standard deviation of the input set.
+        /// </summary>
+        [EdgeQLFunction("stddev", "math", "std::float64", false, false)]
+        public static Double Stddev(IEnumerable<Int64> vals)
+            => default!;
+        /// <summary>
+        ///     Return the sample standard deviation of the input set.
+        /// </summary>
+        [EdgeQLFunction("stddev", "math", "std::float64", false, false)]
+        public static Double Stddev(IEnumerable<Double> vals)
+            => default!;
+        /// <summary>
+        ///     Return the population standard deviation of the input set.
+        /// </summary>
+        [EdgeQLFunction("stddev_pop", "math", "std::float64", false, false)]
+        public static Double StddevPop(IEnumerable<Int64> vals)
+            => default!;
+        /// <summary>
+        ///     Return the population standard deviation of the input set.
+        /// </summary>
+        [EdgeQLFunction("stddev_pop", "math", "std::float64", false, false)]
+        public static Double StddevPop(IEnumerable<Double> vals)
+            => default!;
+        /// <summary>
+        ///     Return the sample variance of the input set.
+        /// </summary>
+        [EdgeQLFunction("var", "math", "std::float64", false, true)]
+        public static Double? Var(IEnumerable<Int64> vals)
+            => default!;
+        /// <summary>
+        ///     Return the sample variance of the input set.
+        /// </summary>
+        [EdgeQLFunction("var", "math", "std::float64", false, true)]
+        public static Double? Var(IEnumerable<Double> vals)
+            => default!;
+        /// <summary>
+        ///     Return the population variance of the input set.
+        /// </summary>
+        [EdgeQLFunction("var_pop", "math", "std::float64", false, true)]
+        public static Double? VarPop(IEnumerable<Int64> vals)
+            => default!;
+        /// <summary>
+        ///     Return the population variance of the input set.
+        /// </summary>
+        [EdgeQLFunction("var_pop", "math", "std::float64", false, true)]
+        public static Double? VarPop(IEnumerable<Double> vals)
+            => default!;
+        /// <summary>
+        ///     Extract a specific element of input time by name.
+        /// </summary>
+        [EdgeQLFunction("time_get", "cal", "std::float64", false, false)]
+        public static Double TimeGet(TimeSpan dt, String el)
+            => default!;
+        /// <summary>
+        ///     Extract a specific element of input date by name.
+        /// </summary>
+        [EdgeQLFunction("date_get", "cal", "std::float64", false, false)]
+        public static Double DateGet(DateOnly dt, String el)
+            => default!;
+        /// <summary>
+        ///     Extract a specific element of input datetime by name.
+        /// </summary>
+        [EdgeQLFunction("datetime_get", "std", "std::float64", false, false)]
+        public static Double DatetimeGet(DateTime dt, String el)
+            => default!;
+        /// <summary>
+        ///     Return the absolute value of the input *x*.
+        /// </summary>
+        [EdgeQLFunction("abs", "math", "std::anyreal", false, false)]
+        public static TReal Abs<TReal>(TReal x)
+            => default!;
+        /// <summary>
+        ///     Return the smallest value of the input set.
+        /// </summary>
+        [EdgeQLFunction("min", "std", "std::str", false, true)]
+        public static String? Min(IEnumerable<String> vals)
+            => default!;
+        /// <summary>
+        ///     Return the greatest value of the input set.
+        /// </summary>
+        [EdgeQLFunction("max", "std", "std::str", false, true)]
+        public static String? Max(IEnumerable<String> vals)
+            => default!;
+        /// <summary>
+        ///     Render an array to a string.
+        /// </summary>
+        [EdgeQLFunction("array_join", "std", "std::str", false, false)]
+        public static String ArrayJoin(IEnumerable<String> array, String delimiter)
+            => default!;
+        /// <summary>
+        ///     Return the type of the outermost JSON value as a string.
+        /// </summary>
+        [EdgeQLFunction("json_typeof", "std", "std::str", false, false)]
+        public static String JsonTypeof(Json json)
+            => default!;
+        /// <summary>
+        ///     Replace matching substrings in a given string.
+        /// </summary>
+        [EdgeQLFunction("re_replace", "std", "std::str", false, false)]
+        public static String ReReplace(String pattern, String sub, String str, String flags = "")
+            => default!;
+        /// <summary>
+        ///     Repeat the input *string* *n* times.
+        /// </summary>
+        [EdgeQLFunction("str_repeat", "std", "std::str", false, false)]
+        public static String StrRepeat(String s, Int64 n)
+            => default!;
+        /// <summary>
+        ///     Return a lowercase copy of the input *string*.
+        /// </summary>
+        [EdgeQLFunction("str_lower", "std", "std::str", false, false)]
+        public static String StrLower(String s)
+            => default!;
+        /// <summary>
+        ///     Return an uppercase copy of the input *string*.
+        /// </summary>
+        [EdgeQLFunction("str_upper", "std", "std::str", false, false)]
+        public static String StrUpper(String s)
+            => default!;
+        /// <summary>
+        ///     Return a titlecase copy of the input *string*.
+        /// </summary>
+        [EdgeQLFunction("str_title", "std", "std::str", false, false)]
+        public static String StrTitle(String s)
+            => default!;
+        /// <summary>
+        ///     Return the input string padded at the start to the length *n*.
+        /// </summary>
+        [EdgeQLFunction("str_pad_start", "std", "std::str", false, false)]
+        public static String StrPadStart(String s, Int64 n, String fill = " ")
+            => default!;
+        /// <summary>
+        ///     Return the input string left-padded to the length *n*.
+        /// </summary>
+        [EdgeQLFunction("str_lpad", "std", "std::str", false, false)]
+        public static String StrLpad(String s, Int64 n, String fill = " ")
+            => default!;
+        /// <summary>
+        ///     Return the input string padded at the end to the length *n*.
+        /// </summary>
+        [EdgeQLFunction("str_pad_end", "std", "std::str", false, false)]
+        public static String StrPadEnd(String s, Int64 n, String fill = " ")
+            => default!;
+        /// <summary>
+        ///     Return the input string right-padded to the length *n*.
+        /// </summary>
+        [EdgeQLFunction("str_rpad", "std", "std::str", false, false)]
+        public static String StrRpad(String s, Int64 n, String fill = " ")
+            => default!;
+        /// <summary>
+        ///     Return the input string with all *trim* characters removed from its start.
+        /// </summary>
+        [EdgeQLFunction("str_trim_start", "std", "std::str", false, false)]
+        public static String StrTrimStart(String s, String tr = " ")
+            => default!;
+        /// <summary>
+        ///     Return the input string with all leftmost *trim* characters removed.
+        /// </summary>
+        [EdgeQLFunction("str_ltrim", "std", "std::str", false, false)]
+        public static String StrLtrim(String s, String tr = " ")
+            => default!;
+        /// <summary>
+        ///     Return the input string with all *trim* characters removed from its end.
+        /// </summary>
+        [EdgeQLFunction("str_trim_end", "std", "std::str", false, false)]
+        public static String StrTrimEnd(String s, String tr = " ")
+            => default!;
+        /// <summary>
+        ///     Return the input string with all rightmost *trim* characters removed.
+        /// </summary>
+        [EdgeQLFunction("str_rtrim", "std", "std::str", false, false)]
+        public static String StrRtrim(String s, String tr = " ")
+            => default!;
+        /// <summary>
+        ///     Return the input string with *trim* characters removed from both ends.
+        /// </summary>
+        [EdgeQLFunction("str_trim", "std", "std::str", false, false)]
+        public static String StrTrim(String s, String tr = " ")
+            => default!;
+        /// <summary>
+        ///     Given a string, find a matching substring and replace all its occurrences with a new substring.
+        /// </summary>
+        [EdgeQLFunction("str_replace", "std", "std::str", false, false)]
+        public static String StrReplace(String s, String old, String @new)
+            => default!;
+        /// <summary>
+        ///     Reverse the order of the characters in the string.
+        /// </summary>
+        [EdgeQLFunction("str_reverse", "std", "std::str", false, false)]
+        public static String StrReverse(String s)
+            => default!;
+        /// <summary>
+        ///     Return string representation of the input value.
+        /// </summary>
+        [EdgeQLFunction("to_str", "std", "std::str", false, false)]
+        public static String ToStr(DateTimeOffset dt, String? fmt = null)
+            => default!;
+        /// <summary>
+        ///     Return string representation of the input value.
+        /// </summary>
+        [EdgeQLFunction("to_str", "std", "std::str", false, false)]
+        public static String ToStr(TimeSpan td, String? fmt = null)
+            => default!;
+        /// <summary>
+        ///     Return string representation of the input value.
+        /// </summary>
+        [EdgeQLFunction("to_str", "std", "std::str", false, false)]
+        public static String ToStr(Int64 i, String? fmt = null)
+            => default!;
+        /// <summary>
+        ///     Return string representation of the input value.
+        /// </summary>
+        [EdgeQLFunction("to_str", "std", "std::str", false, false)]
+        public static String ToStr(Double f, String? fmt = null)
+            => default!;
+        /// <summary>
+        ///     Return string representation of the input value.
+        /// </summary>
+        [EdgeQLFunction("to_str", "std", "std::str", false, false)]
+        public static String ToStr(BigInteger d, String? fmt = null)
+            => default!;
+        /// <summary>
+        ///     Return string representation of the input value.
+        /// </summary>
+        [EdgeQLFunction("to_str", "std", "std::str", false, false)]
+        public static String ToStr(Decimal d, String? fmt = null)
+            => default!;
+        /// <summary>
+        ///     Return string representation of the input value.
+        /// </summary>
+        [EdgeQLFunction("to_str", "std", "std::str", false, false)]
+        public static String ToStr(IEnumerable<String> array, String delimiter)
+            => default!;
+        /// <summary>
+        ///     Return string representation of the input value.
+        /// </summary>
+        [EdgeQLFunction("to_str", "std", "std::str", false, false)]
+        public static String ToStr(Json json, String? fmt = null)
+            => default!;
+        /// <summary>
+        ///     Convert a binary UTF-8 string to a text value.
+        /// </summary>
+        [EdgeQLFunction("to_str", "std", "std::str", false, false)]
+        public static String ToStr(Byte[] b)
+            => default!;
+        /// <summary>
+        ///     Return the server version as a string.
+        /// </summary>
+        [EdgeQLFunction("get_version_as_str", "sys", "std::str", false, false)]
+        public static String GetVersionAsStr()
+            => default!;
+        /// <summary>
+        ///     Return the server instance name.
+        /// </summary>
+        [EdgeQLFunction("get_instance_name", "sys", "std::str", false, false)]
+        public static String GetInstanceName()
+            => default!;
+        /// <summary>
+        ///     Return the name of the current database as a string.
+        /// </summary>
+        [EdgeQLFunction("get_current_database", "sys", "std::str", false, false)]
+        public static String GetCurrentDatabase()
+            => default!;
+        /// <summary>
+        ///     Return string representation of the input value.
+        /// </summary>
+        [EdgeQLFunction("to_str", "std", "std::str", false, false)]
+        public static String ToStr(DateTime dt, String? fmt = null)
+            => default!;
+        /// <summary>
+        ///     Return string representation of the input value.
+        /// </summary>
+        [EdgeQLFunction("to_str", "std", "std::str", false, false)]
+        public static String ToStr(DateOnly d, String? fmt = null)
+            => default!;
+        /// <summary>
+        ///     Encode given data as a base64 string
+        /// </summary>
+        [EdgeQLFunction("base64_encode", "std::enc", "std::str", false, false)]
+        public static String Base64Encode(Byte[] data, Base64Alphabet alphabet = Base64Alphabet.standard, Boolean padding = true)
+            => default!;
+        [EdgeQLFunction("CONCAT", "std", "std::str", false, false)]
+        public static String Concat(String l = null, String r = null)
+            => default!;
+        /// <summary>
+        ///     Return the smallest value of the input set.
+        /// </summary>
+        [EdgeQLFunction("min", "std", "std::datetime", false, true)]
+        public static DateTimeOffset? Min(IEnumerable<DateTimeOffset> vals)
+            => default!;
+        /// <summary>
+        ///     Return the greatest value of the input set.
+        /// </summary>
+        [EdgeQLFunction("max", "std", "std::datetime", false, true)]
+        public static DateTimeOffset? Max(IEnumerable<DateTimeOffset> vals)
+            => default!;
+        /// <summary>
+        ///     Return the current server date and time.
+        /// </summary>
+        [EdgeQLFunction("datetime_current", "std", "std::datetime", false, false)]
+        public static DateTimeOffset DatetimeCurrent()
+            => default!;
+        /// <summary>
+        ///     Return the date and time of the start of the current transaction.
+        /// </summary>
+        [EdgeQLFunction("datetime_of_transaction", "std", "std::datetime", false, false)]
+        public static DateTimeOffset DatetimeOfTransaction()
+            => default!;
+        /// <summary>
+        ///     Return the date and time of the start of the current statement.
+        /// </summary>
+        [EdgeQLFunction("datetime_of_statement", "std", "std::datetime", false, false)]
+        public static DateTimeOffset DatetimeOfStatement()
+            => default!;
+        /// <summary>
+        ///     Truncate the input datetime to a particular precision.
+        /// </summary>
+        [EdgeQLFunction("datetime_truncate", "std", "std::datetime", false, false)]
+        public static DateTimeOffset DatetimeTruncate(DateTimeOffset dt, String unit)
+            => default!;
+        [EdgeQLFunction("range_unpack", "std", "std::datetime", true, false)]
+        public static IEnumerable<DateTimeOffset> RangeUnpack(Range<DateTimeOffset> val, TimeSpan step)
+            => default!;
+        /// <summary>
+        ///     Create a `datetime` value.
+        /// </summary>
+        [EdgeQLFunction("to_datetime", "std", "std::datetime", false, false)]
+        public static DateTimeOffset ToDatetime(String s, String? fmt = null)
+            => default!;
+        /// <summary>
+        ///     Create a `datetime` value.
+        /// </summary>
+        [EdgeQLFunction("to_datetime", "std", "std::datetime", false, false)]
+        public static DateTimeOffset ToDatetime(Int64 year, Int64 month, Int64 day, Int64 hour, Int64 min, Double sec, String timezone)
+            => default!;
+        /// <summary>
+        ///     Create a `datetime` value.
+        /// </summary>
+        [EdgeQLFunction("to_datetime", "std", "std::datetime", false, false)]
+        public static DateTimeOffset ToDatetime(Double epochseconds)
+            => default!;
+        /// <summary>
+        ///     Create a `datetime` value.
+        /// </summary>
+        [EdgeQLFunction("to_datetime", "std", "std::datetime", false, false)]
+        public static DateTimeOffset ToDatetime(Int64 epochseconds)
+            => default!;
+        /// <summary>
+        ///     Create a `datetime` value.
+        /// </summary>
+        [EdgeQLFunction("to_datetime", "std", "std::datetime", false, false)]
+        public static DateTimeOffset ToDatetime(Decimal epochseconds)
+            => default!;
+        /// <summary>
+        ///     Create a `datetime` value.
+        /// </summary>
+        [EdgeQLFunction("to_datetime", "std", "std::datetime", false, false)]
+        public static DateTimeOffset ToDatetime(DateTime local, String zone)
+            => default!;
+        /// <summary>
+        ///     Return the smallest value of the input set.
+        /// </summary>
+        [EdgeQLFunction("min", "std", "std::duration", false, true)]
+        public static TimeSpan? Min(IEnumerable<TimeSpan> vals)
+            => default!;
+        /// <summary>
+        ///     Return the greatest value of the input set.
+        /// </summary>
+        [EdgeQLFunction("max", "std", "std::duration", false, true)]
+        public static TimeSpan? Max(IEnumerable<TimeSpan> vals)
+            => default!;
+        /// <summary>
+        ///     Truncate the input duration to a particular precision.
+        /// </summary>
+        [EdgeQLFunction("duration_truncate", "std", "std::duration", false, false)]
+        public static TimeSpan DurationTruncate(TimeSpan dt, String unit)
+            => default!;
+        /// <summary>
+        ///     Create a `duration` value.
+        /// </summary>
+        [EdgeQLFunction("to_duration", "std", "std::duration", false, false)]
+        public static TimeSpan ToDuration(Int64 hours = 0, Int64 minutes = 0, Double seconds = 0, Int64 microseconds = 0)
+            => default!;
+        /// <summary>
+        ///     Return a set of tuples of the form `(index, element)`.
+        /// </summary>
+        [EdgeQLFunction("enumerate", "std", "tuple<std::int64, anytype>", true, false)]
+        public static IEnumerable<ValueTuple<Int64, TType>> Enumerate<TType>(IEnumerable<TType> vals)
+            => default!;
+        /// <summary>
+        ///     Return set of key/value tuples that make up the JSON object.
+        /// </summary>
+        [EdgeQLFunction("json_object_unpack", "std", "tuple<std::str, std::json>", true, false)]
+        public static IEnumerable<ValueTuple<String, Json>> JsonObjectUnpack(Json obj)
+            => default!;
+        /// <summary>
+        ///     Return the server version as a tuple.
+        /// </summary>
+        [EdgeQLFunction("get_version", "sys", "tuple<major:std::int64, minor:std::int64, stage:sys::VersionStage, stage_no:std::int64, local:array<std|str>>", false, false)]
+        public static ValueTuple<Int64, Int64, VersionStage, Int64, IEnumerable<String>> GetVersion()
+            => default!;
+        /// <summary>
+        ///     Search an object using its fts::index index. Returns objects that match the specified query and the matching score.
+        /// </summary>
+        [EdgeQLFunction("search", "fts", "tuple<object:anyobject, score:std::float32>", false, true)]
+        public static ValueTuple<TObject, Single>? Search<TObject>(TObject @object, String query, String language = "eng", IEnumerable<Double>? weights = null)
+            => default!;
+        /// <summary>
+        ///     Bitwise AND operator for 16-bit integers.
+        /// </summary>
+        [EdgeQLFunction("bit_and", "std", "std::int16", false, false)]
+        public static Int16 BitAnd(Int16 l, Int16 r)
+            => default!;
+        /// <summary>
+        ///     Bitwise OR operator for 16-bit integers.
+        /// </summary>
+        [EdgeQLFunction("bit_or", "std", "std::int16", false, false)]
+        public static Int16 BitOr(Int16 l, Int16 r)
+            => default!;
+        /// <summary>
+        ///     Bitwise exclusive OR operator for 16-bit integers.
+        /// </summary>
+        [EdgeQLFunction("bit_xor", "std", "std::int16", false, false)]
+        public static Int16 BitXor(Int16 l, Int16 r)
+            => default!;
+        /// <summary>
+        ///     Bitwise NOT operator for 16-bit integers.
+        /// </summary>
+        [EdgeQLFunction("bit_not", "std", "std::int16", false, false)]
+        public static Int16 BitNot(Int16 r)
+            => default!;
+        /// <summary>
+        ///     Bitwise right-shift operator for 16-bit integers.
+        /// </summary>
+        [EdgeQLFunction("bit_rshift", "std", "std::int16", false, false)]
+        public static Int16 BitRshift(Int16 val, Int64 n)
+            => default!;
+        /// <summary>
+        ///     Bitwise left-shift operator for 16-bit integers.
+        /// </summary>
+        [EdgeQLFunction("bit_lshift", "std", "std::int16", false, false)]
+        public static Int16 BitLshift(Int16 val, Int64 n)
+            => default!;
+        /// <summary>
+        ///     Create a `int16` value.
+        /// </summary>
+        [EdgeQLFunction("to_int16", "std", "std::int16", false, false)]
+        public static Int16 ToInt16(String s, String? fmt = null)
+            => default!;
+        /// <summary>
+        ///     Bitwise AND operator for 32-bit integers.
+        /// </summary>
+        [EdgeQLFunction("bit_and", "std", "std::int32", false, false)]
+        public static Int32 BitAnd(Int32 l, Int32 r)
+            => default!;
+        /// <summary>
+        ///     Bitwise OR operator for 32-bit integers.
+        /// </summary>
+        [EdgeQLFunction("bit_or", "std", "std::int32", false, false)]
+        public static Int32 BitOr(Int32 l, Int32 r)
+            => default!;
+        /// <summary>
+        ///     Bitwise exclusive OR operator for 32-bit integers.
+        /// </summary>
+        [EdgeQLFunction("bit_xor", "std", "std::int32", false, false)]
+        public static Int32 BitXor(Int32 l, Int32 r)
+            => default!;
+        /// <summary>
+        ///     Bitwise NOT operator for 32-bit integers.
+        /// </summary>
+        [EdgeQLFunction("bit_not", "std", "std::int32", false, false)]
+        public static Int32 BitNot(Int32 r)
+            => default!;
+        /// <summary>
+        ///     Bitwise right-shift operator for 32-bit integers.
+        /// </summary>
+        [EdgeQLFunction("bit_rshift", "std", "std::int32", false, false)]
+        public static Int32 BitRshift(Int32 val, Int64 n)
+            => default!;
+        /// <summary>
+        ///     Bitwise left-shift operator for 32-bit integers.
+        /// </summary>
+        [EdgeQLFunction("bit_lshift", "std", "std::int32", false, false)]
+        public static Int32 BitLshift(Int32 val, Int64 n)
+            => default!;
+        [EdgeQLFunction("range_unpack", "std", "std::int32", true, false)]
+        public static IEnumerable<Int32> RangeUnpack(Range<Int32> val)
+            => default!;
+        [EdgeQLFunction("range_unpack", "std", "std::int32", true, false)]
+        public static IEnumerable<Int32> RangeUnpack(Range<Int32> val, Int32 step)
+            => default!;
+        /// <summary>
+        ///     Create a `int32` value.
+        /// </summary>
+        [EdgeQLFunction("to_int32", "std", "std::int32", false, false)]
+        public static Int32 ToInt32(String s, String? fmt = null)
+            => default!;
+        /// <summary>
+        ///     Return the array made from all of the input set elements.
+        /// </summary>
+        [EdgeQLFunction("array_agg", "std", "array<anytype>", false, false)]
+        public static IEnumerable<TType> ArrayAgg<TType>(IEnumerable<TType> s)
+            => default!;
+        /// <summary>
+        ///     Return an array filled with the given value repeated as many times as specified.
+        /// </summary>
+        [EdgeQLFunction("array_fill", "std", "array<anytype>", false, false)]
+        public static IEnumerable<TType> ArrayFill<TType>(TType val, Int64 n)
+            => default!;
+        /// <summary>
+        ///     Replace each array element equal to the second argument with the third argument.
+        /// </summary>
+        [EdgeQLFunction("array_replace", "std", "array<anytype>", false, false)]
+        public static IEnumerable<TType> ArrayReplace<TType>(IEnumerable<TType> array, TType old, TType @new)
+            => default!;
+        /// <summary>
+        ///     Find the first regular expression match in a string.
+        /// </summary>
+        [EdgeQLFunction("re_match", "std", "array<std::str>", false, false)]
+        public static IEnumerable<String> ReMatch(String pattern, String str)
+            => default!;
+        /// <summary>
+        ///     Find all regular expression matches in a string.
+        /// </summary>
+        [EdgeQLFunction("re_match_all", "std", "array<std::str>", true, false)]
+        public static IEnumerable<IEnumerable<String>> ReMatchAll(String pattern, String str)
+            => default!;
+        /// <summary>
+        ///     Split string into array elements using the supplied delimiter.
+        /// </summary>
+        [EdgeQLFunction("str_split", "std", "array<std::str>", false, false)]
+        public static IEnumerable<String> StrSplit(String s, String delimiter)
+            => default!;
+        /// <summary>
+        ///     Return the smallest value of the input set.
+        /// </summary>
+        [EdgeQLFunction("max", "std", "array<cal::relative_duration>", false, true)]
+        public static IEnumerable<TimeSpan>? Max(IEnumerable<IEnumerable<TimeSpan>> vals)
+            => default!;
+        /// <summary>
+        ///     Return the smallest value of the input set.
+        /// </summary>
+        [EdgeQLFunction("min", "std", "array<cal::local_datetime>", false, true)]
+        public static IEnumerable<DateTime>? Min(IEnumerable<IEnumerable<DateTime>> vals)
+            => default!;
+        /// <summary>
+        ///     Return the smallest value of the input set.
+        /// </summary>
+        [EdgeQLFunction("min", "std", "array<cal::local_date>", false, true)]
+        public static IEnumerable<DateOnly>? Min(IEnumerable<IEnumerable<DateOnly>> vals)
+            => default!;
+        /// <summary>
+        ///     Return the smallest value of the input set.
+        /// </summary>
+        [EdgeQLFunction("min", "std", "array<cal::local_time>", false, true)]
+        public static IEnumerable<TimeSpan>? Min(IEnumerable<IEnumerable<TimeSpan>> vals)
+            => default!;
+        /// <summary>
+        ///     Return the smallest value of the input set.
+        /// </summary>
+        [EdgeQLFunction("max", "std", "array<cal::local_datetime>", false, true)]
+        public static IEnumerable<DateTime>? Max(IEnumerable<IEnumerable<DateTime>> vals)
+            => default!;
+        /// <summary>
+        ///     Return the smallest value of the input set.
+        /// </summary>
+        [EdgeQLFunction("max", "std", "array<cal::local_date>", false, true)]
+        public static IEnumerable<DateOnly>? Max(IEnumerable<IEnumerable<DateOnly>> vals)
+            => default!;
+        /// <summary>
+        ///     Return elements of JSON array as a set of `json`.
+        /// </summary>
+        [EdgeQLFunction("json_array_unpack", "std", "std::json", true, false)]
+        public static IEnumerable<Json> JsonArrayUnpack(Json array)
+            => default!;
+        /// <summary>
+        ///     Return a JSON object with set key/value pairs.
+        /// </summary>
+        [EdgeQLFunction("json_object_pack", "std", "std::json", false, false)]
+        public static Json JsonObjectPack(IEnumerable<ValueTuple<String, Json>> pairs)
+            => default!;
+        /// <summary>
+        ///     Return the JSON value at the end of the specified path or an empty set.
+        /// </summary>
+        [EdgeQLFunction("json_get", "std", "std::json", false, true)]
+        public static Json? JsonGet(Json json, IEnumerable<String> path, Json? @default = default)
+            => default!;
+        /// <summary>
+        ///     Return an updated JSON target with a new value.
+        /// </summary>
+        [EdgeQLFunction("json_set", "std", "std::json", false, true)]
+        public static Json? JsonSet(Json target, IEnumerable<String> path, Json? value = default, Boolean create_if_missing = true, JsonEmpty empty_treatment = JsonEmpty.ReturnEmpty)
+            => default!;
+        /// <summary>
+        ///     Return JSON value represented by the input *string*.
+        /// </summary>
+        [EdgeQLFunction("to_json", "std", "std::json", false, false)]
+        public static Json ToJson(String str)
+            => default!;
+        [EdgeQLFunction("get_config_json", "cfg", "std::json", false, false)]
+        public static Json GetConfigJson(IEnumerable<String>? sources = null, String? max_source = null)
+            => default!;
+        [EdgeQLFunction("CONCAT", "std", "std::json", false, false)]
+        public static Json Concat(Json l = default, Json r = default)
+            => default!;
+        /// <summary>
+        ///     Return a version 1 UUID.
+        /// </summary>
+        [EdgeQLFunction("uuid_generate_v1mc", "std", "std::uuid", false, false)]
+        public static Guid UuidGenerateV1mc()
+            => default!;
+        /// <summary>
+        ///     Return a version 4 UUID.
+        /// </summary>
+        [EdgeQLFunction("uuid_generate_v4", "std", "std::uuid", false, false)]
+        public static Guid UuidGenerateV4()
+            => default!;
+        [EdgeQLFunction("range", "std", "range<std::anypoint>", false, false)]
+        public static Range<TPoint> Range<TPoint>(TPoint? lower = default, TPoint? upper = default, Boolean inc_lower = true, Boolean inc_upper = false, Boolean empty = false)
+            where TPoint : struct
+            => default!;
+        [EdgeQLFunction("multirange_unpack", "std", "range<std::int32>", true, false)]
+        public static IEnumerable<Range<Int32>> MultirangeUnpack(MultiRange<Int32> val)
+            => default!;
+        [EdgeQLFunction("multirange_unpack", "std", "range<std::int64>", true, false)]
+        public static IEnumerable<Range<Int64>> MultirangeUnpack(MultiRange<Int64> val)
+            => default!;
+        [EdgeQLFunction("multirange_unpack", "std", "range<std::float32>", true, false)]
+        public static IEnumerable<Range<Single>> MultirangeUnpack(MultiRange<Single> val)
+            => default!;
+        [EdgeQLFunction("multirange_unpack", "std", "range<std::float64>", true, false)]
+        public static IEnumerable<Range<Double>> MultirangeUnpack(MultiRange<Double> val)
+            => default!;
+        [EdgeQLFunction("multirange_unpack", "std", "range<std::decimal>", true, false)]
+        public static IEnumerable<Range<Decimal>> MultirangeUnpack(MultiRange<Decimal> val)
+            => default!;
+        [EdgeQLFunction("multirange_unpack", "std", "range<std::datetime>", true, false)]
+        public static IEnumerable<Range<DateTimeOffset>> MultirangeUnpack(MultiRange<DateTimeOffset> val)
+            => default!;
+        [EdgeQLFunction("multirange_unpack", "std", "range<cal::local_datetime>", true, false)]
+        public static IEnumerable<Range<DateTime>> MultirangeUnpack(MultiRange<DateTime> val)
+            => default!;
+        [EdgeQLFunction("multirange_unpack", "std", "range<cal::local_date>", true, false)]
+        public static IEnumerable<Range<DateOnly>> MultirangeUnpack(MultiRange<DateOnly> val)
+            => default!;
+        [EdgeQLFunction("multirange", "std", "multirange<std::anypoint>", false, false)]
+        public static MultiRange<TPoint> Multirange<TPoint>(IEnumerable<Range<TPoint>> ranges)
+            where TPoint : struct
+            => default!;
+        [EdgeQLFunction("range_get_upper", "std", "std::anypoint", false, true)]
+        public static TPoint? RangeGetUpper<TPoint>(Range<TPoint> r)
+            where TPoint : struct
+            => default!;
+        [EdgeQLFunction("range_get_lower", "std", "std::anypoint", false, true)]
+        public static TPoint? RangeGetLower<TPoint>(Range<TPoint> r)
+            where TPoint : struct
+            => default!;
+        /// <summary>
+        ///     Convert a text string to a binary UTF-8 string.
+        /// </summary>
+        [EdgeQLFunction("to_bytes", "std", "std::bytes", false, false)]
+        public static Byte[] ToBytes(String s)
+            => default!;
+        /// <summary>
+        ///     Decode the byte64-encoded byte string and return decoded bytes.
+        /// </summary>
+        [EdgeQLFunction("base64_decode", "std::enc", "std::bytes", false, false)]
+        public static Byte[] Base64Decode(String data, Base64Alphabet alphabet = Base64Alphabet.standard, Boolean padding = true)
+            => default!;
+        [EdgeQLFunction("CONCAT", "std", "std::bytes", false, false)]
+        public static Byte[] Concat(Byte[] l = null, Byte[] r = null)
+            => default!;
+        /// <summary>
+        ///     Return the isolation level of the current transaction.
+        /// </summary>
+        [EdgeQLFunction("get_transaction_isolation", "sys", "sys::TransactionIsolation", false, false)]
+        public static TransactionIsolation GetTransactionIsolation()
+            => default!;
+        /// <summary>
+        ///     Create a `cal::local_datetime` value.
+        /// </summary>
+        [EdgeQLFunction("to_local_datetime", "cal", "cal::local_datetime", false, false)]
+        public static DateTime ToLocalDatetime(String s, String? fmt = null)
+            => default!;
+        /// <summary>
+        ///     Create a `cal::local_datetime` value.
+        /// </summary>
+        [EdgeQLFunction("to_local_datetime", "cal", "cal::local_datetime", false, false)]
+        public static DateTime ToLocalDatetime(Int64 year, Int64 month, Int64 day, Int64 hour, Int64 min, Double sec)
+            => default!;
+        /// <summary>
+        ///     Create a `cal::local_datetime` value.
+        /// </summary>
+        [EdgeQLFunction("to_local_datetime", "cal", "cal::local_datetime", false, false)]
+        public static DateTime ToLocalDatetime(DateTimeOffset dt, String zone)
+            => default!;
+        /// <summary>
+        ///     Return the smallest value of the input set.
+        /// </summary>
+        [EdgeQLFunction("min", "std", "cal::local_datetime", false, true)]
+        public static DateTime? Min(IEnumerable<DateTime> vals)
+            => default!;
+        /// <summary>
+        ///     Return the smallest value of the input set.
+        /// </summary>
+        [EdgeQLFunction("max", "std", "cal::local_datetime", false, true)]
+        public static DateTime? Max(IEnumerable<DateTime> vals)
+            => default!;
+        [EdgeQLFunction("range_unpack", "std", "cal::local_datetime", true, false)]
+        public static IEnumerable<DateTime> RangeUnpack(Range<DateTime> val, TimeSpan step)
+            => default!;
+        /// <summary>
+        ///     Create a `cal::local_date` value.
+        /// </summary>
+        [EdgeQLFunction("to_local_date", "cal", "cal::local_date", false, false)]
+        public static DateOnly ToLocalDate(String s, String? fmt = null)
+            => default!;
+        /// <summary>
+        ///     Create a `cal::local_date` value.
+        /// </summary>
+        [EdgeQLFunction("to_local_date", "cal", "cal::local_date", false, false)]
+        public static DateOnly ToLocalDate(DateTimeOffset dt, String zone)
+            => default!;
+        /// <summary>
+        ///     Create a `cal::local_date` value.
+        /// </summary>
+        [EdgeQLFunction("to_local_date", "cal", "cal::local_date", false, false)]
+        public static DateOnly ToLocalDate(Int64 year, Int64 month, Int64 day)
+            => default!;
+        /// <summary>
+        ///     Return the smallest value of the input set.
+        /// </summary>
+        [EdgeQLFunction("min", "std", "cal::local_date", false, true)]
+        public static DateOnly? Min(IEnumerable<DateOnly> vals)
+            => default!;
+        /// <summary>
+        ///     Return the smallest value of the input set.
+        /// </summary>
+        [EdgeQLFunction("max", "std", "cal::local_date", false, true)]
+        public static DateOnly? Max(IEnumerable<DateOnly> vals)
+            => default!;
+        [EdgeQLFunction("range_unpack", "std", "cal::local_date", true, false)]
+        public static IEnumerable<DateOnly> RangeUnpack(Range<DateOnly> val)
+            => default!;
+        [EdgeQLFunction("range_unpack", "std", "cal::local_date", true, false)]
+        public static IEnumerable<DateOnly> RangeUnpack(Range<DateOnly> val, TimeSpan step)
+            => default!;
+        /// <summary>
+        ///     Create a `cal::local_time` value.
+        /// </summary>
+        [EdgeQLFunction("to_local_time", "cal", "cal::local_time", false, false)]
+        public static TimeSpan ToLocalTime(String s, String? fmt = null)
+            => default!;
+        /// <summary>
+        ///     Create a `cal::local_time` value.
+        /// </summary>
+        [EdgeQLFunction("to_local_time", "cal", "cal::local_time", false, false)]
+        public static TimeSpan ToLocalTime(DateTimeOffset dt, String zone)
+            => default!;
+        /// <summary>
+        ///     Create a `cal::local_time` value.
+        /// </summary>
+        [EdgeQLFunction("to_local_time", "cal", "cal::local_time", false, false)]
+        public static TimeSpan ToLocalTime(Int64 hour, Int64 min, Double sec)
+            => default!;
+        /// <summary>
+        ///     Create a `cal::relative_duration` value.
+        /// </summary>
+        [EdgeQLFunction("to_relative_duration", "cal", "cal::relative_duration", false, false)]
+        public static TimeSpan ToRelativeDuration(Int64 years = 0, Int64 months = 0, Int64 days = 0, Int64 hours = 0, Int64 minutes = 0, Double seconds = 0, Int64 microseconds = 0)
+            => default!;
+        /// <summary>
+        ///     Convert 24-hour chunks into days.
+        /// </summary>
+        [EdgeQLFunction("duration_normalize_hours", "cal", "cal::relative_duration", false, false)]
+        public static TimeSpan DurationNormalizeHours(TimeSpan dur)
+            => default!;
+        /// <summary>
+        ///     Convert 30-day chunks into months.
+        /// </summary>
+        [EdgeQLFunction("duration_normalize_days", "cal", "cal::relative_duration", false, false)]
+        public static TimeSpan DurationNormalizeDays(TimeSpan dur)
+            => default!;
+        /// <summary>
+        ///     Create a `cal::date_duration` value.
+        /// </summary>
+        [EdgeQLFunction("to_date_duration", "cal", "cal::date_duration", false, false)]
+        public static TimeSpan ToDateDuration(Int64 years = 0, Int64 months = 0, Int64 days = 0)
+            => default!;
+        /// <summary>
+        ///     Adds language and weight category information to a string, so it be indexed with fts::index.
+        /// </summary>
+        [EdgeQLFunction("with_options", "fts", "fts::document", false, false)]
+        public static Document WithOptions<TEnum>(String text, TEnum language, Weight? weight_category = Weight.A)
+            => default!;
+    }
+}

@@ -211,18 +211,14 @@ namespace EdgeDB.Builders
         }
 
         public ShapeBuilder<T> Computeds<TAnon>(Expression<Func<T, TAnon>> computedsSelector)
-        {
-            var computeds = FlattenAnonymousExpression(SelectedType, computedsSelector);
-
-            foreach (var computed in computeds)
-                SelectedProperties[computed.Key.GetEdgeDBPropertyName()] = new(computed.Key, computed.Value);
-
-            return this;
-        }
+            => ComputedsInternal(computedsSelector);
 
         public ShapeBuilder<T> Computeds<TAnon>(Expression<Func<QueryContextSelf<T>, T, TAnon>> computedsSelector)
+            => ComputedsInternal(computedsSelector);
+
+        internal ShapeBuilder<T> ComputedsInternal(LambdaExpression expression)
         {
-            var computeds = FlattenAnonymousExpression(SelectedType, computedsSelector);
+            var computeds = FlattenAnonymousExpression(SelectedType, expression);
 
             foreach (var computed in computeds)
                 SelectedProperties[computed.Key.GetEdgeDBPropertyName()] = new(computed.Key, computed.Value);
@@ -231,8 +227,15 @@ namespace EdgeDB.Builders
         }
 
         public ShapeBuilder<T> Explicitly<TAnon>(Expression<Func<T, TAnon>> explicitSelector)
+            => ExplicitlyInternal(explicitSelector);
+
+        public ShapeBuilder<T> Explicitly<TAnon>(Expression<Func<QueryContextSelf<T>, T, TAnon>> explicitSelector)
+            => ExplicitlyInternal(explicitSelector);
+
+
+        internal ShapeBuilder<T> ExplicitlyInternal(LambdaExpression expression)
         {
-            var members = FlattenAnonymousExpression(SelectedType, explicitSelector);
+            var members = FlattenAnonymousExpression(SelectedType, expression);
 
             SelectedProperties.Clear();
 

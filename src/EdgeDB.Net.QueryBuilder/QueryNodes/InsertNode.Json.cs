@@ -14,12 +14,10 @@ internal partial class InsertNode
         {
             return writer => writer
                 .TypeCast(edgeqlType.ToString())
-                .Append(Value.Of(writer =>
-                    writer.Function(
-                        "json_get",
-                        'x',
-                        Value.Of(writer => writer.SingleQuoted(propertyInfo.Name))
-                    ))
+                .Function(
+                    "json_get",
+                    'x',
+                    Value.Of(writer => writer.SingleQuoted(propertyInfo.Name))
                 );
         }
 

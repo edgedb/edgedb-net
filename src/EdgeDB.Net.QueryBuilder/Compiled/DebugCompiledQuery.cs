@@ -57,40 +57,75 @@ public sealed class DebugCompiledQuery : CompiledQuery
                     barText.Insert(size - 1, "\u255d"); // corner UL
                     rowText.Insert(column.Range.Start.Value, barText);
 
+                    char DrawVert(char prev)
+                    {
+                        return prev switch
+                        {
+                            ' ' => '\u2551',
+                            // L: UR -> T: UDR
+                            '\u255a' => '\u2560',
+                            // L: UL -> T: UDL
+                            '\u255d' => '\u2563',
+                            // horizontal -
+                            '\u2550' => '\u256c',
+                            _ => prev
+                        };
+                    }
+
                     foreach (var prevRowText in rows)
                     {
                         var prevStart = prevRowText[column.Range.Start.Value];
-
-                        if (prevStart is ' ' or '\u255a')
-                        {
-                            prevRowText.Remove(column.Range.Start.Value, 1);
-                            prevRowText.Insert(column.Range.Start.Value, prevStart == '\u255a' ? '\u2560' : '\u2551');
-                        }
+                        prevRowText.Remove(column.Range.Start.Value, 1);
+                        prevRowText.Insert(column.Range.Start.Value, DrawVert(prevStart));
 
                         prevStart = prevRowText[query.Length + 1 + column.Range.Start.Value];
-
-                        if (prevStart is ' ' or '\u255a')
-                        {
-                            prevRowText.Remove(query.Length + 1 + column.Range.Start.Value, 1);
-                            prevRowText.Insert(query.Length + 1 + column.Range.Start.Value, prevStart == '\u255a' ? '\u2560' : '\u2551');
-                        }
+                        prevRowText.Remove(query.Length + 1 + column.Range.Start.Value, 1);
+                        prevRowText.Insert(query.Length + 1 + column.Range.Start.Value, DrawVert(prevStart));
 
                         var prevEnd = prevRowText[column.Range.End.Value - 1];
-
-                        if (prevEnd is ' ' or '\u255d')
-                        {
-                            prevRowText.Remove(column.Range.End.Value - 1, 1);
-                            prevRowText.Insert(column.Range.End.Value - 1, prevEnd == '\u255d' ? '\u2563' : '\u2551');
-                        }
+                        prevRowText.Remove(column.Range.End.Value - 1, 1);
+                        prevRowText.Insert(column.Range.End.Value - 1, DrawVert(prevEnd));
 
                         prevEnd = prevRowText[query.Length + column.Range.End.Value];
 
-                        if (prevEnd is ' ' or '\u255d')
-                        {
-                            prevRowText.Remove(query.Length + column.Range.End.Value, 1);
-                            prevRowText.Insert(query.Length + column.Range.End.Value,  prevEnd == '\u255d' ? '\u2563' : '\u2551');
-                        }
+                        prevRowText.Remove(query.Length + column.Range.End.Value, 1);
+                        prevRowText.Insert(query.Length + column.Range.End.Value, DrawVert(prevEnd));
                     }
+
+                    // foreach (var prevRowText in rows)
+                    // {
+                    //     var prevStart = prevRowText[column.Range.Start.Value];
+                    //
+                    //     if (prevStart is ' ' or '\u255a')
+                    //     {
+                    //         prevRowText.Remove(column.Range.Start.Value, 1);
+                    //         prevRowText.Insert(column.Range.Start.Value, prevStart == '\u255a' ? '\u2560' : '\u2551');
+                    //     }
+                    //
+                    //     prevStart = prevRowText[query.Length + 1 + column.Range.Start.Value];
+                    //
+                    //     if (prevStart is ' ' or '\u255a')
+                    //     {
+                    //         prevRowText.Remove(query.Length + 1 + column.Range.Start.Value, 1);
+                    //         prevRowText.Insert(query.Length + 1 + column.Range.Start.Value, prevStart == '\u255a' ? '\u2560' : '\u2551');
+                    //     }
+                    //
+                    //     var prevEnd = prevRowText[column.Range.End.Value - 1];
+                    //
+                    //     if (prevEnd is ' ' or '\u255d')
+                    //     {
+                    //         prevRowText.Remove(column.Range.End.Value - 1, 1);
+                    //         prevRowText.Insert(column.Range.End.Value - 1, prevEnd == '\u255d' ? '\u2563' : '\u2551');
+                    //     }
+                    //
+                    //     prevEnd = prevRowText[query.Length + column.Range.End.Value];
+                    //
+                    //     if (prevEnd is ' ' or '\u255d')
+                    //     {
+                    //         prevRowText.Remove(query.Length + column.Range.End.Value, 1);
+                    //         prevRowText.Insert(query.Length + column.Range.End.Value,  prevEnd == '\u255d' ? '\u2563' : '\u2551');
+                    //     }
+                    // }
 
                     // desc
                     var icon = (markerTexts.Count + 1).ToString();
@@ -100,17 +135,17 @@ public sealed class DebugCompiledQuery : CompiledQuery
                         desc += $": {column.Marker.DebugText.Get()}";
 
 
-                    if (desc.Length > size)
+                    if (desc.Length + 2 > size)
                     {
                         desc = $"{icon} [{column.Marker.Type}] {column.Name}";
                     }
 
-                    if (desc.Length > size)
+                    if (desc.Length + 2 > size)
                     {
                         desc = $"{icon} {column.Name}";
                     }
 
-                    if (desc.Length >= size)
+                    if (desc.Length + 2 >= size)
                     {
                         desc = icon;
                     }
@@ -146,14 +181,18 @@ public sealed class DebugCompiledQuery : CompiledQuery
             {
                 sb.AppendLine("Markers:");
 
-                var markerTypePadding = Enum.GetValues<MarkerType>().Max(x => Enum.GetName(x)!.Length) + 2;
                 foreach (var (name, value) in markerTexts)
                 {
-                    var desc = $"{$"[{value.Marker.Type}]".PadRight(markerTypePadding)} {value.Name}";
+                    sb.AppendLine($"  {name}. {value.Marker.Type} ({value.Range})");
+                    sb.AppendLine($"  - Name: {value.Name}");
+                    sb.AppendLine($"  - Position: {value.Marker.Position}, Size: {value.Marker.Size}");
+                    if (value.Marker.Metadata is not null)
+                        sb.AppendLine($"  - {value.Marker.Metadata}");
                     if (value.Marker.DebugText is not null)
-                        desc += $": {value.Marker.DebugText.Get()}";
+                        sb.AppendLine($"  - Context: {value.Marker.DebugText.Get()}");
 
-                    sb.AppendLine($" - {name.PadRight(markerTexts.Count.ToString().Length)} {$"({value.Range})".PadRight(query.Length.ToString().Length*2+4)} {desc}");
+
+                    sb.AppendLine();
                 }
             }
         }

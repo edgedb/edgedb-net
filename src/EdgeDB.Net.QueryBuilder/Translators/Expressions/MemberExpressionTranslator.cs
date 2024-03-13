@@ -13,168 +13,148 @@ namespace EdgeDB.Translators.Expressions
     /// </summary>
     internal class MemberExpressionTranslator : ExpressionTranslator<MemberExpression>
     {
+        private (Expression BaseExpression, MemberExpression[] Path) DisassembleExpression(MemberExpression member)
+        {
+            var path = new List<MemberExpression>() { member };
+            var current = member.Expression;
+
+            while (current is MemberExpression element)
+            {
+                path.Add(element);
+                current = element.Expression;
+            }
+
+            return (
+                current ?? path.Last(),
+                path.ToArray()
+            );
+        }
+
         /// <inheritdoc/>
         public override void Translate(MemberExpression expression, ExpressionContext context, QueryWriter writer)
         {
             // deconstruct the member access tree.
-            var deconstructed = ExpressionUtils.DisassembleExpression(expression).ToArray();
+            var (baseExpression, path) = DisassembleExpression(expression);
 
-            var baseExpression = deconstructed.LastOrDefault();
-
-            // if the base class is context
-            if (baseExpression is not null && baseExpression.Type.IsAssignableTo(typeof(IQueryContext)))
+            if (PropertyTranslationTable.TryGetTranslator(path[0], out var translator))
             {
-                // switch the name of the accessed member
-                var accessExpression = deconstructed[^2];
-                if(accessExpression is not MemberExpression memberExpression)
-                    throw new NotSupportedException($"Cannot use expression type {accessExpression.NodeType} for a contextual member access");
-
-                switch (memberExpression.Member.Name)
-                {
-                    case nameof(QueryContextUsing<object>.Using):
-                        // get the reference
-                        if(deconstructed[^3] is not MemberExpression targetMemberExpression)
-                            throw new NotSupportedException($"Cannot use expression type {deconstructed[^3] .NodeType} as a variable access");
-
-                        writer.Append(targetMemberExpression.Member.GetEdgeDBPropertyName());
-                        break;
-                    case nameof(QueryContextVars<object>.Variables):
-                        // get the reference
-                        var target = deconstructed[^3];
-
-                        // switch the type of the target
-                        switch (target)
-                        {
-                            case MemberExpression targetMember:
-                                // add a global reference to the current node with the expressions value
-                                if (context.Node is not null && context.TryGetGlobal(targetMember.Member.Name, out var global))
-                                {
-                                    context.Node.ReferencedGlobals.Add(global);
-                                }
-
-
-                                if (targetMember.Type.IsAssignableTo(typeof(IJsonVariable)))
-                                {
-                                    // pull the paths coming off of target member
-                                    var path = deconstructed[0].ToString()[(targetMember.ToString().Length + 6)..].Split('.', options: StringSplitOptions.RemoveEmptyEntries);
-
-                                    // get the name of the json value
-                                    var jsonGlobal = context.Globals.FirstOrDefault(x => x.Name == targetMember.Member.Name);
-
-                                    if (jsonGlobal is null)
-                                        throw new InvalidOperationException($"Cannot access json object \"{targetMember.Member.Name}\": No global found!");
-
-                                    // verify the global is json
-                                    if (jsonGlobal.Reference is not IJsonVariable jsonVariable)
-                                        throw new InvalidOperationException($"The global \"{jsonGlobal.Name}\" is not a json value");
-
-                                    // get the scalar type to cast to
-                                    if (!EdgeDBTypeUtils.TryGetScalarType(deconstructed[0].Type, out var scalarInfo))
-                                        throw new InvalidOperationException($"json value access must be scalar, path: {deconstructed[0].ToString()}");
-
-                                    var arguments = new Terms.FunctionArg[path.Length + 1];
-
-                                    arguments[0] = jsonGlobal.Name;
-                                    for (var i = 0; i != path.Length; i++)
-                                    {
-                                        var element = path[i];
-                                        arguments[i + 1] = new WriterProxy(
-                                            s => s.Append('\'').Append(element).Append('\'')
-                                        );
-                                    }
-
-                                    writer
-                                        .TypeCast(scalarInfo.ToString())
-                                        .Function(
-                                            "json_get",
-                                            arguments
-                                        );
-                                    return;
-                                }
-
-                                if (deconstructed.Length != 3)
-                                    throw new NotSupportedException("Cannot use nested values for variable access");
-
-                                // return the name of the member
-                                writer.Append(targetMember.Member.Name);
-                                return;
-                            default:
-                                throw new NotSupportedException($"Cannot use expression type {target.NodeType} as a variable access");
-                        }
-                    case nameof(QueryContextSelf<object>.Self):
-                        var paths = deconstructed[..^2];
-                        writer.Append('.');
-                        for (var i = 0; i != paths.Length; i++)
-                        {
-                            if (paths[i] is not MemberExpression me)
-                                throw new NotSupportedException(
-                                    $"Cannot use expression type {expression.NodeType} for a contextual member access"
-                                );
-
-                            writer.Append(me.Member.GetEdgeDBPropertyName());
-                            if (i + 1 != paths.Length)
-                                writer.Append('.');
-
-                        }
-
-                        return;
-                }
-            }
-
-            // if the resolute expression is a constant expression, assume
-            // were in a set-like context and add it as a variable.
-            if (baseExpression is ConstantExpression constant)
-            {
-                // walk thru the reference tree, you can imagine this as a variac pointer resolution.
-                var refHolder = constant.Value;
-
-                for(int i = deconstructed.Length - 2; i >= 0; i--)
-                {
-                    // if the deconstructed node is not a member expression, we have something fishy...
-                    if (deconstructed[i] is not MemberExpression memberExp)
-                        throw new InvalidOperationException("Member tree does not contain all members. this is a bug, please file a github issue with the query that caused this exception.");
-
-                    // gain the new reference holder to the value we're after
-                    refHolder = memberExp.Member.GetMemberValue(refHolder);
-                }
-
-                // at this point, 'refHolder' is now a direct reference to the property the expression resolves to,
-                // we can add this as our variable.
-                var varName = context.AddVariable(refHolder);
-
-                if (!EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var type))
-                    throw new NotSupportedException($"Cannot use {expression.Type} as no edgeql equivalent can be found");
-
-                writer.QueryArgument(type.ToString(), varName);
+                translator(writer, path[0], context);
                 return;
             }
 
-            // assume were in a access-like context and reference it in edgeql.
-            writer.Append(ParseMemberExpression(expression, expression.Expression is not ParameterExpression, context.IncludeSelfReference));
+            switch (baseExpression)
+            {
+                case { } contextParam when contextParam.Type.IsAssignableTo(typeof(IQueryContext)):
+                    TranslateContextMember(writer, contextParam, path, context);
+                    break;
+                case ParameterExpression param:
+                    TranslateParameterMember(writer, param, path, context);
+                    break;
+                case ConstantExpression constant:
+                    TranslateConstantMember(writer, constant, path, context);
+                    break;
+            }
         }
 
-        /// <summary>
-        ///     Parses a given member expression into a member access list.
-        /// </summary>
-        /// <param name="expression">The expression to parse.</param>
-        /// <param name="includeParameter">Whether or not to include the referenced parameter name.</param>
-        /// <param name="includeSelfReference">Whether or not to include a self reference, ex: '.'.</param>
-        /// <returns></returns>
-        private static string ParseMemberExpression(MemberExpression expression, bool includeParameter = true, bool includeSelfReference = true)
+        private void TranslateConstantMember(QueryWriter writer, ConstantExpression constant, MemberExpression[] path,
+            ExpressionContext context)
         {
-            List<string?> tree = new()
+            if (!EdgeDBTypeUtils.TryGetScalarType(path[0].Type, out var edgeqlType))
+                throw new NotSupportedException($"The type {path[0].Type} cannot be used as a query argument");
+
+            var refHolder = constant.Value;
+
+            for (var i = path.Length - 1; i >= 0; i--)
             {
-                expression.Member.GetEdgeDBPropertyName()
-            };
+                refHolder = path[i].Member.GetMemberValue(refHolder);
+            }
 
-            if (expression.Expression is MemberExpression innerExp)
-                tree.Add(ParseMemberExpression(innerExp));
-            if (expression.Expression is ParameterExpression param)
-                if(includeSelfReference)
-                    tree.Add(includeParameter ? param.Name : string.Empty);
+            writer.QueryArgument(edgeqlType.ToString(), context.AddVariable(refHolder));
+        }
 
-            tree.Reverse();
-            return string.Join('.', tree);
+        private void TranslateParameterMember(QueryWriter writer, ParameterExpression parameter, MemberExpression[] path, ExpressionContext context)
+        {
+            if (context.ParameterPrefixes.TryGetValue(parameter, out var prefix))
+                writer.Append(prefix);
+            else if (context.IncludeSelfReference)
+                writer.Append('.');
+
+            WritePath(writer, path);
+        }
+
+        private void TranslateContextMember(QueryWriter writer, Expression contextExpression, MemberExpression[] path, ExpressionContext context)
+        {
+            var contextAccessor = path[^1];
+
+            switch (contextAccessor.Member.Name)
+            {
+                case nameof(IQueryContextSelf<object>.Self):
+                case nameof(IQueryContextUsing<object>.Using):
+                    WritePath(writer, path[..^1]);
+                    break;
+                case nameof(IQueryContextVars<object>.Variables):
+                    var target = path[^2];
+                    if (!context.TryGetGlobal(target.Member.Name, out var global))
+                        throw new InvalidOperationException($"Unknown global in 'with' access of '{target.Member.Name}'");
+
+                    context.Node?.ReferencedGlobals.Add(global);
+
+                    if (target.Type.IsAssignableTo(typeof(IJsonVariable)))
+                    {
+                        // we go up to three because the real access looks like `ctx.Self.Value.XXXX.YY.ZZ...`
+                        var jsonPath = path[..^3];
+
+                        if (global.Reference is not IJsonVariable)
+                            throw new InvalidOperationException($"The global '{global.Name}' is not a json value");
+
+                        if (!EdgeDBTypeUtils.TryGetScalarType(path[0].Type, out var edgeqlType))
+                            throw new InvalidOperationException("The json value must be a scalar type");
+
+                        var args = new Terms.FunctionArg[jsonPath.Length + 1];
+                        args[0] = new Terms.FunctionArg(global.Name);
+
+                        for (var i = jsonPath.Length - 1; i >= 0; i--)
+                        {
+                            var pathRef = jsonPath[i].Member.Name;
+                            args[i + 1] = Value.Of(writer => writer.SingleQuoted(pathRef));
+                        }
+
+                        writer
+                            .TypeCast(edgeqlType.ToString())
+                            .Function(
+                                "json_get",
+                                args
+                            );
+                        return;
+                    }
+
+                    writer.Marker(
+                        MarkerType.GlobalReference,
+                        global.Name,
+                        Defer.This(() => "Global referenced from member expression"),
+                        new GlobalReferenceMetadata(global),
+                        Value.Of(writer =>
+                        {
+                            writer.Append(global.Name);
+
+                            if (path.Length < 3) return;
+
+                            writer.Append('.');
+                            WritePath(writer, path[..^2]);
+                        })
+                    );
+                    break;
+            }
+        }
+
+        private void WritePath(QueryWriter writer, MemberExpression[] path)
+        {
+            for (var i = path.Length - 1; i > 0; i--)
+            {
+                writer.Append(path[i].Member.GetEdgeDBPropertyName(), '.');
+            }
+
+            writer.Append(path[0].Member.GetEdgeDBPropertyName());
         }
     }
 }

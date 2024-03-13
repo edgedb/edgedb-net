@@ -194,6 +194,14 @@ namespace EdgeDB.QueryNodes
             public static InsertValue FromType(Type type, object value)
             {
                 var map = EdgeDBPropertyMapInfo.Create(type);
+
+                if (value is IDictionary<string, object?> vals)
+                    return new InsertValue(
+                        type,
+                        vals,
+                        map
+                    );
+
                 return new InsertValue(
                     type,
                     map.Properties.ToDictionary(x => x.EdgeDBName, x => x.PropertyInfo.GetValue(value)),
@@ -281,7 +289,6 @@ namespace EdgeDB.QueryNodes
                 if (!SchemaInfo.TryGetObjectInfo(OperatingType, out var typeInfo))
                     throw new NotSupportedException($"Could not find type info for {OperatingType}");
 
-                writer.Append(' ');
                 ConflictUtils.GenerateExclusiveConflictStatement(writer, typeInfo, _elseStatement is not null);
             }
 
@@ -320,6 +327,12 @@ namespace EdgeDB.QueryNodes
 
             foreach (var (name, value) in insertValue.Values)
             {
+                if (value is WriterProxy proxy)
+                {
+                    setters.Add(new ShapeSetter(writer => writer.Assignment(name, proxy)));
+                    continue;
+                }
+
                 if (insertValue.PropertyMapInfo is null)
                 {
                     setters.Add(new ShapeSetter(writer =>
@@ -491,27 +504,11 @@ namespace EdgeDB.QueryNodes
                     Defer.This(() => $"Built link resolver for {type}"),
                     Value.Of(writer => writer.Wrapped(writer =>
                     {
-                        var name = type.GetEdgeDBTypeName();
-                        var exclusiveProps = QueryGenerationUtils.GetProperties(info, type, true).ToArray();
-
-                        writer.Append("insert ", name, " ");
-
-                        BuildInsertShape(type, Union<LambdaExpression, InsertValue, IJsonVariable>.From(value, () => InsertValue.FromType(type, value))).Build(writer, info);
-
-                        if (!exclusiveProps.Any()) return;
-
-                        writer.Append("unless conflict on ");
-
-                        if (exclusiveProps.Length is 1)
-                            writer.Append('.', exclusiveProps[0].GetEdgeDBPropertyName());
-                        else
-                            writer.Shape(
-                                $"shape_{type.GetEdgeDBTypeName()}_prop_{name}",
-                                exclusiveProps,
-                                (writer, x) => writer.Append('.', x.GetEdgeDBPropertyName()),
-                                "()"
-                            );
-                        writer.Append(" else (select ", name, ")");
+                        QueryBuilder
+                            .Insert(type, value)
+                            .UnlessConflict()
+                            .ElseReturn()
+                            .WriteTo(writer, this, new CompileContext { SchemaInfo = info});
                     }))
                 );
             }), value);

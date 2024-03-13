@@ -12,23 +12,38 @@ namespace EdgeDB.QueryNodes
     {
         private WriterProxy? _by;
         private WriterProxy? _using;
+        private string? _usingReferenceName;
 
         public override void FinalizeQuery(QueryWriter writer)
         {
             if (_by is null)
                 throw new InvalidOperationException("A 'by' expression is required for groups!");
 
-            writer.Append("group ", OperatingType.GetEdgeDBTypeName());
+            writer.Append("group ");
 
-            if (Context.IncludeShape)
+            if (Context.Selector is not null)
             {
-                (Context.Shape ?? BaseShapeBuilder.CreateDefault(GetOperatingType()))
-                    .GetShape()
-                    .Compile(writer.Append(' '), (writer, expression) =>
-                    {
-                        using var consumer = NodeTranslationContext.CreateContextConsumer(expression.Root);
-                        ExpressionTranslator.ContextualTranslate(expression.Expression, consumer, writer);
-                    });
+                if (_usingReferenceName is not null)
+                {
+                    writer.Append(_usingReferenceName, " := ");
+                }
+
+                writer.Append(ProxyExpression(Context.Selector));
+            }
+            else
+            {
+                writer.Append(OperatingType.GetEdgeDBTypeName());
+
+                if (Context.IncludeShape)
+                {
+                    (Context.Shape ?? BaseShapeBuilder.CreateDefault(GetOperatingType()))
+                        .GetShape()
+                        .Compile(writer.Append(' '), (writer, expression) =>
+                        {
+                            using var consumer = NodeTranslationContext.CreateContextConsumer(expression.Root);
+                            ExpressionTranslator.ContextualTranslate(expression.Expression, consumer, writer);
+                        });
+                }
             }
 
             _using?.Invoke(writer);
@@ -42,11 +57,22 @@ namespace EdgeDB.QueryNodes
 
         public void Using(LambdaExpression expression)
         {
+            if (Context.Selector?.Body is MemberExpression)
+            {
+                // selecting out a property, create an alias
+                _usingReferenceName = QueryUtils.GenerateRandomVariableName();
+            }
+
             _using ??= writer => writer.Append(" using ",
                 ProxyExpression(expression, ctx =>
                 {
                     ctx.WrapNewExpressionInBrackets = false;
-                    ctx.UseInitializationOperator = false;
+
+                    if (_usingReferenceName is not null)
+                    {
+                        ctx.ParameterAliases.Add(expression.Parameters.First(), _usingReferenceName);
+                    }
+                    //ctx.UseInitializationOperator = true;
                 }));
         }
     }

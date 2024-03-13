@@ -166,7 +166,7 @@ namespace EdgeDB.ExampleApp.Examples
             // grouping by expressions
             query = QueryBuilder
                 .Group<Person>()
-                .Using(person => new {StartsWithVowel = Regex.Matches(person.Name!, "(?i)^[aeiou]")})
+                .Using(person => new {StartsWithVowel = Regex.IsMatch(person.Name!, "(?i)^[aeiou]")})
                 .By(ctx => ctx.Using.StartsWithVowel)
                 .Compile(true);
 
@@ -185,7 +185,7 @@ namespace EdgeDB.ExampleApp.Examples
                     People = ctx.SubQuerySingle(QueryBuilder.Select<Person>()),
                     Groups = ctx.SubQuerySingle(
                         QueryBuilder
-                            .Group(ctx => ctx.Local<Person>("People"))
+                            .Group(ctx => ctx.Global<Person>("People"))
                             .Using(person => new {Vowel = Regex.IsMatch(person.Name!, "(?i)^[aeiou]")})
                             .By(ctx => ctx.Using.Vowel)
                     )
@@ -195,7 +195,7 @@ namespace EdgeDB.ExampleApp.Examples
                     {
                         StartsWithVowel = group.Key,
                         Count = EdgeQL.Count(group.Elements),
-                        NameLength = EdgeQL.Len(ctx.Ref(group.Elements).Name!)
+                        NameLength = 1//EdgeQL.Len(ctx.Ref(group.Elements).Name!)
                     })
                 )
                 .Compile(true);
@@ -207,7 +207,7 @@ namespace EdgeDB.ExampleApp.Examples
                     People = ctx.SubQuerySingle(QueryBuilder.Select<Person>()),
                     Groups = ctx.SubQuerySingle(
                         QueryBuilder
-                            .Group(ctx => ctx.Local<Person>("People"))
+                            .Group(ctx => ctx.Global<Person>("People"))
                             .Using(person => new
                             {
                                 Vowel = Regex.IsMatch(person.Name!, "(?i)^[aeiou]"),
@@ -217,11 +217,11 @@ namespace EdgeDB.ExampleApp.Examples
                     )
                 })
                 .SelectExpression(ctx => ctx.Variables.Groups, shape => shape
-                    .Computeds((ctx, group) => new
+                    .Explicitly((ctx, group) => new
                     {
-                        StartsWithVowel = group.Key,
+                        group.Key,
                         Count = EdgeQL.Count(group.Elements),
-                        NameLength = EdgeQL.Len(ctx.Ref(group.Elements).Name!)
+                        MeanNameLength = EdgeQL.Mean(ctx.Aggregate(group.Elements, element => (long)element.Name!.Length))
                     })
                 )
                 .Compile(true);
@@ -243,12 +243,12 @@ namespace EdgeDB.ExampleApp.Examples
                     )
                 })
                 .SelectExpression(ctx => ctx.Variables.Groups, shape => shape
-                    .Computeds((ctx, group) => new
+                    .Explicitly((ctx, group) => new
                     {
                         group.Key,
                         group.Grouping,
                         Count = EdgeQL.Count(group.Elements),
-                        NameLength = EdgeQL.Len(ctx.Ref(group.Elements).Name!)
+                        MeanNameLength = EdgeQL.Mean(ctx.Aggregate(group.Elements, element => (long)element.Name!.Length))//NameLength = 1//EdgeQL.Len(ctx.Ref(group.Elements).Name!)
                     })
                 )
                 .OrderBy(x => EdgeQL.ArrayAgg(x.Grouping))
