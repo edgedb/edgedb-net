@@ -41,7 +41,7 @@ internal sealed class TypeInitializedObjectCodec : ObjectCodec
 
         try
         {
-            return _deserializer.Factory(ref enumerator);
+            return _deserializer.Deserialize(ref enumerator);
         }
         catch (Exception x)
         {

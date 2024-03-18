@@ -287,7 +287,7 @@ public static class TypeBuilder
     private static void ScanForAbstractTypes(Assembly assembly)
     {
         // look for any types that inherit already defined abstract types
-        foreach (var abstractType in TypeInfo.Where(x => x.Value.IsAbtractType))
+        foreach (var abstractType in TypeInfo.Where(x => x.Value.IsAbstractType))
         {
             var childTypes = assembly.DefinedTypes.Where(x =>
                 x.IsSubclassOf(abstractType.Key) || x.ImplementedInterfaces.Contains(abstractType.Key) ||

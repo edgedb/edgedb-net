@@ -15,6 +15,8 @@ module default {
     required property email -> str {
       constraint exclusive;
     }
+    link best_friend -> Person;
+    multi link friends -> Person;
   }
 
   # for example todo app

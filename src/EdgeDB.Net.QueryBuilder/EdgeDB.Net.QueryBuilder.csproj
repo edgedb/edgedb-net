@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../../EdgeDB.Net.targets" />
+  <PropertyGroup>
+	  <AssemblyName>EdgeDB.Net.QueryBuilder</AssemblyName>
+	  <RootNamespace>EdgeDB</RootNamespace>
+    <Description>An optional extension to the base driver that adds a query builder.</Description>
+    <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+	  <NoWarn>CS1591</NoWarn>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <WarningLevel>5</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>preview</LangVersion>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Grammar\Operators\" />
+    <Folder Include="Translators\Methods\Generated\" />
+  </ItemGroup>
+</Project>
