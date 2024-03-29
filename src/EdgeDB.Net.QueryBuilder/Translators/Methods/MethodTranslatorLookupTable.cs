@@ -81,6 +81,10 @@ internal static class MethodTranslatorLookupTable
                 {
                     parsedParameters[i] = methodCall;
                 }
+                else if (parameterInfo.ParameterType == typeof(MethodInfo))
+                {
+                    parsedParameters[i] = methodCall.Method;
+                }
                 else if (methodCall.Arguments.Count > methodCallArgsIndex)
                 {
                     parsedParameters[i] = new TranslatedParameter(
