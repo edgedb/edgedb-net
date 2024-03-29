@@ -4,7 +4,7 @@ namespace EdgeDB.Translators.Methods;
 
 internal sealed class TupleMethodTranslators : MethodTranslator
 {
-    protected override Type TranslatorTargetType => typeof(Tuple);
+    public override Type TranslatorTargetType => typeof(Tuple);
 
     [MethodName(nameof(Tuple.Create))]
     public void Create(QueryWriter writer, params TranslatedParameter[] args)

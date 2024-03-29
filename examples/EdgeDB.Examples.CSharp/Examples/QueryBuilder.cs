@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -233,7 +234,7 @@ namespace EdgeDB.ExampleApp.Examples
                     People = ctx.SubQuerySingle(QueryBuilder.Select<Person>()),
                     Groups = ctx.SubQuerySingle(
                         QueryBuilder
-                            .Group(ctx => ctx.Local<Person>("People"))
+                            .Group(ctx => ctx.Global<Person>("People"))
                             .Using(person => new
                             {
                                 Vowel = Regex.IsMatch(person.Name!, "(?i)^[aeiou]"),

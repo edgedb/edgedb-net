@@ -14,7 +14,7 @@ namespace EdgeDB.Translators.Methods
     internal class EnumerableMethodTranslator : MethodTranslator
     {
         /// <inheritdoc/>
-        protected override Type TranslatorTargetType => typeof(Enumerable);
+        public override Type TranslatorTargetType => typeof(Enumerable);
 
         /// <summary>
         ///     Translates the method <see cref="Enumerable.Count{TSource}(IEnumerable{TSource})"/>.

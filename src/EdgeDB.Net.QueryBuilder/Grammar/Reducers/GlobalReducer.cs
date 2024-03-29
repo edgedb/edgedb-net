@@ -14,7 +14,7 @@ internal sealed class GlobalReducer : IReducer
                 continue;
 
             Value[]? tokens = null;
-            foreach (var marker in markers.Where(x => x.Type is MarkerType.GlobalReference))
+            foreach (var marker in markers.ToArray().Where(x => x.Type is MarkerType.GlobalReference))
             {
                 Action<QueryNode>? modifier = marker switch
                 {
