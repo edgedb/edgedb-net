@@ -183,16 +183,22 @@ internal class V1ProtocolProvider : IProtocolProvider
         return new ExecuteResult(receivedData.ToArray(), parseResult.OutCodecInfo);
     }
 
-    public virtual async Task<ParseResult> ParseQueryAsync(QueryParameters queryParameters, CancellationToken token)
+    public virtual async ValueTask<ParseResult> ParseQueryAsync(QueryParameters queryParameters, CancellationToken token)
     {
         ErrorResponse? error = null;
         var parseAttempts = 0;
         var successfullyParsed = false;
         var gotStateDescriptor = false;
 
+        var stateBuf = _client.SerializeState();
+
+        if (queryParameters.Arguments is null && queryParameters.Format == IOFormat.None)
+        {
+            return new ParseResult(CodecBuilder.NullCodecInfo, CodecBuilder.NullCodecInfo, in stateBuf);
+        }
+
         var cacheKey = queryParameters.GetCacheKey();
 
-        var stateBuf = _client.SerializeState();
 
         if (!CodecBuilder.TryGetCodecs(this, cacheKey, out var inCodecInfo, out var outCodecInfo))
         {

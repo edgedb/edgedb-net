@@ -45,7 +45,7 @@ internal interface IProtocolProvider
 
     PacketReadFactory? GetPacketFactory(ServerMessageType type);
 
-    Task<ParseResult> ParseQueryAsync(QueryParameters query, CancellationToken token);
+    ValueTask<ParseResult> ParseQueryAsync(QueryParameters query, CancellationToken token);
 
     Task<ExecuteResult> ExecuteQueryAsync(QueryParameters query, ParseResult result, CancellationToken token);
 

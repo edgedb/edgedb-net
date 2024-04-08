@@ -36,8 +36,12 @@ internal sealed class CodecBuilder
 {
     public static readonly ConcurrentDictionary<IProtocolProvider, CodecCache> CodecCaches = new();
 
-    public static readonly Guid NullCodec = Guid.Empty;
+    public static readonly Guid NullCodecId = Guid.Empty;
     public static readonly Guid InvalidCodec = Guid.Parse("ffffffffffffffffffffffffffffffff");
+
+    public static readonly NullCodec NullCodec = new NullCodec();
+
+    public static readonly CodecInfo NullCodecInfo = new(NullCodecId, NullCodec);
 
     private static readonly ConcurrentDictionary<ulong, (Guid InCodec, Guid OutCodec)> _codecKeyMap = new();
 
@@ -46,7 +50,7 @@ internal sealed class CodecBuilder
 
     private static readonly Dictionary<Guid, Type> _scalarCodecTypeMap = new()
     {
-        {NullCodec, typeof(NullCodec)},
+        {NullCodecId, typeof(NullCodec)},
         {new Guid("00000000-0000-0000-0000-000000000100"), typeof(UUIDCodec)},
         {new Guid("00000000-0000-0000-0000-000000000101"), typeof(TextCodec)},
         {new Guid("00000000-0000-0000-0000-000000000102"), typeof(BytesCodec)},
@@ -141,7 +145,7 @@ internal sealed class CodecBuilder
 
     public static ICodec BuildCodec(EdgeDBBinaryClient client, in Guid id, ref PacketReader reader)
     {
-        if (id == NullCodec)
+        if (id == NullCodecId)
             return GetOrCreateCodec<NullCodec>(client.ProtocolProvider);
 
         var providerCache = GetProviderCache(client.ProtocolProvider);
