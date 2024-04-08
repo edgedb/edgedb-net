@@ -13,6 +13,7 @@ namespace EdgeDB.QueryNodes
     internal class UpdateNode : QueryNode<UpdateContext>
     {
         private WriterProxy? _filter;
+        private WriterProxy? _set;
 
         /// <inheritdoc/>
         public UpdateNode(NodeBuilder builder) : base(builder) { }
@@ -20,8 +21,6 @@ namespace EdgeDB.QueryNodes
         /// <inheritdoc/>
         public override void Visit()
         {
-            // set whether or not we need introspection based on our child queries
-            RequiresIntrospection = Context.ChildQueries.Any(x => x.Value.RequiresIntrospection);
         }
 
         private void AppendUpdateStatement(QueryWriter writer)
@@ -34,25 +33,8 @@ namespace EdgeDB.QueryNodes
             else
                 writer.Append(OperatingType.GetEdgeDBTypeName());
 
-            // add filter clause
-            if (_filter is not null)
-                writer.Append(_filter);
-
-            // add our 'set' statement to our translated update factory
-            writer.Append(" set ");
-
-            TranslateExpression(Context.UpdateExpression!, writer);
-
-            // throw if we dont have introspection data when a child requires it
-            if (RequiresIntrospection && SchemaInfo is null)
-                throw new InvalidOperationException("This node requires schema introspection but none was provided");
-
-            // set each child as a global
-            foreach (var child in Context.ChildQueries)
-            {
-                // sub query will be built with introspection by the with node.
-                SetGlobal(child.Key, child.Value, null);
-            }
+            _filter?.Invoke(writer);
+            _set?.Invoke(writer);
         }
 
         /// <inheritdoc/>
@@ -77,9 +59,16 @@ namespace EdgeDB.QueryNodes
         {
             _filter ??= writer =>
             {
-                // translate the filter and append it to our query text.
-                writer.Append(" filter ");
-                TranslateExpression(filter, writer);
+                writer.Append(" filter ", ProxyExpression(filter));
+            };
+        }
+
+        public void Set(IUpdateShapeBuilder setter)
+        {
+            _set ??= writer =>
+            {
+                writer.Append(" set ");
+                setter.Compile(writer, (writer, expression) => TranslateExpression(expression, writer));
             };
         }
     }

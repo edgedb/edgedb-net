@@ -137,6 +137,28 @@ namespace EdgeDB
             return EnterNewType<TNewType>();
         }
 
+        public ISelectQuery<TShape, TContext> SelectExp<TExpression, TShape>(
+            Expression<Func<TContext, TExpression>> expression,
+            Func<ShapeBuilder<TExpression>, ShapeBuilder<TExpression, TShape>>? shape = null
+        )
+        {
+            var shapeBuilder = shape is not null ? new ShapeBuilder<TExpression>() : null;
+
+            if (shape is not null && shapeBuilder is not null)
+            {
+                shape(shapeBuilder);
+            }
+
+            AddNode<SelectNode>(new SelectContext(typeof(TType))
+            {
+                Expression = expression,
+                Shape = shapeBuilder,
+                IsFreeObject = typeof(TShape).IsAnonymousType(),
+            });
+
+            return EnterNewType<TShape>();
+        }
+
 
         internal ISelectQuery<TNewType, TContext> SelectExp<TNewType, TInitContext>(Expression<Func<TInitContext, TNewType?>> expression)
         {
@@ -151,6 +173,11 @@ namespace EdgeDB
 
         ISelectQuery<TNewType, TContext> IQueryBuilder<TType, TContext>.SelectExpression<TNewType>(Expression<Func<TContext, TNewType>> expression, Action<ShapeBuilder<TNewType>>? shape)
            => SelectExp(expression, shape);
+
+        ISelectQuery<TShape, TContext> IQueryBuilder<TType, TContext>.SelectExpression<TExpression, TShape>(
+            Expression<Func<TContext, TExpression>> expression,
+            Func<ShapeBuilder<TExpression>, ShapeBuilder<TExpression, TShape>>? shape)
+            => SelectExp(expression, shape);
 
         ISelectQuery<TType, TContext> ISelectQuery<TType, TContext>.Filter(Expression<Func<TType, bool>> filter)
            => Filter(filter);

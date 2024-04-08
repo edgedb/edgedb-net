@@ -21,4 +21,11 @@
     <Folder Include="Grammar\Operators\" />
     <Folder Include="Translators\Methods\Generated\" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="fody" Version="6.8.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="InfoOf.Fody" Version="2.1.1" />
+  </ItemGroup>
 </Project>

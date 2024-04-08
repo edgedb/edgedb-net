@@ -30,7 +30,7 @@ namespace EdgeDB
         /// </summary>
         public Dictionary<string, Type> Parameters { get; }
 
-        public Dictionary<ParameterExpression, string> ParameterAliases { get; } = new();
+        public Dictionary<ParameterExpression, Value> ParameterAliases { get; set; } = new();
 
         /// <summary>
         ///     Gets or sets whether or not to serialize string without quotes.
@@ -182,16 +182,11 @@ namespace EdgeDB
         /// <param name="name">The name of the global to set.</param>
         /// <param name="value">The value of the global to set.</param>
         /// <param name="reference">The reference of the global to set.</param>
-        public void SetGlobal(string name, object? value, object? reference)
+        public QueryGlobal SetGlobal(string name, object? value, object? reference)
         {
             var global = new QueryGlobal(name, value, reference);
             Globals.Add(global);
-        }
-
-        public void AddChildQuery(SubQuery query)
-        {
-            var name = QueryUtils.GenerateRandomVariableName();
-            NodeContext.ChildQueries.Add(name, query);
+            return global;
         }
 
         /// <summary>

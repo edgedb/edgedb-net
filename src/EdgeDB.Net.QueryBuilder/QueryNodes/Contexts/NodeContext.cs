@@ -18,7 +18,7 @@ namespace EdgeDB.QueryNodes
         public bool SetAsGlobal { get; set; }
 
         /// <summary>
-        ///     Gets the name of the global variable the node should be set to 
+        ///     Gets the name of the global variable the node should be set to
         ///     if <see cref="SetAsGlobal"/> is true.
         /// </summary>
         public string? GlobalName { get; init; }
@@ -33,11 +33,6 @@ namespace EdgeDB.QueryNodes
         /// </summary>
         public bool IsJsonVariable
             => ReflectionUtils.IsSubclassOfRawGeneric(typeof(JsonCollectionVariable<>), CurrentType);
-
-        /// <summary>
-        ///     Gets a collection of child queries.
-        /// </summary>
-        internal Dictionary<string, SubQuery> ChildQueries { get; } = new();
 
         /// <summary>
         ///     Constructs a new <see cref="NodeContext"/>.

@@ -16,6 +16,70 @@ namespace EdgeDB.Translators.Methods
         /// <inheritdoc/>
         protected override Type TranslatorTargetType => typeof(Enumerable);
 
+        [MethodName(nameof(Enumerable.Select))]
+        public void Select(QueryWriter writer, MethodCallExpression method, TranslatedParameter source, TranslatedParameter expressive, ExpressionContext context)
+        {
+            if (expressive.RawValue is not LambdaExpression lambda)
+                throw new NotSupportedException("The expressive operand of 'Ref' must be a lambda function");
+
+            // we handle Select(Func<X, int, Y>) differently
+            if (method.Method.GetParameters()[1].ParameterType.GenericTypeArguments.Length == 3)
+            {
+                // we globalize the source in an `enumerate` call and then prefix any reference to `X` with GLOBAL.1
+                // and any reference to the index as GLOBAL.0
+                var enumerationName = QueryUtils.GenerateRandomVariableName();
+
+                var global = context.SetGlobal(enumerationName, new SubQuery(writer => writer
+                    .Function(
+                        "std::enumerate",
+                        source
+                    )
+                ), null);
+
+                expressive.Context = expressive.Context.Enter(x =>
+                {
+                    x.ParameterAliases.Add(lambda.Parameters[0], Value.Of(
+                            writer => writer
+                                .Marker(
+                                    MarkerType.GlobalReference,
+                                    enumerationName,
+                                    Defer.This(() => "Enumeration global reference element for Enumerable.Select translator"),
+                                    new GlobalReferenceMetadata(global),
+                                    Value.Of(writer => writer
+                                        .Append(enumerationName, ".1.")
+                                    )
+                                )
+                        )
+                    );
+                    x.ParameterAliases.Add(lambda.Parameters[1], Value.Of(
+                            writer => writer
+                                .Marker(
+                                    MarkerType.GlobalReference,
+                                    enumerationName,
+                                    Defer.This(() => "Enumeration global reference index for Enumerable.Select translator"),
+                                    new GlobalReferenceMetadata(global, "int64"),
+                                    Value.Of(writer => writer
+                                        .Append(enumerationName, ".0")
+                                    )
+                                )
+                        )
+                    );
+                    x.IncludeSelfReference = true;
+                });
+
+            }
+            else
+            {
+                expressive.Context = expressive.Context.Enter(x =>
+                {
+                    x.ParameterPrefixes.Add(lambda.Parameters[0], writer => writer.Append(source, '.'));
+                    x.IncludeSelfReference = true;
+                });
+            }
+
+            writer.Append(expressive);
+        }
+
         /// <summary>
         ///     Translates the method <see cref="Enumerable.Count{TSource}(IEnumerable{TSource})"/>.
         /// </summary>

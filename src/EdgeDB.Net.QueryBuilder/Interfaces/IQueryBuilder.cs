@@ -121,6 +121,21 @@ namespace EdgeDB
         );
 
         /// <summary>
+        ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
+        /// </summary>
+        /// <typeparam name="TExpression">The resulting type of the expression.</typeparam>
+        /// <typeparam name="TQuery">A query containing a result of <typeparamref name="TExpression"/></typeparam>
+        /// <param name="expression">The expression on which to select.</param>
+        /// <param name="shape">A optional delegate to build the shape for selecting <typeparamref name="TExpression"/>.</param>
+        /// <returns>
+        ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
+        /// </returns>
+        ISelectQuery<TShape, TContext> SelectExpression<TExpression, TShape>(
+            Expression<Func<TContext, TExpression>> expression,
+            Func<ShapeBuilder<TExpression>, ShapeBuilder<TExpression, TShape>>? shape = null
+        );
+
+        /// <summary>
         ///     Adds a <c>INSERT</c> statement inserting an instance of <typeparamref name="TType"/>.
         /// </summary>
         /// <remarks>
@@ -173,110 +188,23 @@ namespace EdgeDB
         /// <summary>
         ///     Adds a <c>UPDATE</c> statement updating an instance of <typeparamref name="TType"/>.
         /// </summary>
-        /// <param name="updateFunc">
-        ///     The callback used to update <typeparamref name="TType"/>. The first parameter is the old value.
+        /// <param name="selector">
+        ///     A function to select the target for the update.
         /// </param>
         /// <param name="returnUpdatedValue">
         ///     whether or not to implicitly add a select statement to return the inserted value.
         /// </param>
         /// <returns>A <see cref="IUpdateQuery{TType, TContext}"/>.</returns>
-        IUpdateQuery<TType, TContext> Update(Expression<Func<TType, TType>> updateFunc, bool returnUpdatedValue);
+        IUpdateQuery<TSelected, TContext> Update<TSelected>(Expression<Func<TType, TContext, TSelected>> selector, bool returnUpdatedValue);
 
         /// <summary>
         ///     Adds a <c>UPDATE</c> statement updating an instance of <typeparamref name="TType"/>.
         /// </summary>
-        /// <param name="updateFunc">
-        ///     The callback used to update <typeparamref name="TType"/>. The first parameter is the context
-        ///     of the builder, the second parameter is a reference to the old value.
-        /// </param>
-        /// <param name="returnUpdatedValue">
-        ///     whether or not to implicitly add a select statement to return the inserted value.
+        /// <param name="selector">
+        ///     A function to select the target for the update.
         /// </param>
         /// <returns>A <see cref="IUpdateQuery{TType, TContext}"/>.</returns>
-        IUpdateQuery<TType, TContext> Update(Expression<Func<TContext, TType, TType>> updateFunc, bool returnUpdatedValue);
-
-        /// <summary>
-        ///     Adds a <c>UPDATE</c> statement updating an instance of <typeparamref name="TType"/>.
-        /// </summary>
-        /// <param name="updateFunc">
-        ///     The callback used to update <typeparamref name="TType"/>. The first parameter is the old value.
-        /// </param>
-        /// <returns>A <see cref="IUpdateQuery{TType, TContext}"/>.</returns>
-        IUpdateQuery<TType, TContext> Update(Expression<Func<TType, TType>> updateFunc);
-
-        /// <summary>
-        ///     Adds a <c>UPDATE</c> statement updating an instance of <typeparamref name="TType"/>.
-        /// </summary>
-        /// <param name="updateFunc">
-        ///     The callback used to update <typeparamref name="TType"/>. The first parameter is the context
-        ///     of the builder, the second parameter is a reference to the old value.
-        /// </param>
-        /// <returns>A <see cref="IUpdateQuery{TType, TContext}"/>.</returns>
-        IUpdateQuery<TType, TContext> Update(Expression<Func<TContext, TType, TType>> updateFunc);
-
-        /// <summary>
-        ///     Adds a <c>UPDATE</c> statement updating an instance of <typeparamref name="TType"/>.
-        /// </summary>
-        /// <param name="selector">The expression that selects the object to update.</param>
-        /// <param name="updateFunc">
-        ///     The callback used to update <typeparamref name="TType"/>. The first parameter is the context
-        ///     of the builder, the second parameter is a reference to the old value.
-        /// </param>
-        /// <param name="returnUpdatedValue">
-        ///     whether or not to implicitly add a select statement to return the inserted value.
-        /// </param>
-        /// <returns>A <see cref="IUpdateQuery{TType, TContext}"/>.</returns>
-        IUpdateQuery<TType, TContext> Update(
-            Expression<Func<TContext, TType>> selector,
-            Expression<Func<TContext, TType, TType>> updateFunc,
-            bool returnUpdatedValue
-        );
-
-        /// <summary>
-        ///     Adds a <c>UPDATE</c> statement updating an instance of <typeparamref name="TType"/>.
-        /// </summary>
-        /// <param name="selector">The expression that selects the object to update.</param>
-        /// <param name="updateFunc">
-        ///     The callback used to update <typeparamref name="TType"/>. The first parameter is the context
-        ///     of the builder, the second parameter is a reference to the old value.
-        /// </param>
-        /// <param name="returnUpdatedValue">
-        ///     whether or not to implicitly add a select statement to return the inserted value.
-        /// </param>
-        /// <returns>A <see cref="IUpdateQuery{TType, TContext}"/>.</returns>
-        IUpdateQuery<TType, TContext> Update(
-            Expression<Func<TContext, TType>> selector,
-            Expression<Func<TType, TType>> updateFunc,
-            bool returnUpdatedValue
-        );
-
-        /// <summary>
-        ///     Adds a <c>UPDATE</c> statement updating an instance of <typeparamref name="TType"/>.
-        /// </summary>
-        /// <param name="selector">The expression that selects the object to update.</param>
-        /// <param name="updateFunc">
-        ///     The callback used to update <typeparamref name="TType"/>. The first parameter is the context
-        ///     of the builder, the second parameter is a reference to the old value.
-        /// </param>
-        /// <returns>A <see cref="IUpdateQuery{TType, TContext}"/>.</returns>
-        IUpdateQuery<TType, TContext> Update(
-           Expression<Func<TContext, TType>> selector,
-           Expression<Func<TContext, TType, TType>> updateFunc
-       );
-
-        /// <summary>
-        ///     Adds a <c>UPDATE</c> statement updating an instance of <typeparamref name="TType"/>.
-        /// </summary>
-        /// <param name="selector">The expression that selects the object to update.</param>
-        /// <param name="updateFunc">
-        ///     The callback used to update <typeparamref name="TType"/>. The first parameter is the context
-        ///     of the builder, the second parameter is a reference to the old value.
-        /// </param>
-        /// <returns>A <see cref="IUpdateQuery{TType, TContext}"/>.</returns>
-        IUpdateQuery<TType, TContext> Update(
-            Expression<Func<TContext, TType>> selector,
-            Expression<Func<TType, TType>> updateFunc
-        );
+        IUpdateQuery<TSelected, TContext> Update<TSelected>(Expression<Func<TType, TSelected>> selector);
 
         /// <summary>
         ///     Adds a <c>DELETE</c> statement deleting an instance of <typeparamref name="TType"/>.

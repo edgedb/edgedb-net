@@ -244,6 +244,9 @@ namespace EdgeDB
 
             for (var i = 0; i != nodes.Count; i++)
             {
+                if(nodes[i] is WithNode)
+                    continue;
+
                 nodes[i].FinalizeQuery(writer);
                 parameters.Add(nodes[i].Builder.QueryVariables);
 
@@ -268,15 +271,13 @@ namespace EdgeDB
                         SchemaInfo = SchemaInfo
                     };
 
-                    // visit the with node and add it to the front of our local collection of nodes.
-                    using (var _ = writer.PositionalScopeFromStart())
-                    {
-                        with.FinalizeQuery(writer);
-                        writer.Append(' ');
-                    }
-
                     nodes = nodes.Prepend(with).ToList();
                 }
+
+                // visit the with node and add it to the front of our local collection of nodes.
+                using var _ = writer.PositionalScopeFromStart();
+                with.FinalizeQuery(writer);
+                writer.Append(' ');
             }
 
             // flatten our parameters into a single collection and make it distinct.

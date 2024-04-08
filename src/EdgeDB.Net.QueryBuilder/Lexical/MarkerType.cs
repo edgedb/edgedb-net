@@ -9,5 +9,8 @@ public enum MarkerType
     Shape,
     Variable,
     Verbose,
-    Cast
+    Cast,
+    Unsafe,
+    RawEdgeQL,
+    BinaryOp
 }

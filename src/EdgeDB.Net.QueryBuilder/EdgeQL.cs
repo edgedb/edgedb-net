@@ -57,6 +57,6 @@ namespace EdgeDB
 
         public static JsonReferenceVariable<T> AsJson<T>(T value) => new(value);
 
-        public static long Count<TType>(IMultiCardinalityExecutable<TType> a) { return default!; }
+        public static long Count<TType>(IQuery<TType> a) { return default!; }
     }
 }

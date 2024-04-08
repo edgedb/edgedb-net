@@ -30,6 +30,12 @@ internal sealed class TypeCastReducer : IReducer
                         marker.Remove();
                         goto end_neighbour_search;
                     case MarkerType.GlobalReference when neighbour.Metadata is GlobalReferenceMetadata globalMetadata:
+                        if (globalMetadata.EdgeDBType is not null && EdgeDBTypeUtils.CompareEdgeDBTypes(castMetadata.Type, globalMetadata.EdgeDBType))
+                        {
+                            marker.Remove();
+                            goto end_neighbour_search;
+                        }
+
                         switch (globalMetadata.Global.Reference)
                         {
                             case Expression expression when EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var scalar):

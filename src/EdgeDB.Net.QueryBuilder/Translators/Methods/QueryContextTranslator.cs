@@ -55,13 +55,25 @@ internal sealed class QueryContextTranslator : MethodTranslator<IQueryContext>
     [MethodName(nameof(QueryContext.UnsafeLocal))]
     public void UnsafeLocal(QueryWriter writer, TranslatedParameter param)
     {
-        writer.Append('.', ExpressionTranslator.UnsafeExpressionAsString(param.RawValue));
+        writer.Marker(
+            MarkerType.Unsafe,
+            "query_context_unsafe_local",
+            Value.Of(writer =>
+                writer.Append('.', ExpressionTranslator.UnsafeExpressionAsString(param.RawValue))
+            )
+        );
     }
 
     [MethodName(nameof(QueryContext.Raw))]
     public void Raw(QueryWriter writer, TranslatedParameter param)
     {
-        writer.Append(ExpressionTranslator.UnsafeExpressionAsString(param.RawValue));
+        writer.Marker(
+            MarkerType.RawEdgeQL,
+            "query_context_raw",
+            Value.Of(writer =>
+                writer.Append(ExpressionTranslator.UnsafeExpressionAsString(param.RawValue))
+            )
+        );
     }
 
     [MethodName(nameof(QueryContext.BackLink))]
@@ -115,7 +127,7 @@ internal sealed class QueryContextTranslator : MethodTranslator<IQueryContext>
     public void Aggregate(QueryWriter writer, TranslatedParameter source, TranslatedParameter expressive)
     {
         if (expressive.RawValue is not LambdaExpression lambda)
-            throw new NotSupportedException("The expressive operand of 'Ref' must be a lambda function");
+            throw new NotSupportedException("The expressive operand of 'Aggregate' must be a lambda function");
 
         // we just prefix all references of the parameter to the func with the source, example:
         // Aggregate(People, (Person x) => EdgeQL.Count(x.Name))

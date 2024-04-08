@@ -20,7 +20,7 @@ namespace EdgeDB.Translators.Expressions
         /// <inheritdoc/>
         public override void Translate(ParameterExpression expression, ExpressionContext context, QueryWriter writer)
         {
-            var name = expression.Name;
+            Value name = expression.Name;
 
             if (context.ParameterAliases.TryGetValue(expression, out var alias))
                 name = alias;

@@ -104,8 +104,8 @@ namespace EdgeDB.Builders
             => new StaticShapeBuilder(type);
         public Type SelectedType { get; private set; }
 
-        internal readonly Dictionary<string, SelectedProperty> SelectedProperties;
-        internal readonly Dictionary<string, (MemberInfo, bool)> LinkProperties;
+        internal Dictionary<string, SelectedProperty> SelectedProperties { get; set; }
+        internal Dictionary<string, (MemberInfo, bool)> LinkProperties { get; set; }
 
         public BaseShapeBuilder(Type type)
         {
@@ -156,14 +156,6 @@ namespace EdgeDB.Builders
             return dict;
         }
 
-        internal static MemberInfo GetSelectedProperty(LambdaExpression expression)
-        {
-            if (expression.Body is not MemberExpression member)
-                throw new InvalidOperationException("The body of the expression must be a member expression");
-
-            return member.Member;
-        }
-
         internal SelectShape GetShape()
         {
             return new(SelectedProperties.Select(x => x.Value), SelectedType);
@@ -203,7 +195,7 @@ namespace EdgeDB.Builders
 
         public ShapeBuilder<T> Exclude<TExcluded>(Expression<Func<T, TExcluded>> selector)
         {
-            var member = GetSelectedProperty(selector);
+            var member = ExpressionUtils.GetMemberSelection(selector);
 
             SelectedProperties.Remove(member.GetEdgeDBPropertyName());
 
@@ -226,14 +218,14 @@ namespace EdgeDB.Builders
             return this;
         }
 
-        public ShapeBuilder<T> Explicitly<TAnon>(Expression<Func<T, TAnon>> explicitSelector)
-            => ExplicitlyInternal(explicitSelector);
+        public ShapeBuilder<T, TAnon> Explicitly<TAnon>(Expression<Func<T, TAnon>> explicitSelector)
+            => ExplicitlyInternal<TAnon>(explicitSelector);
 
-        public ShapeBuilder<T> Explicitly<TAnon>(Expression<Func<QueryContextSelf<T>, T, TAnon>> explicitSelector)
-            => ExplicitlyInternal(explicitSelector);
+        public ShapeBuilder<T, TAnon> Explicitly<TAnon>(Expression<Func<QueryContextSelf<T>, T, TAnon>> explicitSelector)
+            => ExplicitlyInternal<TAnon>(explicitSelector);
 
 
-        internal ShapeBuilder<T> ExplicitlyInternal(LambdaExpression expression)
+        internal ShapeBuilder<T, U> ExplicitlyInternal<U>(LambdaExpression expression)
         {
             var members = FlattenAnonymousExpression(SelectedType, expression);
 
@@ -242,7 +234,7 @@ namespace EdgeDB.Builders
             foreach (var member in members)
                 SelectedProperties[member.Key.GetEdgeDBPropertyName()] = ParseShape(member.Key, member.Value);
 
-            return this;
+            return new(SelectedType, this);
         }
 
         private SelectedProperty ParseShape(MemberInfo info, ShapeElementExpression element)
@@ -281,7 +273,7 @@ namespace EdgeDB.Builders
 
         private ShapeBuilder<T> IncludeInternal<TIncluded>(LambdaExpression selector, Action<ShapeBuilder<TIncluded>>? shape = null, bool errorOnMultiLink = false)
         {
-            var member = GetSelectedProperty(selector);
+            var member = ExpressionUtils.GetMemberSelection(selector);
 
             if (errorOnMultiLink && LinkProperties.TryGetValue(member.GetEdgeDBPropertyName(), out var info) && info.Item2)
                 throw new InvalidOperationException("Use IncludeMultiLink for multi-link properties");
@@ -295,6 +287,15 @@ namespace EdgeDB.Builders
             }
 
             return this;
+        }
+    }
+
+    public sealed class ShapeBuilder<T, TShape> : BaseShapeBuilder
+    {
+        public ShapeBuilder(Type type, BaseShapeBuilder other) : base(type)
+        {
+            this.LinkProperties = other.LinkProperties;
+            this.SelectedProperties = other.SelectedProperties;
         }
     }
 

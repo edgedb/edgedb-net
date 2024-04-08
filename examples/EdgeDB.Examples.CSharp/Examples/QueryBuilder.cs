@@ -32,6 +32,35 @@ namespace EdgeDB.ExampleApp.Examples
         {
             try
             {
+                var query = QueryBuilder
+                    .Update<Person>()
+                    .Filter(x => x.Email == "example@mail.com")
+                    .Set((person, ctx) => new
+                    {
+                        Friends = new List<Person>
+                        {
+                            ctx.SubQuerySingle(QueryBuilder.Select<Person>()
+                                .Filter(x => x.Email == "example@mail.com")),
+                            ctx.SubQuerySingle(QueryBuilder.Select<Person>()
+                                .Filter(x => x.Email == "example2@mail.com"))
+                        }
+                    })
+                    .Compile(true);
+
+                var query2 = QueryBuilder
+                    .Update<Person>()
+                    .Filter(x => x.Email == "example2@mail.com")
+                    .Set(shape => shape
+                        .Set(x => x.Name, x => "New Name")
+                        .Set(x => x.Email, x => x.Email + "concat")
+                        .Add(x => x.Friends, (old, ctx) => ctx.SubQuerySingle(QueryBuilder.Select<Person>().Filter(y => y.Email == "example@example.com")))
+                    )
+                    .Compile(true);
+
+                // query = QueryBuilder
+                //     .Update<Person>((ctx, person) => person.Friends.Add(ctx.SubQuerySingle(QueryBuilder.Select<Person>().Limit(1))));
+
+
                 await QueryBuilderDemo(client);
             }
             catch (Exception x)
@@ -140,15 +169,20 @@ namespace EdgeDB.ExampleApp.Examples
             query = await QueryBuilder
                 .Insert(person)
                 .UnlessConflict()
-                .Else(q =>
-                    q.Update(old => new Person {Name = old!.Name!.ToLower()})
+                .Else(q => q
+                    .Update(x => x)
+                    .Set(old => new
+                    {
+                        Name = "New name"
+                    })
                 )
                 .CompileAsync(client, true);
 
             // Updating a type
             query = QueryBuilder
-                .Update<Person>(old => new Person { Name = "example new name" })
+                .Update<Person>()
                 .Filter(x => x.Email == "example@example.com")
+                .Set(old => new Person { Name = "example new name" })
                 .Compile(true);
 
             // Deleting types
@@ -191,11 +225,11 @@ namespace EdgeDB.ExampleApp.Examples
                     )
                 })
                 .SelectExpression(ctx => ctx.Variables.Groups, shape => shape
-                    .Computeds((ctx, group) => new
+                    .Explicitly((ctx, group) => new
                     {
                         StartsWithVowel = group.Key,
                         Count = EdgeQL.Count(group.Elements),
-                        NameLength = 1//EdgeQL.Len(ctx.Ref(group.Elements).Name!)
+                        MeanNameLength = EdgeQL.Round(EdgeQL.Mean(ctx.Aggregate(group.Elements, x => EdgeQL.Len(x.Name!))))
                     })
                 )
                 .Compile(true);
@@ -233,7 +267,7 @@ namespace EdgeDB.ExampleApp.Examples
                     People = ctx.SubQuerySingle(QueryBuilder.Select<Person>()),
                     Groups = ctx.SubQuerySingle(
                         QueryBuilder
-                            .Group(ctx => ctx.Local<Person>("People"))
+                            .Group(ctx => ctx.Global<Person>("People"))
                             .Using(person => new
                             {
                                 Vowel = Regex.IsMatch(person.Name!, "(?i)^[aeiou]"),

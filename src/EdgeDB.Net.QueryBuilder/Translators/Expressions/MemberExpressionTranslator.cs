@@ -74,7 +74,9 @@ namespace EdgeDB.Translators.Expressions
 
         private void TranslateParameterMember(QueryWriter writer, ParameterExpression parameter, MemberExpression[] path, ExpressionContext context)
         {
-            if (context.ParameterPrefixes.TryGetValue(parameter, out var prefix))
+            if (context.ParameterAliases.TryGetValue(parameter, out var alias) && context.IncludeSelfReference)
+                writer.Append(alias);
+            else if (context.ParameterPrefixes.TryGetValue(parameter, out var prefix))
                 writer.Append(prefix);
             else if (context.IncludeSelfReference)
                 writer.Append('.');
