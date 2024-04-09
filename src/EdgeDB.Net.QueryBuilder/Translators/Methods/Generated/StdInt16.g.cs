@@ -3,15 +3,16 @@ using EdgeDB;
 using EdgeDB.DataTypes;
 using EdgeDB.Translators.Methods;
 using System.Runtime.CompilerServices;
+using System.Reflection;
 
 namespace EdgeDB.Translators
 {
     internal partial class StdInt16MethodTranslator : MethodTranslator<EdgeQL>
     {
         [MethodName(nameof(EdgeQL.ToInt16))]
-        public void ToInt16Translator(QueryWriter writer, TranslatedParameter sParam, TranslatedParameter? fmtParam)
+        public void ToInt16Translator(QueryWriter writer, MethodInfo method, TranslatedParameter sParam, TranslatedParameter? fmtParam)
         {
-            writer.Function("std::to_int16", sParam, OptionalArg(fmtParam));
+            writer.Function("std::to_int16", debug: null, metadata: new FunctionMetadata("std::to_int16", method), sParam, OptionalArg(fmtParam));
         }
 
     }

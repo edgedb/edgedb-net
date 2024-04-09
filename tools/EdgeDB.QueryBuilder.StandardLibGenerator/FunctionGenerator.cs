@@ -110,6 +110,7 @@ namespace EdgeDB.StandardLibGenerator
             writer.AppendLine("using EdgeDB.DataTypes;");
             writer.AppendLine("using EdgeDB.Translators.Methods;");
             writer.AppendLine("using System.Runtime.CompilerServices;");
+            writer.AppendLine("using System.Reflection;");
             writer.AppendLine();
 
             using (var namespaceScope = writer.BeginScope("namespace EdgeDB.Translators"))
@@ -199,7 +200,7 @@ namespace EdgeDB.StandardLibGenerator
                             return t;
                         }));
 
-                        var parsedMappedParameters = "QueryWriter writer";
+                        var parsedMappedParameters = "QueryWriter writer, MethodInfo method";
 
                         if (parameters.Length > 0)
                         {
@@ -226,7 +227,7 @@ namespace EdgeDB.StandardLibGenerator
 
                             using (var methodScope = writer.BeginScope())
                             {
-                                var methodBody = $"writer.Function(\"{func.Name}\"";
+                                var methodBody = $"writer.Function(\"{func.Name}\", debug: null, metadata: new FunctionMetadata(\"{func.Name}\", method)";
 
                                 for (var i = 0; i != func.Parameters?.Length; i++)
                                 {

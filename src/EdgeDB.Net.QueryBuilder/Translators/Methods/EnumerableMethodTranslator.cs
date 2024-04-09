@@ -14,7 +14,7 @@ namespace EdgeDB.Translators.Methods
     internal class EnumerableMethodTranslator : MethodTranslator
     {
         /// <inheritdoc/>
-        protected override Type TranslatorTargetType => typeof(Enumerable);
+        public override Type TranslatorTargetType => typeof(Enumerable);
 
         [MethodName(nameof(Enumerable.Select))]
         public void Select(QueryWriter writer, MethodCallExpression method, TranslatedParameter source, TranslatedParameter expressive, ExpressionContext context)

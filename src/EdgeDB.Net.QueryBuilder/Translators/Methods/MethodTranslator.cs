@@ -22,13 +22,26 @@ namespace EdgeDB.Translators
         /// </summary>
         internal readonly string MethodName;
 
+        internal readonly Type[] MethodParameters;
+
+        internal readonly bool IsParameterAware;
+
         /// <summary>
         ///     Marks this method as a valid method used to translate a <see cref="MethodCallExpression"/>.
         /// </summary>
         /// <param name="methodName">The name of the method that this method can translate.</param>
-        public MethodNameAttribute(string methodName)
+        public MethodNameAttribute(string methodName, params Type[] methodParameters)
         {
             MethodName = methodName;
+            MethodParameters = methodParameters;
+            IsParameterAware = methodParameters.Length > 0;
+        }
+
+        public MethodNameAttribute(string methodName, bool isParameterAware)
+        {
+            MethodName = methodName;
+            MethodParameters = Array.Empty<Type>();
+            IsParameterAware = isParameterAware;
         }
     }
 
@@ -41,7 +54,7 @@ namespace EdgeDB.Translators
     internal abstract class MethodTranslator<TBase> : MethodTranslator
     {
         /// <inheritdoc/>
-        protected override Type TranslatorTargetType => typeof(TBase);
+        public override Type TranslatorTargetType => typeof(TBase);
     }
 
     internal abstract class MethodTranslator
@@ -50,22 +63,17 @@ namespace EdgeDB.Translators
         ///     Gets the base type that contains the methods the current translator can
         ///     translate.
         /// </summary>
-        protected abstract Type TranslatorTargetType { get; }
-
-        /// <summary>
-        ///     The static dictionary containing all of the method translators.
-        /// </summary>
-        private static readonly ConcurrentDictionary<Type, List<MethodTranslator>> _translators = new();
+        public abstract Type TranslatorTargetType { get; }
 
         /// <summary>
         ///     The dictionary containing all of the methods that the current translator
         ///     can translate.
         /// </summary>
-        private ConcurrentDictionary<string, MethodInfo> _methodTranslators;
+        internal ConcurrentDictionary<string, MethodInfo> MethodTranslators;
 
         /// <summary>
         ///     Constructs a new <see cref="MethodTranslator"/> and populates
-        ///     <see cref="_methodTranslators"/>.
+        ///     <see cref="MethodTranslators"/>.
         /// </summary>
         public MethodTranslator()
         {
@@ -85,71 +93,14 @@ namespace EdgeDB.Translators
             }
 
             // create a new concurrent dictionary from our temp one
-            _methodTranslators = new(tempDict);
+            MethodTranslators = new(tempDict);
         }
 
         internal virtual bool CanTranslate(Type type) => type == TranslatorTargetType;
 
-        /// <summary>
-        ///     Statically initializes the abstract method translator and populates
-        ///     <see cref="_translators"/>.
-        /// </summary>
-        static MethodTranslator()
-        {
-            var types = Assembly.GetExecutingAssembly().DefinedTypes;
-
-            // load current translators
-            var translators = types.Where(x =>
-                x.BaseType?.Name == "MethodTranslator`1" ||
-                (x.BaseType == typeof(MethodTranslator) && x.Name != "MethodTranslator`1"));
-
-            // iterate over the translators and initialize them and store them in the translators
-            // dictionary
-            foreach (var translator in translators)
-            {
-                var inst = (MethodTranslator)Activator.CreateInstance(translator)!;
-                _translators.GetOrAdd(inst.TranslatorTargetType, _ => new()).Add(inst);
-            }
-        }
-
-        internal static bool TryGetTranslator<T>(string name, [NotNullWhen(true)] out MethodTranslator? translator)
-            where T : MethodTranslator
-        {
-            translator = null;
-
-            if (!_translators.TryGetValue(typeof(T), out var translators))
-                return false;
-
-            return (translator = translators.FirstOrDefault(x => x._methodTranslators.TryGetValue(name, out _))) is not
-                null;
-        }
-
         internal static bool TryGetTranslator(MethodCallExpression methodCall,
-            [MaybeNullWhen(false)] out MethodTranslator translator)
-        {
-            var type = methodCall.Method.DeclaringType;
-            List<MethodTranslator>? translators = null;
-
-            while (type != null && !_translators.TryGetValue(type, out translators))
-            {
-                type = type.BaseType;
-            }
-
-            if (translators is null)
-            {
-                translator = null;
-                return false;
-            }
-
-            translators.AddRange(_translators
-                .FirstOrDefault(x => x.Value.Any(y => y.CanTranslate(methodCall.Method.DeclaringType!)))
-                .Value?.Where(x => x.CanTranslate(methodCall.Method.DeclaringType!)).ToArray() ?? Array.Empty<MethodTranslator>());
-
-            translator = translators
-                .FirstOrDefault(x => x._methodTranslators.TryGetValue(methodCall.Method.Name, out _));
-
-            return translator is not null;
-        }
+            out MethodTranslatorLookupTable.Handle handle)
+            => MethodTranslatorLookupTable.TryGetTranslator(methodCall.Method, out handle);
 
         /// <summary>
         ///     Translates the given <see cref="MethodCallExpression"/> into a edgeql equivalent expression.
@@ -185,109 +136,6 @@ namespace EdgeDB.Translators
                 return Value.Empty;
             else
                 return arg;
-        }
-
-        /// <summary>
-        ///     Finds and executes a translator method for the given <see cref="MethodCallExpression"/>.
-        /// </summary>
-        /// <param name="writer">The query string writer to write the translated method call to.</param>
-        /// <param name="methodCall">The expression to translate.</param>
-        /// <param name="context">The context of the expression.</param>
-        /// <exception cref="NotSupportedException">
-        ///     No translator could be found for the given method.
-        /// </exception>
-        public void Translate(QueryWriter writer, MethodCallExpression methodCall, ExpressionContext context)
-        {
-            // try to get a method for translating the expression
-            if (!_methodTranslators.TryGetValue(methodCall.Method.Name, out var methodInfo))
-                throw new NotSupportedException(
-                    $"Cannot use method {methodCall.Method} as there is no translator for it");
-
-            // get the parameters of the method and check if it references an instance parameter
-            var methodParameters = methodInfo.GetParameters();
-            var instanceParam = methodParameters.Length >= 2 && methodParameters[1].Name == "instance"
-                ? methodParameters[0]
-                : null;
-            var hasInstanceReference = instanceParam is not null;
-
-            if (methodParameters.Length <= 0)
-                throw new InvalidOperationException("Malformed method translator, expecting at least 1 argument");
-
-            if (methodParameters[0].ParameterType != typeof(QueryWriter))
-                throw new InvalidOperationException(
-                    $"Malformed method translator, expecting first parameter to be a {nameof(QueryWriter)}"
-                );
-
-            // slice out the query string writer
-            methodParameters = methodParameters[1..];
-
-            // slice the original parameters array to exclude the instance parameter if its defined
-            if (hasInstanceReference)
-                methodParameters = methodParameters[1..];
-
-            var parsedParameters = new object?[methodParameters.Length];
-
-            // iterate over the parameters and parse them.
-            var methodCallArgsIndex = 0;
-            for (var i = 0; i != methodParameters.Length; i++)
-            {
-                var parameterInfo = methodParameters[i];
-
-                // if the current parameter is marked with the ParamArray attribute, set
-                // its value to the remaining arguments to the expression and break out of the loop
-                if (parameterInfo.GetCustomAttribute<ParamArrayAttribute>() != null)
-                {
-                    parsedParameters[i] = methodCall.Arguments.Skip(methodCallArgsIndex)
-                        .Select(x => new TranslatedParameter(x.Type, x, context)).ToArray();
-
-                    break;
-                }
-                else if (parameterInfo.ParameterType == typeof(ExpressionContext))
-                {
-                    // set the context
-                    parsedParameters[i] = context;
-                }
-                else if (parameterInfo.Name == "method" && parameterInfo.ParameterType == typeof(MethodCallExpression))
-                {
-                    parsedParameters[i] = methodCall;
-                }
-                else if (methodCall.Arguments.Count > methodCallArgsIndex)
-                {
-                    parsedParameters[i] = new TranslatedParameter(
-                        methodCall.Arguments[methodCallArgsIndex].Type,
-                        methodCall.Arguments[methodCallArgsIndex],
-                        context
-                    );
-                    methodCallArgsIndex++;
-                }
-                else // get the default value for the parameter type
-                {
-                    parsedParameters[i] = ReflectionUtils.GetDefault(parameterInfo.ParameterType);
-                }
-            }
-
-            // if its an instance reference, recreate our parsed array to include the instance parameter
-            // and set the instance parameter to the translated expression
-            if (hasInstanceReference)
-            {
-                var newParameters = new object?[methodParameters.Length + 1];
-                parsedParameters.CopyTo(newParameters, 1);
-
-                newParameters[0] = methodCall.Object is not null
-                    ? new TranslatedParameter(
-                        methodCall.Object.Type,
-                        methodCall.Object,
-                        context)
-                    : null;
-
-                parsedParameters = newParameters;
-            }
-
-            var finalParameters = new object?[parsedParameters.Length + 1];
-            finalParameters[0] = writer;
-            parsedParameters.CopyTo(finalParameters, 1);
-
-            methodInfo.Invoke(this, finalParameters);
         }
     }
 }
