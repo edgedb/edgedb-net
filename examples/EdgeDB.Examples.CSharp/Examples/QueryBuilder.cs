@@ -6,6 +6,7 @@ using EdgeDB.Translators.Methods;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -33,34 +34,10 @@ namespace EdgeDB.ExampleApp.Examples
         {
             try
             {
-                var query = QueryBuilder
-                    .Update<Person>()
-                    .Filter(x => x.Email == "example@mail.com")
-                    .Set((person, ctx) => new
-                    {
-                        Friends = new List<Person>
-                        {
-                            ctx.SubQuerySingle(QueryBuilder.Select<Person>()
-                                .Filter(x => x.Email == "example@mail.com")),
-                            ctx.SubQuerySingle(QueryBuilder.Select<Person>()
-                                .Filter(x => x.Email == "example2@mail.com"))
-                        }
-                    })
+                var x = QueryBuilder
+                    .With(ctx => new {People = ctx.SubQuery(QueryBuilder.Select<Person>())})
+                    .SelectExpression(ctx => EdgeQL.Mean(ctx.Variables.People.Select(x => (long)x.Name!.Length)))
                     .Compile(true);
-
-                var query2 = QueryBuilder
-                    .Update<Person>()
-                    .Filter(x => x.Email == "example2@mail.com")
-                    .Set(shape => shape
-                        .Set(x => x.Name, x => "New Name")
-                        .Set(x => x.Email, x => x.Email + "concat")
-                        .Add(x => x.Friends, (old, ctx) => ctx.SubQuerySingle(QueryBuilder.Select<Person>().Filter(y => y.Email == "example@example.com")))
-                    )
-                    .Compile(true);
-
-                // query = QueryBuilder
-                //     .Update<Person>((ctx, person) => person.Friends.Add(ctx.SubQuerySingle(QueryBuilder.Select<Person>().Limit(1))));
-
 
                 await QueryBuilderDemo(client);
             }

@@ -301,6 +301,7 @@ namespace EdgeDB
         ///     Preforms introspection and then compiles this query builder into a <see cref="CompiledQuery"/>.
         /// </summary>
         /// <param name="edgedb">The client to preform introspection with.</param>
+        /// <param name="debug">Whether or not to produce a debug form of <see cref="CompiledQuery"/>.</param>
         /// <param name="token">A cancellation token to cancel the introspection query.</param>
         /// <returns>
         ///     A ValueTask representing the (a)sync introspection and compiling operation.

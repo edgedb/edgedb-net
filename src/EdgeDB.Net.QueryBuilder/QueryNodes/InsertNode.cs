@@ -120,7 +120,8 @@ namespace EdgeDB.QueryNodes
             /// <summary>
             ///     Constructs a new <see cref="ShapeDefinition"/> with the given shape body.
             /// </summary>
-            /// <param name="shape"></param>
+            /// <param name="name">The name of the shape.</param>
+            /// <param name="shape">The shape itself.</param>
             public ShapeDefinition(string name, WriterProxy shape)
             {
                 _name = name;
@@ -132,7 +133,8 @@ namespace EdgeDB.QueryNodes
             /// <summary>
             ///     Constructs a new <see cref="ShapeDefinition"/> with the given shape body.
             /// </summary>
-            /// <param name="shape"></param>
+            /// <param name="name">The name of the shape.</param>
+            /// <param name="shape">The shape itself.</param>
             public ShapeDefinition(string name, IEnumerable<ShapeSetter> shape)
             {
                 _name = name;

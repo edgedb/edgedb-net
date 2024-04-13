@@ -55,8 +55,8 @@ namespace EdgeDB.Translators.Methods
         ///     Constructs a new <see cref="TranslatedParameter"/>.
         /// </summary>
         /// <param name="type">The type of the parameter.</param>
-        /// <param name="value">The proxy to translate the value of the parameter.</param>
         /// <param name="raw">The raw expression of the parameter.</param>
+        /// <param name="context">The context under which the raw expression is to be translated.</param>
         public TranslatedParameter(Type type, Expression raw, ExpressionContext context)
         {
             ParameterType = type;

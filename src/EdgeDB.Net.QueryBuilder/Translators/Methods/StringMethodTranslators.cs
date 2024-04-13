@@ -223,4 +223,93 @@ internal class StringMethodTranslators : MethodTranslator<string>
     [MethodName(nameof(string.Split))]
     public void Split(QueryWriter writer, TranslatedParameter instance, TranslatedParameter separator)
         => writer.Function("str_split", instance, separator);
+
+    [MethodName(nameof(string.StartsWith))]
+    public void StartsWith(QueryWriter writer, TranslatedParameter instance, TranslatedParameter condition)
+    {
+        // multiple ways to do this, which one is more efficient?
+        // - len(condition) <= len(instance) and instance[:len(condition)] = condition
+        // - re_test('^' ++ condition, instance)
+        // - find(instance, condition) == 0
+
+        writer.Marker(
+            MarkerType.BinaryOp,
+            "starts_with_check",
+            Defer.This(() => ""),
+            metadata: null,
+            Value.Of(writer => writer.Function(
+                "find",
+                instance,
+                condition
+            )),
+            " = 0"
+        );
+    }
+
+    [MethodName(nameof(string.EndsWith))]
+    public void EndsWith(QueryWriter writer, TranslatedParameter instance, TranslatedParameter condition)
+    {
+        // - len(condition) <= len(instance) and instance[-len(condition):] = condition
+        Value[]? conditionCompiled = null;
+        Value[]? instanceCompiled = null;
+
+        var conditionValue = Value.Of(writer => writer
+            .AppendSpanned(
+                ref conditionCompiled,
+                writer => writer.Span(writer => writer
+                    .Append(condition)
+                )
+            )
+        );
+
+        var instanceValue = Value.Of(writer => writer
+            .AppendSpanned(
+                ref instanceCompiled,
+                writer => writer.Span(writer => writer
+                    .Append(instance)
+                )
+            )
+        );
+
+        writer.Marker(
+            MarkerType.BinaryOp,
+            "ends_with_check",
+            Defer.This(() => ""),
+            metadata: null,
+            Value.Of(writer => writer
+                .Function(
+                    "len",
+                    Defer.This(() => $"Length check for instance on ends with"),
+                    metadata: null,
+                    instanceValue
+                )
+            ),
+            " >= ",
+            Value.Of(writer => writer
+                .Function(
+                    "len",
+                    Defer.This(() => $"Length check for condition on ends with"),
+                    metadata: null,
+                    conditionValue
+                )
+            ),
+            " and ",
+            instanceValue,
+            Value.Of(writer => writer.Wrapped(
+                Value.Of(writer => writer
+                    .Append('-')
+                    .Function(
+                        "len",
+                        Defer.This(() => $"length call for ends with final check"),
+                        metadata: null,
+                        conditionValue
+                    )
+                    .Append(':')
+                ),
+                separator: "[]"
+            )),
+            " = ",
+            conditionValue
+        );
+    }
 }

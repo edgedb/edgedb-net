@@ -30,6 +30,7 @@ namespace EdgeDB.Translators
         ///     Marks this method as a valid method used to translate a <see cref="MethodCallExpression"/>.
         /// </summary>
         /// <param name="methodName">The name of the method that this method can translate.</param>
+        /// <param name="methodParameters">The parameters as types of the method.</param>
         public MethodNameAttribute(string methodName, params Type[] methodParameters)
         {
             MethodName = methodName;

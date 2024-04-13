@@ -57,7 +57,7 @@ namespace EdgeDB.Translators.Expressions
             }
 
             if(IsIllegalToInvoke(expression, context))
-                throw new InvalidOperationException($"Cannot invoke {expression.Method.Name} because it references mock-instances; and it has no translator");
+                throw new InvalidOperationException($"No translator could be found for {expression.Method.Name}, and it's illegal to invoke.");
 
             // invoke and translate the result
             var expressionResult = Expression

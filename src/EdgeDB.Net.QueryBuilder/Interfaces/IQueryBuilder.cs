@@ -109,22 +109,19 @@ namespace EdgeDB
         ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
         /// </summary>
         /// <typeparam name="TNewType">The resulting type of the expression.</typeparam>
-        /// <typeparam name="TQuery">A query containing a result of <typeparamref name="TNewType"/></typeparam>
         /// <param name="expression">The expression on which to select.</param>
         /// <param name="shape">A optional delegate to build the shape for selecting <typeparamref name="TNewType"/>.</param>
         /// <returns>
         ///     A <see cref="ISelectQuery{TNewType, TContext}"/>.
         /// </returns>
-        ISelectQuery<TNewType, TContext> SelectExpression<TNewType>(
-            Expression<Func<TContext, TNewType>> expression,
-            Action<ShapeBuilder<TNewType>>? shape = null
-        );
+        ISelectQuery<TNewType, TContext> SelectExpression<TNewType>(Expression<Func<TContext, TNewType>> expression,
+            Action<ShapeBuilder<TNewType>>? shape);
 
         /// <summary>
         ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
         /// </summary>
         /// <typeparam name="TExpression">The resulting type of the expression.</typeparam>
-        /// <typeparam name="TQuery">A query containing a result of <typeparamref name="TExpression"/></typeparam>
+        /// <typeparam name="TShape">The shape result of <typeparamref name="TExpression"/>.</typeparam>
         /// <param name="expression">The expression on which to select.</param>
         /// <param name="shape">A optional delegate to build the shape for selecting <typeparamref name="TExpression"/>.</param>
         /// <returns>

@@ -129,7 +129,7 @@ internal static class MethodTranslatorLookupTable
         }
     }
 
-    private static readonly ConcurrentDictionary<MethodInfo, Handle> _quickLookupTable;
+    private static readonly Dictionary<MethodInfo, Handle> _quickLookupTable;
 
     private static readonly Dictionary<Type, List<MethodTranslator>> _translatorsByTargetType;
     private static readonly List<MethodTranslator> _translators;
@@ -190,10 +190,10 @@ internal static class MethodTranslatorLookupTable
 
     public static bool TryGetTranslator(MethodInfo target, [MaybeNullWhen(false)] out Handle translator)
     {
-        if (_quickLookupTable.TryGetValue(target, out translator))
-            return true;
-
-        return TrySearchAndCacheTranslator(target, out translator);
+        lock (_quickLookupTable)
+        {
+            return _quickLookupTable.TryGetValue(target, out translator) || TrySearchAndCacheTranslator(target, out translator);
+        }
     }
 
     private static bool TrySearchAndCacheTranslator(MethodInfo target, [MaybeNullWhen(false)] out Handle translator)

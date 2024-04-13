@@ -109,7 +109,6 @@ namespace EdgeDB
         ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
         /// </summary>
         /// <typeparam name="TNewType">The resulting type of the expression.</typeparam>
-        /// <typeparam name="TQuery">A query containing a result of <typeparamref name="TNewType"/></typeparam>
         /// <param name="expression">The expression on which to select.</param>
         /// <param name="shape">A optional delegate to build the shape for selecting <typeparamref name="TNewType"/>.</param>
         /// <returns>
@@ -171,7 +170,8 @@ namespace EdgeDB
             return EnterNewType<TNewType>();
         }
 
-        ISelectQuery<TNewType, TContext> IQueryBuilder<TType, TContext>.SelectExpression<TNewType>(Expression<Func<TContext, TNewType>> expression, Action<ShapeBuilder<TNewType>>? shape)
+        ISelectQuery<TNewType, TContext> IQueryBuilder<TType, TContext>.SelectExpression<TNewType>(
+            Expression<Func<TContext, TNewType>> expression, Action<ShapeBuilder<TNewType>>? shape)
            => SelectExp(expression, shape);
 
         ISelectQuery<TShape, TContext> IQueryBuilder<TType, TContext>.SelectExpression<TExpression, TShape>(

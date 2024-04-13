@@ -51,7 +51,7 @@ namespace EdgeDB
         /// <summary>
         ///     Constructs a new <see cref="SubQuery"/>.
         /// </summary>
-        /// <param name="writer">The <see cref="QueryStringWriter"/> containing the subquery.</param>
+        /// <param name="writer">The <see cref="WriterProxy"/> containing the sub query.</param>
         public SubQuery(WriterProxy writer)
         {
             Query = writer;
@@ -64,7 +64,7 @@ namespace EdgeDB
         /// <param name="info">The introspection info to build this <see cref="SubQuery"/>.</param>
         /// <param name="result">The builder to append the compiled sub query to.</param>
         /// <returns>
-        ///     A <see cref="SubQuery"/> representing the built form of this queyr.
+        ///     A <see cref="SubQuery"/> representing the built form of this query.
         /// </returns>
         public void Build(SchemaInfo info, QueryWriter result)
         {
