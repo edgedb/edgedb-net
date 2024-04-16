@@ -13,19 +13,19 @@ namespace EdgeDB
     public static partial class QueryBuilder
     {
 
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(Expression{Func{QueryContext, TType}}, bool)"/>
+        /// <inheritdoc cref="IQueryBuilder{TType,TContext}.Insert{TNew}(Expression{Func{TContext, TNew}},bool)"/>
         public static IInsertQuery<TType, QueryContextSelf<TType>> Insert<TType>(Expression<Func<QueryContextSelf<TType>, TType>> value, bool returnInsertedValue)
             => new QueryBuilder<TType>().Insert(value, returnInsertedValue);
 
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(Expression{Func{QueryContext, TType}})"/>
+        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert{TNew}(Expression{Func{QueryContext, TNew}})"/>
         public static IInsertQuery<TType, QueryContextSelf<TType>> Insert<TType>(Expression<Func<QueryContextSelf<TType>, TType>> value)
             => new QueryBuilder<TType>().Insert(value);
 
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(TType, bool)"/>
+        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert{TNew}(TNew, bool)"/>
         public static IInsertQuery<TType, QueryContextSelf<TType>> Insert<TType>(TType value, bool returnInsertedValue)
             => new QueryBuilder<TType>().Insert(value, returnInsertedValue);
 
-        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert(TType)"/>
+        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert{TNew}(TNew)"/>
         public static IInsertQuery<TType, QueryContextSelf<TType>> Insert<TType>(TType value)
             where TType : class
             => new QueryBuilder<TType>().Insert(value, false);
