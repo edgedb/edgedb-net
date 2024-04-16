@@ -76,10 +76,7 @@ namespace EdgeDB.Translators.Expressions
 
             // return the variable name containing the result of the method.
             var varName = context.AddVariable(expressionResult);
-            writer.Marker(MarkerType.GlobalReference, varName, Value.Of(writer => writer
-                .TypeCast(type.ToString())
-                .Append(varName)
-            ));
+            writer.QueryArgument(type.ToString(), varName);
         }
     }
 }

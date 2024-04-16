@@ -11,6 +11,8 @@ namespace EdgeDB
     {
         public static void WriteTo(this IQueryBuilder source, QueryWriter writer, IQueryBuilder target, CompileContext? context = null)
         {
+            source.CompileInternal(writer, context);
+
             if (source.Variables.Any(variable => !target.Variables.TryAdd(variable.Key, variable.Value)))
             {
                 throw new InvalidOperationException(
@@ -18,8 +20,6 @@ namespace EdgeDB
             }
 
             target.Globals.AddRange(source.Globals);
-
-            source.CompileInternal(writer, context);
         }
 
         public static void WriteTo(
@@ -28,6 +28,8 @@ namespace EdgeDB
             ExpressionContext expressionContext,
             CompileContext? compileContext = null)
         {
+            source.CompileInternal(writer, compileContext);
+
             foreach (var variable in source.Variables)
             {
                 expressionContext.SetVariable(variable.Key, variable.Value);
@@ -37,12 +39,12 @@ namespace EdgeDB
             {
                 expressionContext.SetGlobal(global.Name, global.Value, global.Reference);
             }
-
-            source.CompileInternal(writer, compileContext);
         }
 
         public static void WriteTo(this IQueryBuilder source, QueryWriter writer, QueryNode node, CompileContext? compileContext = null)
         {
+            source.CompileInternal(writer, compileContext);
+
             if (source.Variables.Any(variable => !node.Builder.QueryVariables.TryAdd(variable.Key, variable.Value)))
             {
                 throw new InvalidOperationException(
@@ -50,8 +52,6 @@ namespace EdgeDB
             }
 
             node.Builder.QueryGlobals.AddRange(source.Globals);
-
-            source.CompileInternal(writer, compileContext);
         }
     }
 }

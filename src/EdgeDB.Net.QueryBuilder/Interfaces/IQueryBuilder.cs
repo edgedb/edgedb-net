@@ -144,7 +144,7 @@ namespace EdgeDB
         ///     whether or not to implicitly add a select statement to return the inserted value.
         /// </param>
         /// <returns>A <see cref="IInsertQuery{TType, TContext}"/>.</returns>
-        IInsertQuery<TType, TContext> Insert(TType value, bool returnInsertedValue);
+        IInsertQuery<TNew, TContext> Insert<TNew>(TNew value, bool returnInsertedValue);
 
         /// <summary>
         ///     Adds a <c>INSERT</c> statement inserting an instance of <typeparamref name="TType"/>.
@@ -155,7 +155,7 @@ namespace EdgeDB
         /// </remarks>
         /// <param name="value">The value to insert.</param>
         /// <returns>A <see cref="IInsertQuery{TType, TContext}"/>.</returns>
-        IInsertQuery<TType, TContext> Insert(TType value);
+        IInsertQuery<TNew, TContext> Insert<TNew>(TNew value);
 
         /// <summary>
         ///     Adds a <c>INSERT</c> statement inserting an instance of <typeparamref name="TType"/>.
@@ -169,7 +169,7 @@ namespace EdgeDB
         ///     whether or not to implicitly add a select statement to return the inserted value.
         /// </param>
         /// <returns>A <see cref="IInsertQuery{TType, TContext}"/>.</returns>
-        IInsertQuery<TType, TContext> Insert(Expression<Func<TContext, TType>> value, bool returnInsertedValue);
+        IInsertQuery<TNew, TContext> Insert<TNew>(Expression<Func<TContext, TNew>> value, bool returnInsertedValue);
 
         /// <summary>
         ///     Adds a <c>INSERT</c> statement inserting an instance of <typeparamref name="TType"/>.
@@ -180,7 +180,7 @@ namespace EdgeDB
         /// </remarks>
         /// <param name="value">The callback containing the value initialization to insert.</param>
         /// <returns>A <see cref="IInsertQuery{TType, TContext}"/>.</returns>
-        IInsertQuery<TType, TContext> Insert(Expression<Func<TContext, TType>> value);
+        IInsertQuery<TNew, TContext> Insert<TNew>(Expression<Func<TContext, TNew>> value);
 
         /// <summary>
         ///     Adds a <c>UPDATE</c> statement updating an instance of <typeparamref name="TType"/>.
@@ -202,6 +202,12 @@ namespace EdgeDB
         /// </param>
         /// <returns>A <see cref="IUpdateQuery{TType, TContext}"/>.</returns>
         IUpdateQuery<TSelected, TContext> Update<TSelected>(Expression<Func<TType, TSelected>> selector);
+
+        /// <summary>
+        ///     Adds a <c>UPDATE</c> statement updating an instance of <typeparamref name="TType"/>.
+        /// </summary>
+        /// <returns>A <see cref="IUpdateQuery{TType, TContext}"/>.</returns>
+        IUpdateQuery<TSelected, TContext> Update<TSelected>();
 
         /// <summary>
         ///     Adds a <c>DELETE</c> statement deleting an instance of <typeparamref name="TType"/>.

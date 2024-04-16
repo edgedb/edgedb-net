@@ -34,10 +34,30 @@ namespace EdgeDB.ExampleApp.Examples
         {
             try
             {
-                var x = QueryBuilder
-                    .With(ctx => new {People = ctx.SubQuery(QueryBuilder.Select<Person>())})
-                    .SelectExpression(ctx => EdgeQL.Mean(ctx.Variables.People.Select(x => (long)x.Name!.Length)))
-                    .Compile(true);
+                var friend = new Person {Name = "ABC", Email = "123"};
+                var ext1 = "HIJ";
+
+                var test = await QueryBuilder
+                    .With(ctx => new
+                    {
+                        Friend = ctx.SubQuerySingle(
+                            QueryBuilder.Select<Person>().Filter(x => x.Email == friend.Email)
+                        )
+                    })
+                    .Insert(ctx => new Person
+                    {
+                        BestFriend = ctx.Variables.Friend,
+                        Name = "DEF",
+                        Email = "456"
+                    })
+                    .UnlessConflict()
+                    .Else(qb => qb
+                        .Update<Person>()
+                        .Set(shape => shape
+                            .Set(x => x.Name, _ => ext1)
+                        )
+                    )
+                    .CompileAsync(client, true);
 
                 await QueryBuilderDemo(client);
             }

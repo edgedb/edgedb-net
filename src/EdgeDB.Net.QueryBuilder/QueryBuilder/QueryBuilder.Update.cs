@@ -93,5 +93,8 @@ namespace EdgeDB
         IUpdateQuery<TSelected, TContext> IQueryBuilder<TType, TContext>.Update<TSelected>(
             Expression<Func<TType, TSelected>> selector)
             => Update<TSelected>(selector, false);
+
+        IUpdateQuery<TSelected, TContext> IQueryBuilder<TType, TContext>.Update<TSelected>()
+            => Update<TSelected>(null, false);
     }
 }

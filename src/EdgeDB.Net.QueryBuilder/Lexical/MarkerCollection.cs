@@ -6,7 +6,7 @@ namespace EdgeDB;
 
 internal sealed class MarkerCollection : IEnumerable<Marker>
 {
-    private readonly Dictionary<MarkerType, LinkedList<Marker>> _markersByType = new();
+    public readonly Dictionary<MarkerType, LinkedList<Marker>> MarkersByType = new();
     private readonly LinkedList<Marker> _markers = new();
     private readonly SortedDictionary<int, LinkedList<Marker>> _markersByPosition = new();
     public readonly Dictionary<string, LinkedList<Marker>> MarkersByName = new();
@@ -15,8 +15,8 @@ internal sealed class MarkerCollection : IEnumerable<Marker>
     {
         _markers.AddLast(marker);
 
-        if (!_markersByType.TryGetValue(marker.Type, out var markersByType))
-            _markersByType[marker.Type] = markersByType = new();
+        if (!MarkersByType.TryGetValue(marker.Type, out var markersByType))
+            MarkersByType[marker.Type] = markersByType = new();
 
         if (!_markersByPosition.TryGetValue(marker.Position, out var markersByPosition))
             _markersByPosition[marker.Position] = markersByPosition = new();
@@ -100,7 +100,7 @@ internal sealed class MarkerCollection : IEnumerable<Marker>
     {
         _markers.Clear();
         _markersByPosition.Clear();
-        _markersByType.Clear();
+        MarkersByType.Clear();
         MarkersByName.Clear();
     }
 

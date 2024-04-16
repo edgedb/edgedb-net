@@ -77,16 +77,16 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
-        public IInsertQuery<TType, TContext> Insert(TType value, bool returnInsertedValue = true)
+        public IInsertQuery<TNew, TContext> Insert<TNew>(TNew value, bool returnInsertedValue = true)
         {
-            var insertNode = AddNode<InsertNode>(new InsertContext(typeof(TType), value));
+            var insertNode = AddNode<InsertNode>(new InsertContext(typeof(TNew), value));
 
             if (returnInsertedValue)
             {
-                AddNode<SelectNode>(new SelectContext(typeof(TType)), true, insertNode);
+                AddNode<SelectNode>(new SelectContext(typeof(TNew)), true, insertNode);
             }
 
-            return this;
+            return EnterNewType<TNew>();
         }
 
         /// <inheritdoc/>
@@ -103,24 +103,24 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
-        public IInsertQuery<TType, TContext> Insert(TType value)
+        public IInsertQuery<TNew, TContext> Insert<TNew>(TNew value)
             => Insert(value, false);
 
         /// <inheritdoc/>
-        public IInsertQuery<TType, TContext> Insert(Expression<Func<TContext, TType>> value, bool returnInsertedValue = true)
+        public IInsertQuery<TNew, TContext> Insert<TNew>(Expression<Func<TContext, TNew>> value, bool returnInsertedValue = true)
         {
-            var insertNode = AddNode<InsertNode>(new InsertContext(typeof(TType), value));
+            var insertNode = AddNode<InsertNode>(new InsertContext(typeof(TNew), value));
 
             if (returnInsertedValue)
             {
-                AddNode<SelectNode>(new SelectContext(typeof(TType)), true, insertNode);
+                AddNode<SelectNode>(new SelectContext(typeof(TNew)), true, insertNode);
             }
 
-            return this;
+            return EnterNewType<TNew>();
         }
 
         /// <inheritdoc/>
-        public IInsertQuery<TType, TContext> Insert(Expression<Func<TContext, TType>> value)
+        public IInsertQuery<TNew, TContext> Insert<TNew>(Expression<Func<TContext, TNew>> value)
             => Insert(value, false);
 
         IUnlessConflictOn<TType, TContext> IInsertQuery<TType, TContext>.UnlessConflict()

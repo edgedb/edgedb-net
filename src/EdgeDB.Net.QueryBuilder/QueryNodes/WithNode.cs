@@ -35,19 +35,61 @@ namespace EdgeDB.QueryNodes
             if (!Builder.QueryGlobals.Any())
                 return;
 
+            var groups = Builder.QueryGlobals.GroupBy(x => x.Reference).ToArray();
+
             writer.Append("with ");
 
-            for (var i = 0; i != Builder.QueryGlobals.Count; i++)
+            for (var i = 0; i != groups.Length; i++)
             {
-                var global = Builder.QueryGlobals[i];
+                var globalGroup = groups[i];
+
+                // basic global
+                QueryGlobal global;
+                if (globalGroup.Count() == 1)
+                {
+                    global = globalGroup.First();
+
+                    writer.Append(global.Name)
+                        .Append(" := ");
+
+                    global.Compile(this, writer, null, SchemaInfo);
+
+                    continue;
+                }
+
+                global = globalGroup.First();
+                var followers = globalGroup.Skip(1);
 
                 writer.Append(global.Name)
                     .Append(" := ");
 
                 global.Compile(this, writer, null, SchemaInfo);
 
-                if (i + 1 < Builder.QueryGlobals.Count)
-                    writer.Append(", ");
+                foreach (var follower in followers)
+                {
+                    if (!writer.Markers.MarkersByType.TryGetValue(MarkerType.GlobalReference, out var markers))
+                    {
+                        throw new InvalidOperationException(
+                            $"The global {follower.Name} mimics another global, but this one doesn't have any references");
+                    }
+
+                    foreach (var marker in markers.ToArray())
+                    {
+                        marker.Replace(Value.Of(writer => writer
+                            .Marker(
+                                MarkerType.GlobalReference,
+                                $"{global.Name}_follower_{follower.Name}",
+                                Defer.This(() => $"Marker is a follower of {global.Name} by reference"),
+                                metadata: null,
+                                global.Name
+                            )
+                        ));
+                    }
+                }
+
+                //
+                // if (i + 1 < Builder.QueryGlobals.Count)
+                //     writer.Append(", ");
             }
         }
     }
