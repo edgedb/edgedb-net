@@ -64,9 +64,10 @@ internal static class Terms
 
                 for (var i = 0; i < elements.Length; i++)
                 {
-                    func(writer, elements[i]);
+                    var iLocal = i;
+                    var isEmpty = writer.AppendIsEmpty(Value.Of(writer => func(writer, elements[iLocal])));
 
-                    if (i + 1 < elements.Length)
+                    if (!isEmpty && i + 1 < elements.Length)
                         writer.Append(", ");
                 }
 
@@ -86,9 +87,11 @@ internal static class Terms
 
                 for (var i = 0; i < elements.Length; i++)
                 {
-                    elements[i].Write(writer);
+                    var iLocal = i;
 
-                    if (i + 1 != elements.Length)
+                    var isEmpty = writer.AppendIsEmpty(Value.Of(writer => elements[iLocal].Write(writer)));
+
+                    if (!isEmpty && i + 1 != elements.Length)
                         writer.Append(", ");
                 }
 
