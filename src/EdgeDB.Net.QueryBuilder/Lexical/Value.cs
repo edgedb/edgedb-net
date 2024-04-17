@@ -43,8 +43,8 @@ internal readonly struct Value
 
     public bool TryProxy(
         QueryWriter writer,
-        [MaybeNullWhen(false)] out LooseLinkedList<Value>.Node first,
-        [MaybeNullWhen(false)] out LooseLinkedList<Value>.Node last)
+        out LooseLinkedList<Value>.Node? first,
+        out LooseLinkedList<Value>.Node? last)
     {
         if (IsScalar)
         {
@@ -55,10 +55,7 @@ internal readonly struct Value
 
         using var nodeObserver = new RangeNodeObserver(writer);
         _callback(writer);
-
-        if (!nodeObserver.HasValue)
-            throw new InvalidOperationException("Provided proxy wrote no value");
-
+        
         first = nodeObserver.First;
         last = nodeObserver.Last;
         return true;

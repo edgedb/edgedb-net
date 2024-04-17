@@ -72,7 +72,7 @@ internal sealed class QueryWriter : IDisposable
         if (value.TryProxy(this, out var head, out _))
         {
             // track is already updated.
-            return head;
+            return head ?? _track!;
         }
         else if (_track is null)
             _track = _tokens.AddFirst(in value); //Set(ref _tokens.AddFirst(in value));
