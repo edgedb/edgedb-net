@@ -116,6 +116,9 @@ namespace EdgeDB
                 info = new(type, scalar, false, child);
             else if (hasChild)
                 info = new(type, "array", true, child);
+            else if (type.IsEnum)
+                info = new(type, type.GetEdgeDBTypeName(), false, child);
+
 
             return info != null && _typeCache.TryAdd(type, info);
         }
