@@ -183,8 +183,8 @@ internal static class Terms
     public static QueryWriter SingleQuoted(this QueryWriter writer, Value value)
         => writer.Append('\'', value, '\'');
 
-    public static QueryWriter QueryArgument(this QueryWriter writer, Value type, Value name, Deferrable<string>? debug = null)
-        => writer.Marker(MarkerType.Variable, $"variable_{name}", debug, '<', type, ">$", name);
+    public static QueryWriter QueryArgument(this QueryWriter writer, Value type, Value name, Deferrable<string>? debug = null, bool optional = false)
+        => writer.Marker(MarkerType.Variable, $"variable_{name}", debug, optional ? "<optional " : "<", type, ">$", name);
 
     public static Value[] Span(this QueryWriter writer, WriterProxy proxy)
     {

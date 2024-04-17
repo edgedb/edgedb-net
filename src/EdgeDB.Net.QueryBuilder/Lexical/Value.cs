@@ -55,7 +55,7 @@ internal readonly struct Value
 
         using var nodeObserver = new RangeNodeObserver(writer);
         _callback(writer);
-        
+
         first = nodeObserver.First;
         last = nodeObserver.Last;
         return true;

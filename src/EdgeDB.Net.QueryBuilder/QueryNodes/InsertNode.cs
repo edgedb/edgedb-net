@@ -394,7 +394,7 @@ namespace EdgeDB.QueryNodes
                         writer
                             .Append(property.EdgeDBName)
                             .Append(" := ")
-                            .QueryArgument(new(edgeqlType), varName);
+                            .QueryArgument(new(edgeqlType), varName, optional: !edgedbProp.Required);
                     }));
                     continue;
                 }
@@ -410,7 +410,7 @@ namespace EdgeDB.QueryNodes
                     setters.Add(new ShapeSetter(writer => writer
                         .Append(property.EdgeDBName)
                         .Append(" := ")
-                        .QueryArgument(new(edgeqlType), varName)
+                        .QueryArgument(new(edgeqlType), varName, optional: value is null)
                     ));
                     continue;
                 }
