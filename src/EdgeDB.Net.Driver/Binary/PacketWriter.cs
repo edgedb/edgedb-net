@@ -255,7 +255,7 @@ internal unsafe ref struct PacketWriter
         pin.Dispose();
     }
 
-    public void Write(string value)
+    public void Write(string? value)
     {
         if (value is null)
             Write((uint)0);

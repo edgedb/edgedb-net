@@ -420,24 +420,22 @@ internal class V1ProtocolProvider : IProtocolProvider
         return descriptor;
     }
 
-    public virtual Sendable Handshake() =>
-        new ClientHandshake
+    public virtual Sendable Handshake()
+    {
+        return new ClientHandshake
         {
             MajorVersion = Version.Major,
             MinorVersion = Version.Minor,
-            ConnectionParameters = _client.Connection.SecretKey is not null
-                ? new ConnectionParam[]
-                {
-                    new() {Name = "user", Value = _client.Connection.Username!},
-                    new() {Name = "database", Value = _client.Connection.Database!},
-                    new() {Name = "secret_key", Value = _client.Connection.SecretKey}
-                }
-                : new ConnectionParam[]
-                {
-                    new() {Name = "user", Value = _client.Connection.Username!},
-                    new() {Name = "database", Value = _client.Connection.Database!}
-                }
+            ConnectionParameters = new ConnectionParam[]
+            {
+                new() {Name = "user", Value = _client.Connection.Username},
+                new() {Name = "database", Value = _client.Connection.Database},
+                new() {Name = "secret_key", Value = _client.Connection.SecretKey},
+                new() {Name = "branch", Value = _client.Connection.Branch}
+            }
         };
+    }
+
 
     public virtual ValueTask ProcessAsync<T>(in T message) where T : IReceiveable
     {

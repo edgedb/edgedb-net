@@ -19,6 +19,7 @@ public sealed class EdgeDBConnection
     private const string EDGEDB_USER_ENV_NAME = "EDGEDB_USER";
     private const string EDGEDB_PASSWORD_ENV_NAME = "EDGEDB_PASSWORD";
     private const string EDGEDB_DATABASE_ENV_NAME = "EDGEDB_DATABASE";
+    private const string EDGEDB_BRANCH_ENV_NAME = "EDGEDB_BRANCH";
     private const string EDGEDB_HOST_ENV_NAME = "EDGEDB_HOST";
     private const string EDGEDB_PORT_ENV_NAME = "EDGEDB_PORT";
     private const string EDGEDB_CLOUD_PROFILE_ENV_NAME = "EDGEDB_CLOUD_PROFILE";
@@ -142,13 +143,46 @@ public sealed class EdgeDBConnection
     ///     Gets or sets the database name to use when connecting.
     /// </summary>
     /// <remarks>
-    ///     This property defaults to edgedb
+    ///     This property defaults to <c>edgedb</c>.  It is mutually exclusive with <see cref="Branch"/>.
     /// </remarks>
+    /// <exception cref="InvalidOperationException"><see cref="Branch"/> already contains a value; they're mutually exclusive</exception>
     [JsonProperty("database")]
     public string? Database
     {
-        get => _database ?? "edgedb";
-        set => _database = value;
+        get => _database ?? _branch ?? "edgedb";
+        set
+        {
+            if (_branch is not null)
+            {
+                throw new InvalidOperationException(
+                    "Cannot set database: database conflicts with already provided branch");
+            }
+
+            _database = value;
+        }
+    }
+
+    /// <summary>
+    ///     Gets or sets the branch name to use when connecting.
+    /// </summary>
+    /// <remarks>
+    ///     This property defaults to <c>__default__</c>. It is mutually exclusive with <see cref="Database"/>
+    /// </remarks>
+    /// <exception cref="InvalidOperationException"><see cref="Database"/> already contains a value; they're mutually exclusive</exception>
+    [JsonProperty("branch")]
+    public string? Branch
+    {
+        get => _database ?? _branch ?? "__default__";
+        set
+        {
+            if (_database is not null)
+            {
+                throw new InvalidOperationException(
+                    "Cannot set branch: branch conflicts with already provided database");
+            }
+
+            _branch = value;
+        }
     }
 
     /// <summary>
@@ -213,6 +247,7 @@ public sealed class EdgeDBConnection
 
     private string? _user;
     private string? _database;
+    private string? _branch;
     private string? _hostname;
     private string? _cloudProfile;
     private int? _port;
@@ -366,7 +401,7 @@ public sealed class EdgeDBConnection
 
                     conn.Hostname = value;
                     break;
-                case "database":
+                case "database" or "branch":
                     if (database is not null)
                         throw new ArgumentException("Database ambiguity mismatch");
 
@@ -404,6 +439,13 @@ public sealed class EdgeDBConnection
             }
         }
 
+        if (args.Any(x => x.Key.StartsWith("branch", StringComparison.InvariantCultureIgnoreCase)) && args.Any(x =>
+                x.Key.StartsWith("database", StringComparison.InvariantCultureIgnoreCase)))
+        {
+            throw new ArgumentException("branch conflicts with database");
+        }
+
+
         // query arguments
         foreach (var arg in args)
         {
@@ -421,7 +463,7 @@ public sealed class EdgeDBConnection
                 var val = Environment.GetEnvironmentVariable(arg.Value, EnvironmentVariableTarget.Process);
 
                 if (val == null)
-                    throw new KeyNotFoundException($"Enviroment variable \"{arg.Value}\" couldn't be found");
+                    throw new KeyNotFoundException($"Environment variable \"{arg.Value}\" couldn't be found");
 
                 SetArgument(envMatch.Groups[1].Value, val, conn);
             }
@@ -699,8 +741,17 @@ public sealed class EdgeDBConnection
 
         if (env.Contains(EDGEDB_DATABASE_ENV_NAME))
         {
+            if (env.Contains(EDGEDB_BRANCH_ENV_NAME))
+                throw new ArgumentException($"{EDGEDB_DATABASE_ENV_NAME} conflicts with {EDGEDB_BRANCH_ENV_NAME}");
+
             connection ??= new EdgeDBConnection();
             connection.Database = (string)env[EDGEDB_DATABASE_ENV_NAME]!;
+        }
+
+        if (env.Contains(EDGEDB_BRANCH_ENV_NAME))
+        {
+            connection ??= new EdgeDBConnection();
+            connection.Branch = (string)env[EDGEDB_BRANCH_ENV_NAME]!;
         }
 
         #endregion

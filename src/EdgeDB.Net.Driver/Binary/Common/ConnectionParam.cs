@@ -9,7 +9,7 @@ internal readonly struct ConnectionParam
 
     public string Name { get; init; }
 
-    public string Value { get; init; }
+    public string? Value { get; init; }
 
     public void Write(ref PacketWriter writer)
     {
