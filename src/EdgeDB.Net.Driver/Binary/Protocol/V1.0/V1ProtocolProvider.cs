@@ -39,6 +39,13 @@ internal class V1ProtocolProvider : IProtocolProvider
 
     public virtual ProtocolVersion Version { get; } = (1, 0);
 
+    public void Reset()
+    {
+        Phase = ProtocolPhase.Connection;
+        _rawServerConfig.Clear();
+        _serverKey = Array.Empty<byte>();
+    }
+
     public virtual PacketReadFactory? GetPacketFactory(ServerMessageType type) =>
         type switch
         {
@@ -491,6 +498,7 @@ internal class V1ProtocolProvider : IProtocolProvider
                 if (authStatus.AuthStatus != AuthStatus.AuthenticationOK)
                     throw new UnexpectedMessageException("Expected AuthenticationRequiredSASLMessage, got " +
                                                          authStatus.AuthStatus);
+                Logger.LogDebug("Got authentication OK");
                 break;
             case ServerKeyData keyData:
                 _serverKey = keyData.KeyBuffer;
