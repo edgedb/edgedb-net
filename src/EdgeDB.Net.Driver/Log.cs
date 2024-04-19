@@ -1,5 +1,6 @@
 using EdgeDB.Binary;
 using EdgeDB.Binary.Codecs;
+using EdgeDB.Binary.Protocol;
 using Microsoft.Extensions.Logging;
 
 namespace EdgeDB;
@@ -228,4 +229,14 @@ internal static partial class Log
         LogLevel.Trace,
         "Codec tree information:\n{CodecTree}")]
     public static partial void CodecTree(this ILogger logger, string codecTree);
+
+    [LoggerMessage(34,
+        LogLevel.Debug,
+        "Processing {Type} in connection step")]
+    public static partial void ConnectionMessageProcessing(this ILogger logger, ServerMessageType type);
+
+    [LoggerMessage(35,
+        LogLevel.Debug,
+        "Protocol phase is {Phase}. Ending connection task")]
+    public static partial void ConnectionPhaseComplete(this ILogger logger, ProtocolPhase phase);
 }

@@ -32,6 +32,8 @@ internal interface IProtocolProvider
 
     int? SuggestedPoolConcurrency { get; }
 
+    void Reset();
+
     public static IProtocolProvider GetDefaultProvider(EdgeDBBinaryClient client)
         => (_defaultProvider ??= Providers[ProtocolVersion.EdgeDBBinaryDefaultVersion].Factory)(client);
 

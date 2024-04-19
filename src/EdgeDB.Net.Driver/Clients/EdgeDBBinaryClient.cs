@@ -219,15 +219,20 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
         }
         catch (EdgeDBException x) when (x.ShouldReconnect && !isRetry)
         {
+            Logger.LogDebug("Execute threw an exception which allows reconnects, reconnecting...");
+
             await ReconnectAsync(token).ConfigureAwait(false);
             _semaphore.Release();
             released = true;
 
+            Logger.LogDebug("Preforming retry after a reconnect exception");
             return await ExecuteInternalAsync(query, args, cardinality, capabilities, format, true, implicitTypeName,
                 preheat, token).ConfigureAwait(false);
         }
         catch (EdgeDBException x) when (x.ShouldRetry && !isRetry)
         {
+            Logger.LogDebug("Execute threw an exception which allows retries, retrying...");
+
             _semaphore.Release();
             released = true;
 
@@ -527,35 +532,35 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
 
                 try
                 {
+                    Logger.ConnectionMessageProcessing(message.Type);
                     await _protocolProvider.ProcessAsync(in message);
                 }
                 catch (EdgeDBErrorException x) when (x.ShouldReconnect)
                 {
-                    if (ClientConfig.RetryMode is ConnectionRetryMode.AlwaysRetry)
+                    if (ClientConfig.RetryMode is not ConnectionRetryMode.AlwaysRetry) throw;
+
+                    if (_currentRetries < ClientConfig.MaxConnectionRetries)
                     {
-                        if (_currentRetries < ClientConfig.MaxConnectionRetries)
-                        {
-                            _currentRetries++;
+                        _currentRetries++;
 
-                            Logger.AttemptToReconnect(_currentRetries, ClientConfig.MaxConnectionRetries, x);
+                        Logger.AttemptToReconnect(_currentRetries, ClientConfig.MaxConnectionRetries, x);
 
-                            // do not forward the linked token in this method to the new
-                            // reconnection, only supply the external token. We also don't
-                            // want to call 'ReconnectAsync' since we queue up a disconnect
-                            // and connect request, if this method was called externally
-                            // while we handle the error, it would be next in line to attempt
-                            // to connect, if that external call completes we would then disconnect
-                            // and connect after a successful connection attempt which wouldn't be ideal.
-                            await DisconnectAsync(token);
+                        // do not forward the linked token in this method to the new
+                        // reconnection, only supply the external token. We also don't
+                        // want to call 'ReconnectAsync' since we queue up a disconnect
+                        // and connect request, if this method was called externally
+                        // while we handle the error, it would be next in line to attempt
+                        // to connect, if that external call completes we would then disconnect
+                        // and connect after a successful connection attempt which wouldn't be ideal.
+                        await DisconnectAsync(token);
 
-                            _connectSemaphone.Release();
+                        _connectSemaphone.Release();
 
-                            await ConnectAsync(token);
-                            return;
-                        }
-                        else
-                            Logger.MaxConnectionRetries(ClientConfig.MaxConnectionRetries, x);
+                        await ConnectAsync(token);
+                        return;
                     }
+                    else
+                        Logger.MaxConnectionRetries(ClientConfig.MaxConnectionRetries, x);
 
                     throw;
                 }
@@ -564,6 +569,7 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
                 {
                     // reset connection attempts
                     _currentRetries = 0;
+                    Logger.ConnectionPhaseComplete(_protocolProvider.Phase);
                     break;
                 }
             }
@@ -589,6 +595,7 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
 
             _readyCancelTokenSource = new CancellationTokenSource();
             _readySource = new TaskCompletionSource();
+            _protocolProvider.Reset();
 
             Duplexer.Reset();
 

@@ -4,6 +4,7 @@ using EdgeDB.Utils;
 using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Diagnostics;
+using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 
 namespace EdgeDB.Binary;
@@ -111,7 +112,7 @@ internal sealed class StreamDuplexer : IBinaryDuplexer
 
             if (packetFactory is null)
             {
-                // unknow/unsupported packet
+                // unknown/unsupported packet
                 _client.Logger.UnknownPacket($"{header.Type}{{0x{(byte)header.Type}}}:{header.Length}");
 
                 await DisconnectInternalAsync();
@@ -121,16 +122,27 @@ internal sealed class StreamDuplexer : IBinaryDuplexer
             var packet = PacketSerializer.DeserializePacket(in packetFactory, in buffer);
 
             // check for idle timeout
-            if (packet is IProtocolError err && err.ErrorCode == ServerErrorCodes.IdleSessionTimeoutError)
+            if (packet is not IProtocolError {ErrorCode: ServerErrorCodes.IdleSessionTimeoutError} err) return packet;
+
+            // all connection state needs to be reset for the client here.
+            _client.Logger.IdleDisconnect();
+
+            await DisconnectInternalAsync();
+            throw new EdgeDBErrorException(err);
+        }
+        catch (IOException ioException) when (ioException.InnerException is SocketException socketException)
+        {
+            switch (socketException.SocketErrorCode)
             {
-                // all connection state needs to be reset for the client here.
-                _client.Logger.IdleDisconnect();
-
-                await DisconnectInternalAsync();
-                throw new EdgeDBErrorException(err);
+                case SocketError.ConnectionRefused
+                    or SocketError.ConnectionAborted
+                    or SocketError.ConnectionReset
+                    or SocketError.HostNotFound
+                    or SocketError.NotInitialized:
+                    throw new ConnectionFailedTemporarilyException(socketException.SocketErrorCode);
+                default:
+                    throw;
             }
-
-            return packet;
         }
         catch (EndOfStreamException)
         {
@@ -168,7 +180,24 @@ internal sealed class StreamDuplexer : IBinaryDuplexer
 
         using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectTokenSource.Token);
 
-        await _stream.WriteAsync(BinaryUtils.BuildPackets(packets), linkedToken.Token).ConfigureAwait(false);
+        try
+        {
+            await _stream.WriteAsync(BinaryUtils.BuildPackets(packets), linkedToken.Token).ConfigureAwait(false);
+        }
+        catch (IOException ioException) when (ioException.InnerException is SocketException socketException)
+        {
+            switch (socketException.SocketErrorCode)
+            {
+                case SocketError.ConnectionRefused
+                    or SocketError.ConnectionAborted
+                    or SocketError.ConnectionReset
+                    or SocketError.HostNotFound
+                    or SocketError.NotInitialized:
+                    throw new ConnectionFailedTemporarilyException(socketException.SocketErrorCode);
+                default:
+                    throw;
+            }
+        }
 
         // only perform second iteration if debug log enabled.
         if (_client.Logger.IsEnabled(LogLevel.Debug))
