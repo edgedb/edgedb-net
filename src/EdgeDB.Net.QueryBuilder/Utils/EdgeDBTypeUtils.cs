@@ -119,8 +119,10 @@ namespace EdgeDB
             else if (type.IsEnum)
                 info = new(type, type.GetEdgeDBTypeName(), false, child);
 
+            if(info is not null)
+                _typeCache.TryAdd(type, info);
 
-            return info != null && _typeCache.TryAdd(type, info);
+            return info != null;
         }
 
         /// <summary>
