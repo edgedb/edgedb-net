@@ -41,6 +41,9 @@ namespace EdgeDB.QueryNodes
 
             for (var i = 0; i != groups.Length; i++)
             {
+                if (i > 0 && i < groups.Length)
+                    writer.Append(", ");
+
                 var globalGroup = groups[i];
 
                 // basic global
@@ -86,10 +89,6 @@ namespace EdgeDB.QueryNodes
                         ));
                     }
                 }
-
-                //
-                // if (i + 1 < Builder.QueryGlobals.Count)
-                //     writer.Append(", ");
             }
         }
     }
