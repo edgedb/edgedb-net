@@ -54,6 +54,13 @@ namespace EdgeDB
         }
 
         /// <inheritdoc/>
+        public ISelectQuery<TResult, TContext> Select<TResult>()
+        {
+            AddNode<SelectNode>(new SelectContext(typeof(TResult)));
+            return EnterNewType<TResult>();
+        }
+
+        /// <inheritdoc/>
         public ISelectQuery<TResult, TContext> Select<TResult>(Action<ShapeBuilder<TResult>> shape)
         {
             var shapeBuilder = new ShapeBuilder<TResult>();
