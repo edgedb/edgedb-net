@@ -96,9 +96,22 @@ public sealed class UpdateShapeBuilder<T, U> : IUpdateShapeBuilder
     public UpdateShapeBuilder<T, U> Add<V>(Expression<Func<T, IEnumerable<V>?>> selector, Expression<Func<T, V>> value)
         => AddElement(selector, value, ExpressionType.AddAssign);
 
+    public UpdateShapeBuilder<T, U> Add<V>(Expression<Func<T, IEnumerable<V>?>> selector,
+        Expression<Func<T, IEnumerable<V>>> value)
+        => AddElement(selector, value, ExpressionType.AddAssign);
+
+    public UpdateShapeBuilder<T, U> Add<V>(Expression<Func<T, IEnumerable<V>?>> selector,
+        Expression<Func<T, U, IEnumerable<V>>> value)
+        => AddElement(selector, value, ExpressionType.AddAssign);
+
     public UpdateShapeBuilder<T, U> Remove<V>(Expression<Func<T, IEnumerable<V>?>> selector, Expression<Func<T, U, V>> value)
         => AddElement(selector, value, ExpressionType.SubtractAssign);
     public UpdateShapeBuilder<T, U> Remove<V>(Expression<Func<T, IEnumerable<V>?>> selector, Expression<Func<T, V>> value)
+        => AddElement(selector, value, ExpressionType.SubtractAssign);
+
+    public UpdateShapeBuilder<T, U> Remove<V>(Expression<Func<T, IEnumerable<V>?>> selector, Expression<Func<T, U, IEnumerable<V>>> value)
+        => AddElement(selector, value, ExpressionType.SubtractAssign);
+    public UpdateShapeBuilder<T, U> Remove<V>(Expression<Func<T, IEnumerable<V>?>> selector, Expression<Func<T, IEnumerable<V>>> value)
         => AddElement(selector, value, ExpressionType.SubtractAssign);
 
     private UpdateShapeBuilder<T, U> AddElement(LambdaExpression selector, LambdaExpression value, ExpressionType type)
