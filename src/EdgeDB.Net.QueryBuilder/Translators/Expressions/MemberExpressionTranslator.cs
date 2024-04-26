@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -50,10 +51,54 @@ namespace EdgeDB.Translators.Expressions
                 case ParameterExpression param:
                     TranslateParameterMember(writer, param, path, context);
                     break;
+                case ConstantExpression jsonConstant
+                    when jsonConstant.Type.IsAssignableTo(typeof(IJsonVariable)) ||
+                         (
+                             jsonConstant.Type.GenericTypeArguments.Length == 1 &&
+                             jsonConstant.Type.IsAssignableTo(typeof(IStrongBox)) &&
+                             jsonConstant.Type.GenericTypeArguments[0].IsAssignableTo(typeof(IJsonVariable))
+                         ):
+                    TranslateJsonMember(writer, jsonConstant, path, context);
+                    break;
                 case ConstantExpression constant:
                     TranslateConstantMember(writer, constant, path, context);
                     break;
             }
+        }
+
+        private void TranslateJsonMember(QueryWriter writer, ConstantExpression expression, MemberExpression[] path,
+            ExpressionContext context)
+        {
+            if (expression.Value is not IJsonVariable jsonVariable)
+            {
+                if (expression.Value is IStrongBox {Value: IJsonVariable boxedJsonVariable})
+                    jsonVariable = boxedJsonVariable;
+                else
+                    throw new InvalidOperationException("Could not extract json variable reference");
+            }
+
+            var jsonpath = path[..^2];
+
+            if (!EdgeDBTypeUtils.TryGetScalarType(jsonpath[0].Type, out var scalar))
+                throw new InvalidOperationException($"Expecting a scalar value, found {jsonpath[0].Type.Name}");
+
+            var args = new Terms.FunctionArg[jsonpath.Length + 1];
+
+            args[0] = jsonVariable.Name;
+
+            for (var i = 0; i != jsonpath.Length; i++)
+            {
+                var name = jsonpath[^(i + 1)].Member.Name;
+                args[i + 1] = Value.Of(writer => writer.SingleQuoted(name));
+            }
+
+            writer
+                .TypeCast(scalar.ToString(), new CastMetadata(scalar, scalar.ToString()))
+                .Function(
+                    "json_get",
+                    debug: Defer.This(() => $"Json member path"),
+                    args
+                );
         }
 
         private void TranslateConstantMember(QueryWriter writer, ConstantExpression constant, MemberExpression[] path,

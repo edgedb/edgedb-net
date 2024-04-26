@@ -21,6 +21,10 @@ namespace EdgeDB
         public static IInsertQuery<TType, QueryContextSelf<TType>> Insert<TType>(Expression<Func<QueryContextSelf<TType>, TType>> value)
             => new QueryBuilder<TType>().Insert(value);
 
+        /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert{TNew}(Expression{Func{QueryContext, TNew}})"/>
+        public static IInsertQuery<TType, QueryContextSelf<TType>> Insert<TType>(Expression<Func<TType>> value)
+            => new QueryBuilder<TType>().Insert(value);
+
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Insert{TNew}(TNew, bool)"/>
         public static IInsertQuery<TType, QueryContextSelf<TType>> Insert<TType>(TType value, bool returnInsertedValue)
             => new QueryBuilder<TType>().Insert(value, returnInsertedValue);
@@ -116,6 +120,12 @@ namespace EdgeDB
                 AddNode<SelectNode>(new SelectContext(typeof(TNew)), true, insertNode);
             }
 
+            return EnterNewType<TNew>();
+        }
+
+        public IInsertQuery<TNew, TContext> Insert<TNew>(Expression<Func<TNew>> value)
+        {
+            AddNode<InsertNode>(new InsertContext(typeof(TNew), value));
             return EnterNewType<TNew>();
         }
 
