@@ -33,14 +33,50 @@ namespace EdgeDB
         IGroupQuery<TResult, TContext> Group<TResult>(Expression<Func<TResult>> selector, Action<ShapeBuilder<TResult>> shape);
         IGroupQuery<TResult, TContext> Group<TResult>(Expression<Func<TContext, TResult>> selector, Action<ShapeBuilder<TResult>> shape);
 
+        // /// <summary>
+        // ///     Adds a <c>FOR</c> statement on the <paramref name="collection"/> with a <c>UNION</c>
+        // ///     whos inner query is the <paramref name="iterator"/>.
+        // /// </summary>
+        // /// <param name="collection">The collection to iterate over.</param>
+        // /// <param name="iterator">The iterator for the <c>UNION</c> statement.</param>
+        // /// <typeparam name="U">The type of the collection.</typeparam>
+        // /// <returns>The current query.</returns>
+        // IMultiCardinalityExecutable<TType> For<U>(IEnumerable<U> collection, Expression<Func<JsonCollectionVariable<U>, IQueryBuilder<TType, TContext>>> iterator);
+        //
+        // /// <summary>
+        // ///     Adds a <c>FOR</c> statement on the <paramref name="collection"/> with a <c>UNION</c>
+        // ///     whos inner query is the <paramref name="iterator"/>.
+        // /// </summary>
+        // /// <param name="collection">The collection to iterate over.</param>
+        // /// <param name="iterator">The iterator for the <c>UNION</c> statement.</param>
+        // /// <typeparam name="TNewContext">The query context type.</typeparam>
+        // /// <typeparam name="U">The type of the collection.</typeparam>
+        // /// <returns>The current query.</returns>
+        // IMultiCardinalityExecutable<TType> For<U, TNewContext>(IEnumerable<U> collection,
+        //     Expression<Func<JsonCollectionVariable<U>, IQueryBuilder<TType, TNewContext>>> iterator)
+        //     where TNewContext : IQueryContext;
+
         /// <summary>
         ///     Adds a <c>FOR</c> statement on the <paramref name="collection"/> with a <c>UNION</c>
         ///     whos inner query is the <paramref name="iterator"/>.
         /// </summary>
         /// <param name="collection">The collection to iterate over.</param>
         /// <param name="iterator">The iterator for the <c>UNION</c> statement.</param>
+        ///  <typeparam name="U">The type of the collection.</typeparam>
+        ///  <typeparam name="TNew">The type returned from the iterator query.</typeparam>
         /// <returns>The current query.</returns>
-        IMultiCardinalityExecutable<TType> For(IEnumerable<TType> collection, Expression<Func<JsonCollectionVariable<TType>, IQueryBuilder>> iterator);
+        IMultiCardinalityExecutable<TNew> For<U, TNew>(IEnumerable<U> collection, Expression<Func<JsonCollectionVariable<U>, IQuery<TNew>>> iterator);
+
+        /// <summary>
+        ///     Adds a <c>FOR</c> statement on the <paramref name="collection"/> with a <c>UNION</c>
+        ///     whos inner query is the <paramref name="iterator"/>.
+        /// </summary>
+        /// <param name="collection">The collection to iterate over.</param>
+        /// <param name="iterator">The iterator for the <c>UNION</c> statement.</param>
+        ///  <typeparam name="U">The type of the collection.</typeparam>
+        ///  <typeparam name="TNew">The type returned from the iterator query.</typeparam>
+        /// <returns>The current query.</returns>
+        IMultiCardinalityExecutable<TNew> For<U, TNew>(Expression<Func<TContext, IEnumerable<U>>> collection, Expression<Func<JsonCollectionVariable<U>, IQuery<TNew>>> iterator);
 
         /// <summary>
         ///     Adds a <c>WITH</c> statement whos variables are the properties defined in <paramref name="variables"/>.

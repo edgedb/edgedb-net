@@ -12,42 +12,50 @@ namespace EdgeDB
     public static partial class QueryBuilder
     {
         /// <inheritdoc cref="IQueryBuilder{TType, TContext}.For(IEnumerable{TType}, Expression{Func{JsonCollectionVariable{TType}, IQueryBuilder}})"/>
-        public static IMultiCardinalityExecutable<TType> For<TType>(IEnumerable<TType> collection,
-            Expression<Func<JsonCollectionVariable<TType>, IQueryBuilder>> iterator)
+        public static IMultiCardinalityExecutable<TType> For<U, TType>(IEnumerable<U> collection,
+            Expression<Func<JsonCollectionVariable<U>, IQuery<TType>>> iterator)
             => new QueryBuilder<TType>().For(collection, iterator);
 
-        public static IMultiCardinalityExecutable<TType> For<TType>(
-            Expression<Func<IEnumerable<TType>>> collection,
-            Expression<Func<JsonCollectionVariable<TType>, IQueryBuilder>> iterator
-        ) => new QueryBuilder<TType>().For(collection, iterator);
 
-        public static IMultiCardinalityExecutable<TType> For<TType>(
-            Expression<Func<QueryContext, IEnumerable<TType>>> collection,
-            Expression<Func<JsonCollectionVariable<TType>, IQueryBuilder>> iterator
-        ) => new QueryBuilder<TType>().For(collection, iterator);
+        public static IMultiCardinalityExecutable<TType> For<U, TType>(
+            Expression<Func<QueryContext, IEnumerable<U>>> collection,
+            Expression<Func<JsonCollectionVariable<U>, IQuery<TType>>> iterator)
+            => new QueryBuilder<TType, QueryContext>().For(collection, iterator);
     }
 
     public partial class QueryBuilder<TType, TContext>
     {
-        public IMultiCardinalityExecutable<TType> For(IEnumerable<TType> collection, Expression<Func<JsonCollectionVariable<TType>, IQueryBuilder>> iterator)
+        public IMultiCardinalityExecutable<TNew> For<U, TNew>(IEnumerable<U> collection, Expression<Func<JsonCollectionVariable<U>, IQuery<TNew>>> iterator)
         {
-            AddNode<ForNode>(new ForContext(typeof(TType))
+            AddNode<ForNode>(new ForContext(typeof(TNew))
             {
                 Expression = iterator,
                 Set = collection
             });
 
-            return this;
+            return EnterNewType<TNew>();
         }
-        public IMultiCardinalityExecutable<TType> For(LambdaExpression collection, Expression<Func<JsonCollectionVariable<TType>, IQueryBuilder>> iterator)
+
+        public IMultiCardinalityExecutable<TNew> For<U, TNew>(Expression<Func<TContext, IEnumerable<U>>> collection, Expression<Func<JsonCollectionVariable<U>, IQuery<TNew>>> iterator)
         {
-            AddNode<ForNode>(new ForContext(typeof(TType))
+            AddNode<ForNode>(new ForContext(typeof(TNew))
             {
                 Expression = iterator,
                 SetExpression = collection
             });
 
-            return this;
+            return EnterNewType<TNew>();
         }
+
+        // public IMultiCardinalityExecutable<TType> For(LambdaExpression collection, Expression<Func<JsonCollectionVariable<TType>, IQueryBuilder>> iterator)
+        // {
+        //     AddNode<ForNode>(new ForContext(typeof(TType))
+        //     {
+        //         Expression = iterator,
+        //         SetExpression = collection
+        //     });
+        //
+        //     return this;
+        // }
     }
 }
