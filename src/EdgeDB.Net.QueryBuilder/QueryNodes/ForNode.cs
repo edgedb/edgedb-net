@@ -37,7 +37,7 @@ namespace EdgeDB.QueryNodes
         private WriterProxy ParseExpression(string name, string varName, string json)
         {
             // check if we're returning a query builder
-            if (Context.Expression!.ReturnType == typeof(IQueryBuilder))
+            if (Context.Expression!.ReturnType.IsAssignableTo(typeof(IQueryBuilder)))
             {
                 // parse our json value for processing by sub nodes.
                 var jArray = JArray.Parse(json);
@@ -49,9 +49,11 @@ namespace EdgeDB.QueryNodes
                     {
                         _ when x.Type == typeof(QueryContext) => null!,
                         _ when ReflectionUtils.IsSubclassOfRawGeneric(typeof(JsonCollectionVariable<>), x.Type)
-                            => typeof(JsonCollectionVariable<>).MakeGenericType(Context.CurrentType)
-                                .GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, new Type[] { typeof(string), typeof(string), typeof(JArray)})!
-                                .Invoke(new object?[] { name, varName, jArray })!,
+                            => x.Type
+                                .GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, [
+                                    typeof(string), typeof(string), typeof(JArray)
+                                ])!
+                                .Invoke([name, varName, jArray])!,
                         _ => throw new ArgumentException($"Cannot use {x.Type} as a parameter to a 'FOR' expression")
                     };
                 }).ToArray();
