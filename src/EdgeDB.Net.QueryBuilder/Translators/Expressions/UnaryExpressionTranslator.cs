@@ -28,7 +28,10 @@ namespace EdgeDB.Translators.Expressions
                     // this is a selector-based expression converting value types to objects, for
                     // this case we can just return the value
                     if (expression.Type == typeof(object))
+                    {
+                        TranslateExpression(expression.Operand, context, writer);
                         return;
+                    }
 
                     // dotnet nullable check
                     if (ReflectionUtils.IsSubclassOfRawGeneric(typeof(Nullable<>), expression.Type) &&

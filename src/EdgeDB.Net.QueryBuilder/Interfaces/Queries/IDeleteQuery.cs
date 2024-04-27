@@ -30,21 +30,21 @@ namespace EdgeDB.Interfaces.Queries
         /// <param name="propertySelector">The property to order by.</param>
         /// <param name="nullPlacement">The order of which null values should occor.</param>
         /// <returns>The current query.</returns>
-        IDeleteQuery<TType, TContext> OrderBy(Expression<Func<TType, object?>> propertySelector, OrderByNullPlacement? nullPlacement = null);
+        IDeleteQuery<TType, TContext> OrderBy<U>(Expression<Func<TType, U>> propertySelector, OrderByNullPlacement? nullPlacement = null);
 
-        /// <inheritdoc cref="OrderBy(Expression{Func{TType, object?}}, OrderByNullPlacement?)"/>
-        IDeleteQuery<TType, TContext> OrderBy(Expression<Func<TType, TContext, object?>> propertySelector, OrderByNullPlacement? nullPlacement = null);
+        /// <inheritdoc cref="IDeleteQuery{TType, TContext}.OrderBy{U}(System.Linq.Expressions.Expression{System.Func{TType,U}},System.Nullable{EdgeDB.OrderByNullPlacement})"/>
+        IDeleteQuery<TType, TContext> OrderBy<U>(Expression<Func<TType, TContext, U>> propertySelector, OrderByNullPlacement? nullPlacement = null);
 
         /// <summary>
-        ///     Orders the current <typeparamref name="TType"/>s by the given property desending first.
+        ///     Orders the current <typeparamref name="TType"/>s by the given property descending first.
         /// </summary>
         /// <param name="propertySelector">The property to order by.</param>
-        /// <param name="nullPlacement">The order of which null values should occor.</param>
+        /// <param name="nullPlacement">The order of which null values should occur.</param>
         /// <returns>The current query.</returns>
-        IDeleteQuery<TType, TContext> OrderByDesending(Expression<Func<TType, object?>> propertySelector, OrderByNullPlacement? nullPlacement = null);
+        IDeleteQuery<TType, TContext> OrderByDescending<U>(Expression<Func<TType, U>> propertySelector, OrderByNullPlacement? nullPlacement = null);
 
-        /// <inheritdoc cref="OrderByDesending(Expression{Func{TType, object?}}, OrderByNullPlacement?)"/>
-        IDeleteQuery<TType, TContext> OrderByDesending(Expression<Func<TType, TContext, object?>> propertySelector, OrderByNullPlacement? nullPlacement = null);
+        /// <inheritdoc cref="IDeleteQuery{TType, TContext}.OrderByDescending{U}(System.Linq.Expressions.Expression{System.Func{TType,U}},System.Nullable{EdgeDB.OrderByNullPlacement})"/>
+        IDeleteQuery<TType, TContext> OrderByDescending<U>(Expression<Func<TType, TContext, U>> propertySelector, OrderByNullPlacement? nullPlacement = null);
 
         /// <summary>
         ///     Offsets the current <typeparamref name="TType"/>s by the given amount.

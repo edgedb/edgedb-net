@@ -32,9 +32,9 @@ namespace EdgeDB
 
         IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.Filter(Expression<Func<TType, bool>> filter)
             => Filter(filter);
-        IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.OrderBy(Expression<Func<TType, object?>> propertySelector, OrderByNullPlacement? nullPlacement)
+        IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.OrderBy<U>(Expression<Func<TType, U>> propertySelector, OrderByNullPlacement? nullPlacement)
             => OrderBy(true, propertySelector, nullPlacement);
-        IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.OrderByDesending(Expression<Func<TType, object?>> propertySelector, OrderByNullPlacement? nullPlacement)
+        IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.OrderByDescending<U>(Expression<Func<TType, U>> propertySelector, OrderByNullPlacement? nullPlacement)
             => OrderBy(false, propertySelector, nullPlacement);
         IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.Offset(long offset)
             => Offset(offset);
@@ -42,9 +42,9 @@ namespace EdgeDB
             => Limit(limit);
         IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.Filter(Expression<Func<TType, TContext, bool>> filter)
             => Filter(filter);
-        IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.OrderBy(Expression<Func<TType, TContext, object?>> propertySelector, OrderByNullPlacement? nullPlacement)
+        IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.OrderBy<U>(Expression<Func<TType, TContext, U>> propertySelector, OrderByNullPlacement? nullPlacement)
             => OrderBy(true, propertySelector, nullPlacement);
-        IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.OrderByDesending(Expression<Func<TType, TContext, object?>> propertySelector, OrderByNullPlacement? nullPlacement)
+        IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.OrderByDescending<U>(Expression<Func<TType, TContext, U>> propertySelector, OrderByNullPlacement? nullPlacement)
             => OrderBy(false, propertySelector, nullPlacement);
         IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.Offset(Expression<Func<TContext, long>> offset)
             => OffsetExp(offset);
