@@ -42,14 +42,14 @@ namespace EdgeDB
         /// <returns>A <see cref="IUpdateQuery{TType, TContext}"/>.</returns>
         internal IUpdateQuery<TSelected, TContext> Update<TSelected>(LambdaExpression? selector, bool returnUpdatedValue)
         {
-            var updateNode = AddNode<UpdateNode>(new UpdateContext(typeof(TType))
+            var updateNode = AddNode<UpdateNode>(new UpdateContext(typeof(TSelected))
             {
                 Selector = selector,
             });
 
             if (returnUpdatedValue)
             {
-                AddNode<SelectNode>(new SelectContext(typeof(TType)), true, updateNode);
+                AddNode<SelectNode>(new SelectContext(typeof(TSelected)), true, updateNode);
             }
 
             return EnterNewType<TSelected>();
