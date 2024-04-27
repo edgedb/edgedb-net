@@ -257,7 +257,13 @@ namespace EdgeDB
         /// <summary>
         ///     Adds a <c>DELETE</c> statement deleting an instance of <typeparamref name="TType"/>.
         /// </summary>
-        IDeleteQuery<TType, TContext> Delete { get; }
+        IDeleteQuery<TType, TContext> Delete();
+
+        /// <summary>
+        ///     Adds a <c>DELETE</c> statement deleting an instance of <typeparamref name="TType"/>.
+        /// </summary>
+        /// <typeparam name="TNewType">The type to delete.</typeparam>
+        IDeleteQuery<TNewType, TContext> Delete<TNewType>();
     }
 
     /// <summary>

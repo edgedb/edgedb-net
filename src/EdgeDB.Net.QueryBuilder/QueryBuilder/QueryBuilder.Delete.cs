@@ -14,20 +14,23 @@ namespace EdgeDB
     {
         /// <inheritdoc cref="IQueryBuilder{TType, QueryContext}.Delete"/>
         public static IDeleteQuery<TType, QueryContextSelf<TType>> Delete<TType>()
-            => new QueryBuilder<TType>().Delete;
+            => new QueryBuilder<TType>().Delete();
     }
 
     public partial class QueryBuilder<TType, TContext>
     {
         /// <inheritdoc/>
-        [DebuggerHidden]
-        public IDeleteQuery<TType, TContext> Delete
+        public IDeleteQuery<TType, TContext> Delete()
         {
-            get
-            {
-                AddNode<DeleteNode>(new DeleteContext(typeof(TType)));
-                return this;
-            }
+            AddNode<DeleteNode>(new DeleteContext(typeof(TType)));
+            return this;
+        }
+
+        /// <inheritdoc/>
+        public IDeleteQuery<TNewType, TContext> Delete<TNewType>()
+        {
+            AddNode<DeleteNode>(new DeleteContext(typeof(TNewType)));
+            return EnterNewType<TNewType>();
         }
 
         IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.Filter(Expression<Func<TType, bool>> filter)
