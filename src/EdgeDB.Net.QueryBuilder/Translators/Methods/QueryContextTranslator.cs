@@ -142,4 +142,8 @@ internal sealed class QueryContextTranslator : MethodTranslator<IQueryContext>
 
         writer.Append(expressive);
     }
+
+    [MethodName(nameof(QueryContext.AsSetAggregation))]
+    public void AsSetAggregation(QueryWriter writer, TranslatedParameter set)
+        => writer.Append(set);
 }

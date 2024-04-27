@@ -63,6 +63,11 @@ namespace EdgeDB.Translators.Expressions
                 case ConstantExpression constant:
                     TranslateConstantMember(writer, constant, path, context);
                     break;
+                default:
+                    TranslateExpression(baseExpression, context, writer);
+                    writer.Append('.');
+                    WritePath(writer, path);
+                    break;
             }
         }
 

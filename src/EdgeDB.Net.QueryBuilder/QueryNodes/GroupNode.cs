@@ -52,7 +52,7 @@ namespace EdgeDB.QueryNodes
 
         public void By(LambdaExpression selector)
         {
-            _by ??= writer => writer.Append(" by ", ProxyExpression(selector));
+            _by ??= writer => writer.Append(" by ", ProxyExpression(selector, ctx => ctx.WrapNewExpressionInBrackets = false));
         }
 
         public void Using(LambdaExpression expression)
