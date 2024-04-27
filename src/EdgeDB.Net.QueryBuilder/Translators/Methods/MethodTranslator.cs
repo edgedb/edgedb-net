@@ -133,7 +133,7 @@ namespace EdgeDB.Translators
         /// </returns>
         protected Value OptionalArg(TranslatedParameter? arg)
         {
-            if (arg is null)
+            if (arg is null || arg.IsNullValue)
                 return Value.Empty;
             else
                 return arg;

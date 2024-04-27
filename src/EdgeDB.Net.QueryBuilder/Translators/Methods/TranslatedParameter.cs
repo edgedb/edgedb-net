@@ -51,6 +51,9 @@ namespace EdgeDB.Translators.Methods
         public bool IsMultiLinkType
             => EdgeDBTypeUtils.IsLink(ParameterType, out var isMulti, out _) && isMulti;
 
+        public bool IsNullValue
+            => RawValue is ConstantExpression {Value: null};
+
         /// <summary>
         ///     Constructs a new <see cref="TranslatedParameter"/>.
         /// </summary>

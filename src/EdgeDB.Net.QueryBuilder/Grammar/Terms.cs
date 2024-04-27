@@ -138,8 +138,17 @@ internal static class Terms
 
                 for (var i = 0; i < args.Length;)
                 {
+                    int commaPos = 0;
+                    LooseLinkedList<Value>.Node? comma = null;
+
+                    if (i > 0)
+                    {
+                        commaPos = writer.TailIndex;
+                        writer.Append(", ", out comma);
+                    }
+
                     var arg = args[i++];
-                    bool isEmpty = false;
+                    var isEmpty = false;
 
                     writer.Marker(
                         MarkerType.FunctionArg,
@@ -148,24 +157,25 @@ internal static class Terms
                         Value.Of(
                             writer =>
                             {
-                                if (writer.AppendIsEmpty(arg.Value, out _, out var node))
-                                {
-                                    isEmpty = true;
-                                    return;
-                                }
-
-                                // append the named part if its specified
                                 if (arg.Named is not null)
-                                    writer.Prepend(node, Value.Of(writer => writer.Append(arg.Named, " := ")));
+                                {
+                                    writer.AppendPrefixIfNotEmpty(
+                                        Value.Of(writer => writer.Append(arg.Named, " := ")),
+                                        arg.Value,
+                                        out isEmpty
+                                    );
+                                }
+                                else
+                                {
+                                    writer.Append(arg.Value);
+                                }
                             }
                         )
                     );
 
-                    if(isEmpty)
-                        continue;
+                    if (!isEmpty || comma is null) continue;
 
-                    if (i != args.Length)
-                        writer.Append(", ");
+                    writer.Remove(commaPos, comma);
                 }
 
                 writer.Append(')');

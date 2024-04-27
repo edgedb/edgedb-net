@@ -35,7 +35,7 @@ internal sealed class QueryWriter : IDisposable
     private ValueNode? _track;
     private readonly bool _debug;
 
-    private int TailIndex => _tokens.Count - 1;
+    public int TailIndex => _tokens.Count - 1;
 
     public QueryWriter(bool debug = false)
     {
@@ -74,8 +74,9 @@ internal sealed class QueryWriter : IDisposable
             // track is already updated.
             return head ?? _track!;
         }
-        else if (_track is null)
-            _track = _tokens.AddFirst(in value); //Set(ref _tokens.AddFirst(in value));
+
+        if (_track is null)
+            _track = _tokens.AddFirst(in value);
         else
         {
             _track = after
@@ -172,6 +173,23 @@ internal sealed class QueryWriter : IDisposable
 
     public QueryWriter Remove(int position, ValueNode head, int count = 1)
     {
+        if (count == 0)
+            return this;
+
+        if (count < 0)
+        {
+            count *= -1;
+            var countForCopy = count - 1;
+
+            for (var i = 0; i < countForCopy; i++)
+            {
+                if (head.Previous is null)
+                    count--;
+                else
+                    head = head.Previous;
+            }
+        }
+
         var headPrev = head.Previous;
 
         _tokens.Remove(head, count, (node) =>
@@ -197,25 +215,6 @@ internal sealed class QueryWriter : IDisposable
         return this;
     }
 
-    public QueryWriter Prepend(ValueNode node, in Value value)
-    {
-        var index = GetIndexOfNode(node);
-
-        if (index == -1)
-            throw new InvalidOperationException("Node cannot be found in collection of tokens");
-
-        // change the track to the node
-        var oldTrack = _track;
-
-        _track = node;
-        OnNodeAdd(AddBeforeTracked(in value));
-        _track = oldTrack;
-
-        Markers.Update(index - 1, 1);
-
-        return this;
-    }
-
     public QueryWriter Append(in Value value, out ValueNode node)
     {
         node = AddAfterTracked(in value);
@@ -223,6 +222,17 @@ internal sealed class QueryWriter : IDisposable
         OnNodeAdd(node);
 
         Markers.Update(TailIndex, 1);
+
+        return this;
+    }
+
+    public QueryWriter Append(in Value value, out ValueNode node, out int size)
+    {
+        var pos = TailIndex;
+
+        Append(in value, out node);
+
+        size = TailIndex - pos;
 
         return this;
     }
@@ -272,12 +282,33 @@ internal sealed class QueryWriter : IDisposable
     public bool AppendIsEmpty(in Value value, out int size)
         => AppendIsEmpty(in value, out size, out _);
 
-    public bool AppendIsEmpty(in Value value, out int size, out ValueNode node)
+    public bool AppendIsEmpty(in Value value, out int size, [MaybeNullWhen(true)] out ValueNode node)
     {
+        if (value == Value.Empty)
+        {
+            size = 0;
+            node = _track;
+            return true;
+        }
+
         var index = TailIndex;
         Append(in value, out node);
         size = TailIndex - index;
         return size == 0;
+    }
+
+    public QueryWriter AppendPrefixIfNotEmpty(in Value prefix, in Value value, out bool wasEmpty)
+    {
+        var pos = TailIndex;
+        Append(in prefix, out var prefixHead, out var prefixSize);
+
+        if (AppendIsEmpty(in value))
+        {
+            Remove(pos, prefixHead, prefixSize);
+            wasEmpty = true;
+        }
+        else wasEmpty = false;
+        return this;
     }
 
     public StringBuilder Compile(StringBuilder? builder = null)

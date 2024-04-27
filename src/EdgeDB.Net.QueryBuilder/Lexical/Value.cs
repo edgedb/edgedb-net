@@ -6,7 +6,7 @@ using System.Text;
 namespace EdgeDB;
 
 [DebuggerDisplay("{DebugDisplay()}")]
-internal readonly struct Value
+internal readonly struct Value : IEquatable<Value>
 {
     [MemberNotNullWhen(false, nameof(_callback))]
     public bool IsScalar
@@ -104,4 +104,14 @@ internal readonly struct Value
     public static implicit operator Value(WriterProxy callback) => new(callback);
     public static implicit operator Value(int v) => new(v.ToString());
     public static implicit operator Value(long v) => new(v.ToString());
+
+    public bool Equals(Value other) => Equals(_callback, other._callback) && Equals(_value, other._value) && _str == other._str && _ch == other._ch;
+
+    public override bool Equals(object? obj) => obj is Value other && Equals(other);
+
+    public override int GetHashCode() => HashCode.Combine(_callback, _value, _str, _ch);
+
+    public static bool operator ==(Value left, Value right) => left.Equals(right);
+
+    public static bool operator !=(Value left, Value right) => !left.Equals(right);
 }
