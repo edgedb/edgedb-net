@@ -11,12 +11,12 @@ namespace EdgeDB
 {
     public static partial class QueryBuilder
     {
-        /// <inheritdoc cref="IQueryBuilder{TType, TContext}.For(IEnumerable{TType}, Expression{Func{JsonCollectionVariable{TType}, IQueryBuilder}})"/>
+        /// <inheritdoc cref="IQueryBuilder{TType,TContext}.For{U,TNew}(System.Collections.Generic.IEnumerable{U},System.Linq.Expressions.Expression{System.Func{EdgeDB.JsonCollectionVariable{U},EdgeDB.IQuery{TNew}}})"/>
         public static IMultiCardinalityExecutable<TType> For<U, TType>(IEnumerable<U> collection,
             Expression<Func<JsonCollectionVariable<U>, IQuery<TType>>> iterator)
             => new QueryBuilder<TType>().For(collection, iterator);
 
-
+        /// <inheritdoc cref="IQueryBuilder{TType,TContext}.For{U,TNew}(System.Collections.Generic.IEnumerable{U},System.Linq.Expressions.Expression{System.Func{EdgeDB.JsonCollectionVariable{U},EdgeDB.IQuery{TNew}}})"/>
         public static IMultiCardinalityExecutable<TType> For<U, TType>(
             Expression<Func<QueryContext, IEnumerable<U>>> collection,
             Expression<Func<JsonCollectionVariable<U>, IQuery<TType>>> iterator)
