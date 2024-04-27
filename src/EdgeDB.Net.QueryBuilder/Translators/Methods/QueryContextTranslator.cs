@@ -143,7 +143,13 @@ internal sealed class QueryContextTranslator : MethodTranslator<IQueryContext>
         writer.Append(expressive);
     }
 
+    // This is purely for mapping EdgeQL set paradigms to C# types.
     [MethodName(nameof(QueryContext.AsSetAggregation))]
     public void AsSetAggregation(QueryWriter writer, TranslatedParameter set)
         => writer.Append(set);
+
+    // This is purely for mapping EdgeQL set paradigms to C# types.
+    [MethodName(nameof(QueryContext.AsSet))]
+    public void AsSet(QueryWriter writer, TranslatedParameter item)
+        => writer.Append(item);
 }

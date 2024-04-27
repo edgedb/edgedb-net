@@ -51,7 +51,7 @@ namespace EdgeDB.ExampleApp.Examples
             query = QueryBuilder
                 .Select<Person>()
                 .Filter(x => EdgeQL.ILike(x.Name, "e%"))
-                .OrderByDesending(x => x.Name)
+                .OrderByDescending(x => x.Name)
                 .Offset(2)
                 .Limit(10)
                 .Compile(true);

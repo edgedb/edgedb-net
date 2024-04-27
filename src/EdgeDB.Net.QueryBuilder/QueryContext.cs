@@ -165,6 +165,7 @@ namespace EdgeDB
         public abstract IEnumerable<U> Aggregate<T, U>(IEnumerable<T>? collection, Func<T, U> operand);
 
         public abstract T AsSetAggregation<T>(IEnumerable<T>? set);
+        public abstract IEnumerable<T> AsSet<T>(T item);
     }
 
     public abstract class QueryContextSelf<TSelf> : QueryContext, IQueryContextSelf<TSelf>
