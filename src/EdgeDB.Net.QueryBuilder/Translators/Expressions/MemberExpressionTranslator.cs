@@ -61,7 +61,11 @@ namespace EdgeDB.Translators.Expressions
                     TranslateJsonMember(writer, jsonConstant, path, context);
                     break;
                 case ConstantExpression constant:
-                    TranslateConstantMember(writer, constant, path, context);
+                    TranslateMemberAccess(writer, constant, path, context);
+                    break;
+                // static field/property
+                case MemberExpression {Expression: null}:
+                    TranslateMemberAccess(writer, null, path, context);
                     break;
                 default:
                     TranslateExpression(baseExpression, context, writer);
@@ -106,13 +110,13 @@ namespace EdgeDB.Translators.Expressions
                 );
         }
 
-        private void TranslateConstantMember(QueryWriter writer, ConstantExpression constant, MemberExpression[] path,
+        private void TranslateMemberAccess(QueryWriter writer, ConstantExpression? instance, MemberExpression[] path,
             ExpressionContext context)
         {
             if (!EdgeDBTypeUtils.TryGetScalarType(path[0].Type, out var edgeqlType))
                 throw new NotSupportedException($"The type {path[0].Type} cannot be used as a query argument");
 
-            var refHolder = constant.Value;
+            var refHolder = instance?.Value;
 
             for (var i = path.Length - 1; i >= 0; i--)
             {
