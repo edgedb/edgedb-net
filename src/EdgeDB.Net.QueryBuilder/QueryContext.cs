@@ -7,6 +7,21 @@ namespace EdgeDB
     public abstract class QueryContext : IQueryContext
     {
         /// <summary>
+        ///     References a defined type within the schema.
+        /// </summary>
+        /// <typeparam name="TType">The type to reference.</typeparam>
+        /// <returns>A reference to the type.</returns>
+        public abstract TType Type<TType>();
+
+        /// <summary>
+        ///     References a defined type within the schema.
+        /// </summary>
+        /// <typeparam name="TType">The type to reference.</typeparam>
+        /// <param name="module">The module of the type.</param>
+        /// <returns>A reference to the type.</returns>
+        public abstract TType Type<TType>(string module);
+
+        /// <summary>
         ///     References a defined query argument with the given name.
         /// </summary>
         /// <param name="name">The name of the query argument.</param>

@@ -7,6 +7,18 @@ internal sealed class QueryContextTranslator : MethodTranslator<IQueryContext>
 {
     internal override bool CanTranslate(Type type) => type.IsAssignableTo(typeof(IQueryContext));
 
+    [MethodName(nameof(QueryContext.Type))]
+    public void Type(QueryWriter writer, MethodCallExpression method, TranslatedParameter? module)
+    {
+        if (module is not null)
+        {
+            module.Context.StringWithoutQuotes = true;
+            writer.Append(module, "::");
+        }
+
+        writer.Append(method.Method.GetGenericArguments()[0].GetEdgeDBTypeName());
+    }
+
     [MethodName(nameof(QueryContext.QueryArgument))]
     public void QueryArgument(QueryWriter writer, TranslatedParameter param)
     {
