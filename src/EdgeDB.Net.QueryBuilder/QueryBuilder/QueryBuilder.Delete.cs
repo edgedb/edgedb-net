@@ -33,6 +33,16 @@ namespace EdgeDB
             return EnterNewType<TNewType>();
         }
 
+        public IDeleteQuery<TNewType, TNewContext> DeleteInternal<TNewType, TNewContext>()
+            where TNewContext : IQueryContext
+        {
+            AddNode<DeleteNode>(new DeleteContext(typeof(TNewType)));
+            return EnterNewType<TNewType>().EnterNewContext<TNewContext>();
+        }
+
+        IDeleteQuery<TNew, TNewContext> IQueryBuilder<TType, TContext>.DeleteInternal<TNew, TNewContext>()
+            => DeleteInternal<TNew, TNewContext>();
+
         IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.Filter(Expression<Func<TType, bool>> filter)
             => Filter(filter);
         IDeleteQuery<TType, TContext> IDeleteQuery<TType, TContext>.OrderBy<U>(Expression<Func<TType, U>> propertySelector, OrderByNullPlacement? nullPlacement)

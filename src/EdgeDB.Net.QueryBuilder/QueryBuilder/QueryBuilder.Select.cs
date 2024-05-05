@@ -73,6 +73,24 @@ namespace EdgeDB
             return EnterNewType<TResult>();
         }
 
+        internal ISelectQuery<TNew, TNewContext> SelectInternal<TNew, TNewContext>(Action<ShapeBuilder<TNew>>? shape)
+            where TNewContext : IQueryContext
+        {
+            ShapeBuilder<TNew>? shapeBuilder = null;
+
+            if (shape is not null)
+            {
+                shape(shapeBuilder = new());
+            }
+
+            AddNode<SelectNode>(new SelectContext(typeof(TNew))
+            {
+                Shape = shapeBuilder,
+                IsFreeObject = typeof(TNew).IsAnonymousType()
+            });
+            return EnterNewType<TNew>().EnterNewContext<TNewContext>();
+        }
+
         /// <summary>
         ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
         /// </summary>
@@ -176,6 +194,10 @@ namespace EdgeDB
             });
             return EnterNewType<TNewType>();
         }
+
+        ISelectQuery<TNew, TNewContext> IQueryBuilder<TType, TContext>.SelectInternal<TNew, TNewContext>(
+            Action<ShapeBuilder<TNew>>? shape)
+            => SelectInternal<TNew, TNewContext>(shape);
 
         ISelectQuery<TNewType, TContext> IQueryBuilder<TType, TContext>.SelectExpression<TNewType>(
             Expression<Func<TContext, TNewType>> expression, Action<ShapeBuilder<TNewType>>? shape)

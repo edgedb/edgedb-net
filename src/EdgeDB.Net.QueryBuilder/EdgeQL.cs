@@ -6,12 +6,12 @@ namespace EdgeDB
 {
     public sealed partial class EdgeQL
     {
-        private static readonly Dictionary<string, Dictionary<string, List<MethodInfo>>> EdgeQLFunctions;
+        private static readonly Dictionary<string, Dictionary<string, List<MethodInfo>>> _edgeqlFunctions;
 
         static EdgeQL()
         {
             var methods = typeof(EdgeQL).GetMethods();
-            EdgeQLFunctions = new();
+            _edgeqlFunctions = new();
 
             foreach (var method in methods)
             {
@@ -20,8 +20,8 @@ namespace EdgeDB
                 if(edgeqlFuncAttribute is null)
                     continue;
 
-                if (!EdgeQLFunctions.TryGetValue(edgeqlFuncAttribute.Module, out var moduleFunctions))
-                    moduleFunctions = EdgeQLFunctions[edgeqlFuncAttribute.Module] = new();
+                if (!_edgeqlFunctions.TryGetValue(edgeqlFuncAttribute.Module, out var moduleFunctions))
+                    moduleFunctions = _edgeqlFunctions[edgeqlFuncAttribute.Module] = new();
 
                 if (!moduleFunctions.TryGetValue(edgeqlFuncAttribute.Name, out var functions))
                     functions = moduleFunctions[edgeqlFuncAttribute.Name] = new();
@@ -33,14 +33,14 @@ namespace EdgeDB
         internal static bool TryGetMethods(string name, string module, [MaybeNullWhen(false)] out List<MethodInfo> methods)
         {
             methods = null;
-            return EdgeQLFunctions.TryGetValue(module, out var moduleFunctions) && moduleFunctions.TryGetValue(name, out methods);
+            return _edgeqlFunctions.TryGetValue(module, out var moduleFunctions) && moduleFunctions.TryGetValue(name, out methods);
         }
 
         internal static List<MethodInfo> SearchMethods(string name)
         {
             var result = new List<MethodInfo>();
 
-            foreach (var (module, functions) in EdgeQLFunctions)
+            foreach (var (module, functions) in _edgeqlFunctions)
             {
                 if (functions.TryGetValue(name, out var targetFunctions))
                     result.AddRange(targetFunctions);
@@ -58,5 +58,7 @@ namespace EdgeDB
         public static JsonReferenceVariable<T> AsJson<T>(T value) => new(value);
 
         public static long Count<TType>(IQuery<TType> a) { return default!; }
+
+        public static EdgeDBTypeContainer<T> SchemaType<T>() => EdgeDBTypeContainer<T>.Create();
     }
 }

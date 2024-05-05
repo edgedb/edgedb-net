@@ -14,28 +14,29 @@ namespace EdgeDB
     public static partial class QueryBuilder
     {
         public static IGroupQuery<T, QueryContextSelf<T>> Group<T>()
-            => new QueryBuilder<T>().GroupInternal<T>();
+            => new QueryBuilder<T>().GroupInternal<T, QueryContextSelf<T>>();
 
         public static IGroupQuery<T, QueryContextSelf<T>> Group<T>(Action<ShapeBuilder<T>> shape)
-            => new QueryBuilder<T>().GroupInternal(shape: shape);
+            => new QueryBuilder<T>().GroupInternal<T, QueryContextSelf<T>>(shape: shape);
 
         public static IGroupQuery<T, QueryContextSelf<T>> Group<T>(Expression<Func<T>> selector)
-            => new QueryBuilder<T>().GroupInternal<T>(selector);
+            => new QueryBuilder<T>().GroupInternal<T, QueryContextSelf<T>>(selector);
 
         public static IGroupQuery<T, QueryContextSelf<T>> Group<T>(Expression<Func<QueryContext, T>> selector)
-            => new QueryBuilder<T>().GroupInternal<T>(selector);
+            => new QueryBuilder<T>().GroupInternal<T, QueryContextSelf<T>>(selector);
 
         public static IGroupQuery<T, QueryContextSelf<T>> Group<T>(Expression<Func<T>> selector, Action<ShapeBuilder<T>> shape)
-            => new QueryBuilder<T>().GroupInternal(selector, shape);
+            => new QueryBuilder<T>().GroupInternal<T, QueryContextSelf<T>>(selector, shape);
 
         public static IGroupQuery<T, QueryContextSelf<T>> Group<T>(Expression<Func<QueryContext, T>> selector, Action<ShapeBuilder<T>> shape)
-            => new QueryBuilder<T>().GroupInternal(selector, shape);
+            => new QueryBuilder<T>().GroupInternal<T, QueryContextSelf<T>>(selector, shape);
     }
 
     public partial class QueryBuilder<TType, TContext>
     {
-        internal IGroupQuery<TResult, TContext> GroupInternal<TResult>(LambdaExpression? selector = null,
+        internal IGroupQuery<TResult, TNewContext> GroupInternal<TResult, TNewContext>(LambdaExpression? selector = null,
             Action<ShapeBuilder<TResult>>? shape = null)
+            where TNewContext : IQueryContext
         {
             ShapeBuilder<TResult>? shapeBuilder = shape is not null ? new() : null;
             shape?.Invoke(shapeBuilder!);
@@ -46,26 +47,31 @@ namespace EdgeDB
                 Shape = shapeBuilder
             });
 
-            return EnterNewType<TResult>();
+            return EnterNewType<TResult>().EnterNewContext<TNewContext>();
         }
 
         public IGroupQuery<TType, TContext> Group()
-            => GroupInternal<TType>();
+            => GroupInternal<TType, TContext>();
 
         public IGroupQuery<TResult, TContext> Group<TResult>(Action<ShapeBuilder<TResult>> shape)
-            => GroupInternal(shape: shape);
+            => GroupInternal<TResult, TContext>(shape: shape);
+
+        IGroupQuery<TNew, TNewContext> IQueryBuilder<TType, TContext>.GroupInternal<TNew, TNewContext>(
+            LambdaExpression? selector,
+            Action<ShapeBuilder<TNew>>? shape)
+            => GroupInternal<TNew, TNewContext>(selector, shape);
 
         IGroupQuery<TResult, TContext> IQueryBuilder<TType, TContext>.Group<TResult>(Expression<Func<TResult>> selector)
-            => GroupInternal<TResult>(selector);
+            => GroupInternal<TResult, TContext>(selector);
 
         IGroupQuery<TResult, TContext> IQueryBuilder<TType, TContext>.Group<TResult>(Expression<Func<TContext, TResult>> selector)
-            => GroupInternal<TResult>(selector);
+            => GroupInternal<TResult, TContext>(selector);
 
         IGroupQuery<TResult, TContext> IQueryBuilder<TType, TContext>.Group<TResult>(Expression<Func<TResult>> selector, Action<ShapeBuilder<TResult>> shape)
-            => GroupInternal(selector, shape);
+            => GroupInternal<TResult, TContext>(selector, shape);
 
         IGroupQuery<TResult, TContext> IQueryBuilder<TType, TContext>.Group<TResult>(Expression<Func<TContext, TResult>> selector, Action<ShapeBuilder<TResult>> shape)
-            => GroupInternal(selector, shape);
+            => GroupInternal<TResult, TContext>(selector, shape);
 
         IMultiCardinalityExecutable<Group<TKey, TType>> IGroupQuery<TType, TContext>.By<TKey>(Expression<Func<TType, TKey>> selector)
             => By(selector).EnterNewType<Group<TKey, TType>>();
@@ -73,12 +79,9 @@ namespace EdgeDB
         IMultiCardinalityExecutable<Group<TKey, TType>> IGroupQuery<TType, TContext>.By<TKey>(Expression<Func<TType, TContext, TKey>> selector)
             => By(selector).EnterNewType<Group<TKey, TType>>();
 
-
-        IGroupUsingQuery<TType, GroupContext<TUsing, TContext>> IGroupQuery<TType, TContext>.Using<TUsing>(
-            Expression<Func<TType, TUsing>> expression)
-            => Using<GroupContext<TUsing, TContext>, TUsing>(expression);
-
-        IGroupUsingQuery<TType, GroupContext<TUsing, TContext>> IGroupQuery<TType, TContext>.Using<TUsing>(Expression<Func<TType, TContext, TUsing>> expression) => throw new NotImplementedException();
+        IGroupUsingQuery<TType, TNewContext> IGroupQuery<TType, TContext>.UsingInternal<TUsing, TNewContext>(
+            LambdaExpression expression)
+            => Using<TNewContext, TUsing>(expression);
 
         IMultiCardinalityExecutable<Group<TKey, TType>> IGroupUsingQuery<TType, TContext>.By<TKey>(
             Expression<Func<TContext, TKey>> selector)

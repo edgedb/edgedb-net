@@ -33,28 +33,9 @@ namespace EdgeDB
         IGroupQuery<TResult, TContext> Group<TResult>(Expression<Func<TResult>> selector, Action<ShapeBuilder<TResult>> shape);
         IGroupQuery<TResult, TContext> Group<TResult>(Expression<Func<TContext, TResult>> selector, Action<ShapeBuilder<TResult>> shape);
 
-        // /// <summary>
-        // ///     Adds a <c>FOR</c> statement on the <paramref name="collection"/> with a <c>UNION</c>
-        // ///     whos inner query is the <paramref name="iterator"/>.
-        // /// </summary>
-        // /// <param name="collection">The collection to iterate over.</param>
-        // /// <param name="iterator">The iterator for the <c>UNION</c> statement.</param>
-        // /// <typeparam name="U">The type of the collection.</typeparam>
-        // /// <returns>The current query.</returns>
-        // IMultiCardinalityExecutable<TType> For<U>(IEnumerable<U> collection, Expression<Func<JsonCollectionVariable<U>, IQueryBuilder<TType, TContext>>> iterator);
-        //
-        // /// <summary>
-        // ///     Adds a <c>FOR</c> statement on the <paramref name="collection"/> with a <c>UNION</c>
-        // ///     whos inner query is the <paramref name="iterator"/>.
-        // /// </summary>
-        // /// <param name="collection">The collection to iterate over.</param>
-        // /// <param name="iterator">The iterator for the <c>UNION</c> statement.</param>
-        // /// <typeparam name="TNewContext">The query context type.</typeparam>
-        // /// <typeparam name="U">The type of the collection.</typeparam>
-        // /// <returns>The current query.</returns>
-        // IMultiCardinalityExecutable<TType> For<U, TNewContext>(IEnumerable<U> collection,
-        //     Expression<Func<JsonCollectionVariable<U>, IQueryBuilder<TType, TNewContext>>> iterator)
-        //     where TNewContext : IQueryContext;
+        internal IGroupQuery<TResult, TNewContext> GroupInternal<TResult, TNewContext>(LambdaExpression? selector = null,
+            Action<ShapeBuilder<TResult>>? shape = null
+        ) where TNewContext : IQueryContextSelf<TResult>;
 
         /// <summary>
         ///     Adds a <c>FOR</c> statement on the <paramref name="collection"/> with a <c>UNION</c>
@@ -77,6 +58,7 @@ namespace EdgeDB
         ///  <typeparam name="TNew">The type returned from the iterator query.</typeparam>
         /// <returns>The current query.</returns>
         IMultiCardinalityExecutable<TNew> For<U, TNew>(Expression<Func<TContext, IEnumerable<U>>> collection, Expression<Func<JsonCollectionVariable<U>, IQuery<TNew>>> iterator);
+
 
         /// <summary>
         ///     Adds a <c>WITH</c> statement whos variables are the properties defined in <paramref name="variables"/>.
@@ -130,6 +112,9 @@ namespace EdgeDB
         /// </returns>
         ISelectQuery<TResult, TContext> Select<TResult>(Action<ShapeBuilder<TResult>> shape);
 
+        internal ISelectQuery<TResult, TNewContext> SelectInternal<TResult, TNewContext>(Action<ShapeBuilder<TResult>>? shape = null)
+            where TNewContext : IQueryContextSelf<TResult>;
+
         /// <summary>
         ///     Adds a <c>SELECT</c> statement, selecting the result of a <paramref name="expression"/>.
         /// </summary>
@@ -176,6 +161,10 @@ namespace EdgeDB
             Expression<Func<TContext, TExpression>> expression,
             Func<ShapeBuilder<TExpression>, ShapeBuilder<TExpression, TShape>>? shape = null
         );
+
+        // TODO: is this needed?
+        // internal ISelectQuery<TNew, TNewContext> SelectExpressionInternal<TNew, TNewContext>(LambdaExpression expression, Action<ShapeBuilder<TNew>>? shape = null)
+        //     where TNewContext : IQueryContextSelf<TNew>;
 
         /// <summary>
         ///     Adds a <c>INSERT</c> statement inserting an instance of <typeparamref name="TType"/>.
@@ -264,6 +253,9 @@ namespace EdgeDB
         /// </summary>
         /// <typeparam name="TNewType">The type to delete.</typeparam>
         IDeleteQuery<TNewType, TContext> Delete<TNewType>();
+
+        internal IDeleteQuery<TResult, TNewContext> DeleteInternal<TResult, TNewContext>()
+            where TNewContext : IQueryContextSelf<TResult>;
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using EdgeDB.DataTypes;
+using EdgeDB.Interfaces.Queries;
 using EdgeDB.QueryNodes;
 using EdgeDB.Schema;
 using EdgeDB.Schema.DataTypes;

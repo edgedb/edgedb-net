@@ -146,7 +146,7 @@ namespace EdgeDB.Translators.Expressions
             {
                 case nameof(IQueryContextSelf<object>.Self):
                 case nameof(IQueryContextUsing<object>.Using):
-                    WritePath(writer, path[..^1]);
+                    WritePath(writer, path[..^1], contextAccessor.Member.Name == nameof(IQueryContextSelf<object>.Self));
                     break;
                 case nameof(IQueryContextVars<object>.Variables):
                     var target = path[^2];
@@ -203,8 +203,11 @@ namespace EdgeDB.Translators.Expressions
             }
         }
 
-        private void WritePath(QueryWriter writer, MemberExpression[] path)
+        private void WritePath(QueryWriter writer, MemberExpression[] path, bool prefixWithDot = false)
         {
+            if (prefixWithDot)
+                writer.Append('.');
+
             for (var i = path.Length - 1; i > 0; i--)
             {
                 writer.Append(path[i].Member.GetEdgeDBPropertyName(), '.');
