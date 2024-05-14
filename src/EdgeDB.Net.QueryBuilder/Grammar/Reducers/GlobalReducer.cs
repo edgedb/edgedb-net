@@ -4,79 +4,50 @@ namespace EdgeDB;
 
 internal sealed class GlobalReducer : IReducer
 {
-    // general rules for reducing shapes:
-    // - Shapes are not included in function arguments
-    public void Reduce(IQueryBuilder builder, QueryWriter writer)
+    public void Reduce(IQueryBuilder builder, QueryWriter writer, Queue<IReducer> shouldRunAfter)
     {
-        foreach (var global in builder.Globals.ToArray())
+        if (!writer.Markers.MarkersByType.TryGetValue(MarkerType.QueryNode, out var nodes))
+            return;
+
+        var withNode = nodes.FirstOrDefault(x => (x.Metadata as QueryNodeMetadata)?.Node is WithNode);
+
+        if (withNode is null)
+            return;
+
+        foreach (var (_, markers) in writer.Markers.MarkersByType.Where(x => x.Key is MarkerType.GlobalDeclaration)
+                     .ToArray())
+        foreach (var global in markers)
         {
-            if(!writer.Markers.MarkersByName.TryGetValue(global.Name, out var markers) || !CanReduce(global, builder))
+            if (global.Metadata is not GlobalMetadata metadata)
                 continue;
 
-            Value[]? tokens = null;
-            foreach (var marker in markers.Where(x => x.Type is MarkerType.GlobalReference).ToArray())
-            {
-                Action<QueryNode>? modifier = marker switch
-                {
-                    _ when writer.Markers.GetDirectParents(marker).Any(x => x.Type is MarkerType.FunctionArg) => ApplyShapeReducer,
-                    _ => null
-                };
+            var references = writer.Markers.MarkersByType
+                .Where(x => x.Key is MarkerType.GlobalReference)
+                .SelectMany(x => x.Value).Where(x => x.Name == global.Name)
+                .ToArray();
 
-                marker.Replace(writer => writer
-                    .LabelVerbose(
-                        "global_reducer",
-                        Defer.This(() => $"Global {global.Name} inlined; Shaped reduced?: {modifier is not null}"),
-                        Value.Of(writer => writer
-                            .AppendSpanned(
-                                ref tokens,
-                                writer => global.Compile(builder, writer, new CompileContext { PreFinalizerModifier = modifier, SchemaInfo = builder.SchemaInfo } )
-                            )
-                        )
-                    )
-                );
-            }
+            if (references.Length is not 1 || !CanReduceWithNestedTypeSafety(metadata.Global, references[0], writer))
+                continue;
 
-            builder.Globals.Remove(global);
+            // inline the global.
+            references[0].Replace(global.Slice, global.Position..global.Size);
+            global.Kill();
+        }
+
+        // if theres nothing in the with block, we can remove it.
+        if (!writer.Markers.GetChildren(withNode).Any(x => x.Type is MarkerType.GlobalDeclaration))
+        {
+            withNode.Remove();
+            withNode.Kill();
         }
     }
 
-    private static void ApplyShapeReducer(QueryNode node)
+    private bool CanReduceWithNestedTypeSafety(QueryGlobal global, Marker marker, QueryWriter writer)
     {
-        if (node.Context is SelectContext selectContext)
-            selectContext.IncludeShape = false;
-    }
+        // TODO:
+        // we cant reduce a global when:
+        // - is a query builder inside of a nested query that selects the same type.
 
-    public bool CanReduce(QueryGlobal global, IQueryBuilder source)
-    {
-        // check if we can even flatten this global
-        var builder = global.Value is IQueryBuilder a
-            ? a
-            : global.Reference is IQueryBuilder b
-                ? b
-                : null;
-
-        if (builder is null)
-            return false;
-
-        // find all nodes that references this global
-        var nodes = source.Nodes.Where(x => x.ReferencedGlobals.Contains(global)).ToArray();
-
-        var bannedTypes = builder.Nodes
-            .Select(x => x.GetOperatingType())
-            .Where(x => EdgeDBTypeUtils.IsLink(x, out _, out _))
-            .ToArray();
-
-        var count = nodes.Length;
-        foreach(var node in nodes)
-        {
-            // check the operating type of the node
-            var operatingType = node.GetOperatingType();
-            if (EdgeDBTypeUtils.IsLink(operatingType, out _, out _) && bannedTypes.Contains(operatingType))
-                continue;
-
-            count--;
-        }
-
-        return count <= 0;
+        return true;
     }
 }

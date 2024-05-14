@@ -24,7 +24,7 @@ public sealed class UpdateShapeBuilder<T, U> : IUpdateShapeBuilder
                 MarkerType.BinaryOp,
                 "update_shape_element",
                 Defer.This(() => $"Operator {op} for update shape element on {key1.Name}"),
-                metadata: null,
+                metadata: new BinaryOpMetadata(type),
                 Value.Of(writer =>
                     {
                         writer.Append(key1.GetEdgeDBPropertyName(), ' ', op, ' ');

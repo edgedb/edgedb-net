@@ -52,10 +52,17 @@ namespace EdgeDB.QueryNodes
                 {
                     global = globalGroup.First();
 
-                    writer.Append(global.Name)
-                        .Append(" := ");
-
-                    global.Compile(this, writer, null, SchemaInfo);
+                    writer.Marker(
+                        MarkerType.BinaryOp,
+                        "with_assignment",
+                        Defer.This(() => $"Single global assignment: {global.Name}"),
+                        new BinaryOpMetadata(ExpressionType.Assign),
+                        Value.Of(writer =>
+                        {
+                            writer.Append(global.Name, " := ");
+                            global.Compile(this, writer, null, SchemaInfo);
+                        })
+                    );
 
                     continue;
                 }
@@ -63,10 +70,17 @@ namespace EdgeDB.QueryNodes
                 global = globalGroup.First();
                 var followers = globalGroup.Skip(1);
 
-                writer.Append(global.Name)
-                    .Append(" := ");
-
-                global.Compile(this, writer, null, SchemaInfo);
+                writer.Marker(
+                    MarkerType.BinaryOp,
+                    "with_assignment",
+                    Defer.This(() => $"Global group assignment: {global.Name} ({globalGroup.Count()})"),
+                    new BinaryOpMetadata(ExpressionType.Assign),
+                    Value.Of(writer =>
+                    {
+                        writer.Append(global.Name, " := ");
+                        global.Compile(this, writer, null, SchemaInfo);
+                    })
+                );
 
                 foreach (var follower in followers)
                 {

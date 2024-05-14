@@ -32,10 +32,19 @@ namespace EdgeDB
 
             public void Build(QueryWriter writer, params WriterProxy[] args)
             {
-                var arr = new object?[args.Length + 1];
-                arr[0] = writer;
-                args.CopyTo(arr, 1);
-                _method.Invoke(null, arr);
+                writer.Marker(
+                    MarkerType.BinaryOp,
+                    "binary_op_translation",
+                    Defer.This(() => $"Called from {Name}({ParameterCount}) using method {_method.Name}"),
+                    new BinaryOpMetadata(ExpressionTypes),
+                    Value.Of(writer =>
+                    {
+                        var arr = new object?[args.Length + 1];
+                        arr[0] = writer;
+                        args.CopyTo(arr, 1);
+                        _method.Invoke(null, arr);
+                    })
+                );
             }
         }
 

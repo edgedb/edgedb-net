@@ -8,35 +8,35 @@ namespace EdgeDB;
 [DebuggerDisplay("{DebugDisplay()}")]
 internal readonly struct Value : IEquatable<Value>
 {
-    [MemberNotNullWhen(false, nameof(_callback))]
+    [MemberNotNullWhen(false, nameof(Callback))]
     public bool IsScalar
-        => _callback is null;
+        => Callback is null;
 
     public static readonly Value Empty = new((object?)null);
 
-    private readonly WriterProxy? _callback;
-    private readonly object? _value;
-    private readonly string? _str;
-    private readonly char? _ch;
+    public readonly WriterProxy? Callback;
+    public readonly object? RawValue;
+    public readonly string? StringValue;
+    public readonly char? CharValue;
 
-    public Value(string? str)
+    public Value(string? stringValue)
     {
-        _str = str;
+        StringValue = stringValue;
     }
 
-    public Value(char ch)
+    public Value(char charValue)
     {
-        _ch = ch;
+        CharValue = charValue;
     }
 
     public Value(WriterProxy? callback)
     {
-        _callback = callback;
+        Callback = callback;
     }
 
-    public Value(object? value)
+    public Value(object? rawValue)
     {
-        _value = value;
+        RawValue = rawValue;
     }
 
     public static Value Of(WriterProxy proxy) => new(proxy);
@@ -54,7 +54,7 @@ internal readonly struct Value : IEquatable<Value>
         }
 
         using var nodeObserver = new RangeNodeObserver(writer);
-        _callback(writer);
+        Callback(writer);
 
         first = nodeObserver.First;
         last = nodeObserver.Last;
@@ -63,37 +63,37 @@ internal readonly struct Value : IEquatable<Value>
 
     public void WriteTo(StringBuilder writer)
     {
-        if (_callback is not null)
+        if (Callback is not null)
         {
             throw new InvalidOperationException("Cannot compile callbacks");
         }
 
-        if (_str is not null)
-            writer.Append(_str);
-        else if (_ch is not null)
-            writer.Append(_ch.Value);
+        if (StringValue is not null)
+            writer.Append(StringValue);
+        else if (CharValue is not null)
+            writer.Append(CharValue.Value);
         else
-            writer.Append(_value);
+            writer.Append(RawValue);
     }
 
     private string DebugDisplay()
     {
-        if (_callback is not null)
-            return $"callback<{_callback}>";
+        if (Callback is not null)
+            return $"callback<{Callback}>";
 
-        if (_str is not null)
-            return $"str \"{_str}\"";
+        if (StringValue is not null)
+            return $"str \"{StringValue}\"";
 
-        return _ch is not null ? $"char \'{_ch}\'" : _value is null ? "null" : $"value {_value}";
+        return CharValue is not null ? $"char \'{CharValue}\'" : RawValue is null ? "null" : $"value {RawValue}";
     }
 
     public override string ToString()
     {
-        if (_callback is not null)
+        if (Callback is not null)
             return "<callback>";
-        if (_str is not null)
+        if (StringValue is not null)
             return "<str>";
-        if (_ch.HasValue)
+        if (CharValue.HasValue)
             return "<char>";
 
         return "<object>";
@@ -105,11 +105,11 @@ internal readonly struct Value : IEquatable<Value>
     public static implicit operator Value(int v) => new(v.ToString());
     public static implicit operator Value(long v) => new(v.ToString());
 
-    public bool Equals(Value other) => Equals(_callback, other._callback) && Equals(_value, other._value) && _str == other._str && _ch == other._ch;
+    public bool Equals(Value other) => Equals(Callback, other.Callback) && Equals(RawValue, other.RawValue) && StringValue == other.StringValue && CharValue == other.CharValue;
 
     public override bool Equals(object? obj) => obj is Value other && Equals(other);
 
-    public override int GetHashCode() => HashCode.Combine(_callback, _value, _str, _ch);
+    public override int GetHashCode() => HashCode.Combine(Callback, RawValue, StringValue, CharValue);
 
     public static bool operator ==(Value left, Value right) => left.Equals(right);
 

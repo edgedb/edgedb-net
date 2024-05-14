@@ -1,4 +1,6 @@
-﻿namespace EdgeDB.Translators.Methods;
+﻿using System.Linq.Expressions;
+
+namespace EdgeDB.Translators.Methods;
 
 /// <summary>
 ///     Represents a translator for translating methods within the <see cref="string" /> class.
@@ -236,7 +238,7 @@ internal class StringMethodTranslators : MethodTranslator<string>
             MarkerType.BinaryOp,
             "starts_with_check",
             Defer.This(() => ""),
-            metadata: null,
+            metadata: new BinaryOpMetadata(ExpressionType.Equal),
             Value.Of(writer => writer.Function(
                 "find",
                 instance,

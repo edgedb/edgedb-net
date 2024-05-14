@@ -3,20 +3,28 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using ValueNode = EdgeDB.LooseLinkedList<EdgeDB.Value>.Node;
+using ValueNodeSlice = EdgeDB.LooseLinkedList<EdgeDB.Value>.NodeSlice;
 
 namespace EdgeDB;
 
-internal sealed class QueryWriter : IDisposable
+internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
 {
     private sealed class PositionalTrack : IDisposable
     {
         private readonly ValueNode? _oldRef;
+        private readonly int _oldTrackPosition;
         private readonly QueryWriter _writer;
 
         public PositionalTrack(QueryWriter writer, ValueNode? from)
         {
             _oldRef = writer._track;
+            _oldTrackPosition = writer.TrackedPosition;
+
+            writer.TrackedPosition = from is not null
+                ? writer.GetIndexOfNode(from)
+                : 0;
             writer._track = from;
+
             _writer = writer;
         }
 
@@ -26,24 +34,22 @@ internal sealed class QueryWriter : IDisposable
         }
     }
 
-    public readonly MarkerCollection Markers;
+    public readonly MarkerCollection Markers = new();
 
-    private readonly LooseLinkedList<Value> _tokens;
+    public readonly LooseLinkedList<Value> Tokens = new();
 
     private readonly List<INodeObserver> _observers = [];
 
-    private ValueNode? _track;
-    private readonly bool _debug;
+    private readonly Queue<int> _markerUpdates = [];
 
-    public int TailIndex => _tokens.Count - 1;
+    private ValueNode? _track = null;
 
-    public QueryWriter(bool debug = false)
-    {
-        _tokens = new();
-        Markers = new();
-        _track = null;
-        _debug = debug;
-    }
+    public int TailIndex => Tokens.Count - 1;
+
+    public int TrackedPosition { get; private set; }
+
+    private void UpdateMarkers()
+        => Markers.Update(_markerUpdates, Tokens.Count);
 
     /// <summary>
     ///     Creates a new scope that appends the next tokens at the start of this writer until the
@@ -62,29 +68,38 @@ internal sealed class QueryWriter : IDisposable
     public IDisposable PositionalScope(ValueNode? from)
         => new PositionalTrack(this, from);
 
-    private ValueNode AddAfterTracked(in Value value)
+    private ValueNodeSlice AddAfterTracked(in Value value)
         => AddTracked(in value, true);
-    private ValueNode AddBeforeTracked(in Value value)
+    private ValueNodeSlice AddBeforeTracked(in Value value)
         => AddTracked(in value, false);
 
-    private ValueNode AddTracked(in Value value, bool after)
+    private ValueNodeSlice AddTracked(in Value value, bool after)
     {
-        if (value.TryProxy(this, out var head, out _))
+        if (value.TryProxy(this, out var head, out var tail))
         {
             // track is already updated.
-            return head ?? _track!;
+            return ValueNodeSlice.Create(head, tail);
         }
 
         if (_track is null)
-            _track = _tokens.AddFirst(in value);
+        {
+            _track = Tokens.AddFirst(in value);
+            _markerUpdates.Enqueue(TrackedPosition);
+        }
         else
         {
             _track = after
-                ? _tokens.AddAfter(_track, in value)
-                : _tokens.AddBefore(_track, in value);
+                ? Tokens.AddAfter(_track, in value)
+                : Tokens.AddBefore(_track, in value);
+
+            _markerUpdates.Enqueue(TrackedPosition - (after ? 0 : 1));
         }
 
-        return _track;
+        OnNodeAdd(_track);
+
+        TrackedPosition++;
+
+        return ValueNodeSlice.Create(_track, _track);
     }
 
     public void AddObserver(INodeObserver observer)
@@ -107,7 +122,7 @@ internal sealed class QueryWriter : IDisposable
 
     private int GetIndexOfNode(ValueNode node)
     {
-        var current = _tokens.First;
+        var current = Tokens.First;
         for (var i = 0; current is not null; i++)
         {
             if (current == node)
@@ -119,18 +134,22 @@ internal sealed class QueryWriter : IDisposable
         return -1;
     }
 
-    public QueryWriter Marker(MarkerType type, string name, in Value value, Deferrable<string>? debug = null, IMarkerMetadata? metadata = null)
+    public QueryWriter Marker(MarkerType type, string name, in Value value, Deferrable<string>? debug1 = null, IMarkerMetadata? metadata = null)
     {
-        if (type is MarkerType.Verbose && !_debug)
+        if (type is MarkerType.Verbose && !isDebugQuery)
         {
             Append(in value);
             return this;
         }
 
-        var currentIndex = TailIndex;
-        Append(in value, out var head);
-        var size = TailIndex - currentIndex;
-        Markers.Add(new Marker(name, type, this, size, currentIndex + 1, head, debug, metadata));
+        var sizeDelta = Tokens.Count;
+        var position = TrackedPosition;
+
+        Append(in value, out var slice);
+
+        var size = Tokens.Count - sizeDelta;
+
+        Markers.Add(new Marker(name, type, this, size, position, slice, debug1, metadata));
         return this;
     }
 
@@ -142,7 +161,7 @@ internal sealed class QueryWriter : IDisposable
 
     public QueryWriter Marker(MarkerType type, string name, Deferrable<string>? debug = null, IMarkerMetadata? metadata = null, params Value[] values)
     {
-        if (type is MarkerType.Verbose && !_debug)
+        if (type is MarkerType.Verbose && !isDebugQuery)
         {
             Append(values);
             return this;
@@ -151,23 +170,31 @@ internal sealed class QueryWriter : IDisposable
         if (values.Length == 0)
             return this;
 
-        var currentIndex = TailIndex;
+        var sizeDelta = Tokens.Count;
+        var position = TrackedPosition;
 
-        Append(out var head, values);
+        Append(out var slice, values);
 
-        var count = TailIndex - currentIndex;
+        var size = Tokens.Count - sizeDelta;
 
         Markers.Add(new Marker(
             name,
             type,
             this,
-            count,
-            currentIndex + 1,
-            head,
+            size,
+            position,
+            slice,
             debug,
             metadata
         ));
 
+        return this;
+    }
+
+    public QueryWriter Remove(int position, ValueNodeSlice slice)
+    {
+        var totalRemoved = Tokens.RemoveSlice(slice);
+        Markers.Update(position, -totalRemoved);
         return this;
     }
 
@@ -192,10 +219,12 @@ internal sealed class QueryWriter : IDisposable
 
         var headPrev = head.Previous;
 
-        _tokens.Remove(head, count, (node) =>
+        Tokens.Remove(head, count, node =>
         {
             if (node == _track)
                 _track = headPrev;
+
+            if (node is not null) OnNodeRemove(node);
         });
 
         Markers.Update(position, -count);
@@ -208,31 +237,63 @@ internal sealed class QueryWriter : IDisposable
         var oldTrack = _track;
 
         _track = node;
-        OnNodeAdd(AddBeforeTracked(in value));
+        AddBeforeTracked(in value);
         _track = oldTrack;
 
         Remove(position, node, size);
         return this;
     }
 
-    public QueryWriter Append(in Value value, out ValueNode node)
+    public QueryWriter Replace(int position, ValueNodeSlice slice, Range a, ValueNodeSlice value, Range b)
+    {
+        // we then want to update markers to exclude 'value' at its original position
+        Markers.Update(b.Start.Value, -b.End.Value);
+
+        // move value to the new location
+        Tokens.MoveSlice(value, slice.Head);
+
+        // remove the old value
+        Tokens.RemoveSlice(slice);
+
+        // since we want to replace the value, our updates to markers must reflect a delta
+        // calculated as the size disparity of the value
+        var delta = b.End.Value - a.End.Value;
+
+        if (position > b.Start.Value)
+            position -= b.End.Value;
+
+        Markers.Update(a.Start.Value, delta);
+        return this;
+    }
+
+    public QueryWriter Replace(int position, ValueNodeSlice slice, in Value value)
+    {
+        var oldTrack = _track;
+
+        _track = slice.Tail;
+        AddAfterTracked(in value);
+        _track = oldTrack;
+
+        Remove(position, slice);
+        return this;
+    }
+
+    public QueryWriter Append(in Value value, out ValueNodeSlice node)
     {
         node = AddAfterTracked(in value);
 
-        OnNodeAdd(node);
-
-        Markers.Update(TailIndex, 1);
+        UpdateMarkers();
 
         return this;
     }
 
-    public QueryWriter Append(in Value value, out ValueNode node, out int size)
+    public QueryWriter Append(in Value value, out ValueNodeSlice node, out int size)
     {
-        var pos = TailIndex;
+        var sizeDelta = Tokens.Count;
 
         Append(in value, out node);
 
-        size = TailIndex - pos;
+        size = Tokens.Count - sizeDelta;
 
         return this;
     }
@@ -244,15 +305,15 @@ internal sealed class QueryWriter : IDisposable
     {
         for (var i = 0; i != values.Length; i++)
         {
-            OnNodeAdd(AddAfterTracked(in values[i]));
+            AddAfterTracked(in values[i]);
         }
 
-        Markers.Update(_tokens.Count - 1, values.Length);
+        UpdateMarkers();
 
         return this;
     }
 
-    public QueryWriter Append(out ValueNode node, params Value[] values)
+    public QueryWriter Append(out ValueNodeSlice node, params Value[] values)
     {
         if (values.Length == 0)
         {
@@ -261,12 +322,10 @@ internal sealed class QueryWriter : IDisposable
 
         node = AddAfterTracked(in values[0]);
 
-        OnNodeAdd(node);
-
         for (var i = 1; i < values.Length; i++)
-            OnNodeAdd(AddAfterTracked(in values[i]));
+            node.Tail = AddAfterTracked(in values[i]).Tail ?? node.Tail;
 
-        Markers.Update(_tokens.Count - 1, values.Length);
+        UpdateMarkers();
 
         return this;
     }
@@ -282,12 +341,12 @@ internal sealed class QueryWriter : IDisposable
     public bool AppendIsEmpty(in Value value, out int size)
         => AppendIsEmpty(in value, out size, out _);
 
-    public bool AppendIsEmpty(in Value value, out int size, [MaybeNullWhen(true)] out ValueNode node)
+    public bool AppendIsEmpty(in Value value, out int size, [MaybeNullWhen(true)] out ValueNodeSlice node)
     {
         if (value == Value.Empty)
         {
             size = 0;
-            node = _track;
+            node = new ValueNodeSlice(_track, _track);
             return true;
         }
 
@@ -300,14 +359,15 @@ internal sealed class QueryWriter : IDisposable
     public QueryWriter AppendPrefixIfNotEmpty(in Value prefix, in Value value, out bool wasEmpty)
     {
         var pos = TailIndex;
-        Append(in prefix, out var prefixHead, out var prefixSize);
+        Append(in prefix, out var prefixSlice);
 
         if (AppendIsEmpty(in value))
         {
-            Remove(pos, prefixHead, prefixSize);
+            Remove(pos, prefixSlice);
             wasEmpty = true;
         }
         else wasEmpty = false;
+
         return this;
     }
 
@@ -315,7 +375,7 @@ internal sealed class QueryWriter : IDisposable
     {
         builder ??= new StringBuilder();
 
-        var current = _tokens.First;
+        var current = Tokens.First;
 
         while (current is not null)
         {
@@ -343,14 +403,15 @@ internal sealed class QueryWriter : IDisposable
         }
     }
 
-    public (string Query, LinkedList<QuerySpan> Markers) CompileDebug()
+    public (string Query, LinkedList<QuerySpan> Markers, LinkedList<int> Tokens) CompileDebug()
     {
         var query = new StringBuilder();
         var activeMarkers = new List<ActiveMarkerTrack>();
         var spans = new LinkedList<QuerySpan>();
+        var tokens = new LinkedList<int>();
         var markers = new HashSet<(string, Marker)>(Markers.MarkersByName.SelectMany(x => x.Value.Select(y => (x.Key, y))));
 
-        var current = _tokens.First;
+        var current = Tokens.First;
 
         while (current is not null)
         {
@@ -363,7 +424,7 @@ internal sealed class QueryWriter : IDisposable
                 spans.AddLast(new QuerySpan(activeMarker.Index..(activeMarker.Index + content.Length), content, activeMarker.Marker, activeMarker.Name));
             }
 
-            foreach (var startingMarker in markers.Where(x => x.Item2.Start == current))
+            foreach (var startingMarker in markers.Where(x => x.Item2.IsAlive && x.Item2.Slice.Head == current))
             {
                 markers.Remove(startingMarker);
                 var sb = new StringBuilder();
@@ -372,7 +433,9 @@ internal sealed class QueryWriter : IDisposable
                 current.Value.WriteTo(sb);
             }
 
+            var delta = query.Length;
             current.Value.WriteTo(query);
+            tokens.AddLast(query.Length - delta);
 
             current = current.Next;
         }
@@ -383,13 +446,13 @@ internal sealed class QueryWriter : IDisposable
             spans.AddLast(new QuerySpan(remaining.Index..(remaining.Index + content.Length), content, remaining.Marker, remaining.Name));
         }
 
-        return (query.ToString(), spans);
+        return (query.ToString(), spans, tokens);
     }
 
     public void Dispose()
     {
         Markers.Clear();
-        _tokens.Clear();
+        Tokens.Clear();
         _observers.Clear();
     }
 }

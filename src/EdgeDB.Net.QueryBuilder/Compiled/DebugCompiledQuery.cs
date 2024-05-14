@@ -8,14 +8,14 @@ public sealed class DebugCompiledQuery : CompiledQuery
 {
     public string DebugView { get; }
 
-    internal DebugCompiledQuery(string query, Dictionary<string, object?> variables, LinkedList<QuerySpan> markers)
+    internal DebugCompiledQuery(string query, Dictionary<string, object?> variables, LinkedList<QuerySpan> markers, LinkedList<int> tokens)
         : base(query, variables)
     {
-        DebugView = CreateDebugText(query, variables, markers);
+        DebugView = CreateDebugText(query, variables, markers, tokens);
     }
 
     private static string CreateDebugText(string query, Dictionary<string, object?> variables,
-        LinkedList<QuerySpan> markers)
+        LinkedList<QuerySpan> markers, LinkedList<int> tokens)
     {
         var sb = new StringBuilder();
 
@@ -92,41 +92,6 @@ public sealed class DebugCompiledQuery : CompiledQuery
                         prevRowText.Insert(query.Length + column.Range.End.Value, DrawVert(prevEnd));
                     }
 
-                    // foreach (var prevRowText in rows)
-                    // {
-                    //     var prevStart = prevRowText[column.Range.Start.Value];
-                    //
-                    //     if (prevStart is ' ' or '\u255a')
-                    //     {
-                    //         prevRowText.Remove(column.Range.Start.Value, 1);
-                    //         prevRowText.Insert(column.Range.Start.Value, prevStart == '\u255a' ? '\u2560' : '\u2551');
-                    //     }
-                    //
-                    //     prevStart = prevRowText[query.Length + 1 + column.Range.Start.Value];
-                    //
-                    //     if (prevStart is ' ' or '\u255a')
-                    //     {
-                    //         prevRowText.Remove(query.Length + 1 + column.Range.Start.Value, 1);
-                    //         prevRowText.Insert(query.Length + 1 + column.Range.Start.Value, prevStart == '\u255a' ? '\u2560' : '\u2551');
-                    //     }
-                    //
-                    //     var prevEnd = prevRowText[column.Range.End.Value - 1];
-                    //
-                    //     if (prevEnd is ' ' or '\u255d')
-                    //     {
-                    //         prevRowText.Remove(column.Range.End.Value - 1, 1);
-                    //         prevRowText.Insert(column.Range.End.Value - 1, prevEnd == '\u255d' ? '\u2563' : '\u2551');
-                    //     }
-                    //
-                    //     prevEnd = prevRowText[query.Length + column.Range.End.Value];
-                    //
-                    //     if (prevEnd is ' ' or '\u255d')
-                    //     {
-                    //         prevRowText.Remove(query.Length + column.Range.End.Value, 1);
-                    //         prevRowText.Insert(query.Length + column.Range.End.Value,  prevEnd == '\u255d' ? '\u2563' : '\u2551');
-                    //     }
-                    // }
-
                     // desc
                     var icon = (markerTexts.Count + 1).ToString();
                     var desc = $"{icon} [{column.Marker.Type}] {column.Name}";
@@ -169,6 +134,35 @@ public sealed class DebugCompiledQuery : CompiledQuery
 
             if (topRow is not null)
                 sb.AppendLine(topRow.ToString());
+
+            var tokenRow = new StringBuilder("".PadLeft(query.Length));
+
+            const char leftChar = '\u250c';
+            const char wall = '\u2500';
+            const char rightChar = '\u2510';
+
+            var i = 0;
+            foreach (var token in tokens)
+            {
+                var section = token > 2 ? "".PadRight(token - 2, wall) : string.Empty;
+
+                switch (token)
+                {
+                    case 1:
+                        tokenRow.Insert(i, '\u2503');
+                        break;
+                    case 2:
+                        tokenRow.Insert(i, $"{leftChar}{rightChar}");
+                        break;
+                    default:
+                        tokenRow.Insert(i, $"{leftChar}{section}{rightChar}");
+                        break;
+                }
+
+                i += token;
+            }
+
+            sb.AppendLine(tokenRow.ToString());
 
             sb.AppendLine(query);
 

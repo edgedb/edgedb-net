@@ -35,6 +35,11 @@ namespace EdgeDB.ExampleApp.Examples
         {
             try
             {
+                var test = QueryBuilder
+                    .With(ctx => new {People = ctx.SubQuery(QueryBuilder.Select<Person>())})
+                    .SelectExpression(ctx => ctx.Variables.People)
+                    .Compile(true);
+
                 await QueryBuilderDemo(client);
             }
             catch (Exception x)
@@ -132,7 +137,12 @@ namespace EdgeDB.ExampleApp.Examples
                     Email = "test2@mail.com",
                     Name = "test2",
                     BestFriend = new Person { Email = "test3@mail.com", Name = "test3", }
-                }
+                },
+                new Person { Email = "test4@mail.com", Name = "test4", Friends = new List<Person>()
+                {
+                    new Person { Email = "test5@mail.com", Name = "test5", },
+                    new Person { Email = "test6@mail.com", Name = "test6", },
+                }},
             };
 
             query = await QueryBuilder.For(data,

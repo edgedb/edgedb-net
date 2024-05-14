@@ -217,7 +217,7 @@ namespace EdgeDB
             if (!context.Debug) return new CompiledQuery(writer.Compile().ToString(), QueryVariables);
 
             var compiled = writer.CompileDebug();
-            return new DebugCompiledQuery(compiled.Query, QueryVariables, compiled.Markers);
+            return new DebugCompiledQuery(compiled.Query, QueryVariables, compiled.Markers, compiled.Tokens);
 
         }
 
@@ -225,8 +225,6 @@ namespace EdgeDB
         {
             SchemaInfo ??= context?.SchemaInfo;
             context ??= new();
-
-            List<IDictionary<string, object?>> parameters = new();
 
             var nodes = Nodes;
 
@@ -244,18 +242,22 @@ namespace EdgeDB
 
             for (var i = 0; i != nodes.Count; i++)
             {
-                if(nodes[i] is WithNode)
+                var node = nodes[i];
+
+                if(node is WithNode)
                     continue;
 
-                nodes[i].FinalizeQuery(writer);
-                parameters.Add(nodes[i].Builder.QueryVariables);
+                writer.Marker(
+                    MarkerType.QueryNode,
+                    nodes[i].GetType().Name,
+                    debug: null,
+                    metadata: new QueryNodeMetadata(node),
+                    values: Value.Of(writer => node.FinalizeQuery(writer))
+                );
 
                 if (i != nodes.Count - 1)
                     writer.Append(' ');
             }
-
-            // reduce the query
-            QueryReducer.Apply(this, writer);
 
             // create a with block if we have any globals
             if (context.IncludeGlobalsInQuery && QueryGlobals.Any())
@@ -276,17 +278,20 @@ namespace EdgeDB
 
                 // visit the with node and add it to the front of our local collection of nodes.
                 using var _ = writer.PositionalScopeFromStart();
-                with.FinalizeQuery(writer);
+
+                writer.Marker(
+                    MarkerType.QueryNode,
+                    with.GetType().Name,
+                    debug: null,
+                    metadata: new QueryNodeMetadata(with),
+                    values: Value.Of(writer => with.FinalizeQuery(writer))
+                );
+
                 writer.Append(' ');
             }
 
-            // flatten our parameters into a single collection and make it distinct.
-            var variables = parameters
-                            .SelectMany(x => x)
-                            .DistinctBy(x => x.Key);
-
-            // add any variables that might have been added by other builders in a sub-query context.
-            variables = variables.Concat(QueryVariables.Where(x => !variables.Any(x => x.Key == x.Key)));
+            // reduce the query
+            QueryReducer.Apply(this, writer);
         }
 
         /// <inheritdoc/>

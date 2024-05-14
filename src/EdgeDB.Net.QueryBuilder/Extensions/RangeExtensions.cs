@@ -6,4 +6,9 @@ public static class RangeExtensions
     {
         return a.Start.Value < b.End.Value && b.Start.Value < a.End.Value;
     }
+
+    public static Range Normalize(this Range range)
+    {
+        return range.Start..(range.End.Value + range.Start.Value);
+    }
 }

@@ -255,7 +255,7 @@ namespace EdgeDB.Translators.Methods
                                     MarkerType.GlobalReference,
                                     enumerationName,
                                     Defer.This(() => "Enumeration global reference element for Enumerable.Select translator"),
-                                    new GlobalReferenceMetadata(global),
+                                    new GlobalMetadata(global),
                                     Value.Of(writer => writer
                                         .Append(enumerationName, ".1.")
                                     )
@@ -268,7 +268,7 @@ namespace EdgeDB.Translators.Methods
                                     MarkerType.GlobalReference,
                                     enumerationName,
                                     Defer.This(() => "Enumeration global reference index for Enumerable.Select translator"),
-                                    new GlobalReferenceMetadata(global, "int64"),
+                                    new GlobalMetadata(global, "int64"),
                                     Value.Of(writer => writer
                                         .Append(enumerationName, ".0")
                                     )

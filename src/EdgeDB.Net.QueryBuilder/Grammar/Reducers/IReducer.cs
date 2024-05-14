@@ -2,5 +2,5 @@
 
 internal interface IReducer
 {
-    void Reduce(IQueryBuilder builder, QueryWriter writer);
+    void Reduce(IQueryBuilder builder, QueryWriter writer, Queue<IReducer> shouldRunAfter);
 }

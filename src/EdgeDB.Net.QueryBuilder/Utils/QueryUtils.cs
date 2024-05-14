@@ -55,7 +55,7 @@ namespace EdgeDB
                     if (subQuery.RequiresIntrospection)
                         throw new InvalidOperationException("Subquery required introspection to build");
 
-                    subQuery.Query?.Invoke(writer);
+                    subQuery.Build(writer);
                     break;
                 case string str:
                     writer.SingleQuoted(str);

@@ -6,7 +6,7 @@ namespace EdgeDB;
 
 internal sealed class TypeCastReducer : IReducer
 {
-    public void Reduce(IQueryBuilder builder, QueryWriter writer)
+    public void Reduce(IQueryBuilder builder, QueryWriter writer, Queue<IReducer> shouldRunAfter)
     {
         foreach (var marker in writer.Markers)
         {
@@ -29,7 +29,7 @@ internal sealed class TypeCastReducer : IReducer
 
                         marker.Remove();
                         goto end_neighbour_search;
-                    case MarkerType.GlobalReference when neighbour.Metadata is GlobalReferenceMetadata globalMetadata:
+                    case MarkerType.GlobalReference when neighbour.Metadata is GlobalMetadata globalMetadata:
                         if (globalMetadata.EdgeDBType is not null && EdgeDBTypeUtils.CompareEdgeDBTypes(castMetadata.Type, globalMetadata.EdgeDBType))
                         {
                             marker.Remove();

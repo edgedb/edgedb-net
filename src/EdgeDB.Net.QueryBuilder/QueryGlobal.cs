@@ -79,20 +79,28 @@ namespace EdgeDB
                     MarkerType.GlobalDeclaration,
                     Name,
                     Defer.This(() => $"Reference?: {Reference?.GetType().ToString() ?? "null"}, Value?: {Value?.GetType().ToString() ?? "null"}"),
+                    new GlobalMetadata(this),
                     EdgeDB.Value.Of(writer =>
                     {
                         switch (Value)
                         {
                             case IQueryBuilder queryBuilder:
-                                writer.Wrapped(writer =>
-                                    compileBuilder(queryBuilder, writer, source, context));
+                                writer.Marker(
+                                    MarkerType.SubQuery,
+                                    "sub_query_from_query_builder",
+                                    EdgeDB.Value.Of(writer => writer
+                                        .Wrapped(writer =>
+                                            compileBuilder(queryBuilder, writer, source, context ?? new CompileContext { SchemaInfo = info })
+                                        )
+                                    )
+                                );
                                 break;
                             case SubQuery {RequiresIntrospection: true} when info is null:
                                 throw new
                                     InvalidOperationException(
                                         "Cannot build without introspection! A node requires query introspection.");
                             case SubQuery {RequiresIntrospection: true} subQuery:
-                                subQuery.Build(info, writer);
+                                subQuery.Build(writer, info);
                                 break;
                             default:
                                 QueryUtils.ParseObject(writer, Value);

@@ -36,7 +36,7 @@ namespace EdgeDB
         /// <summary>
         ///     Gets the builder for this subquery.
         /// </summary>
-        public SubQueryBuilder? Builder { get; init; }
+        private SubQueryBuilder? Builder { get; init; }
 
         /// <summary>
         ///     Constructs a new <see cref="SubQuery"/>.
@@ -62,22 +62,30 @@ namespace EdgeDB
         ///     Builds this <see cref="SubQuery"/> using the provided introspection.
         /// </summary>
         /// <param name="info">The introspection info to build this <see cref="SubQuery"/>.</param>
-        /// <param name="result">The builder to append the compiled sub query to.</param>
+        /// <param name="writer">The builder to append the compiled sub query to.</param>
         /// <returns>
         ///     A <see cref="SubQuery"/> representing the built form of this query.
         /// </returns>
-        public void Build(SchemaInfo info, QueryWriter result)
+        public void Build(QueryWriter writer, SchemaInfo? info = null)
         {
-            if (RequiresIntrospection)
-            {
-                Builder(info, result);
-            }
-            else
-            {
-                result.Append(Query);
-            }
+            if (info is null && RequiresIntrospection)
+                throw new NullReferenceException("Required introspection info, but it was null");
 
-            // return new SubQuery(Builder!(info));
+            writer.Marker(
+                MarkerType.SubQuery,
+                "sub_query",
+                Value.Of(writer =>
+                {
+                    if (RequiresIntrospection)
+                    {
+                        Builder(info!, writer);
+                    }
+                    else
+                    {
+                        writer.Append(Query);
+                    }
+                })
+            );
         }
     }
 }

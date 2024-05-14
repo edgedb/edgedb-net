@@ -12,5 +12,7 @@ public enum MarkerType
     Cast,
     Unsafe,
     RawEdgeQL,
-    BinaryOp
+    BinaryOp,
+    QueryNode,
+    SubQuery
 }

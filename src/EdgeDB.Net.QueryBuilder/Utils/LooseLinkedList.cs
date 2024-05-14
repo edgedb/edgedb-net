@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -28,12 +29,12 @@ public sealed class LooseLinkedList<T> : IDisposable, IEnumerable<T>
         /// <summary>
         ///     Gets the next node within the list.
         /// </summary>
-        public Node? Next { get; internal set; }
+        public Node? Next { get; private set; }
 
         /// <summary>
         ///     Gets the previous node within the list.
         /// </summary>
-        public Node? Previous { get; internal set; }
+        public Node? Previous { get; private set; }
 
         /// <summary>
         ///     The list that owns this node.
@@ -45,13 +46,40 @@ public sealed class LooseLinkedList<T> : IDisposable, IEnumerable<T>
         /// </summary>
         public T Value { get; private set; } = value;
 
+        internal void SetNext(Node? head)
+            => Next = head;
+
+        internal void SetPrevious(Node? previous)
+            => Previous = previous;
+
+        internal bool IsAlive { get; private set; } = true;
+
         public void Destroy()
         {
+            if (!IsAlive) return;
+            IsAlive = false;
+
             Next = null;
             Value = default!;
             Previous = null;
             List = null!;
         }
+    }
+
+    public sealed class NodeSlice(Node? head, Node? tail)
+    {
+        public static readonly NodeSlice Empty = new(null, null);
+
+        public static NodeSlice Create(Node? head, Node? tail)
+        {
+            if (head is null && tail is null)
+                return Empty;
+
+            return new(head, tail);
+        }
+
+        public Node? Head { get; set; } = head;
+        public Node? Tail { get; set; } = tail;
     }
 
     /// <summary>
@@ -68,6 +96,75 @@ public sealed class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     ///     Gets the last node in this list.
     /// </summary>
     public Node? Last { get; private set; }
+
+    public NodeSlice Slice(Node head, Node tail)
+    {
+        ValidateNode(head);
+        ValidateNode(tail);
+        return new NodeSlice(head, tail);
+    }
+
+    public NodeSlice Slice(Node head, int size)
+    {
+        ValidateNode(head);
+
+        var tail = head;
+        for (var i = 0; i != size && head.Next is not null; i++)
+            tail = head.Next;
+
+        return new NodeSlice(head, tail);
+    }
+
+    public void MoveSlice(NodeSlice slice, Node? target)
+    {
+        ValidateNodeSlice(slice);
+        ValidateNode(target);
+
+        // soft-delete the slice
+        slice.Head?.Previous?.SetNext(slice.Tail?.Next);
+        slice.Tail?.Next?.SetPrevious(slice.Head?.Previous);
+
+        // rejoin the slice at the target
+        target?.Next?.SetPrevious(slice.Tail);
+        slice.Tail?.SetNext(target?.Next);
+        target?.SetNext(slice.Head);
+        slice.Head?.SetPrevious(target);
+    }
+
+    public int RemoveSlice(NodeSlice slice)
+    {
+        ValidateNodeSlice(slice);
+
+        slice.Head?.Previous?.SetNext(slice.Tail?.Next);
+        slice.Tail?.Next?.SetPrevious(slice.Head?.Previous);
+
+        if (First == slice.Head)
+            First = slice.Tail?.Next;
+
+        if (Last == slice.Tail)
+            Last = slice.Head?.Previous;
+
+        var current = slice.Head;
+
+        var delta = Count;
+        while (current != slice.Tail && current is not null)
+        {
+            var next = current.Next;
+
+            current.Destroy();
+
+            current = next;
+            Count--;
+        }
+
+        if (slice.Tail is not null && slice.Tail.IsAlive)
+        {
+            slice.Tail.Destroy();
+            Count--;
+        }
+
+        return delta - Count;
+    }
 
     /// <summary>
     ///     Adds a value after a specified node.
@@ -288,15 +385,8 @@ public sealed class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     {
         ValidateNode(node);
 
-        if (node.Next is not null)
-        {
-            node.Next.Previous = node.Previous;
-        }
-
-        if (node.Previous is not null)
-        {
-            node.Previous.Next = node.Next;
-        }
+        node.Next?.SetPrevious(node.Previous);
+        node.Previous?.SetNext(node.Next);
 
         if (First == node)
         {
@@ -336,15 +426,13 @@ public sealed class LooseLinkedList<T> : IDisposable, IEnumerable<T>
             current.Destroy();
             Count--;
 
-            head.Next = tail;
-
-            if(tail is not null)
-                tail.Previous = head;
+            head.SetNext(tail);
+            tail?.SetPrevious(head);
         }
         else if (current is null && head is not null)
         {
             // we've removed to the end of the list, 'head' becomes the tail
-            head.Next = null;
+            head.SetNext(null);
             Last = head;
         }
         else if (head is null && current is not null)
@@ -405,6 +493,15 @@ public sealed class LooseLinkedList<T> : IDisposable, IEnumerable<T>
             throw new InvalidOperationException("The provided node isn't apart of the list");
     }
 
+    private void ValidateNodeSlice(NodeSlice? slice)
+    {
+        if (slice is null)
+            throw new ArgumentNullException(nameof(slice));
+
+        ValidateNode(slice.Head);
+        ValidateNode(slice.Tail);
+    }
+
     /// <summary>
     ///     Inserts a new node into this empty list.
     /// </summary>
@@ -423,14 +520,11 @@ public sealed class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     /// <param name="newNode">The node to insert before the anchor point.</param>
     private void InsertNodeBefore(Node node, Node newNode)
     {
-        if (node.Previous is not null)
-        {
-            node.Previous.Next = newNode;
-            newNode.Previous = node.Previous;
-        }
+        node.Previous?.SetNext(newNode);
+        newNode.SetPrevious(node.Previous);
 
-        newNode.Next = node;
-        node.Previous = newNode;
+        newNode.SetNext(node);
+        node.SetPrevious(newNode);
 
         // change head if we're inserting before it.
         if (First == node)
@@ -446,14 +540,11 @@ public sealed class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     /// <param name="newNode">The node to insert after the anchor point.</param>
     private void InsertNodeAfter(Node node, Node newNode)
     {
-        if (node.Next is not null)
-        {
-            node.Next.Previous = newNode;
-            newNode.Next = node.Next;
-        }
+        node.Next?.SetPrevious(newNode);
+        newNode.SetNext(node.Next);
 
-        newNode.Previous = node;
-        node.Next = newNode;
+        newNode.SetPrevious(node);
+        node.SetNext(newNode);
 
         if (Last == node)
             Last = newNode;

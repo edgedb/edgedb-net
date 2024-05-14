@@ -188,7 +188,7 @@ namespace EdgeDB.Translators.Expressions
                         MarkerType.GlobalReference,
                         global.Name,
                         Defer.This(() => "Global referenced from member expression"),
-                        new GlobalReferenceMetadata(global),
+                        new GlobalMetadata(global),
                         Value.Of(writer =>
                         {
                             writer.Append(global.Name);

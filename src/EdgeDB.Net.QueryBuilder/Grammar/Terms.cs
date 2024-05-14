@@ -139,12 +139,12 @@ internal static class Terms
                 for (var i = 0; i < args.Length;)
                 {
                     int commaPos = 0;
-                    LooseLinkedList<Value>.Node? comma = null;
+                    LooseLinkedList<Value>.NodeSlice? commaSlice = null;
 
                     if (i > 0)
                     {
                         commaPos = writer.TailIndex;
-                        writer.Append(", ", out comma);
+                        writer.Append(", ", out commaSlice);
                     }
 
                     var arg = args[i++];
@@ -173,9 +173,9 @@ internal static class Terms
                         )
                     );
 
-                    if (!isEmpty || comma is null) continue;
+                    if (!isEmpty || commaSlice is null) continue;
 
-                    writer.Remove(commaPos, comma);
+                    writer.Remove(commaPos, commaSlice);
                 }
 
                 writer.Append(')');
