@@ -24,7 +24,7 @@ public sealed class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     {
         [DebuggerHidden]
         private string DebugDisplay
-            => $"Value({Value}) HasNext={Next is not null} HasPrevious={Previous is not null}";
+            => IsAlive ? $"Value({Value}) HasNext={Next is not null} HasPrevious={Previous is not null}" : "(Dead)";
 
         /// <summary>
         ///     Gets the next node within the list.
@@ -97,6 +97,73 @@ public sealed class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     /// </summary>
     public Node? Last { get; private set; }
 
+    /// <summary>
+    ///     Strips out a slice from the list, whilst keeping an inner slice.
+    /// </summary>
+    /// <param name="slice">The slice to remove.</param>
+    /// <param name="keep">The inner portion to keep.</param>
+    /// <param name="sliceSize">The size of the <paramref name="slice"/> slice.</param>
+    /// <param name="keepSize">The size of the <paramref name="keep"/> slice.</param>
+    /// <param name="keepOffset">The offset on which the <paramref name="keep"/> slice starts within <paramref name="slice"/>.</param>
+    public void Strip(NodeSlice slice, NodeSlice keep, out int sliceSize, out int keepSize, out int keepOffset)
+    {
+        ValidateNodeSlice(slice);
+        ValidateNodeSlice(keep);
+
+        var leftBounds = slice.Head?.Previous;
+        var rightBounds = slice.Tail?.Next;
+
+        // remove everything in the slice except 'keep'
+        var node = slice.Head;
+        var isInKeepSlice = false;
+
+        sliceSize = 0;
+        keepSize = 0;
+        keepOffset = 0;
+
+
+        for (; node is not null && node != slice.Tail?.Next; sliceSize++)
+        {
+            var temp = node?.Next;
+
+            if (isInKeepSlice)
+                keepSize++;
+
+            if (node == keep.Head)
+            {
+                isInKeepSlice = true;
+                keepSize++;
+                keepOffset = sliceSize;
+                goto continuation;
+            }
+
+            if (node == keep.Tail)
+            {
+                isInKeepSlice = false;
+                goto continuation;
+            }
+
+            if(isInKeepSlice)
+                goto continuation;
+
+            node!.Destroy();
+            Count--;
+
+            continuation: node = temp;
+        }
+
+        leftBounds?.SetNext(keep.Head);
+        rightBounds?.SetPrevious(keep.Tail);
+        keep.Head?.SetPrevious(leftBounds);
+        keep.Tail?.SetNext(rightBounds);
+
+        if (leftBounds is null)
+            First = keep.Head;
+
+        if (rightBounds is null)
+            Last = keep.Tail;
+    }
+
     public NodeSlice Slice(Node head, Node tail)
     {
         ValidateNode(head);
@@ -109,8 +176,8 @@ public sealed class LooseLinkedList<T> : IDisposable, IEnumerable<T>
         ValidateNode(head);
 
         var tail = head;
-        for (var i = 0; i != size && head.Next is not null; i++)
-            tail = head.Next;
+        for (var i = 1; i < size && tail.Next is not null; i++)
+            tail = tail.Next;
 
         return new NodeSlice(head, tail);
     }

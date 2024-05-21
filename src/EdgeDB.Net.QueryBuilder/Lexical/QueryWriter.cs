@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using EdgeDB.Compiled;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -33,6 +34,8 @@ internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
             _writer._track = _oldRef;
         }
     }
+
+    public bool IsDebug { get; } = isDebugQuery;
 
     public readonly MarkerCollection Markers = new();
 
@@ -136,7 +139,7 @@ internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
 
     public QueryWriter Marker(MarkerType type, string name, in Value value, Deferrable<string>? debug1 = null, IMarkerMetadata? metadata = null)
     {
-        if (type is MarkerType.Verbose && !isDebugQuery)
+        if (type is MarkerType.Verbose && !IsDebug)
         {
             Append(in value);
             return this;
@@ -161,7 +164,7 @@ internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
 
     public QueryWriter Marker(MarkerType type, string name, Deferrable<string>? debug = null, IMarkerMetadata? metadata = null, params Value[] values)
     {
-        if (type is MarkerType.Verbose && !isDebugQuery)
+        if (type is MarkerType.Verbose && !IsDebug)
         {
             Append(values);
             return this;
@@ -194,7 +197,7 @@ internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
     public QueryWriter Remove(int position, ValueNodeSlice slice)
     {
         var totalRemoved = Tokens.RemoveSlice(slice);
-        Markers.Update(position, -totalRemoved);
+        Markers.Remove(position..totalRemoved);
         return this;
     }
 
@@ -227,54 +230,54 @@ internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
             if (node is not null) OnNodeRemove(node);
         });
 
-        Markers.Update(position, -count);
+        Markers.Remove(position..count);
 
         return this;
     }
 
-    public QueryWriter Replace(ValueNode node, int position, int size, in Value value)
+    public QueryWriter Move(ValueNodeSlice target, Range targetRange, ValueNodeSlice value, Range valueRange)
     {
-        var oldTrack = _track;
-
-        _track = node;
-        AddBeforeTracked(in value);
-        _track = oldTrack;
-
-        Remove(position, node, size);
-        return this;
-    }
-
-    public QueryWriter Replace(int position, ValueNodeSlice slice, Range a, ValueNodeSlice value, Range b)
-    {
-        // we then want to update markers to exclude 'value' at its original position
-        Markers.Update(b.Start.Value, -b.End.Value);
-
         // move value to the new location
-        Tokens.MoveSlice(value, slice.Head);
+        Tokens.MoveSlice(value, target.Head);
 
         // remove the old value
-        Tokens.RemoveSlice(slice);
+        Tokens.RemoveSlice(target);
 
-        // since we want to replace the value, our updates to markers must reflect a delta
-        // calculated as the size disparity of the value
-        var delta = b.End.Value - a.End.Value;
+        // update markers to reflect the delete
+        Markers.Remove(targetRange);
 
-        if (position > b.Start.Value)
-            position -= b.End.Value;
+        // update markers to reflect the move
+        Markers.Move(valueRange, targetRange);
 
-        Markers.Update(a.Start.Value, delta);
         return this;
     }
 
-    public QueryWriter Replace(int position, ValueNodeSlice slice, in Value value)
+    public QueryWriter Move(int position, ValueNodeSlice target, in Value value)
     {
         var oldTrack = _track;
 
-        _track = slice.Tail;
+        _track = target.Tail;
         AddAfterTracked(in value);
         _track = oldTrack;
 
-        Remove(position, slice);
+        Remove(position, target);
+        return this;
+    }
+
+    public QueryWriter Strip(ValueNodeSlice slice, Range sliceRange, ValueNodeSlice keep, Range keepRange)
+    {
+        Tokens.Strip(slice, keep, out var sliceSize, out var keepSize, out var keepOffset);
+
+        if (keepOffset > 0)
+        {
+            Markers.Remove(sliceRange.Start..keepOffset);
+        }
+
+        if (keepOffset + keepSize < sliceSize)
+        {
+            Markers.Remove((sliceRange.Start.Value + keepOffset + keepSize)..(sliceSize - keepOffset - keepSize));
+        }
+
         return this;
     }
 
@@ -448,6 +451,10 @@ internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
 
         return (query.ToString(), spans, tokens);
     }
+
+#if DEBUG
+    public string QuickDebugView() => DebugCompiledQuery.QuickView(this);
+#endif
 
     public void Dispose()
     {

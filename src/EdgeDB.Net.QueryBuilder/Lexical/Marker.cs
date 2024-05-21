@@ -19,16 +19,30 @@ internal sealed class Marker
         set => UpdateSize(value - _size);
     }
 
+    public Range Range => Position..Size;
+
     public Deferrable<string>? DebugText { get; private set;}
 
     public IMarkerMetadata? Metadata { get; private set; }
 
-    public LooseLinkedList<Value>.NodeSlice Slice { get; private set; }
+    public LooseLinkedList<Value>.NodeSlice Slice
+    {
+        get
+        {
+            if (_sliceVersion != _version)
+                RecalculateSlice();
+
+            return _slice;
+        }
+    }
 
     private readonly QueryWriter _writer;
 
     private int _position;
     private int _size;
+    private int _sliceVersion;
+    private int _version;
+    private LooseLinkedList<Value>.NodeSlice _slice;
 
     internal Marker(string name, MarkerType type, QueryWriter writer, int size, int position, LooseLinkedList<Value>.NodeSlice slice, Deferrable<string>? debugText, IMarkerMetadata? metadata)
     {
@@ -37,63 +51,54 @@ internal sealed class Marker
         _writer = writer;
         Size = size;
         Position = position;
-        Slice = slice;
+        _slice = slice;
         DebugText = debugText;
         Metadata = metadata;
     }
 
-    internal int UpdatePosition(int delta, bool updateSlicesPosition = false)
+    internal int UpdatePosition(int delta)
     {
-        var result = _position += delta;
+        if (delta != 0)
+            _version++;
 
-        if(updateSlicesPosition) UpdateSliceSize(delta, 0);
-
-        return result;
+        return _position += delta;
     }
 
     internal int UpdateSize(int delta)
     {
-        var result = _size += delta;
+        if (delta != 0)
+            _version++;
 
-        UpdateSliceSize(0, delta);
-
-        return result;
+        return _size += delta;
     }
 
-    private void UpdateSliceSize(int shift, int delta)
+    private void RecalculateSlice()
     {
-        // null when in an init-like setting
-        // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
-        if (Slice is null)
+        if (_version == _sliceVersion)
             return;
 
-        if (shift != 0)
+        if (_slice.Head is null || !_slice.Head.IsAlive)
         {
-            var shiftDir = shift > 0;
-            var shiftAbs = Math.Abs(shift);
-
-            for (var i = 0; i != shiftAbs; i++)
-            {
-                Slice.Head = shiftDir ? Slice.Head?.Next : Slice.Head?.Previous;
-                Slice.Tail = shiftDir ? Slice.Tail?.Next : Slice.Tail?.Previous;
-            }
+            _slice = LooseLinkedList<Value>.NodeSlice.Empty;
+            _sliceVersion = _version;
+            IsAlive = false;
+            return;
         }
 
-        if (delta != 0)
+        if (Size <= 0)
         {
-            var deltaDir = delta > 0;
-            var deltaAbs = Math.Abs(delta);
-
-            for (var i = 0; i != deltaAbs; i++)
-            {
-                Slice.Tail = deltaDir ? Slice.Tail?.Next : Slice.Tail?.Previous;
-            }
+            _sliceVersion = _version;
+            _slice = LooseLinkedList<Value>.NodeSlice.Empty;
+            return;
         }
+
+        _slice = _writer.Tokens.Slice(_slice.Head, Size);
+        _sliceVersion = _version;
     }
 
     public void Replace(Value value)
     {
-        _writer.Replace(Position, Slice, in value);
+        _writer.Move(Position, Slice, in value);
     }
 
     public void Remove()
@@ -102,15 +107,15 @@ internal sealed class Marker
     public void Replace(WriterProxy value)
         => Replace(new Value(value));
 
-    public void Replace(LooseLinkedList<Value>.NodeSlice slice, Range slicePoint)
-        => _writer.Replace(Position, Slice, Position..Size, slice, slicePoint);
+    public void Move(LooseLinkedList<Value>.NodeSlice slice, Range slicePoint)
+        => _writer.Move(Slice, Range, slice, slicePoint);
 
     public void Kill()
     {
         if (!IsAlive) return;
 
         IsAlive = false;
-        Slice = null!;
+        _slice = null!;
         Metadata = null!;
         DebugText = null!;
     }

@@ -109,6 +109,8 @@ internal readonly struct Value : IEquatable<Value>
 
     public override bool Equals(object? obj) => obj is Value other && Equals(other);
 
+    public bool Equals(string str) => IsScalar && (StringValue == str || (RawValue?.Equals(str) ?? false));
+
     public override int GetHashCode() => HashCode.Combine(Callback, RawValue, StringValue, CharValue);
 
     public static bool operator ==(Value left, Value right) => left.Equals(right);

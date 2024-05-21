@@ -248,4 +248,13 @@ public sealed class DebugCompiledQuery : CompiledQuery
         result.Add(row);
         return result;
     }
+
+
+#if  DEBUG
+    internal static string QuickView(QueryWriter writer)
+    {
+        var (query, markers, tokens) = writer.CompileDebug();
+        return CreateDebugText(query, new Dictionary<string, object?>(), markers, tokens);
+    }
+#endif
 }

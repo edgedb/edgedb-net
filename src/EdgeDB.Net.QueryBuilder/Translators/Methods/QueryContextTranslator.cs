@@ -132,7 +132,7 @@ internal sealed class QueryContextTranslator : MethodTranslator<IQueryContext>
     public void SubQuery(QueryWriter writer, TranslatedParameter param, ExpressionContext context)
     {
         var builder = (IQueryBuilder)Expression.Lambda(param.RawValue).Compile().DynamicInvoke()!;
-        writer.Wrapped(writer => builder.WriteTo(writer, context));
+        writer.Wrapped(writer => builder.WriteTo(writer, context, compileContext: CompileContext.SubQueryContext(context.Node?.SchemaInfo, null, writer.IsDebug)));
     }
 
     [MethodName(nameof(QueryContext.Aggregate))]

@@ -286,6 +286,23 @@ namespace EdgeDB
         internal SchemaInfo? SchemaInfo { get; }
 
         /// <summary>
+        ///     Configures whether the query builder should optimize the query produced.
+        /// </summary>
+        /// <remarks>
+        ///     Optimization occurs when the query is compiled, if the query builder is a sub query to another, it will
+        ///     inherit the optimization from the parent query builder.
+        /// </remarks>
+        /// <param name="value">
+        ///     The configuration value for optimization:
+        ///     <br/>- <see langword="true"/>: Force the query to be optimized, even if its a subquery
+        ///     <br/>- <see langword="false"/>: Force the query to not be optimized, even if its a sub query and the
+        ///     parents' configuration permits it.
+        ///     <br/>- <see langword="null"/>: Use the default setting.
+        /// </param>
+        /// <returns>The current query builder.</returns>
+        public IQueryBuilder SetShouldOptimizeQuery(bool? value);
+
+        /// <summary>
         ///     Compiles the current query.
         /// </summary>
         /// <remarks>

@@ -35,11 +35,6 @@ namespace EdgeDB.ExampleApp.Examples
         {
             try
             {
-                var test = QueryBuilder
-                    .With(ctx => new {People = ctx.SubQuery(QueryBuilder.Select<Person>())})
-                    .SelectExpression(ctx => ctx.Variables.People)
-                    .Compile(true);
-
                 await QueryBuilderDemo(client);
             }
             catch (Exception x)

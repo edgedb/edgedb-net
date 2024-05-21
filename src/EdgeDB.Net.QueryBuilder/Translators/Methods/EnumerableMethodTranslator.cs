@@ -74,7 +74,7 @@ namespace EdgeDB.Translators.Methods
                     Defer.This(() => "Enumerable.Average translation"),
                     new FunctionMetadata(
                         "std::mean",
-                        Info.OfMethod(nameof(EdgeDB), nameof(EdgeQL), nameof(EdgeQL.Mean))
+                        Info.OfMethod<EdgeQL>(nameof(EdgeQL.Mean))
                     ),
                     source
                 );
@@ -92,7 +92,7 @@ namespace EdgeDB.Translators.Methods
                 Defer.This(() => "Enumerable.Average translation"),
                 new FunctionMetadata(
                     "std::mean",
-                    Info.OfMethod(nameof(EdgeDB), nameof(EdgeQL), nameof(EdgeQL.Mean))
+                    Info.OfMethod<EdgeQL>(nameof(EdgeQL.Mean))
                 ),
                 func
             );
@@ -147,7 +147,7 @@ namespace EdgeDB.Translators.Methods
                         Defer.This(() => "Scalar length of Enumerable.Count"),
                         new FunctionMetadata(
                             "std::len",
-                            Info.OfMethod(nameof(EdgeDB), nameof(EdgeQL), nameof(EdgeQL.Len))
+                            Info.OfMethod<EdgeQL>(nameof(EdgeQL.Len))
                         ),
                         source
                     );
@@ -157,7 +157,7 @@ namespace EdgeDB.Translators.Methods
                         Defer.This(() => "count from Enumerable.Count"),
                         new FunctionMetadata(
                             "std::count",
-                            Info.OfMethod(nameof(EdgeDB), nameof(EdgeQL), nameof(EdgeQL.Count))
+                            Info.OfMethod<EdgeQL>(nameof(EdgeQL.Count))
                         ),
                         source
                     );
@@ -176,7 +176,7 @@ namespace EdgeDB.Translators.Methods
                 Defer.This(() => "Enumerable.Count mapping translation"),
                 new FunctionMetadata(
                     "std::count",
-                    Info.OfMethod(nameof(EdgeDB), nameof(EdgeQL), nameof(EdgeQL.Count))
+                    Info.OfMethod<EdgeQL>(nameof(EdgeQL.Count))
                 ),
                 mapper
             );

@@ -94,7 +94,7 @@ namespace EdgeDB
         private Dictionary<string, object?> QueryVariables
             => _state.Variables;
 
-        private readonly QueryBuilderState _state;
+        private QueryBuilderState _state;
 
         /// <summary>
         ///     Constructs an empty query builder.
@@ -119,6 +119,27 @@ namespace EdgeDB
             : this()
         {
             SchemaInfo = info;
+        }
+
+        /// <summary>
+        ///     Configures whether the query builder should optimize the query produced.
+        /// </summary>
+        /// <remarks>
+        ///     Optimization occurs when the query is compiled, if the query builder is a sub query to another, it will
+        ///     inherit the optimization from the parent query builder.
+        /// </remarks>
+        /// <param name="value">
+        ///     The configuration value for optimization:
+        ///     <br/>- <see langword="true"/>: Force the query to be optimized, even if its a subquery
+        ///     <br/>- <see langword="false"/>: Force the query to not be optimized, even if its a sub query and the
+        ///     parents' configuration permits it.
+        ///     <br/>- <see langword="null"/>: Use the default setting.
+        /// </param>
+        /// <returns>The current query builder.</returns>
+        public QueryBuilder<TType, TContext> SetShouldOptimizeQuery(bool? value)
+        {
+            _state.RunReducers = value;
+            return this;
         }
 
         /// <summary>
@@ -291,7 +312,13 @@ namespace EdgeDB
             }
 
             // reduce the query
-            QueryReducer.Apply(this, writer);
+            var shouldReduce = context is {RunReducers: true};
+
+            if (_state.RunReducers is not null)
+                shouldReduce = _state.RunReducers.Value;
+
+            if(shouldReduce)
+                QueryReducer.Apply(this, writer);
         }
 
         /// <inheritdoc/>
@@ -624,12 +651,14 @@ namespace EdgeDB
         }
 
 
-        #region IQueryBuilder<TType>
+        #region IQueryBuilder
 
         SchemaInfo? IQueryBuilder.SchemaInfo => SchemaInfo;
         IReadOnlyCollection<QueryNode> IQueryBuilder.Nodes => Nodes;
         List<QueryGlobal> IQueryBuilder.Globals => QueryGlobals;
         Dictionary<string, object?> IQueryBuilder.Variables => QueryVariables;
+
+        IQueryBuilder IQueryBuilder.SetShouldOptimizeQuery(bool? value) => SetShouldOptimizeQuery(value);
 
         void IQueryBuilder.CompileInternal(QueryWriter writer, CompileContext? context) =>
             CompileInternal(writer, context);

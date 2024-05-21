@@ -10,6 +10,8 @@ internal sealed record QueryBuilderState(
     SchemaInfo? SchemaInfo
 )
 {
+    public bool? RunReducers { get; set; } = null;
+
     public SchemaInfo? SchemaInfo { get; set; } = SchemaInfo;
     public static QueryBuilderState Empty => new(new(), new(), new(), null);
 }

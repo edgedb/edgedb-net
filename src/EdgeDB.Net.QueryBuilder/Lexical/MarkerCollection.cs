@@ -34,38 +34,70 @@ internal sealed class MarkerCollection : IEnumerable<Marker>
         markersByName.AddLast(marker);
     }
 
-    public void Update(Range from, Range to)
+    public void Remove(Range range)
     {
-        var exclusionIndex = from.Start.Value + from.End.Value;
-        var inclusionIndex = to.Start.Value + to.End.Value;
+        var rangeLower = range.Start.Value;
+        var rangeUpper = range.Start.Value + range.End.Value;
 
         foreach (var marker in _markers)
         {
-            var oldPos = marker.Position;
+            if (!marker.IsAlive)
+                continue;
 
-            // marker is past the exclusion index, we can just decrement position by the delta
-            if (marker.Position >= exclusionIndex)
+            var markerLower = marker.Position;
+            var markerUpper = marker.Position + marker.Size;
+
+            // if the marker is at the range, remove it
+            if (marker.Range.Equals(range))
             {
-                // if the new position is before the marker, we calculate the delta being
-                // the distance disparity between the exclusion size and inclusion size
-                if(inclusionIndex <= marker.Position)
-                    marker.UpdatePosition(from.End.Value - to.End.Value);
-                // otherwise we just shift the marker by the exclusion delta
-                else
-                    marker.UpdatePosition(-from.End.Value);
+                marker.Kill();
             }
-            // marker resides within the range, we essentially move it to the new range
-            else if (marker.Position >= from.Start.Value)
+            // remove the size from the marker
+            else if (markerLower <= rangeLower && markerUpper >= rangeUpper)
             {
-                var delta = marker.Position - from.Start.Value;
-                var newPos = to.Start.Value + delta;
+                marker.UpdateSize(-range.End.Value);
+            }
+            else if (markerLower > rangeUpper)
+            {
+                // move the position
+                marker.UpdatePosition(-range.End.Value);
+            }
+        }
+    }
 
-                marker.Position = newPos;
+    public void Move(Range from, Range to)
+    {
+        var offset = to.Start.Value - from.Start.Value;
+
+        foreach (var marker in _markers)
+        {
+            if (!marker.IsAlive)
+                continue;
+
+            if (marker.Position <= to.Start.Value && marker.Position + marker.Size >= to.Start.Value)
+            {
+                // update marker size
+                marker.UpdateSize(from.End.Value);
+            }
+            // if the marker contains the 'from' range BUT is not equal to the from range, update it to remove its size
+            else if (
+                marker.Position <= from.Start.Value &&
+                marker.Position + marker.Size >= from.Start.Value + from.End.Value &&
+                !marker.Range.Equals(from))
+            {
+                marker.UpdateSize(-from.End.Value);
             }
 
-            if (oldPos != marker.Position && _markersByPosition.Remove(oldPos, out var oldMarkersByPosition))
+            // if the marker is apart of the moved span, update its position to the new offset
+            if (marker.Position >= from.Start.Value &&
+                marker.Position + marker.Size <= from.Start.Value + from.End.Value)
             {
-                UpdateMarkerBucket(oldMarkersByPosition, marker.Position);
+                marker.UpdatePosition(offset);
+            }
+            // otherwise we move any markers towards the head by decrementing the size of the moved range
+            else if(marker.Position > from.Start.Value + from.End.Value)
+            {
+                marker.UpdatePosition(-from.End.Value);
             }
         }
     }
@@ -168,42 +200,8 @@ internal sealed class MarkerCollection : IEnumerable<Marker>
         end++;
     }
 
-    public void Update(int position, int delta)
-    {
-        foreach (var marker in _markers)
-        {
-            if(!marker.IsAlive)
-                continue;
-
-            if(marker.Position + marker.Size <= position)
-                continue;
-
-            var deltaAbs = Math.Abs(delta);
-
-            // if the marker is within the range, and its a deletion, do nothing
-            if(marker.Position >= position && marker.Position + marker.Size <= position + deltaAbs)
-                continue;
-
-            if (position + deltaAbs < marker.Position)
-                marker.UpdatePosition(delta);
-            else
-            {
-                // delta - offset
-                var sizeDelta = Math.Min(Math.Abs(delta), marker.Size) - Math.Max(marker.Position - position, 0);
-
-                // negate it if its a removal
-                if (delta < 0)
-                    sizeDelta = -sizeDelta;
-
-                marker.UpdateSize(sizeDelta);
-            }
-
-            if (_markersByPosition.Remove(position, out var oldMarkersByPosition))
-            {
-                UpdateMarkerBucket(oldMarkersByPosition, marker.Position);
-            }
-        }
-    }
+    public IEnumerable<Marker> GetStartingAt(LooseLinkedList<Value>.Node node)
+        => _markers.Where(x => x.IsAlive && x.Slice.Head == node);
 
     public IEnumerable<Marker> GetSiblings(Marker marker)
         => _markersByPosition[marker.Position].Where(x => x != marker && x.Size == marker.Size && x.IsAlive);

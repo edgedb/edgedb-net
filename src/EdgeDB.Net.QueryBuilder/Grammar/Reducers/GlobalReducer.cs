@@ -14,6 +14,7 @@ internal sealed class GlobalReducer : IReducer
         if (withNode is null)
             return;
 
+        int reducedCount = 0;
         foreach (var (_, markers) in writer.Markers.MarkersByType.Where(x => x.Key is MarkerType.GlobalDeclaration)
                      .ToArray())
         foreach (var global in markers)
@@ -30,8 +31,9 @@ internal sealed class GlobalReducer : IReducer
                 continue;
 
             // inline the global.
-            references[0].Replace(global.Slice, global.Position..global.Size);
+            references[0].Move(global.Slice, global.Position..global.Size);
             global.Kill();
+            reducedCount++;
         }
 
         // if theres nothing in the with block, we can remove it.
@@ -40,6 +42,9 @@ internal sealed class GlobalReducer : IReducer
             withNode.Remove();
             withNode.Kill();
         }
+
+        if(reducedCount > 0)
+            shouldRunAfter.Enqueue(QueryReducer.Get<NestedSelectReducer>());
     }
 
     private bool CanReduceWithNestedTypeSafety(QueryGlobal global, Marker marker, QueryWriter writer)

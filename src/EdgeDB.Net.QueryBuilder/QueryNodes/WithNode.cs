@@ -60,7 +60,7 @@ namespace EdgeDB.QueryNodes
                         Value.Of(writer =>
                         {
                             writer.Append(global.Name, " := ");
-                            global.Compile(this, writer, null, SchemaInfo);
+                            global.Compile(this, writer, CompileContext.SubQueryContext(SchemaInfo, null, writer.IsDebug), SchemaInfo);
                         })
                     );
 
@@ -78,7 +78,7 @@ namespace EdgeDB.QueryNodes
                     Value.Of(writer =>
                     {
                         writer.Append(global.Name, " := ");
-                        global.Compile(this, writer, null, SchemaInfo);
+                        global.Compile(this, writer, CompileContext.SubQueryContext(SchemaInfo, null, writer.IsDebug), SchemaInfo);
                     })
                 );
 

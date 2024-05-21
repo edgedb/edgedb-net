@@ -478,6 +478,8 @@ namespace EdgeDB
             // };
         }
 
+        public IQueryBuilder SetShouldOptimizeQuery(bool? value) { return this; }
+
         /// <inheritdoc/>
         public CompiledQuery Compile(bool debug)
             => CompileInternal();

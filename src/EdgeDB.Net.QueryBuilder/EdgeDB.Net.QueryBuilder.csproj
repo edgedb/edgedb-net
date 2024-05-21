@@ -12,6 +12,9 @@
     <WarningLevel>5</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>preview</LangVersion>
+    <FodyDependsOnTargets>
+      AfterCompile
+    </FodyDependsOnTargets>
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="Grammar\Operators\" />
