@@ -1,13 +1,136 @@
-using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Text.RegularExpressions;
 
 namespace EdgeDB.Translators.Methods;
 
 internal static class MethodTranslatorLookupTable
 {
+    private static readonly Dictionary<MethodInfo, Handle> _quickLookupTable;
+
+    private static readonly Dictionary<Type, List<MethodTranslator>> _translatorsByTargetType;
+    private static readonly List<MethodTranslator> _translators;
+
+    static MethodTranslatorLookupTable()
+    {
+        _translators = new List<MethodTranslator>();
+        _translatorsByTargetType = new Dictionary<Type, List<MethodTranslator>>();
+        _quickLookupTable = new Dictionary<MethodInfo, Handle>();
+
+        var types = Assembly.GetExecutingAssembly().GetTypes();
+
+        // load current translators
+        var translators = types.Where(x =>
+            x.BaseType?.Name == "MethodTranslator`1" ||
+            (x.BaseType == typeof(MethodTranslator) && x.Name != "MethodTranslator`1"));
+
+        foreach (var translator in translators)
+        {
+            var instance = (MethodTranslator)Activator.CreateInstance(translator)!;
+            var translatorTargetMethods = instance.TranslatorTargetType.GetMethods();
+
+            var methods = translator.GetMethods(BindingFlags.Public | BindingFlags.Instance);
+
+            foreach (var method in methods)
+            {
+                var targetAttributes = method.GetCustomAttributes<MethodNameAttribute>() as MethodNameAttribute[];
+
+                if (targetAttributes is null)
+                    continue;
+
+                foreach (var targetAttribute in targetAttributes)
+                {
+                    var targetMethods = translatorTargetMethods.Where(x => x.Name == targetAttribute.MethodName);
+
+                    if (targetAttribute.IsParameterAware)
+                    {
+                        targetMethods = targetMethods
+                            .Where(x => IsTranslationMatch(method, x));
+                    }
+
+                    foreach (var targetMethod in targetMethods)
+                    {
+                        _quickLookupTable.TryAdd(targetMethod, new Handle(instance, method));
+                    }
+                }
+            }
+
+            _translators.Add(instance);
+
+            if (!_translatorsByTargetType.TryGetValue(instance.TranslatorTargetType, out var translatorsByType))
+                translatorsByType = _translatorsByTargetType[instance.TranslatorTargetType] =
+                    new List<MethodTranslator>();
+
+            translatorsByType.Add(instance);
+            //_translatorsByTargetType.Add(instance.TranslatorTargetType, instance);
+        }
+    }
+
+    public static bool TryGetTranslator(MethodInfo target, [MaybeNullWhen(false)] out Handle translator)
+    {
+        lock (_quickLookupTable)
+        {
+            return _quickLookupTable.TryGetValue(target, out translator) ||
+                   TrySearchAndCacheTranslator(target, out translator);
+        }
+    }
+
+    private static bool TrySearchAndCacheTranslator(MethodInfo target, [MaybeNullWhen(false)] out Handle translator)
+    {
+        var baseType = target.DeclaringType!;
+
+        if (_translatorsByTargetType.TryGetValue(baseType, out var translators))
+        {
+            var targetTranslator = translators
+                .SelectMany(x => x.MethodTranslators.Select(y => (methodTranslatorInfo: y, translators: x)))
+                .FirstOrDefault(x => x.methodTranslatorInfo.Key == target.Name &&
+                                     IsTranslationMatch(x.methodTranslatorInfo.Value, target));
+
+            if (targetTranslator.translators is not null)
+            {
+                translator = _quickLookupTable[target] = new Handle(
+                    targetTranslator.translators,
+                    targetTranslator.methodTranslatorInfo.Value
+                );
+                return true;
+            }
+        }
+
+        foreach (var methodTranslator in _translators)
+        {
+            if (!methodTranslator.CanTranslate(baseType))
+                continue;
+
+            if (methodTranslator.MethodTranslators.TryGetValue(target.Name, out var info))
+            {
+                translator = _quickLookupTable[target] = new Handle(
+                    methodTranslator,
+                    info
+                );
+                return true;
+            }
+        }
+
+        translator = default;
+        return false;
+    }
+
+    private static bool IsTranslationMatch(MethodInfo translator, MethodInfo target)
+    {
+        var parameters = target.GetParameters();
+        var translatorMethodAttributes = translator.GetCustomAttributes<MethodNameAttribute>() as MethodNameAttribute[];
+
+        if (translatorMethodAttributes is null)
+            return false;
+
+        return translatorMethodAttributes
+            .Any(attr => parameters.Length == attr.MethodParameters.Length &&
+                         parameters
+                             .Select((x, i) => attr.MethodParameters[i] == x.ParameterType)
+                             .Aggregate((a, b) => a && b)
+            );
+    }
+
     internal readonly struct Handle
     {
         public readonly MethodTranslator Translator;
@@ -29,7 +152,8 @@ internal static class MethodTranslatorLookupTable
         public void Translate(QueryWriter writer, MethodCallExpression expression, ExpressionContext context)
             => Translate(writer, Translator, _translatorMethod, expression, context);
 
-        private static void Translate(QueryWriter writer, MethodTranslator translator, MethodInfo translatorMethod, MethodCallExpression methodCall, ExpressionContext context)
+        private static void Translate(QueryWriter writer, MethodTranslator translator, MethodInfo translatorMethod,
+            MethodCallExpression methodCall, ExpressionContext context)
         {
             // TODO: this initialization logic can be refactored and extrapolated into a constructor.
 
@@ -72,7 +196,8 @@ internal static class MethodTranslatorLookupTable
 
                     break;
                 }
-                else if (parameterInfo.ParameterType == typeof(ExpressionContext))
+
+                if (parameterInfo.ParameterType == typeof(ExpressionContext))
                 {
                     // set the context
                     parsedParameters[i] = context;
@@ -127,128 +252,5 @@ internal static class MethodTranslatorLookupTable
                 Token.Of(_ => translatorMethod.Invoke(translator, finalParameters))
             );
         }
-    }
-
-    private static readonly Dictionary<MethodInfo, Handle> _quickLookupTable;
-
-    private static readonly Dictionary<Type, List<MethodTranslator>> _translatorsByTargetType;
-    private static readonly List<MethodTranslator> _translators;
-
-    static MethodTranslatorLookupTable()
-    {
-        _translators = new();
-        _translatorsByTargetType = new();
-        _quickLookupTable = new();
-
-        var types = Assembly.GetExecutingAssembly().GetTypes();
-
-        // load current translators
-        var translators = types.Where(x =>
-            x.BaseType?.Name == "MethodTranslator`1" ||
-            (x.BaseType == typeof(MethodTranslator) && x.Name != "MethodTranslator`1"));
-
-        foreach (var translator in translators)
-        {
-            var instance = (MethodTranslator)Activator.CreateInstance(translator)!;
-            var translatorTargetMethods = instance.TranslatorTargetType.GetMethods();
-
-            var methods = translator.GetMethods(BindingFlags.Public | BindingFlags.Instance);
-
-            foreach (var method in methods)
-            {
-                var targetAttributes = method.GetCustomAttributes<MethodNameAttribute>() as MethodNameAttribute[];
-
-                if(targetAttributes is null)
-                    continue;
-
-                foreach (var targetAttribute in targetAttributes)
-                {
-                    var targetMethods = translatorTargetMethods.Where(x => x.Name == targetAttribute.MethodName);
-
-                    if (targetAttribute.IsParameterAware)
-                    {
-                        targetMethods = targetMethods
-                            .Where(x => IsTranslationMatch(method, x));
-                    }
-
-                    foreach (var targetMethod in targetMethods)
-                    {
-                        _quickLookupTable.TryAdd(targetMethod, new Handle(instance, method));
-                    }
-                }
-            }
-
-            _translators.Add(instance);
-
-            if (!_translatorsByTargetType.TryGetValue(instance.TranslatorTargetType, out var translatorsByType))
-                translatorsByType = _translatorsByTargetType[instance.TranslatorTargetType] = new();
-
-            translatorsByType.Add(instance);
-            //_translatorsByTargetType.Add(instance.TranslatorTargetType, instance);
-        }
-    }
-
-    public static bool TryGetTranslator(MethodInfo target, [MaybeNullWhen(false)] out Handle translator)
-    {
-        lock (_quickLookupTable)
-        {
-            return _quickLookupTable.TryGetValue(target, out translator) || TrySearchAndCacheTranslator(target, out translator);
-        }
-    }
-
-    private static bool TrySearchAndCacheTranslator(MethodInfo target, [MaybeNullWhen(false)] out Handle translator)
-    {
-        var baseType = target.DeclaringType!;
-
-        if (_translatorsByTargetType.TryGetValue(baseType, out var translators))
-        {
-            var targetTranslator = translators
-                .SelectMany(x => x.MethodTranslators.Select(y => (methodTranslatorInfo: y, translators: x)))
-                .FirstOrDefault(x => x.methodTranslatorInfo.Key == target.Name &&
-                            IsTranslationMatch(x.methodTranslatorInfo.Value, target));
-
-            if (targetTranslator.translators is not null)
-            {
-                translator = _quickLookupTable[target] = new Handle(
-                    targetTranslator.translators,
-                    targetTranslator.methodTranslatorInfo.Value
-                );
-                return true;
-            }
-        }
-
-        foreach (var methodTranslator in _translators)
-        {
-            if(!methodTranslator.CanTranslate(baseType))
-                continue;
-
-            if (methodTranslator.MethodTranslators.TryGetValue(target.Name, out var info))
-            {
-                translator = _quickLookupTable[target] = new Handle(
-                    methodTranslator,
-                    info
-                );
-                return true;
-            }
-        }
-
-        translator = default;
-        return false;
-    }
-
-    private static bool IsTranslationMatch(MethodInfo translator, MethodInfo target)
-    {
-        var parameters = target.GetParameters();
-        var translatorMethodAttributes = translator.GetCustomAttributes<MethodNameAttribute>() as MethodNameAttribute[];
-
-        if (translatorMethodAttributes is null)
-            return false;
-
-        return translatorMethodAttributes
-            .Any(attr => parameters.Length == attr.MethodParameters.Length &&
-                parameters
-                    .Select((x, i) => attr.MethodParameters[i] == x.ParameterType)
-                    .Aggregate((a, b) => a && b)
-            );
     }
 }

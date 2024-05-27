@@ -2,15 +2,15 @@
 
 internal static class Defer
 {
-    public static Deferrable<T> This<T>(Func<T> value) => new Deferrable<T>(value);
+    public static Deferrable<T> This<T>(Func<T> value) => new(value);
 }
 
 internal sealed class Deferrable<T>
 {
-    private T _value;
     private readonly Func<T>? _getValue;
 
     private bool _isDeferred;
+    private T _value;
 
     public Deferrable(T value)
     {
@@ -33,7 +33,6 @@ internal sealed class Deferrable<T>
             if (!_isDeferred) return _value;
             _isDeferred = false;
             return _value = _getValue!();
-
         }
     }
 

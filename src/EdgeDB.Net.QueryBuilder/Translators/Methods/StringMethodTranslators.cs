@@ -227,18 +227,16 @@ internal class StringMethodTranslators : MethodTranslator<string>
         => writer.Function("str_split", instance, separator);
 
     [MethodName(nameof(string.StartsWith))]
-    public void StartsWith(QueryWriter writer, TranslatedParameter instance, TranslatedParameter condition)
-    {
+    public void StartsWith(QueryWriter writer, TranslatedParameter instance, TranslatedParameter condition) =>
         // multiple ways to do this, which one is more efficient?
         // - len(condition) <= len(instance) and instance[:len(condition)] = condition
         // - re_test('^' ++ condition, instance)
         // - find(instance, condition) == 0
-
         writer.Term(
             TermType.BinaryOp,
             "starts_with_check",
             Defer.This(() => ""),
-            metadata: new BinaryOpMetadata(ExpressionType.Equal),
+            new BinaryOpMetadata(ExpressionType.Equal),
             Token.Of(writer => writer.Function(
                 "find",
                 instance,
@@ -246,7 +244,6 @@ internal class StringMethodTranslators : MethodTranslator<string>
             )),
             " = 0"
         );
-    }
 
     [MethodName(nameof(string.EndsWith))]
     public void EndsWith(QueryWriter writer, TranslatedParameter instance, TranslatedParameter condition)
@@ -281,7 +278,7 @@ internal class StringMethodTranslators : MethodTranslator<string>
             Token.Of(writer => writer
                 .Function(
                     "len",
-                    Defer.This(() => $"Length check for instance on ends with"),
+                    Defer.This(() => "Length check for instance on ends with"),
                     metadata: null,
                     instanceValue
                 )
@@ -290,7 +287,7 @@ internal class StringMethodTranslators : MethodTranslator<string>
             Token.Of(writer => writer
                 .Function(
                     "len",
-                    Defer.This(() => $"Length check for condition on ends with"),
+                    Defer.This(() => "Length check for condition on ends with"),
                     metadata: null,
                     conditionValue
                 )
@@ -302,13 +299,13 @@ internal class StringMethodTranslators : MethodTranslator<string>
                     .Append('-')
                     .Function(
                         "len",
-                        Defer.This(() => $"length call for ends with final check"),
+                        Defer.This(() => "length call for ends with final check"),
                         metadata: null,
                         conditionValue
                     )
                     .Append(':')
                 ),
-                separator: "[]"
+                "[]"
             )),
             " = ",
             conditionValue

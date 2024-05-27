@@ -54,7 +54,7 @@ internal sealed class WhitespaceReducer : IReducer
     {
         if (term.Slice.Head?.Previous is not null)
             Trim(writer, term.Position - 1, term.Slice.Head.Previous, false);
-        if(term.Slice.Tail?.Next is not null)
+        if (term.Slice.Tail?.Next is not null)
             Trim(writer, term.Position + term.Size + 1, term.Slice.Tail.Next, true);
     }
 }

@@ -1,5 +1,4 @@
-﻿
-using System.Buffers;
+﻿using System.Buffers;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -10,24 +9,28 @@ namespace EdgeDB;
 internal sealed class TermCollection : IEnumerable<Term>
 {
     private const int MaxStackallocSize = 1024;
-
-    public readonly Dictionary<TermType, LinkedList<Term>> TermsByType = new();
     private readonly LinkedList<Term> _terms = new();
     private readonly SortedDictionary<int, LinkedList<Term>> _termsByPosition = new();
     public readonly Dictionary<string, LinkedList<Term>> TermsByName = new();
+
+    public readonly Dictionary<TermType, LinkedList<Term>> TermsByType = new();
+
+    public IEnumerator<Term> GetEnumerator() => _terms.Where(x => x.IsAlive).GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     public void Add(Term term)
     {
         _terms.AddLast(term);
 
         if (!TermsByType.TryGetValue(term.Type, out var termsByType))
-            TermsByType[term.Type] = termsByType = new();
+            TermsByType[term.Type] = termsByType = new LinkedList<Term>();
 
         if (!_termsByPosition.TryGetValue(term.Position, out var termsByPosition))
-            _termsByPosition[term.Position] = termsByPosition = new();
+            _termsByPosition[term.Position] = termsByPosition = new LinkedList<Term>();
 
         if (!TermsByName.TryGetValue(term.Name, out var termsByName))
-            TermsByName[term.Name] = termsByName = new();
+            TermsByName[term.Name] = termsByName = new LinkedList<Term>();
 
         termsByPosition.AddLast(term);
         termsByType.AddLast(term);
@@ -96,7 +99,7 @@ internal sealed class TermCollection : IEnumerable<Term>
                 term.UpdatePosition(offset);
             }
             // otherwise we move any terms towards the head by decrementing the size of the moved range
-            else if(term.Position > from.Start.Value + from.End.Value)
+            else if (term.Position > from.Start.Value + from.End.Value)
             {
                 term.UpdatePosition(-from.End.Value);
             }
@@ -150,19 +153,19 @@ internal sealed class TermCollection : IEnumerable<Term>
             }
         }
 
-        if(deltas.Length > deltasIndex)
+        if (deltas.Length > deltasIndex)
             deltas = deltas[..deltasIndex];
 
         foreach (var term in _terms)
         {
-            if(!term.IsAlive)
+            if (!term.IsAlive)
                 continue;
 
             var oldPos = term.Position;
 
             foreach (var delta in deltas)
             {
-                if(delta.Start.Value > term.Position)
+                if (delta.Start.Value > term.Position)
                     continue;
 
                 term.UpdatePosition(delta.End.Value);
@@ -182,8 +185,9 @@ internal sealed class TermCollection : IEnumerable<Term>
     {
         if (!_termsByPosition.TryGetValue(newPos, out var existing))
             existing = bucket;
-        else foreach (var oldTerm in bucket)
-            existing.AddLast(oldTerm);
+        else
+            foreach (var oldTerm in bucket)
+                existing.AddLast(oldTerm);
 
         _termsByPosition[newPos] = existing;
     }
@@ -219,7 +223,8 @@ internal sealed class TermCollection : IEnumerable<Term>
 
         if (minStart is not null)
         {
-            foreach (var minStartTerm in _termsByPosition[term.Position].Where(x => x.Size == minStart.Size && x.IsAlive))
+            foreach (var minStartTerm in _termsByPosition[term.Position]
+                         .Where(x => x.Size == minStart.Size && x.IsAlive))
             {
                 result.AddLast(minStartTerm);
             }
@@ -241,7 +246,9 @@ internal sealed class TermCollection : IEnumerable<Term>
     }
 
     public IEnumerable<Term> GetParents(Term term)
-        => _terms.Where(x => x.Position != term.Position && x.Size != term.Size && x.Position <= term.Position && x.Position + x.Size >= term.Position + term.Size);
+        => _terms.Where(x =>
+            x.Position != term.Position && x.Size != term.Size && x.Position <= term.Position &&
+            x.Position + x.Size >= term.Position + term.Size);
 
     public IEnumerable<Term> GetChildren(Term term)
         => _terms.Where(x =>
@@ -280,8 +287,4 @@ internal sealed class TermCollection : IEnumerable<Term>
         TermsByType.Clear();
         TermsByName.Clear();
     }
-
-    public IEnumerator<Term> GetEnumerator() => _terms.Where(x => x.IsAlive).GetEnumerator();
-
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

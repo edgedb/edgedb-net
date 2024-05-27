@@ -6,35 +6,6 @@ namespace EdgeDB;
 public sealed class UpdateShapeBuilder<T, U> : IUpdateShapeBuilder
     where U : IQueryContext
 {
-    private readonly struct ShapeElement(MemberInfo key, LambdaExpression value, ExpressionType type)
-    {
-        public void Write(QueryWriter writer, Action<QueryWriter, LambdaExpression> translator)
-        {
-            var op = type switch
-            {
-                ExpressionType.Assign => ":=",
-                ExpressionType.AddAssign => "+=",
-                ExpressionType.SubtractAssign => "-=",
-                _ => throw new InvalidOperationException($"Unsupported operator \"{type}\"")
-            };
-            var key1 = key;
-            var expression = value;
-
-            writer.Term(
-                TermType.BinaryOp,
-                "update_shape_element",
-                Defer.This(() => $"Operator {op} for update shape element on {key1.Name}"),
-                metadata: new BinaryOpMetadata(type),
-                Token.Of(writer =>
-                    {
-                        writer.Append(key1.GetEdgeDBPropertyName(), ' ', op, ' ');
-                        translator(writer, expression);
-                    }
-                )
-            );
-        }
-    }
-
     private readonly LinkedList<ShapeElement> _elements = [];
 
     private UpdateShapeBuilder(LinkedList<ShapeElement> elements)
@@ -44,12 +15,13 @@ public sealed class UpdateShapeBuilder<T, U> : IUpdateShapeBuilder
 
     public UpdateShapeBuilder()
     {
-
     }
+
+    void IUpdateShapeBuilder.Compile(QueryWriter writer, Action<QueryWriter, LambdaExpression> translator)
+        => Compile(writer, translator);
 
     internal static IUpdateShapeBuilder FromInitExpression(LambdaExpression expression)
     {
-
         var elements = new LinkedList<ShapeElement>();
 
         switch (expression.Body)
@@ -69,6 +41,7 @@ public sealed class UpdateShapeBuilder<T, U> : IUpdateShapeBuilder
                                 $"Unsupported initialization binding {memberInit.Bindings[i].GetType().Name}");
                     }
                 }
+
                 break;
             case NewExpression newExpression when newExpression.Type.IsAnonymousType():
                 var members = newExpression.Type.GetProperties();
@@ -78,6 +51,7 @@ public sealed class UpdateShapeBuilder<T, U> : IUpdateShapeBuilder
                         Expression.Lambda(newExpression.Arguments[i], false, expression.Parameters),
                         ExpressionType.Assign));
                 }
+
                 break;
             default:
                 throw new InvalidOperationException($"Unsupported shape initialization type {expression.GetType()}");
@@ -88,11 +62,14 @@ public sealed class UpdateShapeBuilder<T, U> : IUpdateShapeBuilder
 
     public UpdateShapeBuilder<T, U> Set<V>(Expression<Func<T, V>> selector, Expression<Func<T, U, V>> value)
         => AddElement(selector, value, ExpressionType.Assign);
+
     public UpdateShapeBuilder<T, U> Set<V>(Expression<Func<T, V>> selector, Expression<Func<T, V>> value)
         => AddElement(selector, value, ExpressionType.Assign);
 
-    public UpdateShapeBuilder<T, U> Add<V>(Expression<Func<T, IEnumerable<V>?>> selector, Expression<Func<T, U, V>> value)
+    public UpdateShapeBuilder<T, U> Add<V>(Expression<Func<T, IEnumerable<V>?>> selector,
+        Expression<Func<T, U, V>> value)
         => AddElement(selector, value, ExpressionType.AddAssign);
+
     public UpdateShapeBuilder<T, U> Add<V>(Expression<Func<T, IEnumerable<V>?>> selector, Expression<Func<T, V>> value)
         => AddElement(selector, value, ExpressionType.AddAssign);
 
@@ -104,14 +81,20 @@ public sealed class UpdateShapeBuilder<T, U> : IUpdateShapeBuilder
         Expression<Func<T, U, IEnumerable<V>>> value)
         => AddElement(selector, value, ExpressionType.AddAssign);
 
-    public UpdateShapeBuilder<T, U> Remove<V>(Expression<Func<T, IEnumerable<V>?>> selector, Expression<Func<T, U, V>> value)
-        => AddElement(selector, value, ExpressionType.SubtractAssign);
-    public UpdateShapeBuilder<T, U> Remove<V>(Expression<Func<T, IEnumerable<V>?>> selector, Expression<Func<T, V>> value)
+    public UpdateShapeBuilder<T, U> Remove<V>(Expression<Func<T, IEnumerable<V>?>> selector,
+        Expression<Func<T, U, V>> value)
         => AddElement(selector, value, ExpressionType.SubtractAssign);
 
-    public UpdateShapeBuilder<T, U> Remove<V>(Expression<Func<T, IEnumerable<V>?>> selector, Expression<Func<T, U, IEnumerable<V>>> value)
+    public UpdateShapeBuilder<T, U> Remove<V>(Expression<Func<T, IEnumerable<V>?>> selector,
+        Expression<Func<T, V>> value)
         => AddElement(selector, value, ExpressionType.SubtractAssign);
-    public UpdateShapeBuilder<T, U> Remove<V>(Expression<Func<T, IEnumerable<V>?>> selector, Expression<Func<T, IEnumerable<V>>> value)
+
+    public UpdateShapeBuilder<T, U> Remove<V>(Expression<Func<T, IEnumerable<V>?>> selector,
+        Expression<Func<T, U, IEnumerable<V>>> value)
+        => AddElement(selector, value, ExpressionType.SubtractAssign);
+
+    public UpdateShapeBuilder<T, U> Remove<V>(Expression<Func<T, IEnumerable<V>?>> selector,
+        Expression<Func<T, IEnumerable<V>>> value)
         => AddElement(selector, value, ExpressionType.SubtractAssign);
 
     private UpdateShapeBuilder<T, U> AddElement(LambdaExpression selector, LambdaExpression value, ExpressionType type)
@@ -123,18 +106,42 @@ public sealed class UpdateShapeBuilder<T, U> : IUpdateShapeBuilder
         return this;
     }
 
-    internal void Compile(QueryWriter writer, Action<QueryWriter, LambdaExpression> translator)
-    {
+    internal void Compile(QueryWriter writer, Action<QueryWriter, LambdaExpression> translator) =>
         writer.Shape(
             "update_shape",
             _elements.ToArray(),
             (writer, v) => v.Write(writer, translator),
             debug: Defer.This(() => $"Update shape for {typeof(T).Name}")
         );
-    }
 
-    void IUpdateShapeBuilder.Compile(QueryWriter writer, Action<QueryWriter, LambdaExpression> translator)
-        => Compile(writer, translator);
+    private readonly struct ShapeElement(MemberInfo key, LambdaExpression value, ExpressionType type)
+    {
+        public void Write(QueryWriter writer, Action<QueryWriter, LambdaExpression> translator)
+        {
+            var op = type switch
+            {
+                ExpressionType.Assign => ":=",
+                ExpressionType.AddAssign => "+=",
+                ExpressionType.SubtractAssign => "-=",
+                _ => throw new InvalidOperationException($"Unsupported operator \"{type}\"")
+            };
+            var key1 = key;
+            var expression = value;
+
+            writer.Term(
+                TermType.BinaryOp,
+                "update_shape_element",
+                Defer.This(() => $"Operator {op} for update shape element on {key1.Name}"),
+                new BinaryOpMetadata(type),
+                Token.Of(writer =>
+                    {
+                        writer.Append(key1.GetEdgeDBPropertyName(), ' ', op, ' ');
+                        translator(writer, expression);
+                    }
+                )
+            );
+        }
+    }
 }
 
 internal interface IUpdateShapeBuilder

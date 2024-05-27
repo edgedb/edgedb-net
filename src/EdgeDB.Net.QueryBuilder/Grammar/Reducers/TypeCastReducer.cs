@@ -30,7 +30,8 @@ internal sealed class TypeCastReducer : IReducer
                         term.Remove();
                         goto end_neighbour_search;
                     case TermType.GlobalReference when neighbour.Metadata is GlobalMetadata globalMetadata:
-                        if (globalMetadata.EdgeDBType is not null && EdgeDBTypeUtils.CompareEdgeDBTypes(castMetadata.Type, globalMetadata.EdgeDBType))
+                        if (globalMetadata.EdgeDBType is not null &&
+                            EdgeDBTypeUtils.CompareEdgeDBTypes(castMetadata.Type, globalMetadata.EdgeDBType))
                         {
                             term.Remove();
                             goto end_neighbour_search;
@@ -38,13 +39,15 @@ internal sealed class TypeCastReducer : IReducer
 
                         switch (globalMetadata.Global.Reference)
                         {
-                            case Expression expression when EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var scalar):
-                                if(!EdgeDBTypeUtils.CompareEdgeDBTypes(castMetadata.Type, scalar.EdgeDBType))
+                            case Expression expression
+                                when EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var scalar):
+                                if (!EdgeDBTypeUtils.CompareEdgeDBTypes(castMetadata.Type, scalar.EdgeDBType))
                                     continue;
 
                                 term.Remove();
                                 goto end_neighbour_search;
                         }
+
                         continue;
                 }
             }
@@ -78,7 +81,7 @@ internal sealed class TypeCastReducer : IReducer
             {
                 var functionInfo = method.GetCustomAttribute<EdgeQLFunctionAttribute>();
 
-                if(functionInfo is null)
+                if (functionInfo is null)
                     continue;
 
                 if (funcResult is null)

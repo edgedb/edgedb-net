@@ -1,13 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../EdgeDB.Net.targets" />
+  <Import Project="../../EdgeDB.Net.targets"/>
   <PropertyGroup>
-	  <AssemblyName>EdgeDB.Net.QueryBuilder</AssemblyName>
-	  <RootNamespace>EdgeDB</RootNamespace>
+    <AssemblyName>EdgeDB.Net.QueryBuilder</AssemblyName>
+    <RootNamespace>EdgeDB</RootNamespace>
     <Description>An optional extension to the base driver that adds a query builder.</Description>
     <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-	  <NoWarn>CS1591</NoWarn>
+    <NoWarn>CS1591</NoWarn>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <WarningLevel>5</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -17,18 +17,18 @@
     </FodyDependsOnTargets>
   </PropertyGroup>
   <ItemGroup>
-    <Folder Include="Grammar\Operators\" />
-    <Folder Include="Translators\Methods\Generated\" />
+    <Folder Include="Grammar\Operators\"/>
+    <Folder Include="Translators\Methods\Generated\"/>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="fody" Version="6.8.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="InfoOf.Fody" Version="2.1.1" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="InfoOf.Fody" Version="2.1.1"/>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj" />
+    <ProjectReference Include="..\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj"/>
   </ItemGroup>
 </Project>

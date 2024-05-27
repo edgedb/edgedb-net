@@ -1,28 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Linq.Expressions;
 
-namespace EdgeDB.Translators.Expressions
+namespace EdgeDB.Translators.Expressions;
+
+/// <summary>
+///     Represents a translator for translating a lambda expression.
+/// </summary>
+internal class LambdaExpressionTranslator : ExpressionTranslator<LambdaExpression>
 {
-    /// <summary>
-    ///     Represents a translator for translating a lambda expression.
-    /// </summary>
-    internal class LambdaExpressionTranslator : ExpressionTranslator<LambdaExpression>
+    /// <inheritdoc />
+    public override void Translate(LambdaExpression expression, ExpressionContext context, QueryWriter result)
     {
-        /// <inheritdoc/>
-        public override void Translate(LambdaExpression expression, ExpressionContext context, QueryWriter result)
-        {
-            // create a new context and translate the body of the lambda.
-            var newContext =
-                new ExpressionContext(context.NodeContext, expression, context.QueryArguments, context.Globals);
+        // create a new context and translate the body of the lambda.
+        var newContext =
+            new ExpressionContext(context.NodeContext, expression, context.QueryArguments, context.Globals);
 
-            newContext.ParameterPrefixes = context.ParameterPrefixes;
-            newContext.ParameterAliases = context.ParameterAliases;
+        newContext.ParameterPrefixes = context.ParameterPrefixes;
+        newContext.ParameterAliases = context.ParameterAliases;
 
-            TranslateExpression(expression.Body, newContext, result);
-        }
+        TranslateExpression(expression.Body, newContext, result);
     }
 }

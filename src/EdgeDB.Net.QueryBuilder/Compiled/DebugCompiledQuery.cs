@@ -6,13 +6,14 @@ namespace EdgeDB.Compiled;
 [DebuggerDisplay("{DebugView}")]
 public sealed class DebugCompiledQuery : CompiledQuery
 {
-    public string DebugView { get; }
-
-    internal DebugCompiledQuery(string query, Dictionary<string, object?> variables, LinkedList<QuerySpan> terms, LinkedList<int> tokens)
+    internal DebugCompiledQuery(string query, Dictionary<string, object?> variables, LinkedList<QuerySpan> terms,
+        LinkedList<int> tokens)
         : base(query, variables)
     {
         DebugView = CreateDebugText(query, variables, terms, tokens);
     }
+
+    public string DebugView { get; }
 
     private static string CreateDebugText(string query, Dictionary<string, object?> variables,
         LinkedList<QuerySpan> terms, LinkedList<int> tokens)
@@ -50,7 +51,7 @@ public sealed class DebugCompiledQuery : CompiledQuery
 
                     // bar
                     rowText.Remove(column.Range.Start.Value, size);
-                    var barText = new StringBuilder($"\u2550".PadLeft(size - 3, '\u2550'));
+                    var barText = new StringBuilder("\u2550".PadLeft(size - 3, '\u2550'));
 
                     barText.Insert(barText.Length / 2, "\u2566"); // T
                     barText.Insert(0, "\u255a"); // corner UR
@@ -117,19 +118,18 @@ public sealed class DebugCompiledQuery : CompiledQuery
 
                     termTexts.Add(icon, column);
 
-                    var position = query.Length + 1  // line 2
-                        + column.Range.Start.Value // start of the slice
-                        + size / 2 // half of the slices' length : center of the slice
-                        - (desc.Length == 1
-                            ? size % 2 == 0 ? 1 : 0 // don't ask
-                            : desc.Length / 2); // half of the contents length : centers it
+                    var position = query.Length + 1 // line 2
+                                                + column.Range.Start.Value // start of the slice
+                                                + size / 2 // half of the slices' length : center of the slice
+                                   - (desc.Length == 1
+                                       ? size % 2 == 0 ? 1 : 0 // don't ask
+                                       : desc.Length / 2); // half of the contents length : centers it
 
                     rowText.Remove(position, desc.Length);
                     rowText.Insert(position, desc);
                 }
 
                 rows.Add(rowText);
-
             }
 
             if (topRow is not null)
@@ -211,7 +211,8 @@ public sealed class DebugCompiledQuery : CompiledQuery
 
     private static List<List<QuerySpan>> CreateTermView(LinkedList<QuerySpan> spans)
     {
-        var ordered = new Queue<QuerySpan>(spans.OrderBy(x => x.Range.End.Value - x.Range.Start.Value)); // order by 'size'
+        var ordered =
+            new Queue<QuerySpan>(spans.OrderBy(x => x.Range.End.Value - x.Range.Start.Value)); // order by 'size'
         var result = new List<List<QuerySpan>>();
         var row = new List<QuerySpan>();
 
@@ -250,7 +251,7 @@ public sealed class DebugCompiledQuery : CompiledQuery
     }
 
 
-#if  DEBUG
+#if DEBUG
     internal static string QuickView(QueryWriter writer)
     {
         var (query, terms, tokens) = writer.CompileDebug();

@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace EdgeDB;
@@ -105,7 +104,8 @@ internal readonly struct Token : IEquatable<Token>
     public static implicit operator Token(int v) => new(v.ToString());
     public static implicit operator Token(long v) => new(v.ToString());
 
-    public bool Equals(Token other) => Equals(Callback, other.Callback) && Equals(RawValue, other.RawValue) && StringValue == other.StringValue && CharValue == other.CharValue;
+    public bool Equals(Token other) => Equals(Callback, other.Callback) && Equals(RawValue, other.RawValue) &&
+                                       StringValue == other.StringValue && CharValue == other.CharValue;
 
     public override bool Equals(object? obj) => obj is Token other && Equals(other);
 

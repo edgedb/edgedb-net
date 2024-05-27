@@ -1,10 +1,17 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 
 namespace EdgeDB;
 
 internal sealed class RangeNodeObserver : INodeObserver, IDisposable
 {
+    private readonly QueryWriter _writer;
+
+    public RangeNodeObserver(QueryWriter writer)
+    {
+        _writer = writer;
+        _writer.AddObserver(this);
+    }
+
     [MemberNotNullWhen(true, nameof(First))]
     [MemberNotNullWhen(true, nameof(Last))]
     public bool HasValue
@@ -14,14 +21,7 @@ internal sealed class RangeNodeObserver : INodeObserver, IDisposable
 
     public LooseLinkedList<Token>.Node? Last { get; private set; }
 
-
-    private readonly QueryWriter _writer;
-
-    public RangeNodeObserver(QueryWriter writer)
-    {
-        _writer = writer;
-        _writer.AddObserver(this);
-    }
+    public void Dispose() => _writer.RemoveObserver(this);
 
     public void OnAdd(LooseLinkedList<Token>.Node node)
     {
@@ -43,10 +43,5 @@ internal sealed class RangeNodeObserver : INodeObserver, IDisposable
         {
             Last = null;
         }
-    }
-
-    public void Dispose()
-    {
-        _writer.RemoveObserver(this);
     }
 }

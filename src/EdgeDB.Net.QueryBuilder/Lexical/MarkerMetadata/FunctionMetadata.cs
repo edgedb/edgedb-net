@@ -10,7 +10,8 @@ internal sealed record FunctionMetadata(string FunctionName, MethodInfo? Functio
            TryResolveFunctionInfos(out var infos) &&
            TryResolveExactFunctionInfo(infos, arguments, out methodInfo);
 
-    public bool TryResolveExactFunctionInfo(List<MethodInfo> potentials, List<Term> arguments, [MaybeNullWhen(false)] out MethodInfo methodInfo)
+    public bool TryResolveExactFunctionInfo(List<MethodInfo> potentials, List<Term> arguments,
+        [MaybeNullWhen(false)] out MethodInfo methodInfo)
     {
         if (potentials.Count == 1)
         {
@@ -24,7 +25,7 @@ internal sealed record FunctionMetadata(string FunctionName, MethodInfo? Functio
             var optionalParamsCount = parameters.Count(x => x.IsOptional);
             var shouldBeIn = (parameters.Length - optionalParamsCount)..parameters.Length;
 
-            if(!shouldBeIn.Contains(arguments.Count))
+            if (!shouldBeIn.Contains(arguments.Count))
                 continue;
 
             methodInfo = potential;

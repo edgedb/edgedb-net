@@ -1,13 +1,10 @@
 ﻿using System.Collections;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace EdgeDB;
 
 #pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
-
 /// <summary>
 ///     A non-circular linked list implementation.
 /// </summary>
@@ -15,72 +12,6 @@ namespace EdgeDB;
 public sealed class LooseLinkedList<T> : IDisposable, IEnumerable<T>
 {
     public delegate void NodeAction(Node? node);
-
-    /// <summary>
-    ///     Represents a node inside of the current linked list.
-    /// </summary>
-    [DebuggerDisplay("{DebugDisplay}"), StructLayout(LayoutKind.Sequential)]
-    public sealed class Node(T value, LooseLinkedList<T> list)
-    {
-        [DebuggerHidden]
-        private string DebugDisplay
-            => IsAlive ? $"Value({Value}) HasNext={Next is not null} HasPrevious={Previous is not null}" : "(Dead)";
-
-        /// <summary>
-        ///     Gets the next node within the list.
-        /// </summary>
-        public Node? Next { get; private set; }
-
-        /// <summary>
-        ///     Gets the previous node within the list.
-        /// </summary>
-        public Node? Previous { get; private set; }
-
-        /// <summary>
-        ///     The list that owns this node.
-        /// </summary>
-        internal LooseLinkedList<T> List = list;
-
-        /// <summary>
-        ///     The value within the node.
-        /// </summary>
-        public T Value { get; private set; } = value;
-
-        internal void SetNext(Node? head)
-            => Next = head;
-
-        internal void SetPrevious(Node? previous)
-            => Previous = previous;
-
-        internal bool IsAlive { get; private set; } = true;
-
-        public void Destroy()
-        {
-            if (!IsAlive) return;
-            IsAlive = false;
-
-            Next = null;
-            Value = default!;
-            Previous = null;
-            List = null!;
-        }
-    }
-
-    public sealed class NodeSlice(Node? head, Node? tail)
-    {
-        public static readonly NodeSlice Empty = new(null, null);
-
-        public static NodeSlice Create(Node? head, Node? tail)
-        {
-            if (head is null && tail is null)
-                return Empty;
-
-            return new(head, tail);
-        }
-
-        public Node? Head { get; set; } = head;
-        public Node? Tail { get; set; } = tail;
-    }
 
     /// <summary>
     ///     Gets the number of elements within this list.
@@ -98,13 +29,27 @@ public sealed class LooseLinkedList<T> : IDisposable, IEnumerable<T>
     public Node? Last { get; private set; }
 
     /// <summary>
+    ///     Clears all nodes within this list.
+    /// </summary>
+    public void Dispose() => Clear();
+
+    public IEnumerator<T> GetEnumerator()
+        => new Enumerator(this);
+
+    IEnumerator IEnumerable.GetEnumerator()
+        => GetEnumerator();
+
+    /// <summary>
     ///     Strips out a slice from the list, whilst keeping an inner slice.
     /// </summary>
     /// <param name="slice">The slice to remove.</param>
     /// <param name="keep">The inner portion to keep.</param>
-    /// <param name="sliceSize">The size of the <paramref name="slice"/> slice.</param>
-    /// <param name="keepSize">The size of the <paramref name="keep"/> slice.</param>
-    /// <param name="keepOffset">The offset on which the <paramref name="keep"/> slice starts within <paramref name="slice"/>.</param>
+    /// <param name="sliceSize">The size of the <paramref name="slice" /> slice.</param>
+    /// <param name="keepSize">The size of the <paramref name="keep" /> slice.</param>
+    /// <param name="keepOffset">
+    ///     The offset on which the <paramref name="keep" /> slice starts within <paramref name="slice" />
+    ///     .
+    /// </param>
     public void Strip(NodeSlice slice, NodeSlice keep, out int sliceSize, out int keepSize, out int keepOffset)
     {
         ValidateNodeSlice(slice);
@@ -143,13 +88,14 @@ public sealed class LooseLinkedList<T> : IDisposable, IEnumerable<T>
                 goto continuation;
             }
 
-            if(isInKeepSlice)
+            if (isInKeepSlice)
                 goto continuation;
 
             node!.Destroy();
             Count--;
 
-            continuation: node = temp;
+            continuation:
+            node = temp;
         }
 
         leftBounds?.SetNext(keep.Head);
@@ -441,7 +387,6 @@ public sealed class LooseLinkedList<T> : IDisposable, IEnumerable<T>
 
         Remove(node);
         return true;
-
     }
 
     /// <summary>
@@ -628,11 +573,70 @@ public sealed class LooseLinkedList<T> : IDisposable, IEnumerable<T>
         => new(value, this);
 
     /// <summary>
-    ///     Clears all nodes within this list.
+    ///     Represents a node inside of the current linked list.
     /// </summary>
-    public void Dispose()
+    [DebuggerDisplay("{DebugDisplay}")]
+    [StructLayout(LayoutKind.Sequential)]
+    public sealed class Node(T value, LooseLinkedList<T> list)
     {
-        Clear();
+        /// <summary>
+        ///     The list that owns this node.
+        /// </summary>
+        internal LooseLinkedList<T> List = list;
+
+        [DebuggerHidden]
+        private string DebugDisplay
+            => IsAlive ? $"Value({Value}) HasNext={Next is not null} HasPrevious={Previous is not null}" : "(Dead)";
+
+        /// <summary>
+        ///     Gets the next node within the list.
+        /// </summary>
+        public Node? Next { get; private set; }
+
+        /// <summary>
+        ///     Gets the previous node within the list.
+        /// </summary>
+        public Node? Previous { get; private set; }
+
+        /// <summary>
+        ///     The value within the node.
+        /// </summary>
+        public T Value { get; private set; } = value;
+
+        internal bool IsAlive { get; private set; } = true;
+
+        internal void SetNext(Node? head)
+            => Next = head;
+
+        internal void SetPrevious(Node? previous)
+            => Previous = previous;
+
+        public void Destroy()
+        {
+            if (!IsAlive) return;
+            IsAlive = false;
+
+            Next = null;
+            Value = default!;
+            Previous = null;
+            List = null!;
+        }
+    }
+
+    public sealed class NodeSlice(Node? head, Node? tail)
+    {
+        public static readonly NodeSlice Empty = new(null, null);
+
+        public Node? Head { get; set; } = head;
+        public Node? Tail { get; set; } = tail;
+
+        public static NodeSlice Create(Node? head, Node? tail)
+        {
+            if (head is null && tail is null)
+                return Empty;
+
+            return new NodeSlice(head, tail);
+        }
     }
 
     public struct Enumerator : IEnumerator<T>
@@ -687,11 +691,5 @@ public sealed class LooseLinkedList<T> : IDisposable, IEnumerable<T>
             }
         }
     }
-
-    public IEnumerator<T> GetEnumerator()
-        => new Enumerator(this);
-
-    IEnumerator IEnumerable.GetEnumerator()
-        => GetEnumerator();
 }
 #pragma warning restore CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type

@@ -12,9 +12,8 @@ internal sealed record CompileContext
     public bool Debug { get; init; }
     public SchemaInfo? SchemaInfo { get; init; }
 
-    public static CompileContext SubQueryContext(SchemaInfo? schemaInfo, Action<QueryNode>? finalizer, bool debug)
-    {
-        return new CompileContext()
+    public static CompileContext SubQueryContext(SchemaInfo? schemaInfo, Action<QueryNode>? finalizer, bool debug) =>
+        new()
         {
             SchemaInfo = schemaInfo,
             RunReducers = false,
@@ -23,5 +22,4 @@ internal sealed record CompileContext
             Debug = debug,
             IncludeGlobalsInQuery = false
         };
-    }
 }

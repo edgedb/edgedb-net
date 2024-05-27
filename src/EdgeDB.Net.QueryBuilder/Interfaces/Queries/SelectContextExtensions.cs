@@ -1,6 +1,5 @@
 ﻿using EdgeDB.Builders;
 using EdgeDB.Interfaces.Queries;
-using System.Linq.Expressions;
 
 namespace EdgeDB;
 
@@ -10,15 +9,18 @@ public static class SelectContextExtensions
         this IQueryBuilder<TOld, QueryContextUsing<TUsing>> query,
         EdgeDBTypeContainer<TNew> schemaType)
         => query.SelectInternal<TNew, QueryContextSelfUsing<TNew, TUsing>>();
+
     public static ISelectQuery<TNew, QueryContextSelfUsing<TNew, TUsing>> Select<TNew, TOld, TUsing>(
         this IQueryBuilder<TOld, QueryContextUsing<TUsing>> query,
         EdgeDBTypeContainer<TNew> schemaType,
         Action<ShapeBuilder<TNew>> shape)
         => query.SelectInternal<TNew, QueryContextSelfUsing<TNew, TUsing>>(shape);
+
     public static ISelectQuery<TNew, QueryContextSelfVars<TNew, TVars>> Select<TNew, TOld, TVars>(
         this IQueryBuilder<TOld, QueryContextVars<TVars>> query,
         EdgeDBTypeContainer<TNew> schemaType)
         => query.SelectInternal<TNew, QueryContextSelfVars<TNew, TVars>>();
+
     public static ISelectQuery<TNew, QueryContextSelfVars<TNew, TVars>> Select<TNew, TOld, TVars>(
         this IQueryBuilder<TOld, QueryContextVars<TVars>> query,
         EdgeDBTypeContainer<TNew> schemaType,

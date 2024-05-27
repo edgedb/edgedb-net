@@ -5,14 +5,13 @@ namespace EdgeDB.Translators;
 
 internal static class PropertyTranslationTable
 {
-    internal delegate void TableTranslator(QueryWriter writer, MemberExpression expression, ExpressionContext context);
-
     private static readonly Dictionary<string, (Type[] ValidOn, TableTranslator Translator)> Table = new()
     {
         {nameof(string.Length), ([typeof(string), typeof(Array)], TranslateLength)}
     };
 
-    public static bool TryGetTranslator(MemberExpression expression, [MaybeNullWhen(false)] out TableTranslator translator)
+    public static bool TryGetTranslator(MemberExpression expression,
+        [MaybeNullWhen(false)] out TableTranslator translator)
     {
         if (Table.TryGetValue(expression.Member.Name, out var entry))
         {
@@ -34,8 +33,10 @@ internal static class PropertyTranslationTable
 
         writer.Function(
             "std::len",
-            Defer.This(() => $"Auto .Length access converted to std::len()"),
+            Defer.This(() => "Auto .Length access converted to std::len()"),
             ExpressionTranslator.Proxy(expression.Expression, context)
         );
     }
+
+    internal delegate void TableTranslator(QueryWriter writer, MemberExpression expression, ExpressionContext context);
 }

@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using EdgeDB.Interfaces.Queries;
+using System.Linq.Expressions;
 
 namespace EdgeDB.Interfaces.Queries
 {
@@ -21,7 +22,6 @@ namespace EdgeDB.Interfaces.Queries
 
 namespace EdgeDB
 {
-    using Interfaces.Queries;
     public static class GroupQueryExtensions
     {
         public static IGroupUsingQuery<TType, QueryContextSelfUsing<TSelf, TUsing>> Using<TUsing, TType, TSelf>(
@@ -44,12 +44,14 @@ namespace EdgeDB
             Expression<Func<TType, TUsing>> expression)
             => query.UsingInternal<TUsing, QueryContextUsingVars<TUsing, TVars>>(expression);
 
-        public static IGroupUsingQuery<TType, QueryContextSelfUsingVars<TSelf, TUsing, TVars>> Using<TUsing, TType, TSelf, TVars>(
+        public static IGroupUsingQuery<TType, QueryContextSelfUsingVars<TSelf, TUsing, TVars>> Using<TUsing, TType,
+            TSelf, TVars>(
             this IGroupQuery<TType, QueryContextSelfVars<TSelf, TVars>> query,
             Expression<Func<TType, QueryContextSelfVars<TSelf, TVars>, TUsing>> expression)
             => query.UsingInternal<TUsing, QueryContextSelfUsingVars<TSelf, TUsing, TVars>>(expression);
 
-        public static IGroupUsingQuery<TType, QueryContextSelfUsingVars<TSelf, TUsing, TVars>> Using<TUsing, TType, TSelf, TVars>(
+        public static IGroupUsingQuery<TType, QueryContextSelfUsingVars<TSelf, TUsing, TVars>> Using<TUsing, TType,
+            TSelf, TVars>(
             this IGroupQuery<TType, QueryContextVars<TVars>> query,
             Expression<Func<TType, TUsing>> expression)
             => query.UsingInternal<TUsing, QueryContextSelfUsingVars<TSelf, TUsing, TVars>>(expression);

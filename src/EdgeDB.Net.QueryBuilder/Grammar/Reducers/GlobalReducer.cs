@@ -1,5 +1,4 @@
 ﻿using EdgeDB.QueryNodes;
-using System.Diagnostics.CodeAnalysis;
 
 namespace EdgeDB;
 
@@ -15,7 +14,7 @@ internal sealed class GlobalReducer : IReducer
         if (withNode is null)
             return;
 
-        int reducedCount = 0;
+        var reducedCount = 0;
         foreach (var (_, terms) in writer.Terms.TermsByType.Where(x => x.Key is TermType.GlobalDeclaration)
                      .ToArray())
         foreach (var global in terms)

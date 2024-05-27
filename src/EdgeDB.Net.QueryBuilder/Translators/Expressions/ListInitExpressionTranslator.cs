@@ -4,8 +4,7 @@ namespace EdgeDB.Translators.Expressions;
 
 internal sealed class ListInitExpressionTranslator : ExpressionTranslator<ListInitExpression>
 {
-    public override void Translate(ListInitExpression expression, ExpressionContext context, QueryWriter writer)
-    {
+    public override void Translate(ListInitExpression expression, ExpressionContext context, QueryWriter writer) =>
         writer.Wrapped(writer =>
         {
             for (var i = 0; i != expression.Initializers.Count - 1; i++)
@@ -16,7 +15,6 @@ internal sealed class ListInitExpressionTranslator : ExpressionTranslator<ListIn
 
             WriteInitializer(writer, expression.Initializers[^1], context);
         }, "{}");
-    }
 
     private void WriteInitializer(QueryWriter writer, ElementInit initializer, ExpressionContext context)
     {
@@ -28,7 +26,7 @@ internal sealed class ListInitExpressionTranslator : ExpressionTranslator<ListIn
         {
             writer.Wrapped(Token.Of(writer =>
             {
-                for (int i = 0; i < initializer.Arguments.Count - 1; i++)
+                for (var i = 0; i < initializer.Arguments.Count - 1; i++)
                 {
                     writer.Append(Proxy(initializer.Arguments[i], context), ", ");
                 }

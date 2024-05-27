@@ -20,13 +20,11 @@ internal sealed class QueryContextTranslator : MethodTranslator<IQueryContext>
     }
 
     [MethodName(nameof(QueryContext.QueryArgument))]
-    public void QueryArgument(QueryWriter writer, TranslatedParameter param)
-    {
+    public void QueryArgument(QueryWriter writer, TranslatedParameter param) =>
         writer.QueryArgument(
             EdgeDBTypeUtils.GetEdgeDBScalarOrTypeName(param.RawValue.Type),
             ExpressionTranslator.UnsafeExpressionAsString(param.RawValue)
         );
-    }
 
     [MethodName(nameof(QueryContext.Global))]
     public void Global(QueryWriter writer, TranslatedParameter param, ExpressionContext context)
@@ -39,7 +37,7 @@ internal sealed class QueryContextTranslator : MethodTranslator<IQueryContext>
     public void Local(QueryWriter writer, TranslatedParameter param, ExpressionContext context)
     {
         var path = ExpressionTranslator.UnsafeExpressionAsString(param.RawValue)
-            ?? throw new NullReferenceException("Expected parameter of 'local' to be notnull");
+                   ?? throw new NullReferenceException("Expected parameter of 'local' to be notnull");
 
         var pathSegments = path.Split('.');
 
@@ -65,8 +63,7 @@ internal sealed class QueryContextTranslator : MethodTranslator<IQueryContext>
     }
 
     [MethodName(nameof(QueryContext.UnsafeLocal))]
-    public void UnsafeLocal(QueryWriter writer, TranslatedParameter param)
-    {
+    public void UnsafeLocal(QueryWriter writer, TranslatedParameter param) =>
         writer.Term(
             TermType.Unsafe,
             "query_context_unsafe_local",
@@ -74,11 +71,9 @@ internal sealed class QueryContextTranslator : MethodTranslator<IQueryContext>
                 writer.Append('.', ExpressionTranslator.UnsafeExpressionAsString(param.RawValue))
             )
         );
-    }
 
     [MethodName(nameof(QueryContext.Raw))]
-    public void Raw(QueryWriter writer, TranslatedParameter param)
-    {
+    public void Raw(QueryWriter writer, TranslatedParameter param) =>
         writer.Term(
             TermType.RawEdgeQL,
             "query_context_raw",
@@ -86,10 +81,10 @@ internal sealed class QueryContextTranslator : MethodTranslator<IQueryContext>
                 writer.Append(ExpressionTranslator.UnsafeExpressionAsString(param.RawValue))
             )
         );
-    }
 
     [MethodName(nameof(QueryContext.BackLink))]
-    public void Backlink(QueryWriter writer, MethodCallExpression method, ExpressionContext context, params TranslatedParameter[] args)
+    public void Backlink(QueryWriter writer, MethodCallExpression method, ExpressionContext context,
+        params TranslatedParameter[] args)
     {
         var property = args[0];
 
@@ -132,7 +127,8 @@ internal sealed class QueryContextTranslator : MethodTranslator<IQueryContext>
     public void SubQuery(QueryWriter writer, TranslatedParameter param, ExpressionContext context)
     {
         var builder = (IQueryBuilder)Expression.Lambda(param.RawValue).Compile().DynamicInvoke()!;
-        writer.Wrapped(writer => builder.WriteTo(writer, context, compileContext: CompileContext.SubQueryContext(context.Node?.SchemaInfo, null, writer.IsDebug)));
+        writer.Wrapped(writer => builder.WriteTo(writer, context,
+            CompileContext.SubQueryContext(context.Node?.SchemaInfo, null, writer.IsDebug)));
     }
 
     [MethodName(nameof(QueryContext.Aggregate))]

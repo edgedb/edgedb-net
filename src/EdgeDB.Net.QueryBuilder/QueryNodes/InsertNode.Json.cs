@@ -1,7 +1,6 @@
 ﻿using EdgeDB.DataTypes;
 using EdgeDB.Schema;
 using Newtonsoft.Json;
-using System.Linq.Expressions;
 using System.Reflection;
 
 namespace EdgeDB.QueryNodes;
@@ -30,7 +29,8 @@ internal partial class InsertNode
             $"Unknown type on property '{propertyInfo.Name}': {propertyInfo.PropertyType.Name}");
     }
 
-    private void GenerateJsonMapping(QueryWriter writer, string varName, string? parentReference, Type type, SchemaInfo info)
+    private void GenerateJsonMapping(QueryWriter writer, string varName, string? parentReference, Type type,
+        SchemaInfo info)
     {
         var shape = EdgeDBPropertyMapInfo.Create(type).Properties
             .ToDictionary<EdgeDBPropertyInfo?, string, object?>(
@@ -41,10 +41,11 @@ internal partial class InsertNode
         writer.Wrapped(writer => QueryBuilder.For(
             ctx => EdgeQL.JsonArrayUnpack(ctx.QueryArgument<Json>(varName)),
             x => QueryBuilder.Insert(type, shape, false).UnlessConflict()
-        ).WriteTo(writer, this, new CompileContext() {SchemaInfo = SchemaInfo}));
+        ).WriteTo(writer, this, new CompileContext {SchemaInfo = SchemaInfo}));
     }
 
-    private WriterProxy JsonLinkLookup(string? parentReference, bool isArray, Type? innerType, PropertyInfo propertyInfo)
+    private WriterProxy JsonLinkLookup(string? parentReference, bool isArray, Type? innerType,
+        PropertyInfo propertyInfo)
     {
         if (parentReference is null)
         {
@@ -141,7 +142,7 @@ internal partial class InsertNode
 
         var elements = new List<ShapeSetter>();
 
-        foreach (var property in jsonValue.InnerType.GetEdgeDBTargetProperties(excludeId: true))
+        foreach (var property in jsonValue.InnerType.GetEdgeDBTargetProperties(true))
         {
             elements.Add(new ShapeSetter(writer => writer
                 .Assignment(property.GetEdgeDBPropertyName(), JsonSetterPath(property, $"{mappingName}_d1")))

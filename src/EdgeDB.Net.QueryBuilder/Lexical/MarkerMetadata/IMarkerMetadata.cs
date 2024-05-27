@@ -1,3 +1,5 @@
 ﻿namespace EdgeDB;
 
-internal interface ITermMetadata{}
+internal interface ITermMetadata
+{
+}

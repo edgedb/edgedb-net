@@ -4,6 +4,27 @@ namespace EdgeDB;
 
 internal sealed class Term
 {
+    private readonly QueryWriter _writer;
+
+    private int _position;
+    private int _size;
+    private LooseLinkedList<Token>.NodeSlice _slice;
+    private int _sliceVersion;
+    private int _version;
+
+    internal Term(string name, TermType type, QueryWriter writer, int size, int position,
+        LooseLinkedList<Token>.NodeSlice slice, Deferrable<string>? debugText, ITermMetadata? metadata)
+    {
+        Name = name;
+        Type = type;
+        _writer = writer;
+        Size = size;
+        Position = position;
+        _slice = slice;
+        DebugText = debugText;
+        Metadata = metadata;
+    }
+
     public bool IsAlive { get; private set; } = true;
 
     public string Name { get; }
@@ -23,7 +44,7 @@ internal sealed class Term
 
     public Range Range => Position..Size;
 
-    public Deferrable<string>? DebugText { get; private set;}
+    public Deferrable<string>? DebugText { get; private set; }
 
     public ITermMetadata? Metadata { get; private set; }
 
@@ -37,26 +58,6 @@ internal sealed class Term
 
             return _slice;
         }
-    }
-
-    private readonly QueryWriter _writer;
-
-    private int _position;
-    private int _size;
-    private int _sliceVersion;
-    private int _version;
-    private LooseLinkedList<Token>.NodeSlice _slice;
-
-    internal Term(string name, TermType type, QueryWriter writer, int size, int position, LooseLinkedList<Token>.NodeSlice slice, Deferrable<string>? debugText, ITermMetadata? metadata)
-    {
-        Name = name;
-        Type = type;
-        _writer = writer;
-        Size = size;
-        Position = position;
-        _slice = slice;
-        DebugText = debugText;
-        Metadata = metadata;
     }
 
     public bool IsChildOf(Term term)
@@ -110,10 +111,7 @@ internal sealed class Term
         _sliceVersion = _version;
     }
 
-    public void Replace(Token token)
-    {
-        _writer.Move(Position, Slice, in token);
-    }
+    public void Replace(Token token) => _writer.Move(Position, Slice, in token);
 
     public void Remove()
         => _writer.Remove(Position, Slice);

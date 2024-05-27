@@ -2,19 +2,23 @@
 
 internal static class Terms
 {
-    public static QueryWriter LabelVariable(this QueryWriter writer, string name, Deferrable<string>? debug = null, params Token[] values)
+    public static QueryWriter LabelVariable(this QueryWriter writer, string name, Deferrable<string>? debug = null,
+        params Token[] values)
         => writer.Term(TermType.Variable, name, debug, values);
-    public static QueryWriter LabelVerbose(this QueryWriter writer, string name, Deferrable<string>? debug = null, params Token[] values)
+
+    public static QueryWriter LabelVerbose(this QueryWriter writer, string name, Deferrable<string>? debug = null,
+        params Token[] values)
         => writer.Term(TermType.Verbose, name, debug, values);
 
-    public static QueryWriter Wrapped(this QueryWriter writer, Token token, string separator = "()", bool spaced = false)
+    public static QueryWriter Wrapped(this QueryWriter writer, Token token, string separator = "()",
+        bool spaced = false)
     {
         if (separator.Length != 2)
             throw new ArgumentOutOfRangeException(nameof(separator));
 
-        return spaced ?
-            writer.Append(separator[0], ' ', token, ' ', separator[1]) :
-            writer.Append(separator[0], token, separator[1]);
+        return spaced
+            ? writer.Append(separator[0], ' ', token, ' ', separator[1])
+            : writer.Append(separator[0], token, separator[1]);
     }
 
     public static QueryWriter Wrapped(this QueryWriter writer, WriterProxy value, string separator = "()")
@@ -38,7 +42,8 @@ internal static class Terms
         return writer.Append(value);
     }
 
-    public static QueryWriter Shape(this QueryWriter writer, string name, Deferrable<string>? debug, params Token[] values)
+    public static QueryWriter Shape(this QueryWriter writer, string name, Deferrable<string>? debug,
+        params Token[] values)
     {
         var value = new Token[values.Length + 2];
         value[0] = "{ ";
@@ -56,29 +61,28 @@ internal static class Terms
             throw new ArgumentException("Parentheses must contain 2 characters", nameof(parentheses));
 
         return writer.Term(TermType.Shape, name, new Token(
-            writer =>
-            {
-                writer.Append(parentheses[0], ' ');
-
-                for (var i = 0; i < elements.Length; i++)
+                writer =>
                 {
-                    var iLocal = i;
-                    var isEmpty = writer.AppendIsEmpty(Token.Of(writer => func(writer, elements[iLocal])));
+                    writer.Append(parentheses[0], ' ');
 
-                    if (!isEmpty && i + 1 < elements.Length)
-                        writer.Append(", ");
-                }
+                    for (var i = 0; i < elements.Length; i++)
+                    {
+                        var iLocal = i;
+                        var isEmpty = writer.AppendIsEmpty(Token.Of(writer => func(writer, elements[iLocal])));
 
-                writer.Append(' ', parentheses[1]);
-            }),
+                        if (!isEmpty && i + 1 < elements.Length)
+                            writer.Append(", ");
+                    }
+
+                    writer.Append(' ', parentheses[1]);
+                }),
             debug
         );
     }
 
     public static QueryWriter Shape<T>(this QueryWriter writer, string name, params T[] elements)
-        where T : IWriteable
-    {
-        return writer.Term(TermType.Shape, name, new Token(
+        where T : IWriteable =>
+        writer.Term(TermType.Shape, name, new Token(
             writer =>
             {
                 writer.Append("{ ");
@@ -96,7 +100,6 @@ internal static class Terms
                 writer.Append(" }");
             })
         );
-    }
 
     public static QueryWriter Assignment(this QueryWriter writer, Token name, Token token)
         => writer.Append(name, " := ", token);
@@ -109,34 +112,16 @@ internal static class Terms
             metadata: metadata
         );
 
-    public readonly struct FunctionArg
-    {
-        public readonly Token Token;
-        public readonly string? Named;
-
-        public FunctionArg(Token token, string? named = null)
-        {
-            Token = token;
-            Named = named;
-        }
-
-        public static implicit operator FunctionArg(Token token) => new(token);
-        public static implicit operator FunctionArg(string? str) => new(str);
-        public static implicit operator FunctionArg(char ch) => new(ch);
-        public static implicit operator FunctionArg(WriterProxy writerProxy) => new(writerProxy);
-    }
-
     public static QueryWriter Function(this QueryWriter writer, string name, Deferrable<string>? debug,
-        FunctionMetadata? metadata, params FunctionArg[] args)
-    {
-        return writer.Term(TermType.Function, $"func_{name}", debug, new FunctionMetadata(name), Token.Of(
+        FunctionMetadata? metadata, params FunctionArg[] args) =>
+        writer.Term(TermType.Function, $"func_{name}", debug, new FunctionMetadata(name), Token.Of(
             writer =>
             {
                 writer.Append(name, '(');
 
                 for (var i = 0; i < args.Length;)
                 {
-                    int commaPos = 0;
+                    var commaPos = 0;
                     LooseLinkedList<Token>.NodeSlice? commaSlice = null;
 
                     if (i > 0)
@@ -152,7 +137,7 @@ internal static class Terms
                         TermType.FunctionArg,
                         $"func_{name}_arg_{i}",
                         null,
-                        metadata: new FunctionArgumentMetadata(checked((uint)i - 1), name, arg.Named),
+                        new FunctionArgumentMetadata(checked((uint)i - 1), name, arg.Named),
                         Token.Of(
                             writer =>
                             {
@@ -180,7 +165,6 @@ internal static class Terms
                 writer.Append(')');
             }
         ));
-    }
 
     public static QueryWriter Function(this QueryWriter writer, string name, Deferrable<string>? debug,
         params FunctionArg[] args)
@@ -192,7 +176,8 @@ internal static class Terms
     public static QueryWriter SingleQuoted(this QueryWriter writer, Token token)
         => writer.Append('\'', token, '\'');
 
-    public static QueryWriter QueryArgument(this QueryWriter writer, Token type, Token name, Deferrable<string>? debug = null, bool optional = false)
+    public static QueryWriter QueryArgument(this QueryWriter writer, Token type, Token name,
+        Deferrable<string>? debug = null, bool optional = false)
         => writer.Term(TermType.Variable, $"variable_{name}", debug, optional ? "<optional " : "<", type, ">$", name);
 
     public static Token[] Span(this QueryWriter writer, WriterProxy proxy)
@@ -202,7 +187,8 @@ internal static class Terms
         return span.ToTokens();
     }
 
-    public static QueryWriter AppendSpanned(this QueryWriter writer, ref Token[]? span, Func<QueryWriter, Token[]> create)
+    public static QueryWriter AppendSpanned(this QueryWriter writer, ref Token[]? span,
+        Func<QueryWriter, Token[]> create)
     {
         if (span is null)
             span = create(writer);
@@ -210,5 +196,22 @@ internal static class Terms
             writer.Append(span);
 
         return writer;
+    }
+
+    public readonly struct FunctionArg
+    {
+        public readonly Token Token;
+        public readonly string? Named;
+
+        public FunctionArg(Token token, string? named = null)
+        {
+            Token = token;
+            Named = named;
+        }
+
+        public static implicit operator FunctionArg(Token token) => new(token);
+        public static implicit operator FunctionArg(string? str) => new(str);
+        public static implicit operator FunctionArg(char ch) => new(ch);
+        public static implicit operator FunctionArg(WriterProxy writerProxy) => new(writerProxy);
     }
 }

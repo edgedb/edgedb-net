@@ -4,7 +4,7 @@ public static class EnumerableExtensions
 {
     public static Dictionary<T, LinkedList<U>> ToBucketedDictionary<T, U, V>(this IEnumerable<V> collection,
         Func<V, T> selectKey, Func<V, U> selectValue)
-    where T: notnull
+        where T : notnull
     {
         var dict = new Dictionary<T, LinkedList<U>>();
 
@@ -14,7 +14,7 @@ public static class EnumerableExtensions
             var value = selectValue(item);
 
             if (!dict.TryGetValue(key, out var bucket))
-                dict[key] = bucket = new();
+                dict[key] = bucket = new LinkedList<U>();
 
             bucket.AddLast(value);
         }

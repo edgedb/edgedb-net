@@ -15,23 +15,11 @@ internal sealed class TokenSpan : INodeObserver, IDisposable
         writer.AddObserver(this);
     }
 
-    public void OnAdd(TokenNode node)
-    {
-        _nodes.Add(node);
-    }
+    public void Dispose() => _writer.RemoveObserver(this);
 
-    public void OnRemove(TokenNode node)
-    {
-        _nodes.Remove(node);
-    }
+    public void OnAdd(TokenNode node) => _nodes.Add(node);
 
-    public void Dispose()
-    {
-        _writer.RemoveObserver(this);
-    }
+    public void OnRemove(TokenNode node) => _nodes.Remove(node);
 
-    public Token[] ToTokens()
-    {
-        return _nodes.Select(x => x.Value).ToArray();
-    }
+    public Token[] ToTokens() => _nodes.Select(x => x.Value).ToArray();
 }

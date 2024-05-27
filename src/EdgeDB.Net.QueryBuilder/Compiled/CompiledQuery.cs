@@ -5,14 +5,13 @@ namespace EdgeDB;
 
 public class CompiledQuery(string query, Dictionary<string, object?>? variables)
 {
+    internal readonly Dictionary<string, object?>? RawVariables = variables;
     public string Query { get; } = query;
 
     public string Prettied => Prettify();
 
     public IReadOnlyDictionary<string, object?>? Variables { get; }
         = variables?.ToImmutableDictionary();
-
-    internal readonly Dictionary<string, object?>? RawVariables = variables;
 
     /// <summary>
     ///     Prettifies the query text.
@@ -21,7 +20,7 @@ public class CompiledQuery(string query, Dictionary<string, object?>? variables)
     ///     This method uses a lot of regex and can be unreliable, if
     ///     you're using this in a production setting please use with care.
     /// </remarks>
-    /// <returns>A prettified version of <see cref="Query"/>.</returns>
+    /// <returns>A prettified version of <see cref="Query" />.</returns>
     public string Prettify()
     {
         // add newlines
@@ -36,7 +35,8 @@ public class CompiledQuery(string query, Dictionary<string, object?>? variables)
                     return $"{m.Groups[1].Value}\n";
 
                 default:
-                    return $"{((m.Groups[1].Value == "}" && (Query[m.Index - 1] == '{' || Query[m.Index - 1] == '}')) ? "" : "\n")}{m.Groups[1].Value}{((Query.Length != m.Index + 1 && (Query[m.Index + 1] != ',')) ? "\n" : "")}";
+                    return
+                        $"{(m.Groups[1].Value == "}" && (Query[m.Index - 1] == '{' || Query[m.Index - 1] == '}') ? "" : "\n")}{m.Groups[1].Value}{(Query.Length != m.Index + 1 && Query[m.Index + 1] != ',' ? "\n" : "")}";
             }
         }).Trim().Replace("\n ", "\n");
 
@@ -46,7 +46,7 @@ public class CompiledQuery(string query, Dictionary<string, object?>? variables)
         // add indentation
         result = Regex.Replace(result, "^", m =>
         {
-            int indent = 0;
+            var indent = 0;
 
             foreach (var c in result[..m.Index])
             {

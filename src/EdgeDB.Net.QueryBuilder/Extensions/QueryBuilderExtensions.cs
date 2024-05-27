@@ -1,57 +1,53 @@
 ﻿using EdgeDB.QueryNodes;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace EdgeDB
+namespace EdgeDB;
+
+internal static class QueryBuilderExtensions
 {
-    internal static class QueryBuilderExtensions
+    public static void WriteTo(this IQueryBuilder source, QueryWriter writer, IQueryBuilder target,
+        CompileContext? context = null)
     {
-        public static void WriteTo(this IQueryBuilder source, QueryWriter writer, IQueryBuilder target, CompileContext? context = null)
+        source.CompileInternal(writer, context);
+
+        if (source.Variables.Any(variable => !target.Variables.TryAdd(variable.Key, variable.Value)))
         {
-            source.CompileInternal(writer, context);
-
-            if (source.Variables.Any(variable => !target.Variables.TryAdd(variable.Key, variable.Value)))
-            {
-                throw new InvalidOperationException(
-                    "A variable with the same name already exists in the target builder");
-            }
-
-            target.Globals.AddRange(source.Globals);
+            throw new InvalidOperationException(
+                "A variable with the same name already exists in the target builder");
         }
 
-        public static void WriteTo(
-            this IQueryBuilder source,
-            QueryWriter writer,
-            ExpressionContext expressionContext,
-            CompileContext? compileContext = null)
+        target.Globals.AddRange(source.Globals);
+    }
+
+    public static void WriteTo(
+        this IQueryBuilder source,
+        QueryWriter writer,
+        ExpressionContext expressionContext,
+        CompileContext? compileContext = null)
+    {
+        source.CompileInternal(writer, compileContext);
+
+        foreach (var variable in source.Variables)
         {
-            source.CompileInternal(writer, compileContext);
-
-            foreach (var variable in source.Variables)
-            {
-                expressionContext.SetVariable(variable.Key, variable.Value);
-            }
-
-            foreach (var global in source.Globals)
-            {
-                expressionContext.SetGlobal(global.Name, global.Value, global.Reference);
-            }
+            expressionContext.SetVariable(variable.Key, variable.Value);
         }
 
-        public static void WriteTo(this IQueryBuilder source, QueryWriter writer, QueryNode node, CompileContext? compileContext = null)
+        foreach (var global in source.Globals)
         {
-            source.CompileInternal(writer, compileContext);
-
-            if (source.Variables.Any(variable => !node.Builder.QueryVariables.TryAdd(variable.Key, variable.Value)))
-            {
-                throw new InvalidOperationException(
-                    "A variable with the same name already exists in the target builder");
-            }
-
-            node.Builder.QueryGlobals.AddRange(source.Globals);
+            expressionContext.SetGlobal(global.Name, global.Value, global.Reference);
         }
+    }
+
+    public static void WriteTo(this IQueryBuilder source, QueryWriter writer, QueryNode node,
+        CompileContext? compileContext = null)
+    {
+        source.CompileInternal(writer, compileContext);
+
+        if (source.Variables.Any(variable => !node.Builder.QueryVariables.TryAdd(variable.Key, variable.Value)))
+        {
+            throw new InvalidOperationException(
+                "A variable with the same name already exists in the target builder");
+        }
+
+        node.Builder.QueryGlobals.AddRange(source.Globals);
     }
 }

@@ -1,7 +1,4 @@
-﻿using EdgeDB.Interfaces.Queries;
-using System.Linq.Expressions;
-
-namespace EdgeDB;
+﻿namespace EdgeDB;
 
 public static class QueryBuilderGroupingExtensions
 {

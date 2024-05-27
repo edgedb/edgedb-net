@@ -36,15 +36,13 @@ internal sealed class Union<T, U> : Union
     public Union(T value) : base(value) { }
     public Union(U value) : base(value) { }
 
-    public static Union<T, U> From(object o, Func<Union<T, U>> fallback)
-    {
-        return o switch
+    public static Union<T, U> From(object o, Func<Union<T, U>> fallback) =>
+        o switch
         {
-            T a => new(a),
+            T a => new Union<T, U>(a),
             U b => new Union<T, U>(b),
             _ => fallback()
         };
-    }
 
     public static implicit operator Union<T, U>(T a) => new(a);
     public static implicit operator Union<T, U>(U b) => new(b);
@@ -59,16 +57,14 @@ internal sealed class Union<T, U, V> : Union
     public Union(U value) : base(value) { }
     public Union(V value) : base(value) { }
 
-    public static Union<T, U, V> From(object o, Func<Union<T, U, V>> fallback)
-    {
-        return o switch
+    public static Union<T, U, V> From(object o, Func<Union<T, U, V>> fallback) =>
+        o switch
         {
-            T a => new(a),
-            U b => new(b),
-            V c => new(c),
+            T a => new Union<T, U, V>(a),
+            U b => new Union<T, U, V>(b),
+            V c => new Union<T, U, V>(c),
             _ => fallback()
         };
-    }
 
     public static implicit operator Union<T, U, V>(T a) => new(a);
     public static implicit operator Union<T, U, V>(U b) => new(b);

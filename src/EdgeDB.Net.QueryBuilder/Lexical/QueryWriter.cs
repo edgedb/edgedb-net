@@ -8,67 +8,52 @@ namespace EdgeDB;
 
 internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
 {
-    private sealed class PositionalTrack : IDisposable
-    {
-        private readonly TokenNode? _oldRef;
-        private readonly QueryWriter _writer;
+    private readonly List<INodeObserver> _observers = [];
 
-        public PositionalTrack(QueryWriter writer, TokenNode? from)
-        {
-            _oldRef = writer._track;
-
-            writer.TrackedPosition = from is not null
-                ? writer.GetIndexOfNode(from)
-                : 0;
-            writer._track = from;
-
-            _writer = writer;
-        }
-
-        public void Dispose()
-        {
-            _writer._track = _oldRef;
-        }
-    }
-
-    public bool IsDebug { get; } = isDebugQuery;
+    private readonly Queue<int> _termUpdates = [];
 
     public readonly TermCollection Terms = new();
 
     public readonly LooseLinkedList<Token> Tokens = new();
 
-    private readonly List<INodeObserver> _observers = [];
-
-    private readonly Queue<int> _termUpdates = [];
-
     private TokenNode? _track;
+
+    public bool IsDebug { get; } = isDebugQuery;
 
     public int TailIndex => Tokens.Count - 1;
 
     private int TrackedPosition { get; set; }
+
+    public void Dispose()
+    {
+        Terms.Clear();
+        Tokens.Clear();
+        _observers.Clear();
+    }
 
     private void UpdateTerms()
         => Terms.Update(_termUpdates, Tokens.Count);
 
     /// <summary>
     ///     Creates a new scope that appends the next tokens at the start of this writer until the
-    ///     <see cref="IDisposable"/> is disposed.
+    ///     <see cref="IDisposable" /> is disposed.
     /// </summary>
-    /// <returns>A <see cref="IDisposable"/> that represents the lifetime of the scope.</returns>
+    /// <returns>A <see cref="IDisposable" /> that represents the lifetime of the scope.</returns>
     public IDisposable PositionalScopeFromStart()
         => PositionalScope(null);
 
     /// <summary>
     ///     Creates a new scope that appends the next tokens after the provided node until the
-    ///     <see cref="IDisposable"/> is disposed.
+    ///     <see cref="IDisposable" /> is disposed.
     /// </summary>
     /// <param name="from">The node to append tokens after.</param>
-    /// <returns>A <see cref="IDisposable"/> that represents the lifetime of the scope.</returns>
+    /// <returns>A <see cref="IDisposable" /> that represents the lifetime of the scope.</returns>
     public IDisposable PositionalScope(TokenNode? from)
         => new PositionalTrack(this, from);
 
     private TokenNodeSlice AddAfterTracked(in Token token)
         => AddTracked(in token, true);
+
     private TokenNodeSlice AddBeforeTracked(in Token token)
         => AddTracked(in token, false);
 
@@ -109,7 +94,7 @@ internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
 
     private void OnNodeAdd(TokenNode node)
     {
-        foreach(var observer in _observers)
+        foreach (var observer in _observers)
             observer.OnAdd(node);
     }
 
@@ -133,7 +118,8 @@ internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
         return -1;
     }
 
-    public QueryWriter Term(TermType type, string name, in Token token, Deferrable<string>? debug1 = null, ITermMetadata? metadata = null)
+    public QueryWriter Term(TermType type, string name, in Token token, Deferrable<string>? debug1 = null,
+        ITermMetadata? metadata = null)
     {
         if (type is TermType.Verbose && !IsDebug)
         {
@@ -152,13 +138,15 @@ internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
         return this;
     }
 
-    public QueryWriter Term(TermType type, string name, Deferrable<string>? debug = null, ITermMetadata? metadata = null)
+    public QueryWriter Term(TermType type, string name, Deferrable<string>? debug = null,
+        ITermMetadata? metadata = null)
         => Term(type, name, debug, metadata, name);
 
     public QueryWriter Term(TermType type, string name, Deferrable<string>? debug = null, params Token[] tokens)
         => Term(type, name, debug, null, tokens);
 
-    public QueryWriter Term(TermType type, string name, Deferrable<string>? debug = null, ITermMetadata? metadata = null, params Token[] values)
+    public QueryWriter Term(TermType type, string name, Deferrable<string>? debug = null,
+        ITermMetadata? metadata = null, params Token[] values)
     {
         if (type is TermType.Verbose && !IsDebug)
         {
@@ -329,10 +317,7 @@ internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
         return this;
     }
 
-    public QueryWriter AppendIf(Func<bool> condition, in Token token)
-    {
-        return condition() ? Append(in token) : this;
-    }
+    public QueryWriter AppendIf(Func<bool> condition, in Token token) => condition() ? Append(in token) : this;
 
     public bool AppendIsEmpty(in Token token)
         => AppendIsEmpty(in token, out _, out _);
@@ -385,23 +370,6 @@ internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
         return builder;
     }
 
-    private sealed class ActiveTermTrack(int index, Term term, string name, StringBuilder builder, int count)
-    {
-        public string Name { get; } = name;
-        public int Index { get; } = index;
-        public Term Term { get; } = term;
-        public StringBuilder Builder { get; } = builder;
-        public bool TryWrite(Token token)
-        {
-            if (count == 0)
-                return false;
-
-            token.WriteTo(Builder);
-            count--;
-            return true;
-        }
-    }
-
     public (string Query, LinkedList<QuerySpan> Terms, LinkedList<int> Tokens) CompileDebug()
     {
         var query = new StringBuilder();
@@ -420,7 +388,8 @@ internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
 
                 activeTerms.Remove(activeTerm);
                 var content = activeTerm.Builder.ToString();
-                spans.AddLast(new QuerySpan(activeTerm.Index..(activeTerm.Index + content.Length), content, activeTerm.Term, activeTerm.Name));
+                spans.AddLast(new QuerySpan(activeTerm.Index..(activeTerm.Index + content.Length), content,
+                    activeTerm.Term, activeTerm.Name));
             }
 
             foreach (var startingTerm in terms.Where(x => x.Item2.IsAlive && x.Item2.Slice.Head == current))
@@ -428,7 +397,8 @@ internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
                 terms.Remove(startingTerm);
                 var sb = new StringBuilder();
 
-                activeTerms.Add(new (query.Length, startingTerm.Item2, startingTerm.Item1, sb, startingTerm.Item2.Size - 1));
+                activeTerms.Add(new ActiveTermTrack(query.Length, startingTerm.Item2, startingTerm.Item1, sb,
+                    startingTerm.Item2.Size - 1));
                 current.Value.WriteTo(sb);
             }
 
@@ -442,7 +412,8 @@ internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
         foreach (var remaining in activeTerms)
         {
             var content = remaining.Builder.ToString();
-            spans.AddLast(new QuerySpan(remaining.Index..(remaining.Index + content.Length), content, remaining.Term, remaining.Name));
+            spans.AddLast(new QuerySpan(remaining.Index..(remaining.Index + content.Length), content, remaining.Term,
+                remaining.Name));
         }
 
         return (query.ToString(), spans, tokens);
@@ -451,11 +422,41 @@ internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
 #if DEBUG
     public string QuickDebugView() => DebugCompiledQuery.QuickView(this);
 #endif
-
-    public void Dispose()
+    private sealed class PositionalTrack : IDisposable
     {
-        Terms.Clear();
-        Tokens.Clear();
-        _observers.Clear();
+        private readonly TokenNode? _oldRef;
+        private readonly QueryWriter _writer;
+
+        public PositionalTrack(QueryWriter writer, TokenNode? from)
+        {
+            _oldRef = writer._track;
+
+            writer.TrackedPosition = from is not null
+                ? writer.GetIndexOfNode(from)
+                : 0;
+            writer._track = from;
+
+            _writer = writer;
+        }
+
+        public void Dispose() => _writer._track = _oldRef;
+    }
+
+    private sealed class ActiveTermTrack(int index, Term term, string name, StringBuilder builder, int count)
+    {
+        public string Name { get; } = name;
+        public int Index { get; } = index;
+        public Term Term { get; } = term;
+        public StringBuilder Builder { get; } = builder;
+
+        public bool TryWrite(Token token)
+        {
+            if (count == 0)
+                return false;
+
+            token.WriteTo(Builder);
+            count--;
+            return true;
+        }
     }
 }
