@@ -73,11 +73,11 @@ namespace EdgeDB.QueryNodes
                     {
                         node.SchemaInfo = SchemaInfo;
 
-                        writer.Marker(
-                            MarkerType.Verbose,
+                        writer.Term(
+                            TermType.Verbose,
                             $"FOR_inner_{GetHashCode()}",
                             Defer.This(() => $"FOR iteration inner node {node.GetType().Name}"),
-                            Value.Of(writer => node.FinalizeQuery(writer))
+                            Token.Of(writer => node.FinalizeQuery(writer))
                         );
 
                         foreach (var variable in node.Builder.QueryVariables)
@@ -106,7 +106,7 @@ namespace EdgeDB.QueryNodes
                 var variableName = QueryUtils.GenerateRandomVariableName();
                 _set = writer => writer.Function(
                     "json_array_unpack",
-                    Value.Of(writer => writer.QueryArgument("json", variableName))
+                    Token.Of(writer => writer.QueryArgument("json", variableName))
                 );
 
                 // set the json variable
@@ -133,7 +133,7 @@ namespace EdgeDB.QueryNodes
                 " in ",
                 _set,
                 " union ",
-                Value.Of(writer => writer.Wrapped(_expression))
+                Token.Of(writer => writer.Wrapped(_expression))
             );
         }
     }

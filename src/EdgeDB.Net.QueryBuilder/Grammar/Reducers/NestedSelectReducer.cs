@@ -15,7 +15,7 @@ internal sealed class NestedSelectReducer : IReducer
     /// <param name="writer"></param>
     public void Reduce(IQueryBuilder builder, QueryWriter writer)
     {
-        if (!writer.Markers.MarkersByType.TryGetValue(MarkerType.QueryNode, out var nodes))
+        if (!writer.Terms.TermsByType.TryGetValue(TermType.QueryNode, out var nodes))
             return;
 
         foreach (var node in nodes)
@@ -27,7 +27,7 @@ internal sealed class NestedSelectReducer : IReducer
             if(!(node.Slice.Head?.Value.Equals("select ") ?? false) || node.Slice.Head.Next is null)
                 continue;
 
-            var operandNodes = ExtractQueryOperandNode(writer.Markers.GetStartingAt(node.Slice.Head.Next), writer);
+            var operandNodes = ExtractQueryOperandNode(writer.Terms.GetStartingAt(node.Slice.Head.Next), writer);
 
             var operandNode = operandNodes?[^1];
 
@@ -44,11 +44,11 @@ internal sealed class NestedSelectReducer : IReducer
         }
     }
 
-    private Marker[]? ExtractQueryOperandNode(IEnumerable<Marker> markers, QueryWriter writer)
+    private Term[]? ExtractQueryOperandNode(IEnumerable<Term> terms, QueryWriter writer)
     {
-        foreach (var marker in markers)
+        foreach (var term in terms)
         {
-            var result = ExtractQueryOperandNode(marker, writer);
+            var result = ExtractQueryOperandNode(term, writer);
 
             if (result is not null)
                 return result;
@@ -57,14 +57,14 @@ internal sealed class NestedSelectReducer : IReducer
         return null;
     }
 
-    private Marker[]? ExtractQueryOperandNode(Marker marker, QueryWriter writer)
+    private Term[]? ExtractQueryOperandNode(Term term, QueryWriter writer)
     {
-        return marker.Type switch
+        return term.Type switch
         {
-            MarkerType.QueryNode => [marker],
-            MarkerType.SubQuery when marker.Slice.Head?.Next is not null =>
+            TermType.QueryNode => [term],
+            TermType.SubQuery when term.Slice.Head?.Next is not null =>
             [
-                marker, ..ExtractQueryOperandNode(writer.Markers.GetStartingAt(marker.Slice.Head.Next), writer)
+                term, ..ExtractQueryOperandNode(writer.Terms.GetStartingAt(term.Slice.Head.Next), writer)
             ],
             _ => null
         };

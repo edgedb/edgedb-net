@@ -17,7 +17,7 @@ internal partial class InsertNode
                 .Function(
                     "json_get",
                     'x',
-                    Value.Of(writer => writer.SingleQuoted(propertyInfo.Name))
+                    Token.Of(writer => writer.SingleQuoted(propertyInfo.Name))
                 );
         }
 
@@ -58,17 +58,17 @@ internal partial class InsertNode
                 .Function(
                     "json_get",
                     'x',
-                    Value.Of(propReference),
+                    Token.Of(propReference),
                     "'from'"
                 )
                 .Append(" limit ")
                 .TypeCast("int64")
-                .Function("json_get", 'x', Value.Of(propReference), "'to'")
+                .Function("json_get", 'x', Token.Of(propReference), "'to'")
             : writer => writer
                 .Function(
                     "json_get",
                     'x',
-                    Value.Of(propReference),
+                    Token.Of(propReference),
                     "'index'"
                 )
                 .Append(" limit 1");
@@ -77,13 +77,13 @@ internal partial class InsertNode
             .Wrapped(writer => writer
                 .Append("select ", parentReference, " offset ")
                 .TypeCast("int64")
-                .Append(Value.Of(inner))
+                .Append(Token.Of(inner))
             )
             .Append(" if ")
             .Function(
                 "json_typeof",
-                Value.Of(writer => writer
-                    .Function("json_get", 'x', Value.Of(propReference))
+                Token.Of(writer => writer
+                    .Function("json_get", 'x', Token.Of(propReference))
                 )
             )
             .Append(" != 'null' else ")

@@ -126,8 +126,8 @@ internal class StringMethodTranslators : MethodTranslator<string>
                 .Function(
                     "str_trim",
                     instance,
-                    Value.Of(writer => writer
-                        .SingleQuoted(Value.Of(writer =>
+                    Token.Of(writer => writer
+                        .SingleQuoted(Token.Of(writer =>
                         {
                             foreach (var trimChar in trimChars)
                                 writer.Append(trimChar);
@@ -157,8 +157,8 @@ internal class StringMethodTranslators : MethodTranslator<string>
                 .Function(
                     "str_trim_start",
                     instance,
-                    Value.Of(writer => writer
-                        .SingleQuoted(Value.Of(writer =>
+                    Token.Of(writer => writer
+                        .SingleQuoted(Token.Of(writer =>
                         {
                             foreach (var trimChar in trimChars)
                                 writer.Append(trimChar);
@@ -188,8 +188,8 @@ internal class StringMethodTranslators : MethodTranslator<string>
                 .Function(
                     "str_trim_end",
                     instance,
-                    Value.Of(writer => writer
-                        .SingleQuoted(Value.Of(writer =>
+                    Token.Of(writer => writer
+                        .SingleQuoted(Token.Of(writer =>
                         {
                             foreach (var trimChar in trimChars)
                                 writer.Append(trimChar);
@@ -234,12 +234,12 @@ internal class StringMethodTranslators : MethodTranslator<string>
         // - re_test('^' ++ condition, instance)
         // - find(instance, condition) == 0
 
-        writer.Marker(
-            MarkerType.BinaryOp,
+        writer.Term(
+            TermType.BinaryOp,
             "starts_with_check",
             Defer.This(() => ""),
             metadata: new BinaryOpMetadata(ExpressionType.Equal),
-            Value.Of(writer => writer.Function(
+            Token.Of(writer => writer.Function(
                 "find",
                 instance,
                 condition
@@ -252,10 +252,10 @@ internal class StringMethodTranslators : MethodTranslator<string>
     public void EndsWith(QueryWriter writer, TranslatedParameter instance, TranslatedParameter condition)
     {
         // - len(condition) <= len(instance) and instance[-len(condition):] = condition
-        Value[]? conditionCompiled = null;
-        Value[]? instanceCompiled = null;
+        Token[]? conditionCompiled = null;
+        Token[]? instanceCompiled = null;
 
-        var conditionValue = Value.Of(writer => writer
+        var conditionValue = Token.Of(writer => writer
             .AppendSpanned(
                 ref conditionCompiled,
                 writer => writer.Span(writer => writer
@@ -264,7 +264,7 @@ internal class StringMethodTranslators : MethodTranslator<string>
             )
         );
 
-        var instanceValue = Value.Of(writer => writer
+        var instanceValue = Token.Of(writer => writer
             .AppendSpanned(
                 ref instanceCompiled,
                 writer => writer.Span(writer => writer
@@ -273,12 +273,12 @@ internal class StringMethodTranslators : MethodTranslator<string>
             )
         );
 
-        writer.Marker(
-            MarkerType.BinaryOp,
+        writer.Term(
+            TermType.BinaryOp,
             "ends_with_check",
             Defer.This(() => ""),
             metadata: null,
-            Value.Of(writer => writer
+            Token.Of(writer => writer
                 .Function(
                     "len",
                     Defer.This(() => $"Length check for instance on ends with"),
@@ -287,7 +287,7 @@ internal class StringMethodTranslators : MethodTranslator<string>
                 )
             ),
             " >= ",
-            Value.Of(writer => writer
+            Token.Of(writer => writer
                 .Function(
                     "len",
                     Defer.This(() => $"Length check for condition on ends with"),
@@ -297,8 +297,8 @@ internal class StringMethodTranslators : MethodTranslator<string>
             ),
             " and ",
             instanceValue,
-            Value.Of(writer => writer.Wrapped(
-                Value.Of(writer => writer
+            Token.Of(writer => writer.Wrapped(
+                Token.Of(writer => writer
                     .Append('-')
                     .Function(
                         "len",

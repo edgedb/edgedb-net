@@ -69,7 +69,7 @@ namespace EdgeDB.Translators.Expressions
             if (!EdgeDBTypeUtils.TryGetScalarType(expression.Type, out var type))
             {
                 // if we can't, add it as a global
-                writer.Marker(MarkerType.GlobalReference, context.GetOrAddGlobal(expression, expressionResult));
+                writer.Term(TermType.GlobalReference, context.GetOrAddGlobal(expression, expressionResult));
                 return;
                 //throw new InvalidOperationException("Expected a scalar type for ");
             }

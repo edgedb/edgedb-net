@@ -263,7 +263,7 @@ namespace EdgeDB.QueryNodes
             if (Context is {SetAsGlobal: true, GlobalName: not null})
             {
                 SetGlobal(Context.GlobalName, new SubQuery(writer => writer
-                    .Wrapped(Value.Of(WriteInsertStatement))
+                    .Wrapped(Token.Of(WriteInsertStatement))
                 ), null);
             }
             else
@@ -338,7 +338,7 @@ namespace EdgeDB.QueryNodes
                 if (insertValue.PropertyMapInfo is null)
                 {
                     setters.Add(new ShapeSetter(writer =>
-                        writer.Assignment(name, Value.Of(writer => QueryUtils.ParseObject(writer, value)))
+                        writer.Assignment(name, Token.Of(writer => QueryUtils.ParseObject(writer, value)))
                     ));
                     continue;
                 }
@@ -504,7 +504,7 @@ namespace EdgeDB.QueryNodes
                 writer.LabelVerbose(
                     $"link_resolver_{type.GetEdgeDBTypeName()}_{value.GetHashCode()}",
                     Defer.This(() => $"Built link resolver for {type}"),
-                    Value.Of(writer => writer.Wrapped(writer =>
+                    Token.Of(writer => writer.Wrapped(writer =>
                     {
                         QueryBuilder
                             .Insert(type, value)
@@ -532,8 +532,8 @@ namespace EdgeDB.QueryNodes
             // if were in a query with the type or the query requires introspection add it as a global
             if (_subQueryMap.Contains(type) || value.RequiresIntrospection)
             {
-                writer.Marker(
-                    MarkerType.GlobalReference,
+                writer.Term(
+                    TermType.GlobalReference,
                     GetOrAddGlobal(reference, value),
                     Defer.This(() => $"Global of type {type}")
                 );

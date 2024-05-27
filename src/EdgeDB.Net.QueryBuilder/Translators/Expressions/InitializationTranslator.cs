@@ -86,7 +86,7 @@ namespace EdgeDB.Translators.Expressions
         {
             if (context.WrapNewExpressionInBrackets)
             {
-                writer.Wrapped(Value.Of(writer => TranslateInternal(expressions, context, writer)), "{}", true);
+                writer.Wrapped(Token.Of(writer => TranslateInternal(expressions, context, writer)), "{}", true);
                 return;
             }
 

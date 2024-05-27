@@ -6,45 +6,45 @@ using System.Text;
 namespace EdgeDB;
 
 [DebuggerDisplay("{DebugDisplay()}")]
-internal readonly struct Value : IEquatable<Value>
+internal readonly struct Token : IEquatable<Token>
 {
     [MemberNotNullWhen(false, nameof(Callback))]
     public bool IsScalar
         => Callback is null;
 
-    public static readonly Value Empty = new((object?)null);
+    public static readonly Token Empty = new((object?)null);
 
     public readonly WriterProxy? Callback;
     public readonly object? RawValue;
     public readonly string? StringValue;
     public readonly char? CharValue;
 
-    public Value(string? stringValue)
+    public Token(string? stringValue)
     {
         StringValue = stringValue;
     }
 
-    public Value(char charValue)
+    public Token(char charValue)
     {
         CharValue = charValue;
     }
 
-    public Value(WriterProxy? callback)
+    public Token(WriterProxy? callback)
     {
         Callback = callback;
     }
 
-    public Value(object? rawValue)
+    public Token(object? rawValue)
     {
         RawValue = rawValue;
     }
 
-    public static Value Of(WriterProxy proxy) => new(proxy);
+    public static Token Of(WriterProxy proxy) => new(proxy);
 
     public bool TryProxy(
         QueryWriter writer,
-        out LooseLinkedList<Value>.Node? first,
-        out LooseLinkedList<Value>.Node? last)
+        out LooseLinkedList<Token>.Node? first,
+        out LooseLinkedList<Token>.Node? last)
     {
         if (IsScalar)
         {
@@ -99,21 +99,21 @@ internal readonly struct Value : IEquatable<Value>
         return "<object>";
     }
 
-    public static implicit operator Value(string? value) => new(value);
-    public static implicit operator Value(char value) => new(value);
-    public static implicit operator Value(WriterProxy callback) => new(callback);
-    public static implicit operator Value(int v) => new(v.ToString());
-    public static implicit operator Value(long v) => new(v.ToString());
+    public static implicit operator Token(string? value) => new(value);
+    public static implicit operator Token(char value) => new(value);
+    public static implicit operator Token(WriterProxy callback) => new(callback);
+    public static implicit operator Token(int v) => new(v.ToString());
+    public static implicit operator Token(long v) => new(v.ToString());
 
-    public bool Equals(Value other) => Equals(Callback, other.Callback) && Equals(RawValue, other.RawValue) && StringValue == other.StringValue && CharValue == other.CharValue;
+    public bool Equals(Token other) => Equals(Callback, other.Callback) && Equals(RawValue, other.RawValue) && StringValue == other.StringValue && CharValue == other.CharValue;
 
-    public override bool Equals(object? obj) => obj is Value other && Equals(other);
+    public override bool Equals(object? obj) => obj is Token other && Equals(other);
 
     public bool Equals(string str) => IsScalar && (StringValue == str || (RawValue?.Equals(str) ?? false));
 
     public override int GetHashCode() => HashCode.Combine(Callback, RawValue, StringValue, CharValue);
 
-    public static bool operator ==(Value left, Value right) => left.Equals(right);
+    public static bool operator ==(Token left, Token right) => left.Equals(right);
 
-    public static bool operator !=(Value left, Value right) => !left.Equals(right);
+    public static bool operator !=(Token left, Token right) => !left.Equals(right);
 }

@@ -26,7 +26,7 @@ internal sealed class ListInitExpressionTranslator : ExpressionTranslator<ListIn
         }
         else
         {
-            writer.Wrapped(Value.Of(writer =>
+            writer.Wrapped(Token.Of(writer =>
             {
                 for (int i = 0; i < initializer.Arguments.Count - 1; i++)
                 {

@@ -8,23 +8,23 @@ public sealed class DebugCompiledQuery : CompiledQuery
 {
     public string DebugView { get; }
 
-    internal DebugCompiledQuery(string query, Dictionary<string, object?> variables, LinkedList<QuerySpan> markers, LinkedList<int> tokens)
+    internal DebugCompiledQuery(string query, Dictionary<string, object?> variables, LinkedList<QuerySpan> terms, LinkedList<int> tokens)
         : base(query, variables)
     {
-        DebugView = CreateDebugText(query, variables, markers, tokens);
+        DebugView = CreateDebugText(query, variables, terms, tokens);
     }
 
     private static string CreateDebugText(string query, Dictionary<string, object?> variables,
-        LinkedList<QuerySpan> markers, LinkedList<int> tokens)
+        LinkedList<QuerySpan> terms, LinkedList<int> tokens)
     {
         var sb = new StringBuilder();
 
-        if (markers.Count > 0)
+        if (terms.Count > 0)
         {
             StringBuilder? topRow = null;
 
-            var view = CreateMarkerView(markers);
-            var markerTexts = new Dictionary<string, QuerySpan>();
+            var view = CreateTermView(terms);
+            var termTexts = new Dictionary<string, QuerySpan>();
             var rows = new List<StringBuilder>();
 
             foreach (var row in view)
@@ -39,12 +39,12 @@ public sealed class DebugCompiledQuery : CompiledQuery
                     {
                         topRow ??= new StringBuilder("".PadLeft(query.Length));
 
-                        var indicator = (markerTexts.Count + 1).ToString();
+                        var indicator = (termTexts.Count + 1).ToString();
 
                         topRow.Remove(column.Range.Start.Value, indicator.Length);
                         topRow.Insert(column.Range.Start.Value, indicator);
 
-                        markerTexts.Add(indicator, column);
+                        termTexts.Add(indicator, column);
                         continue;
                     }
 
@@ -93,16 +93,16 @@ public sealed class DebugCompiledQuery : CompiledQuery
                     }
 
                     // desc
-                    var icon = (markerTexts.Count + 1).ToString();
-                    var desc = $"{icon} [{column.Marker.Type}] {column.Name}";
+                    var icon = (termTexts.Count + 1).ToString();
+                    var desc = $"{icon} [{column.Term.Type}] {column.Name}";
 
-                    if (column.Marker.DebugText is not null)
-                        desc += $": {column.Marker.DebugText.Get()}";
+                    if (column.Term.DebugText is not null)
+                        desc += $": {column.Term.DebugText.Get()}";
 
 
                     if (desc.Length + 2 > size)
                     {
-                        desc = $"{icon} [{column.Marker.Type}] {column.Name}";
+                        desc = $"{icon} [{column.Term.Type}] {column.Name}";
                     }
 
                     if (desc.Length + 2 > size)
@@ -115,7 +115,7 @@ public sealed class DebugCompiledQuery : CompiledQuery
                         desc = icon;
                     }
 
-                    markerTexts.Add(icon, column);
+                    termTexts.Add(icon, column);
 
                     var position = query.Length + 1  // line 2
                         + column.Range.Start.Value // start of the slice
@@ -171,19 +171,19 @@ public sealed class DebugCompiledQuery : CompiledQuery
                 sb.AppendLine(row.ToString());
             }
 
-            if (markerTexts.Count > 0)
+            if (termTexts.Count > 0)
             {
-                sb.AppendLine("Markers:");
+                sb.AppendLine("Terms:");
 
-                foreach (var (name, value) in markerTexts)
+                foreach (var (name, value) in termTexts)
                 {
-                    sb.AppendLine($"  {name}. {value.Marker.Type} ({value.Range})");
+                    sb.AppendLine($"  {name}. {value.Term.Type} ({value.Range})");
                     sb.AppendLine($"  - Name: {value.Name}");
-                    sb.AppendLine($"  - Position: {value.Marker.Position}, Size: {value.Marker.Size}");
-                    if (value.Marker.Metadata is not null)
-                        sb.AppendLine($"  - {value.Marker.Metadata}");
-                    if (value.Marker.DebugText is not null)
-                        sb.AppendLine($"  - Context: {value.Marker.DebugText.Get()}");
+                    sb.AppendLine($"  - Position: {value.Term.Position}, Size: {value.Term.Size}");
+                    if (value.Term.Metadata is not null)
+                        sb.AppendLine($"  - {value.Term.Metadata}");
+                    if (value.Term.DebugText is not null)
+                        sb.AppendLine($"  - Context: {value.Term.DebugText.Get()}");
 
 
                     sb.AppendLine();
@@ -209,7 +209,7 @@ public sealed class DebugCompiledQuery : CompiledQuery
         return sb.ToString();
     }
 
-    private static List<List<QuerySpan>> CreateMarkerView(LinkedList<QuerySpan> spans)
+    private static List<List<QuerySpan>> CreateTermView(LinkedList<QuerySpan> spans)
     {
         var ordered = new Queue<QuerySpan>(spans.OrderBy(x => x.Range.End.Value - x.Range.Start.Value)); // order by 'size'
         var result = new List<List<QuerySpan>>();
@@ -253,8 +253,8 @@ public sealed class DebugCompiledQuery : CompiledQuery
 #if  DEBUG
     internal static string QuickView(QueryWriter writer)
     {
-        var (query, markers, tokens) = writer.CompileDebug();
-        return CreateDebugText(query, new Dictionary<string, object?>(), markers, tokens);
+        var (query, terms, tokens) = writer.CompileDebug();
+        return CreateDebugText(query, new Dictionary<string, object?>(), terms, tokens);
     }
 #endif
 }

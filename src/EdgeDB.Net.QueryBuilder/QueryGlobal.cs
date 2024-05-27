@@ -59,36 +59,36 @@ namespace EdgeDB
             Reference = reference;
         }
 
-        public Value[] Compile(IQueryBuilder source, QueryWriter writer, CompileContext? context = null,
+        public Token[] Compile(IQueryBuilder source, QueryWriter writer, CompileContext? context = null,
             SchemaInfo? info = null)
             => Compile(source, QueryBuilderExtensions.WriteTo, writer, context, info);
 
-        public Value[] Compile(ExpressionContext source, QueryWriter writer, CompileContext? context = null,
+        public Token[] Compile(ExpressionContext source, QueryWriter writer, CompileContext? context = null,
             SchemaInfo? info = null)
             => Compile(source, QueryBuilderExtensions.WriteTo, writer, context, info);
 
-        public Value[] Compile(QueryNode source, QueryWriter writer, CompileContext? context = null,
+        public Token[] Compile(QueryNode source, QueryWriter writer, CompileContext? context = null,
             SchemaInfo? info = null)
             => Compile(source, QueryBuilderExtensions.WriteTo, writer, context, info);
 
-        private Value[] Compile<T>(T source, Action<IQueryBuilder, QueryWriter, T, CompileContext?> compileBuilder, QueryWriter writer, CompileContext? context = null,
+        private Token[] Compile<T>(T source, Action<IQueryBuilder, QueryWriter, T, CompileContext?> compileBuilder, QueryWriter writer, CompileContext? context = null,
             SchemaInfo? info = null)
         {
             return writer.Span(writer => writer
-                .Marker(
-                    MarkerType.GlobalDeclaration,
+                .Term(
+                    TermType.GlobalDeclaration,
                     Name,
                     Defer.This(() => $"Reference?: {Reference?.GetType().ToString() ?? "null"}, Value?: {Value?.GetType().ToString() ?? "null"}"),
                     new GlobalMetadata(this),
-                    EdgeDB.Value.Of(writer =>
+                    EdgeDB.Token.Of(writer =>
                     {
                         switch (Value)
                         {
                             case IQueryBuilder queryBuilder:
-                                writer.Marker(
-                                    MarkerType.SubQuery,
+                                writer.Term(
+                                    TermType.SubQuery,
                                     "sub_query_from_query_builder",
-                                    EdgeDB.Value.Of(writer => writer
+                                    EdgeDB.Token.Of(writer => writer
                                         .Wrapped(writer =>
                                             compileBuilder(queryBuilder, writer, source, context ?? new CompileContext { SchemaInfo = info })
                                         )

@@ -2,4 +2,4 @@
 
 namespace EdgeDB;
 
-internal sealed record class QueryNodeMetadata(QueryNode Node) : IMarkerMetadata;
+internal sealed record class QueryNodeMetadata(QueryNode Node) : ITermMetadata;

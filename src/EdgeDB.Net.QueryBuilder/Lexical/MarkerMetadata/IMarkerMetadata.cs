@@ -1,3 +1,3 @@
 ﻿namespace EdgeDB;
 
-internal interface IMarkerMetadata{}
+internal interface ITermMetadata{}

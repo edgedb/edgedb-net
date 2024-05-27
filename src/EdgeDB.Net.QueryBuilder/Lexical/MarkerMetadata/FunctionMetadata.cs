@@ -3,14 +3,14 @@ using System.Reflection;
 
 namespace EdgeDB;
 
-internal sealed record FunctionMetadata(string FunctionName, MethodInfo? Function = null) : IMarkerMetadata
+internal sealed record FunctionMetadata(string FunctionName, MethodInfo? Function = null) : ITermMetadata
 {
-    public bool TryResolveExactFunctionInfo(List<Marker> arguments, [MaybeNullWhen(false)] out MethodInfo methodInfo)
+    public bool TryResolveExactFunctionInfo(List<Term> arguments, [MaybeNullWhen(false)] out MethodInfo methodInfo)
         => (methodInfo = null) is null &&
            TryResolveFunctionInfos(out var infos) &&
            TryResolveExactFunctionInfo(infos, arguments, out methodInfo);
 
-    public bool TryResolveExactFunctionInfo(List<MethodInfo> potentials, List<Marker> arguments, [MaybeNullWhen(false)] out MethodInfo methodInfo)
+    public bool TryResolveExactFunctionInfo(List<MethodInfo> potentials, List<Term> arguments, [MaybeNullWhen(false)] out MethodInfo methodInfo)
     {
         if (potentials.Count == 1)
         {

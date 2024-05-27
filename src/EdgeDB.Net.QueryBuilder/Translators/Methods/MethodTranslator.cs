@@ -119,7 +119,7 @@ namespace EdgeDB.Translators
             writer.LabelVerbose(
                 $"method_translation_{translator.GetType().Name}",
                 Defer.This(() => $"Translator type is {translator} picked for {methodCall.Method}"),
-                Value.Of(writer => translator.Translate(writer, methodCall, context))
+                Token.Of(writer => translator.Translate(writer, methodCall, context))
             );
         }
 
@@ -131,10 +131,10 @@ namespace EdgeDB.Translators
         ///     The argument with the prefix if its <see langword="not"/> <see langword="null"/>;
         ///     otherwise an empty string.
         /// </returns>
-        protected Value OptionalArg(TranslatedParameter? arg)
+        protected Token OptionalArg(TranslatedParameter? arg)
         {
             if (arg is null || arg.IsNullValue)
-                return Value.Empty;
+                return Token.Empty;
             else
                 return arg;
         }

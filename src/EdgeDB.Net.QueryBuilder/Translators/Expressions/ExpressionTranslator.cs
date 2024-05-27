@@ -89,7 +89,7 @@ namespace EdgeDB
                     writer.LabelVerbose(
                         label,
                         Defer.This(() => $"Translation of {expression}"),
-                        Value.Of(writer => ContextualTranslate(expression, expressionContext, writer))
+                        Token.Of(writer => ContextualTranslate(expression, expressionContext, writer))
                     );
             }
 
@@ -182,7 +182,7 @@ namespace EdgeDB
                 writer.LabelVerbose(
                     expType.Name,
                     Defer.This(() => $"Translated form of '{expression}'"),
-                    Value.Of(writer => translator.Translate(expression, context, writer))
+                    Token.Of(writer => translator.Translate(expression, context, writer))
                 );
                 return;
             }

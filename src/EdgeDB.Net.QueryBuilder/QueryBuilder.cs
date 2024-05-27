@@ -238,7 +238,7 @@ namespace EdgeDB
             if (!context.Debug) return new CompiledQuery(writer.Compile().ToString(), QueryVariables);
 
             var compiled = writer.CompileDebug();
-            return new DebugCompiledQuery(compiled.Query, QueryVariables, compiled.Markers, compiled.Tokens);
+            return new DebugCompiledQuery(compiled.Query, QueryVariables, compiled.Terms, compiled.Tokens);
 
         }
 
@@ -268,12 +268,12 @@ namespace EdgeDB
                 if(node is WithNode)
                     continue;
 
-                writer.Marker(
-                    MarkerType.QueryNode,
+                writer.Term(
+                    TermType.QueryNode,
                     nodes[i].GetType().Name,
                     debug: null,
                     metadata: new QueryNodeMetadata(node),
-                    values: Value.Of(writer => node.FinalizeQuery(writer))
+                    values: Token.Of(writer => node.FinalizeQuery(writer))
                 );
 
                 if (i != nodes.Count - 1)
@@ -300,12 +300,12 @@ namespace EdgeDB
                 // visit the with node and add it to the front of our local collection of nodes.
                 using var _ = writer.PositionalScopeFromStart();
 
-                writer.Marker(
-                    MarkerType.QueryNode,
+                writer.Term(
+                    TermType.QueryNode,
                     with.GetType().Name,
                     debug: null,
                     metadata: new QueryNodeMetadata(with),
-                    values: Value.Of(writer => with.FinalizeQuery(writer))
+                    values: Token.Of(writer => with.FinalizeQuery(writer))
                 );
 
                 writer.Append(' ');

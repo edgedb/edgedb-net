@@ -98,7 +98,7 @@ namespace EdgeDB.Translators.Expressions
             for (var i = 0; i != jsonpath.Length; i++)
             {
                 var name = jsonpath[^(i + 1)].Member.Name;
-                args[i + 1] = Value.Of(writer => writer.SingleQuoted(name));
+                args[i + 1] = Token.Of(writer => writer.SingleQuoted(name));
             }
 
             writer
@@ -172,7 +172,7 @@ namespace EdgeDB.Translators.Expressions
                         for (var i = jsonPath.Length - 1; i >= 0; i--)
                         {
                             var pathRef = jsonPath[i].Member.Name;
-                            args[i + 1] = Value.Of(writer => writer.SingleQuoted(pathRef));
+                            args[i + 1] = Token.Of(writer => writer.SingleQuoted(pathRef));
                         }
 
                         writer
@@ -184,12 +184,12 @@ namespace EdgeDB.Translators.Expressions
                         return;
                     }
 
-                    writer.Marker(
-                        MarkerType.GlobalReference,
+                    writer.Term(
+                        TermType.GlobalReference,
                         global.Name,
                         Defer.This(() => "Global referenced from member expression"),
                         new GlobalMetadata(global),
-                        Value.Of(writer =>
+                        Token.Of(writer =>
                         {
                             writer.Append(global.Name);
 

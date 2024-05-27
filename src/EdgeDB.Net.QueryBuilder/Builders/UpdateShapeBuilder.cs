@@ -20,12 +20,12 @@ public sealed class UpdateShapeBuilder<T, U> : IUpdateShapeBuilder
             var key1 = key;
             var expression = value;
 
-            writer.Marker(
-                MarkerType.BinaryOp,
+            writer.Term(
+                TermType.BinaryOp,
                 "update_shape_element",
                 Defer.This(() => $"Operator {op} for update shape element on {key1.Name}"),
                 metadata: new BinaryOpMetadata(type),
-                Value.Of(writer =>
+                Token.Of(writer =>
                     {
                         writer.Append(key1.GetEdgeDBPropertyName(), ' ', op, ' ');
                         translator(writer, expression);

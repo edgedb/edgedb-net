@@ -2,4 +2,4 @@
 
 namespace EdgeDB;
 
-internal sealed record class BinaryOpMetadata(params ExpressionType[]? Types) : IMarkerMetadata;
+internal sealed record class BinaryOpMetadata(params ExpressionType[]? Types) : ITermMetadata;

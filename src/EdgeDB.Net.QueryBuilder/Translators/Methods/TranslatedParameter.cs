@@ -70,7 +70,7 @@ namespace EdgeDB.Translators.Methods
         public void WriteTo(QueryWriter writer)
             => ExpressionTranslator.ContextualTranslate(RawValue, Context, writer);
 
-        public static implicit operator Value(TranslatedParameter param) => Value.Of(param.WriteTo);
-        public static implicit operator Terms.FunctionArg(TranslatedParameter param) => new(Value.Of(param.WriteTo));
+        public static implicit operator Token(TranslatedParameter param) => Token.Of(param.WriteTo);
+        public static implicit operator Terms.FunctionArg(TranslatedParameter param) => new(Token.Of(param.WriteTo));
     }
 }

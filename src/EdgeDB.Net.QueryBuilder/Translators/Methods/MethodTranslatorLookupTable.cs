@@ -124,7 +124,7 @@ internal static class MethodTranslatorLookupTable
             writer.LabelVerbose(
                 $"method_translation_{translator.GetType().Name}",
                 Defer.This(() => $"Translator type is {translator} picked for {methodCall.Method}"),
-                Value.Of(_ => translatorMethod.Invoke(translator, finalParameters))
+                Token.Of(_ => translatorMethod.Invoke(translator, finalParameters))
             );
         }
     }

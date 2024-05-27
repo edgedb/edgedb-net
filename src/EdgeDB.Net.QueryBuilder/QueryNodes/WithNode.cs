@@ -52,12 +52,12 @@ namespace EdgeDB.QueryNodes
                 {
                     global = globalGroup.First();
 
-                    writer.Marker(
-                        MarkerType.BinaryOp,
+                    writer.Term(
+                        TermType.BinaryOp,
                         "with_assignment",
                         Defer.This(() => $"Single global assignment: {global.Name}"),
                         new BinaryOpMetadata(ExpressionType.Assign),
-                        Value.Of(writer =>
+                        Token.Of(writer =>
                         {
                             writer.Append(global.Name, " := ");
                             global.Compile(this, writer, CompileContext.SubQueryContext(SchemaInfo, null, writer.IsDebug), SchemaInfo);
@@ -70,12 +70,12 @@ namespace EdgeDB.QueryNodes
                 global = globalGroup.First();
                 var followers = globalGroup.Skip(1);
 
-                writer.Marker(
-                    MarkerType.BinaryOp,
+                writer.Term(
+                    TermType.BinaryOp,
                     "with_assignment",
                     Defer.This(() => $"Global group assignment: {global.Name} ({globalGroup.Count()})"),
                     new BinaryOpMetadata(ExpressionType.Assign),
-                    Value.Of(writer =>
+                    Token.Of(writer =>
                     {
                         writer.Append(global.Name, " := ");
                         global.Compile(this, writer, CompileContext.SubQueryContext(SchemaInfo, null, writer.IsDebug), SchemaInfo);
@@ -84,19 +84,19 @@ namespace EdgeDB.QueryNodes
 
                 foreach (var follower in followers)
                 {
-                    if (!writer.Markers.MarkersByType.TryGetValue(MarkerType.GlobalReference, out var markers))
+                    if (!writer.Terms.TermsByType.TryGetValue(TermType.GlobalReference, out var terms))
                     {
                         throw new InvalidOperationException(
                             $"The global {follower.Name} mimics another global, but this one doesn't have any references");
                     }
 
-                    foreach (var marker in markers.ToArray())
+                    foreach (var term in terms.ToArray())
                     {
-                        marker.Replace(Value.Of(writer => writer
-                            .Marker(
-                                MarkerType.GlobalReference,
+                        term.Replace(Token.Of(writer => writer
+                            .Term(
+                                TermType.GlobalReference,
                                 $"{global.Name}_follower_{follower.Name}",
-                                Defer.This(() => $"Marker is a follower of {global.Name} by reference"),
+                                Defer.This(() => $"Term is a follower of {global.Name} by reference"),
                                 metadata: null,
                                 global.Name
                             )

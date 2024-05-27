@@ -30,7 +30,7 @@ namespace EdgeDB
         /// </summary>
         public Dictionary<string, Type> Parameters { get; }
 
-        public Dictionary<ParameterExpression, Value> ParameterAliases { get; set; } = new();
+        public Dictionary<ParameterExpression, Token> ParameterAliases { get; set; } = new();
 
         /// <summary>
         ///     Gets or sets whether or not to serialize string without quotes.

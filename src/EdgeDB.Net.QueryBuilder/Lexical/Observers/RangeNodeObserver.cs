@@ -10,9 +10,9 @@ internal sealed class RangeNodeObserver : INodeObserver, IDisposable
     public bool HasValue
         => First is not null;
 
-    public LooseLinkedList<Value>.Node? First { get; private set; }
+    public LooseLinkedList<Token>.Node? First { get; private set; }
 
-    public LooseLinkedList<Value>.Node? Last { get; private set; }
+    public LooseLinkedList<Token>.Node? Last { get; private set; }
 
 
     private readonly QueryWriter _writer;
@@ -23,7 +23,7 @@ internal sealed class RangeNodeObserver : INodeObserver, IDisposable
         _writer.AddObserver(this);
     }
 
-    public void OnAdd(LooseLinkedList<Value>.Node node)
+    public void OnAdd(LooseLinkedList<Token>.Node node)
     {
         Last = node;
 
@@ -32,7 +32,7 @@ internal sealed class RangeNodeObserver : INodeObserver, IDisposable
         First = node;
     }
 
-    public void OnRemove(LooseLinkedList<Value>.Node node)
+    public void OnRemove(LooseLinkedList<Token>.Node node)
     {
         if (First == node)
         {

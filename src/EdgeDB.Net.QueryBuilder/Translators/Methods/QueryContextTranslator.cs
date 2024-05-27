@@ -67,10 +67,10 @@ internal sealed class QueryContextTranslator : MethodTranslator<IQueryContext>
     [MethodName(nameof(QueryContext.UnsafeLocal))]
     public void UnsafeLocal(QueryWriter writer, TranslatedParameter param)
     {
-        writer.Marker(
-            MarkerType.Unsafe,
+        writer.Term(
+            TermType.Unsafe,
             "query_context_unsafe_local",
-            Value.Of(writer =>
+            Token.Of(writer =>
                 writer.Append('.', ExpressionTranslator.UnsafeExpressionAsString(param.RawValue))
             )
         );
@@ -79,10 +79,10 @@ internal sealed class QueryContextTranslator : MethodTranslator<IQueryContext>
     [MethodName(nameof(QueryContext.Raw))]
     public void Raw(QueryWriter writer, TranslatedParameter param)
     {
-        writer.Marker(
-            MarkerType.RawEdgeQL,
+        writer.Term(
+            TermType.RawEdgeQL,
             "query_context_raw",
-            Value.Of(writer =>
+            Token.Of(writer =>
                 writer.Append(ExpressionTranslator.UnsafeExpressionAsString(param.RawValue))
             )
         );

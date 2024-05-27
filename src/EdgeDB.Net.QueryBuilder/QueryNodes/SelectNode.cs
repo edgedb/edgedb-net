@@ -77,7 +77,7 @@ namespace EdgeDB.QueryNodes
 
                     writer.Append($"select ").Wrapped(writer =>
                     {
-                        if (writer.AppendIsEmpty(Value.Of(node.FinalizeQuery)))
+                        if (writer.AppendIsEmpty(Token.Of(node.FinalizeQuery)))
                             return;
 
                         if(node.Context.SetAsGlobal && !string.IsNullOrEmpty(node.Context.GlobalName))

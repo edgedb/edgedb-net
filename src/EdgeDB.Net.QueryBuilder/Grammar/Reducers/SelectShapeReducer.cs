@@ -7,39 +7,39 @@ internal sealed class SelectShapeReducer : IReducer
     public void Reduce(IQueryBuilder builder, QueryWriter writer)
     {
         // return early if theres no query nodes
-        if (!writer.Markers.MarkersByType.TryGetValue(MarkerType.QueryNode, out var selects))
+        if (!writer.Terms.TermsByType.TryGetValue(TermType.QueryNode, out var selects))
             return;
 
         foreach (var select in selects.Where(x => x.Metadata is QueryNodeMetadata {Node: SelectNode}))
         {
-            var shape = writer.Markers.GetDirectChildrenOfType(select, MarkerType.Shape).FirstOrDefault();
+            var shape = writer.Terms.GetDirectChildrenOfType(select, TermType.Shape).FirstOrDefault();
 
             if (shape is null)
                 continue;
 
-            var parents = writer.Markers.GetParents(select).ToBucketedDictionary(x => x.Type, x => x);
+            var parents = writer.Terms.GetParents(select).ToBucketedDictionary(x => x.Type, x => x);
 
             // shapes are non-persistent in with statements
-            if (parents.TryGetValue(MarkerType.GlobalDeclaration, out _))
+            if (parents.TryGetValue(TermType.GlobalDeclaration, out _))
                 RemoveShape(writer, shape);
             // shapes are not used in functions that don't return the provided input
-            else if (parents.TryGetValue(MarkerType.Function, out var functions))
+            else if (parents.TryGetValue(TermType.Function, out var functions))
             {
                 // if the function contains no args, return early
-                if (!parents.TryGetValue(MarkerType.FunctionArg, out var argMarkers))
+                if (!parents.TryGetValue(TermType.FunctionArg, out var argTerms))
                     continue;
 
                 foreach (var function in functions)
                 {
-                    // pull the argument marker that represents our query node
-                    var ourArgument = argMarkers.MinBy(x => x.SizeDistance(function));
+                    // pull the argument term that represents our query node
+                    var ourArgument = argTerms.MinBy(x => x.SizeDistance(function));
 
                     if (ourArgument?.Metadata is not FunctionArgumentMetadata argumentMetadata ||
                         function.Metadata is not FunctionMetadata functionMetadata)
                         continue;
 
                     // get all the arguments of the function
-                    var args = writer.Markers.GetDirectChildrenOfType(function, MarkerType.FunctionArg).ToList();
+                    var args = writer.Terms.GetDirectChildrenOfType(function, TermType.FunctionArg).ToList();
 
                     // resolve the method info for the function
                     if (!functionMetadata.TryResolveExactFunctionInfo(args, out var methodInfo))
@@ -54,12 +54,12 @@ internal sealed class SelectShapeReducer : IReducer
         }
     }
 
-    private static void RemoveShape(QueryWriter writer, Marker marker)
+    private static void RemoveShape(QueryWriter writer, Term term)
     {
         // remove whitespace around the shape
-        WhitespaceReducer.TrimWhitespaceAround(writer, marker);
+        WhitespaceReducer.TrimWhitespaceAround(writer, term);
 
-        marker.Remove();
-        marker.Kill();
+        term.Remove();
+        term.Kill();
     }
 }

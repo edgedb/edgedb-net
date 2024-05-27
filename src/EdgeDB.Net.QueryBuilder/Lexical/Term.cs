@@ -2,12 +2,12 @@
 
 namespace EdgeDB;
 
-internal sealed class Marker
+internal sealed class Term
 {
     public bool IsAlive { get; private set; } = true;
 
     public string Name { get; }
-    public MarkerType Type { get; }
+    public TermType Type { get; }
 
     public int Position
     {
@@ -25,10 +25,10 @@ internal sealed class Marker
 
     public Deferrable<string>? DebugText { get; private set;}
 
-    public IMarkerMetadata? Metadata { get; private set; }
+    public ITermMetadata? Metadata { get; private set; }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    public LooseLinkedList<Value>.NodeSlice Slice
+    public LooseLinkedList<Token>.NodeSlice Slice
     {
         get
         {
@@ -45,9 +45,9 @@ internal sealed class Marker
     private int _size;
     private int _sliceVersion;
     private int _version;
-    private LooseLinkedList<Value>.NodeSlice _slice;
+    private LooseLinkedList<Token>.NodeSlice _slice;
 
-    internal Marker(string name, MarkerType type, QueryWriter writer, int size, int position, LooseLinkedList<Value>.NodeSlice slice, Deferrable<string>? debugText, IMarkerMetadata? metadata)
+    internal Term(string name, TermType type, QueryWriter writer, int size, int position, LooseLinkedList<Token>.NodeSlice slice, Deferrable<string>? debugText, ITermMetadata? metadata)
     {
         Name = name;
         Type = type;
@@ -59,13 +59,13 @@ internal sealed class Marker
         Metadata = metadata;
     }
 
-    public bool IsChildOf(Marker marker)
-        => marker.Position <= Position && marker.Size >= Size;
+    public bool IsChildOf(Term term)
+        => term.Position <= Position && term.Size >= Size;
 
-    public int SizeDistance(Marker marker)
+    public int SizeDistance(Term term)
     {
-        var a = Position - marker.Position;
-        var b = marker.Size;
+        var a = Position - term.Position;
+        var b = term.Size;
 
         return a + b;
     }
@@ -93,7 +93,7 @@ internal sealed class Marker
 
         if (_slice.Head is null || !_slice.Head.IsAlive)
         {
-            _slice = LooseLinkedList<Value>.NodeSlice.Empty;
+            _slice = LooseLinkedList<Token>.NodeSlice.Empty;
             _sliceVersion = _version;
             IsAlive = false;
             return;
@@ -102,7 +102,7 @@ internal sealed class Marker
         if (Size <= 0)
         {
             _sliceVersion = _version;
-            _slice = LooseLinkedList<Value>.NodeSlice.Empty;
+            _slice = LooseLinkedList<Token>.NodeSlice.Empty;
             return;
         }
 
@@ -110,18 +110,18 @@ internal sealed class Marker
         _sliceVersion = _version;
     }
 
-    public void Replace(Value value)
+    public void Replace(Token token)
     {
-        _writer.Move(Position, Slice, in value);
+        _writer.Move(Position, Slice, in token);
     }
 
     public void Remove()
         => _writer.Remove(Position, Slice);
 
     public void Replace(WriterProxy value)
-        => Replace(new Value(value));
+        => Replace(new Token(value));
 
-    public void Move(LooseLinkedList<Value>.NodeSlice slice, Range slicePoint)
+    public void Move(LooseLinkedList<Token>.NodeSlice slice, Range slicePoint)
         => _writer.Move(Slice, Range, slice, slicePoint);
 
     public void Kill()

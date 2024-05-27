@@ -54,7 +54,7 @@ namespace EdgeDB.Translators.Expressions
                     writer.Function(
                         "std::len",
                         Defer.This(() => $"ArrayLength expression implicit conversion"),
-                        Value.Of(writer => TranslateExpression(expression.Operand, context, writer))
+                        Token.Of(writer => TranslateExpression(expression.Operand, context, writer))
                     );
                     return;
 

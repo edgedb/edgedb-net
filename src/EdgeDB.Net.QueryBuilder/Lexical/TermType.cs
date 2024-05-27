@@ -1,6 +1,6 @@
 ﻿namespace EdgeDB;
 
-public enum MarkerType
+public enum TermType
 {
     GlobalReference,
     GlobalDeclaration,

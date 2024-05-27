@@ -1,26 +1,26 @@
-﻿using ValueNode = EdgeDB.LooseLinkedList<EdgeDB.Value>.Node;
+﻿using TokenNode = EdgeDB.LooseLinkedList<EdgeDB.Token>.Node;
 
 namespace EdgeDB;
 
-internal sealed class ValueSpan : INodeObserver, IDisposable
+internal sealed class TokenSpan : INodeObserver, IDisposable
 {
-    private readonly List<ValueNode> _nodes;
+    private readonly List<TokenNode> _nodes;
 
     private readonly QueryWriter _writer;
 
-    public ValueSpan(QueryWriter writer)
+    public TokenSpan(QueryWriter writer)
     {
         _nodes = [];
         _writer = writer;
         writer.AddObserver(this);
     }
 
-    public void OnAdd(ValueNode node)
+    public void OnAdd(TokenNode node)
     {
         _nodes.Add(node);
     }
 
-    public void OnRemove(ValueNode node)
+    public void OnRemove(TokenNode node)
     {
         _nodes.Remove(node);
     }
@@ -30,7 +30,7 @@ internal sealed class ValueSpan : INodeObserver, IDisposable
         _writer.RemoveObserver(this);
     }
 
-    public Value[] ToTokens()
+    public Token[] ToTokens()
     {
         return _nodes.Select(x => x.Value).ToArray();
     }

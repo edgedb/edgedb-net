@@ -8,31 +8,31 @@ internal sealed class TypeCastReducer : IReducer
 {
     public void Reduce(IQueryBuilder builder, QueryWriter writer)
     {
-        foreach (var marker in writer.Markers)
+        foreach (var term in writer.Terms)
         {
             if (
-                marker.Type is not MarkerType.Cast ||
-                marker.Metadata is not CastMetadata castMetadata ||
-                !writer.Markers.TryGetNextNeighbours(marker, out var neighbours)
+                term.Type is not TermType.Cast ||
+                term.Metadata is not CastMetadata castMetadata ||
+                !writer.Terms.TryGetNextNeighbours(term, out var neighbours)
             ) continue;
 
             foreach (var neighbour in neighbours)
             {
                 switch (neighbour.Type)
                 {
-                    case MarkerType.Function when neighbour.Metadata is FunctionMetadata functionMetadata:
+                    case TermType.Function when neighbour.Metadata is FunctionMetadata functionMetadata:
                         if (!TryGetFunctionResultType(functionMetadata, out var resultType))
                             continue;
 
                         if (!EdgeDBTypeUtils.CompareEdgeDBTypes(castMetadata.Type, resultType))
                             continue;
 
-                        marker.Remove();
+                        term.Remove();
                         goto end_neighbour_search;
-                    case MarkerType.GlobalReference when neighbour.Metadata is GlobalMetadata globalMetadata:
+                    case TermType.GlobalReference when neighbour.Metadata is GlobalMetadata globalMetadata:
                         if (globalMetadata.EdgeDBType is not null && EdgeDBTypeUtils.CompareEdgeDBTypes(castMetadata.Type, globalMetadata.EdgeDBType))
                         {
-                            marker.Remove();
+                            term.Remove();
                             goto end_neighbour_search;
                         }
 
@@ -42,7 +42,7 @@ internal sealed class TypeCastReducer : IReducer
                                 if(!EdgeDBTypeUtils.CompareEdgeDBTypes(castMetadata.Type, scalar.EdgeDBType))
                                     continue;
 
-                                marker.Remove();
+                                term.Remove();
                                 goto end_neighbour_search;
                         }
                         continue;

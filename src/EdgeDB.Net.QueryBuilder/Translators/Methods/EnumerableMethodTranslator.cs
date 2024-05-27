@@ -249,27 +249,27 @@ namespace EdgeDB.Translators.Methods
 
                 expressive.Context = expressive.Context.Enter(x =>
                 {
-                    x.ParameterAliases.Add(lambda.Parameters[0], Value.Of(
+                    x.ParameterAliases.Add(lambda.Parameters[0], Token.Of(
                             writer => writer
-                                .Marker(
-                                    MarkerType.GlobalReference,
+                                .Term(
+                                    TermType.GlobalReference,
                                     enumerationName,
                                     Defer.This(() => "Enumeration global reference element for Enumerable.Select translator"),
                                     new GlobalMetadata(global),
-                                    Value.Of(writer => writer
+                                    Token.Of(writer => writer
                                         .Append(enumerationName, ".1.")
                                     )
                                 )
                         )
                     );
-                    x.ParameterAliases.Add(lambda.Parameters[1], Value.Of(
+                    x.ParameterAliases.Add(lambda.Parameters[1], Token.Of(
                             writer => writer
-                                .Marker(
-                                    MarkerType.GlobalReference,
+                                .Term(
+                                    TermType.GlobalReference,
                                     enumerationName,
                                     Defer.This(() => "Enumeration global reference index for Enumerable.Select translator"),
                                     new GlobalMetadata(global, "int64"),
-                                    Value.Of(writer => writer
+                                    Token.Of(writer => writer
                                         .Append(enumerationName, ".0")
                                     )
                                 )
@@ -328,10 +328,10 @@ namespace EdgeDB.Translators.Methods
                 .TypeCast(EdgeDBTypeUtils.GetEdgeDBScalarOrTypeName(returnType))
                 .Function(
                     "array_get",
-                    Value.Of(writer => writer
+                    Token.Of(writer => writer
                         .Function(
                             "array_agg",
-                            Value.Of(writer => writer
+                            Token.Of(writer => writer
                                 .Wrapped(writer => writer
                                     .Append("select ")
                                     .Assignment(name!, set)

@@ -26,7 +26,7 @@ internal sealed class WhitespaceReducer : IReducer
         Trim(writer, 0, writer.Tokens.First, true);
     }
 
-    private static void Trim(QueryWriter writer, int position, LooseLinkedList<Value>.Node node, bool dir)
+    private static void Trim(QueryWriter writer, int position, LooseLinkedList<Token>.Node node, bool dir)
     {
         var token = node;
         var lastValidNode = node;
@@ -42,19 +42,19 @@ internal sealed class WhitespaceReducer : IReducer
         writer.Remove(position, dir ? node : lastValidNode, count);
     }
 
-    public static bool IsWhitespace(in Value value)
+    public static bool IsWhitespace(in Token token)
     {
-        if (value.CharValue.HasValue)
-            return char.IsWhiteSpace(value.CharValue.Value);
+        if (token.CharValue.HasValue)
+            return char.IsWhiteSpace(token.CharValue.Value);
 
-        return value.StringValue is not null && string.IsNullOrWhiteSpace(value.StringValue);
+        return token.StringValue is not null && string.IsNullOrWhiteSpace(token.StringValue);
     }
 
-    public static void TrimWhitespaceAround(QueryWriter writer, Marker marker)
+    public static void TrimWhitespaceAround(QueryWriter writer, Term term)
     {
-        if (marker.Slice.Head?.Previous is not null)
-            Trim(writer, marker.Position - 1, marker.Slice.Head.Previous, false);
-        if(marker.Slice.Tail?.Next is not null)
-            Trim(writer, marker.Position + marker.Size + 1, marker.Slice.Tail.Next, true);
+        if (term.Slice.Head?.Previous is not null)
+            Trim(writer, term.Position - 1, term.Slice.Head.Previous, false);
+        if(term.Slice.Tail?.Next is not null)
+            Trim(writer, term.Position + term.Size + 1, term.Slice.Tail.Next, true);
     }
 }

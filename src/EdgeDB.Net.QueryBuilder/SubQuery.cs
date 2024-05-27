@@ -71,10 +71,10 @@ namespace EdgeDB
             if (info is null && RequiresIntrospection)
                 throw new NullReferenceException("Required introspection info, but it was null");
 
-            writer.Marker(
-                MarkerType.SubQuery,
+            writer.Term(
+                TermType.SubQuery,
                 "sub_query",
-                Value.Of(writer =>
+                Token.Of(writer =>
                 {
                     if (RequiresIntrospection)
                     {

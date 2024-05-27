@@ -9,7 +9,7 @@ internal sealed class TupleMethodTranslators : MethodTranslator
     [MethodName(nameof(Tuple.Create))]
     public void Create(QueryWriter writer, params TranslatedParameter[] args)
     {
-        writer.Wrapped(Value.Of(writer =>
+        writer.Wrapped(Token.Of(writer =>
         {
             for (int i = 0; i != args.Length - 1; i++)
             {
