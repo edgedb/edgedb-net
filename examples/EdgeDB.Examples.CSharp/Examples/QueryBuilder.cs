@@ -35,10 +35,6 @@ namespace EdgeDB.ExampleApp.Examples
         {
             try
             {
-                var test = QueryBuilder
-                    .SelectExpression(ctx => EdgeQL.Count(ctx.SubQuery(QueryBuilder.Select<Person>())))
-                    .Compile(true);
-
                 await QueryBuilderDemo(client);
             }
             catch (Exception x)

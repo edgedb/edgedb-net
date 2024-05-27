@@ -34,7 +34,7 @@ internal sealed class MarkerCollection : IEnumerable<Marker>
         markersByName.AddLast(marker);
     }
 
-    public void Remove(Range range)
+    public void Remove(Range range, bool preserveMarkers = true)
     {
         var rangeLower = range.Start.Value;
         var rangeUpper = range.Start.Value + range.End.Value;
@@ -50,7 +50,8 @@ internal sealed class MarkerCollection : IEnumerable<Marker>
             // if the marker is at the range, remove it
             if (marker.Range.Equals(range))
             {
-                marker.Kill();
+                if (!preserveMarkers) marker.Kill();
+                else marker.Size = 0;
             }
             // remove the size from the marker
             else if (markerLower <= rangeLower && markerUpper >= rangeUpper)
@@ -67,7 +68,7 @@ internal sealed class MarkerCollection : IEnumerable<Marker>
 
     public void Move(Range from, Range to)
     {
-        var offset = to.Start.Value - from.Start.Value;
+        var offset = to.Start.Value - (from.Start.Value + from.End.Value);
 
         foreach (var marker in _markers)
         {
@@ -240,7 +241,7 @@ internal sealed class MarkerCollection : IEnumerable<Marker>
     }
 
     public IEnumerable<Marker> GetParents(Marker marker)
-        => _markers.Where(x => x.Position < marker.Position && x.Position + x.Size > marker.Position + marker.Size);
+        => _markers.Where(x => x.Position != marker.Position && x.Size != marker.Size && x.Position <= marker.Position && x.Position + x.Size >= marker.Position + marker.Size);
 
     public IEnumerable<Marker> GetChildren(Marker marker)
         => _markers.Where(x =>

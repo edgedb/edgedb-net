@@ -1,4 +1,6 @@
-﻿namespace EdgeDB;
+﻿using System.Diagnostics;
+
+namespace EdgeDB;
 
 internal sealed class Marker
 {
@@ -25,6 +27,7 @@ internal sealed class Marker
 
     public IMarkerMetadata? Metadata { get; private set; }
 
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     public LooseLinkedList<Value>.NodeSlice Slice
     {
         get
