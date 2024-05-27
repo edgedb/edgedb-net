@@ -149,7 +149,7 @@ public sealed class DebugCompiledQuery : CompiledQuery
                 switch (token)
                 {
                     case 1:
-                        tokenRow.Insert(i, '\u2503');
+                        tokenRow.Insert(i, '|');
                         break;
                     case 2:
                         tokenRow.Insert(i, $"{leftChar}{rightChar}");

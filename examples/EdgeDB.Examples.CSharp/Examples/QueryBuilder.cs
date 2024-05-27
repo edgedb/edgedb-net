@@ -149,7 +149,7 @@ namespace EdgeDB.ExampleApp.Examples
                 .Insert(person)
                 .UnlessConflict()
                 .Else(q => q
-                    .Update(x => x)
+                    .Update<Person>()
                     .Set(old => new
                     {
                         Name = "New name"
