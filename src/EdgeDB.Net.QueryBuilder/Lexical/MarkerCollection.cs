@@ -57,7 +57,7 @@ internal sealed class MarkerCollection : IEnumerable<Marker>
             {
                 marker.UpdateSize(-range.End.Value);
             }
-            else if (markerLower > rangeUpper)
+            else if (markerLower >= rangeUpper)
             {
                 // move the position
                 marker.UpdatePosition(-range.End.Value);
@@ -243,7 +243,25 @@ internal sealed class MarkerCollection : IEnumerable<Marker>
         => _markers.Where(x => x.Position < marker.Position && x.Position + x.Size > marker.Position + marker.Size);
 
     public IEnumerable<Marker> GetChildren(Marker marker)
-        => _markers.Where(x => x.Position > marker.Position && x.Position + x.Size < marker.Position + marker.Size);
+        => _markers.Where(x =>
+            x.Position != marker.Position && x.Size != marker.Size &&
+            x.Position >= marker.Position && x.Position + x.Size <= marker.Position + marker.Size
+        );
+
+    public IEnumerable<Marker> GetChildrenOfType(Marker marker, MarkerType type)
+        => MarkersByType.TryGetValue(type, out var candidates)
+            ? candidates.Where(x =>
+                x.Position != marker.Position && x.Size != marker.Size && x.Position >= marker.Position &&
+                x.Position + x.Size <= marker.Position + marker.Size)
+            : Array.Empty<Marker>();
+
+    public IEnumerable<Marker> GetDirectChildrenOfType(Marker marker, MarkerType type)
+    {
+        var children = GetChildrenOfType(marker, type).ToList();
+
+        return children.Where(child => !children.Any(x => x != child && x.Range.Contains(child.Position)));
+    }
+
 
     public bool TryGetNextNeighbours(Marker marker, [MaybeNullWhen(false)] out LinkedList<Marker> neighbours)
         => _markersByPosition.TryGetValue(marker.Position + marker.Size, out neighbours);

@@ -10,6 +10,25 @@ namespace EdgeDB
 {
     internal static class TypeExtensions
     {
+        public static bool References(this Type type, Type other)
+            => References(type, other, true, []);
+
+        private static bool References(Type type, Type other, bool checkInterfaces, HashSet<Type> hasChecked)
+        {
+            if (!hasChecked.Add(type))
+                return false;
+
+            if (type == other)
+                return true;
+
+            return type switch
+            {
+                { IsArray: true } => References(type.GetElementType()!, other, true, hasChecked),
+                { IsGenericType: true } => type.GetGenericArguments().Any(x => References(x, other, true, hasChecked)),
+                _ => (type.BaseType?.References(other) ?? false) || (checkInterfaces && type.GetInterfaces().Any(x => References(x, other, false, hasChecked)))
+            };
+        }
+
         public static IEnumerable<PropertyInfo> GetEdgeDBTargetProperties(this Type type, bool excludeId = false)
             => type.GetProperties().Where(x => x.GetCustomAttribute<EdgeDBIgnoreAttribute>() == null && !(excludeId && x.Name == "Id" && (x.PropertyType == typeof(Guid) || x.PropertyType == typeof(Guid?))));
 

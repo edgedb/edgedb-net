@@ -13,8 +13,7 @@ internal sealed class NestedSelectReducer : IReducer
     /// </summary>
     /// <param name="builder"></param>
     /// <param name="writer"></param>
-    /// <param name="shouldRunAfter"></param>
-    public void Reduce(IQueryBuilder builder, QueryWriter writer, Queue<IReducer> shouldRunAfter)
+    public void Reduce(IQueryBuilder builder, QueryWriter writer)
     {
         if (!writer.Markers.MarkersByType.TryGetValue(MarkerType.QueryNode, out var nodes))
             return;

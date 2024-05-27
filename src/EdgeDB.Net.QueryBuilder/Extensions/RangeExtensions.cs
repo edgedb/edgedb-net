@@ -11,4 +11,7 @@ public static class RangeExtensions
     {
         return range.Start..(range.End.Value + range.Start.Value);
     }
+
+    public static bool Contains(this Range range, int point)
+        => range.Start.Value <= point && range.End.Value >= point;
 }

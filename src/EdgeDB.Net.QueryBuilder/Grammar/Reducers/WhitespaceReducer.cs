@@ -4,7 +4,7 @@ internal sealed class WhitespaceReducer : IReducer
 {
     public static readonly WhitespaceReducer Instance = new();
 
-    public void Reduce(IQueryBuilder builder, QueryWriter writer, Queue<IReducer> shouldRunAfter)
+    public void Reduce(IQueryBuilder builder, QueryWriter writer)
     {
         TrimStart(writer);
         TrimEnd(writer);
@@ -12,43 +12,49 @@ internal sealed class WhitespaceReducer : IReducer
 
     private void TrimEnd(QueryWriter writer)
     {
-        var token = writer.Tokens.Last;
+        if (writer.Tokens.Last is null)
+            return;
 
-        var count = 0;
-        while (token is not null && IsWhitespace(token.Value))
-        {
-            count++;
-
-            if (token.Previous is null)
-                break;
-
-            token = token.Previous;
-        }
-
-        if (count > 0)
-            writer.Remove(writer.Tokens.Count - count, token!, count);
+        Trim(writer, writer.TailIndex, writer.Tokens.Last, false);
     }
 
     private void TrimStart(QueryWriter writer)
     {
-        var token = writer.Tokens.First;
+        if (writer.Tokens.First is null)
+            return;
+
+        Trim(writer, 0, writer.Tokens.First, true);
+    }
+
+    private static void Trim(QueryWriter writer, int position, LooseLinkedList<Value>.Node node, bool dir)
+    {
+        var token = node;
+        var lastValidNode = node;
 
         var count = 0;
         while (token is not null && IsWhitespace(token.Value))
         {
             count++;
-            token = token.Next;
+            lastValidNode = token;
+            token = dir ? token.Next : token.Previous;
         }
 
-        if (count > 0)
-            writer.Remove(0, writer.Tokens.First!, count);
+        writer.Remove(position, dir ? node : lastValidNode, count);
     }
 
-    private bool IsWhitespace(in Value value)
+    public static bool IsWhitespace(in Value value)
     {
         if (value.CharValue.HasValue)
             return char.IsWhiteSpace(value.CharValue.Value);
 
         return value.StringValue is not null && string.IsNullOrWhiteSpace(value.StringValue);
+    }
+
+    public static void TrimWhitespaceAround(QueryWriter writer, Marker marker)
+    {
+        if (marker.Slice.Head?.Previous is not null)
+            Trim(writer, marker.Position - 1, marker.Slice.Head.Previous, false);
+        if(marker.Slice.Tail?.Next is not null)
+            Trim(writer, marker.Position + marker.Size + 1, marker.Slice.Tail.Next, true);
     }
 }

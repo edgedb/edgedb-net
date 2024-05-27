@@ -56,6 +56,17 @@ internal sealed class Marker
         Metadata = metadata;
     }
 
+    public bool IsChildOf(Marker marker)
+        => marker.Position <= Position && marker.Size >= Size;
+
+    public int SizeDistance(Marker marker)
+    {
+        var a = Position - marker.Position;
+        var b = marker.Size;
+
+        return a + b;
+    }
+
     internal int UpdatePosition(int delta)
     {
         if (delta != 0)

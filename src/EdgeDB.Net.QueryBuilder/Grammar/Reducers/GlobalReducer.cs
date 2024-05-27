@@ -1,10 +1,11 @@
 ﻿using EdgeDB.QueryNodes;
+using System.Diagnostics.CodeAnalysis;
 
 namespace EdgeDB;
 
 internal sealed class GlobalReducer : IReducer
 {
-    public void Reduce(IQueryBuilder builder, QueryWriter writer, Queue<IReducer> shouldRunAfter)
+    public void Reduce(IQueryBuilder builder, QueryWriter writer)
     {
         if (!writer.Markers.MarkersByType.TryGetValue(MarkerType.QueryNode, out var nodes))
             return;
@@ -42,16 +43,31 @@ internal sealed class GlobalReducer : IReducer
             withNode.Remove();
             withNode.Kill();
         }
-
-        if(reducedCount > 0)
-            shouldRunAfter.Enqueue(QueryReducer.Get<NestedSelectReducer>());
     }
 
-    private bool CanReduceWithNestedTypeSafety(QueryGlobal global, Marker marker, QueryWriter writer)
+    private static bool CanReduceWithNestedTypeSafety(QueryGlobal global, Marker marker, QueryWriter writer)
     {
-        // TODO:
-        // we cant reduce a global when:
-        // - is a query builder inside of a nested query that selects the same type.
+        var bannedTypes = global switch
+        {
+            {Reference: IQueryBuilder builder} => builder.Nodes.Select(x => x.GetOperatingType()).ToHashSet(),
+            {Value: IQueryBuilder builder} => builder.Nodes.Select(x => x.GetOperatingType()).ToHashSet(),
+            _ => null
+        };
+
+        if (bannedTypes is null)
+            return false;
+
+        var nodes = writer.Markers.GetParents(marker).Where(x => x.Type is MarkerType.QueryNode);
+
+
+        foreach (var node in nodes)
+        {
+            if (node.Metadata is not QueryNodeMetadata nodeMetadata)
+                return false;
+
+            if (bannedTypes.Contains(nodeMetadata.Node.OperatingType))
+                return false;
+        }
 
         return true;
     }

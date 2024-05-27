@@ -6,7 +6,7 @@ namespace EdgeDB;
 
 internal sealed class TypeCastReducer : IReducer
 {
-    public void Reduce(IQueryBuilder builder, QueryWriter writer, Queue<IReducer> shouldRunAfter)
+    public void Reduce(IQueryBuilder builder, QueryWriter writer)
     {
         foreach (var marker in writer.Markers)
         {

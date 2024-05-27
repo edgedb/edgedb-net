@@ -154,6 +154,7 @@ internal static class Terms
                         MarkerType.FunctionArg,
                         $"func_{name}_arg_{i}",
                         null,
+                        metadata: new FunctionArgumentMetadata(checked((uint)i - 1), name, arg.Named),
                         Value.Of(
                             writer =>
                             {
