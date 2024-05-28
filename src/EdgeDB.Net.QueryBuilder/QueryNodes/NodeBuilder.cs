@@ -20,7 +20,7 @@ internal class NodeBuilder
         Nodes = nodes ?? new List<QueryNode>();
         Context = context;
         QueryGlobals = globals;
-        QueryVariables = variables ?? new Dictionary<string, object>();
+        QueryVariables = variables ?? new Dictionary<string, object?>();
     }
 
     /// <summary>

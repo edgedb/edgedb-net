@@ -146,21 +146,21 @@ internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
         => Term(type, name, debug, null, tokens);
 
     public QueryWriter Term(TermType type, string name, Deferrable<string>? debug = null,
-        ITermMetadata? metadata = null, params Token[] values)
+        ITermMetadata? metadata = null, params Token[] tokens)
     {
         if (type is TermType.Verbose && !IsDebug)
         {
-            Append(values);
+            Append(tokens);
             return this;
         }
 
-        if (values.Length == 0)
+        if (tokens.Length == 0)
             return this;
 
         var sizeDelta = Tokens.Count;
         var position = TrackedPosition;
 
-        Append(out var slice, values);
+        Append(out var slice, tokens);
 
         var size = Tokens.Count - sizeDelta;
 
@@ -288,11 +288,11 @@ internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
     public QueryWriter Append(in Token token)
         => Append(in token, out _);
 
-    public QueryWriter Append(params Token[] values)
+    public QueryWriter Append(params Token[] tokens)
     {
-        for (var i = 0; i != values.Length; i++)
+        for (var i = 0; i != tokens.Length; i++)
         {
-            AddAfterTracked(in values[i]);
+            AddAfterTracked(in tokens[i]);
         }
 
         UpdateTerms();
@@ -300,17 +300,17 @@ internal sealed class QueryWriter(bool isDebugQuery = false) : IDisposable
         return this;
     }
 
-    public QueryWriter Append(out TokenNodeSlice node, params Token[] values)
+    public QueryWriter Append(out TokenNodeSlice node, params Token[] tokens)
     {
-        if (values.Length == 0)
+        if (tokens.Length == 0)
         {
             throw new ArgumentException("Values must contain at least 1 value");
         }
 
-        node = AddAfterTracked(in values[0]);
+        node = AddAfterTracked(in tokens[0]);
 
-        for (var i = 1; i < values.Length; i++)
-            node.Tail = AddAfterTracked(in values[i]).Tail ?? node.Tail;
+        for (var i = 1; i < tokens.Length; i++)
+            node.Tail = AddAfterTracked(in tokens[i]).Tail ?? node.Tail;
 
         UpdateTerms();
 
