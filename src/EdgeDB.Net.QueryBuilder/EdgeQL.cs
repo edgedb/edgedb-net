@@ -61,4 +61,6 @@ public sealed partial class EdgeQL
     public static long Count<TType>(IQuery<TType> a) => default!;
 
     public static EdgeDBTypeContainer<T> SchemaType<T>() => EdgeDBTypeContainer<T>.Create();
+
+    public static T Global<T>(string name) => default!;
 }
