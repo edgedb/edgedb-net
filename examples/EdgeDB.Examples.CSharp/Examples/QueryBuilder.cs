@@ -80,7 +80,7 @@ namespace EdgeDB.ExampleApp.Examples
             // Backlinks
             query = QueryBuilder.Select<Person>(shape => shape
                 .IncludeMultiLink(x => x.Friends)
-                .Computeds((ctx, _) => new
+                .Computeds((_, ctx) => new
                 {
                     // The 'ReferencedFriends' will be equal to '.<best_friends[is MultiLinkPerson] { name, email }'
                     // The '[is x]' statement is only inserted when a property selector is used with the generic,
@@ -204,7 +204,7 @@ namespace EdgeDB.ExampleApp.Examples
                     )
                 })
                 .SelectExpression(ctx => ctx.Variables.Groups, shape => shape
-                    .Explicitly((ctx, group) => new
+                    .Explicitly((group, ctx) => new
                     {
                         StartsWithVowel = group.Key,
                         Count = EdgeQL.Count(group.Elements),
@@ -230,7 +230,7 @@ namespace EdgeDB.ExampleApp.Examples
                     )
                 })
                 .SelectExpression(ctx => ctx.Variables.Groups, shape => shape
-                    .Explicitly((ctx, group) => new
+                    .Explicitly((group, ctx) => new
                     {
                         group.Key,
                         Count = EdgeQL.Count(group.Elements),
@@ -256,7 +256,7 @@ namespace EdgeDB.ExampleApp.Examples
                     )
                 })
                 .SelectExpression(ctx => ctx.Variables.Groups, shape => shape
-                    .Explicitly((ctx, group) => new
+                    .Explicitly((group, ctx) => new
                     {
                         group.Key,
                         group.Grouping,

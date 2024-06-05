@@ -29,7 +29,7 @@ namespace EdgeDB.StandardLibGenerator.Models
             return (
                 await QueryBuilder
                 .Select<MetaType>(shape => shape
-                    .Computeds((ctx, self) => new
+                    .Computeds((self, ctx) => new
                     {
                         Pointers = ctx.Raw<Pointer[]>("[is schema::ObjectType].pointers { name, target: {name, is_abstract}}"),
                         EnumValues = ctx.Raw<string[]?>("[is schema::ScalarType].enum_values")

@@ -55,7 +55,7 @@ internal class SchemaIntrospector
             {
                 shape.IncludeMultiLink(x => x.Constraints);
                 shape.IncludeMultiLink(x => x.Properties, shape =>
-                    shape.Computeds((ctx, prop) => new
+                    shape.Computeds((prop, ctx) => new
                     {
                         Cardinality = (string)ctx.UnsafeLocal<object>("cardinality") == "One"
                             ? ctx.UnsafeLocal<bool>("required")

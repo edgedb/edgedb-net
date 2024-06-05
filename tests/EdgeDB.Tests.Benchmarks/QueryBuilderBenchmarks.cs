@@ -51,7 +51,7 @@ public class QueryBuilderBenchmarks
                 )
             })
             .SelectExpression(ctx => ctx.Variables.Groups, shape => shape
-                .Explicitly((ctx, group) => new
+                .Explicitly((group, ctx) => new
                 {
                     group.Key,
                     group.Grouping,
