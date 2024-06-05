@@ -1,11 +1,6 @@
 namespace EdgeDB;
 
-internal class EdgeQLOpAttribute : Attribute
+internal class EdgeQLOpAttribute(string v) : Attribute
 {
-    public EdgeQLOpAttribute(string v)
-    {
-        Operator = v;
-    }
-
-    public string Operator { get; }
+    public string Operator { get; } = v;
 }

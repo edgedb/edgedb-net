@@ -3,12 +3,12 @@
 internal static class Terms
 {
     public static QueryWriter LabelVariable(this QueryWriter writer, string name, Deferrable<string>? debug = null,
-        params Token[] values)
-        => writer.Term(TermType.Variable, name, debug, values);
+        params Token[] tokens)
+        => writer.Term(TermType.Variable, name, debug, tokens);
 
     public static QueryWriter LabelVerbose(this QueryWriter writer, string name, Deferrable<string>? debug = null,
-        params Token[] values)
-        => writer.Term(TermType.Verbose, name, debug, values);
+        params Token[] tokens)
+        => writer.Term(TermType.Verbose, name, debug, tokens);
 
     public static QueryWriter Wrapped(this QueryWriter writer, Token token, string separator = "()",
         bool spaced = false)
@@ -21,35 +21,35 @@ internal static class Terms
             : writer.Append(separator[0], token, separator[1]);
     }
 
-    public static QueryWriter Wrapped(this QueryWriter writer, WriterProxy value, string separator = "()")
+    public static QueryWriter Wrapped(this QueryWriter writer, WriterProxy proxy, string separator = "()")
     {
         if (separator.Length != 2)
             throw new ArgumentOutOfRangeException(nameof(separator));
 
-        return writer.Append(separator[0], value, separator[1]);
+        return writer.Append(separator[0], proxy, separator[1]);
     }
 
-    public static QueryWriter WrappedValues(this QueryWriter writer, string separator = "()", params Token[] values)
+    public static QueryWriter WrappedValues(this QueryWriter writer, string separator = "()", params Token[] tokens)
     {
         if (separator.Length != 2)
             throw new ArgumentOutOfRangeException(nameof(separator));
 
-        var value = new Token[values.Length + 2];
+        var value = new Token[tokens.Length + 2];
         value[0] = separator[0];
         value[^1] = separator[1];
-        values.CopyTo(value[1..^1].AsSpan());
+        tokens.CopyTo(value[1..^1].AsSpan());
 
         return writer.Append(value);
     }
 
     public static QueryWriter Shape(this QueryWriter writer, string name, Deferrable<string>? debug,
-        params Token[] values)
+        params Token[] tokens)
     {
-        var value = new Token[values.Length + 2];
+        var value = new Token[tokens.Length + 2];
         value[0] = "{ ";
         value[^1] = " }";
 
-        values.CopyTo(value[1..^1].AsSpan());
+        tokens.CopyTo(value[1..^1].AsSpan());
 
         return writer.Term(TermType.Shape, name, debug, value);
     }
@@ -114,7 +114,7 @@ internal static class Terms
 
     public static QueryWriter Function(this QueryWriter writer, string name, Deferrable<string>? debug,
         FunctionMetadata? metadata, params FunctionArg[] args) =>
-        writer.Term(TermType.Function, $"func_{name}", debug, new FunctionMetadata(name), Token.Of(
+        writer.Term(TermType.Function, $"func_{name}", debug, metadata ?? new FunctionMetadata(name), Token.Of(
             writer =>
             {
                 writer.Append(name, '(');
@@ -198,16 +198,10 @@ internal static class Terms
         return writer;
     }
 
-    public readonly struct FunctionArg
+    public readonly struct FunctionArg(Token token, string? named = null)
     {
-        public readonly Token Token;
-        public readonly string? Named;
-
-        public FunctionArg(Token token, string? named = null)
-        {
-            Token = token;
-            Named = named;
-        }
+        public readonly Token Token = token;
+        public readonly string? Named = named;
 
         public static implicit operator FunctionArg(Token token) => new(token);
         public static implicit operator FunctionArg(string? str) => new(str);

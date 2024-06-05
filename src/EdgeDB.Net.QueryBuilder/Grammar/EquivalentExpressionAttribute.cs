@@ -2,12 +2,7 @@ using System.Linq.Expressions;
 
 namespace EdgeDB;
 
-internal class EquivalentExpressionAttribute : Attribute
+internal class EquivalentExpressionAttribute(params ExpressionType[] expressions) : Attribute
 {
-    public EquivalentExpressionAttribute(params ExpressionType[] expressions)
-    {
-        Expressions = expressions;
-    }
-
-    public ExpressionType[] Expressions { get; }
+    public ExpressionType[] Expressions { get; } = expressions;
 }

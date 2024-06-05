@@ -1,6 +1,6 @@
 ﻿namespace EdgeDB;
 
-public static class EnumerableExtensions
+internal static class EnumerableExtensions
 {
     public static Dictionary<T, LinkedList<U>> ToBucketedDictionary<T, U, V>(this IEnumerable<V> collection,
         Func<V, T> selectKey, Func<V, U> selectValue)

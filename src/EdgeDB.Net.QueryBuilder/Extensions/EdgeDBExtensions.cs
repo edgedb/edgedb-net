@@ -1,6 +1,6 @@
 namespace EdgeDB;
 
-public static class EdgeDBExtensions
+internal static class EdgeDBExtensions
 {
     internal static SubQuery SelectSubQuery(this Guid id, Type queryType) =>
         new(writer => writer

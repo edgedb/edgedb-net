@@ -14,7 +14,6 @@ internal sealed class GlobalReducer : IReducer
         if (withNode is null)
             return;
 
-        var reducedCount = 0;
         foreach (var (_, terms) in writer.Terms.TermsByType.Where(x => x.Key is TermType.GlobalDeclaration)
                      .ToArray())
         foreach (var global in terms)
@@ -33,7 +32,6 @@ internal sealed class GlobalReducer : IReducer
             // inline the global.
             references[0].Move(global.Slice, global.Position..global.Size);
             global.Kill();
-            reducedCount++;
         }
 
         // if theres nothing in the with block, we can remove it.

@@ -91,12 +91,12 @@ public partial class QueryBuilder<TType, TContext>
     IUnlessConflictOn<TType, TContext> IInsertQuery<TType, TContext>.UnlessConflict()
         => UnlessConflict();
 
-    IUnlessConflictOn<TType, TContext> IInsertQuery<TType, TContext>.UnlessConflictOn(
-        Expression<Func<TType, object?>> propertySelector)
+    IUnlessConflictOn<TType, TContext> IInsertQuery<TType, TContext>.UnlessConflictOn<TSelected>(
+        Expression<Func<TType, TSelected>> propertySelector)
         => UnlessConflictOn(propertySelector);
 
-    IUnlessConflictOn<TType, TContext> IInsertQuery<TType, TContext>.UnlessConflictOn(
-        Expression<Func<TType, TContext, object?>> propertySelector)
+    IUnlessConflictOn<TType, TContext> IInsertQuery<TType, TContext>.UnlessConflictOn<TSelected>(
+        Expression<Func<TType, TContext, TSelected>> propertySelector)
         => UnlessConflictOn(propertySelector);
 
     public IInsertQuery<TType, TContext> Insert(Type type, LambdaExpression expression,

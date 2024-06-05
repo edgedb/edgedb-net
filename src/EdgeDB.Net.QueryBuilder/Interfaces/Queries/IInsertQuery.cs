@@ -27,8 +27,8 @@ public interface IInsertQuery<TType, TContext> : ISingleCardinalityExecutable<TT
     ///     A lambda function selecting which property will be added to the <c>UNLESS CONFLICT ON</c> statement
     /// </param>
     /// <returns>The current query.</returns>
-    IUnlessConflictOn<TType, TContext> UnlessConflictOn(Expression<Func<TType, object?>> propertySelector);
+    IUnlessConflictOn<TType, TContext> UnlessConflictOn<TSelected>(Expression<Func<TType, TSelected>> propertySelector);
 
-    /// <inheritdoc cref="UnlessConflictOn(Expression{Func{TType, object?}})" />
-    IUnlessConflictOn<TType, TContext> UnlessConflictOn(Expression<Func<TType, TContext, object?>> propertySelector);
+    /// <inheritdoc cref="IInsertQuery{TType, TContext}.UnlessConflictOn{TSelected}(System.Linq.Expressions.Expression{System.Func{TType,TSelected?}})"/>
+    IUnlessConflictOn<TType, TContext> UnlessConflictOn<TSelected>(Expression<Func<TType, TContext, TSelected>> propertySelector);
 }

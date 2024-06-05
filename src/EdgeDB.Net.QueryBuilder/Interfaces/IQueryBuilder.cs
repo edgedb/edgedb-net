@@ -24,6 +24,10 @@ public interface IQueryBuilder<TType, TContext> :
     IGroupUsingQuery<TType, TContext>
     where TContext : IQueryContext
 {
+    /// <summary>
+    ///     Adds a <c>FOR</c> statement.
+    /// </summary>
+    /// <returns></returns>
     IGroupQuery<TType, TContext> Group();
 
     IGroupQuery<TResult, TContext> Group<TResult>(Action<ShapeBuilder<TResult>> shape);

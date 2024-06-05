@@ -20,10 +20,10 @@ public interface IDeleteQuery<TType, TContext> : IMultiCardinalityExecutable<TTy
     IDeleteQuery<TType, TContext> Filter(Expression<Func<TType, TContext, bool>> filter);
 
     /// <summary>
-    ///     Orders the current <typeparamref name="TType" />s by the given property accending first.
+    ///     Orders the current <typeparamref name="TType" />s by the given property ascending first.
     /// </summary>
     /// <param name="propertySelector">The property to order by.</param>
-    /// <param name="nullPlacement">The order of which null values should occor.</param>
+    /// <param name="nullPlacement">The order of which null values should occur.</param>
     /// <returns>The current query.</returns>
     IDeleteQuery<TType, TContext> OrderBy<U>(Expression<Func<TType, U>> propertySelector,
         OrderByNullPlacement? nullPlacement = null);
