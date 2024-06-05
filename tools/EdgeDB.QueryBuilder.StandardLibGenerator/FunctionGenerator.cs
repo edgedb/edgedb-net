@@ -80,7 +80,7 @@ namespace EdgeDB.StandardLibGenerator
             public string? Type { get; init; }
             public string[] Generics { get; set; } = Array.Empty<string>();
             public List<string> GenericConditions { get; set; } = new();
-            public string? DefaultValue { get; set; } = "{}";
+            public string? DefaultValue { get; set; }
             public bool Optional { get; set; }
         }
 
@@ -361,7 +361,9 @@ namespace EdgeDB.StandardLibGenerator
 
                         parsedParameters[i] =
                             await ParseParameter(name, info, x.Parameter.Type!, x.Parameter.TypeModifier, i);
-                        if (!string.IsNullOrEmpty(x.Parameter.Default) && x.Parameter.Default != "{}")
+                        if (parsedParameters[i].Optional)
+                            parsedParameters[i].DefaultValue = "{}";
+                        else if (!string.IsNullOrEmpty(x.Parameter.Default))
                             parsedParameters[i].DefaultValue = await ParseDefaultAsync(x.Parameter.Default, info);
                     }
 
@@ -515,6 +517,9 @@ namespace EdgeDB.StandardLibGenerator
 
         private static async Task<string> ParseDefaultAsync(string @default, TypeNode node)
         {
+            if (@default == "{}")
+                return "null";
+
             var result = await _client!.QuerySingleAsync<object>($"select {@default}");
             return result switch
             {

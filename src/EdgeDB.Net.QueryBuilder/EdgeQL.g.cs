@@ -43,7 +43,7 @@ namespace EdgeDB
         ///     Return the element of *array* at the specified *index*.
         /// </summary>
         [EdgeQLFunction("array_get", "std", "anytype", false, true)]
-        public static TType? ArrayGet<TType>(IEnumerable<TType> array, Int64 idx, TType? @default = default)
+        public static TType? ArrayGet<TType>(IEnumerable<TType> array, Int64 idx, TType? @default)
             => default!;
         /// <summary>
         ///     Return array elements as a set.
@@ -52,16 +52,16 @@ namespace EdgeDB
         public static IEnumerable<TType> ArrayUnpack<TType>(IEnumerable<TType> array)
             => default!;
         [EdgeQLFunction("DISTINCT", "std", "anytype", true, false)]
-        public static IEnumerable<TType> Distinct<TType>(IEnumerable<TType> s = default)
+        public static IEnumerable<TType> Distinct<TType>(IEnumerable<TType> s)
             => default!;
         [EdgeQLFunction("UNION", "std", "anytype", true, false)]
-        public static IEnumerable<TType> Union<TType>(IEnumerable<TType> s1 = default, IEnumerable<TType> s2 = default)
+        public static IEnumerable<TType> Union<TType>(IEnumerable<TType> s1, IEnumerable<TType> s2)
             => default!;
         [EdgeQLFunction("EXCEPT", "std", "anytype", true, false)]
-        public static IEnumerable<TType> Except<TType>(IEnumerable<TType> s1 = default, IEnumerable<TType> s2 = default)
+        public static IEnumerable<TType> Except<TType>(IEnumerable<TType> s1, IEnumerable<TType> s2)
             => default!;
         [EdgeQLFunction("INTERSECT", "std", "anytype", true, false)]
-        public static IEnumerable<TType> Intersect<TType>(IEnumerable<TType> s1 = default, IEnumerable<TType> s2 = default)
+        public static IEnumerable<TType> Intersect<TType>(IEnumerable<TType> s1, IEnumerable<TType> s2)
             => default!;
         /// <summary>
         ///     Assert that a boolean value is true.
@@ -158,25 +158,25 @@ namespace EdgeDB
         public static Boolean Contains(MultiRange<DateOnly> haystack, DateOnly needle)
             => default!;
         [EdgeQLFunction("IN", "std", "std::bool", false, false)]
-        public static Boolean In<TType>(TType e = default, IEnumerable<TType> s = default)
+        public static Boolean In<TType>(TType e, IEnumerable<TType> s)
             => default!;
         [EdgeQLFunction("NOT IN", "std", "std::bool", false, false)]
-        public static Boolean NotIn<TType>(TType e = default, IEnumerable<TType> s = default)
+        public static Boolean NotIn<TType>(TType e, IEnumerable<TType> s)
             => default!;
         [EdgeQLFunction("EXISTS", "std", "std::bool", false, false)]
-        public static Boolean Exists<TType>(IEnumerable<TType> s = default)
+        public static Boolean Exists<TType>(IEnumerable<TType> s)
             => default!;
         [EdgeQLFunction("LIKE", "std", "std::bool", false, false)]
-        public static Boolean Like(String str = null, String pattern = null)
+        public static Boolean Like(String str, String pattern)
             => default!;
         [EdgeQLFunction("ILIKE", "std", "std::bool", false, false)]
-        public static Boolean ILike(String str = null, String pattern = null)
+        public static Boolean ILike(String str, String pattern)
             => default!;
         [EdgeQLFunction("NOT LIKE", "std", "std::bool", false, false)]
-        public static Boolean NotLike(String str = null, String pattern = null)
+        public static Boolean NotLike(String str, String pattern)
             => default!;
         [EdgeQLFunction("NOT ILIKE", "std", "std::bool", false, false)]
-        public static Boolean NotILike(String str = null, String pattern = null)
+        public static Boolean NotILike(String str, String pattern)
             => default!;
         /// <summary>
         ///     A polymorphic function to calculate a "length" of its first argument.
@@ -293,7 +293,7 @@ namespace EdgeDB
         ///     Create a `int64` value.
         /// </summary>
         [EdgeQLFunction("to_int64", "std", "std::int64", false, false)]
-        public static Int64 ToInt64(String s, String? fmt = null)
+        public static Int64 ToInt64(String s, String? fmt)
             => default!;
         [EdgeQLFunction("sequence_reset", "std", "std::int64", false, false)]
         public static Int64 SequenceReset(Type seq)
@@ -329,7 +329,7 @@ namespace EdgeDB
         ///     Create a `bigint` value.
         /// </summary>
         [EdgeQLFunction("to_bigint", "std", "std::bigint", false, false)]
-        public static BigInteger ToBigint(String s, String? fmt = null)
+        public static BigInteger ToBigint(String s, String? fmt)
             => default!;
         /// <summary>
         ///     Round up to the nearest integer.
@@ -374,7 +374,7 @@ namespace EdgeDB
         ///     Create a `decimal` value.
         /// </summary>
         [EdgeQLFunction("to_decimal", "std", "std::decimal", false, false)]
-        public static Decimal ToDecimal(String s, String? fmt = null)
+        public static Decimal ToDecimal(String s, String? fmt)
             => default!;
         /// <summary>
         ///     Round up to the nearest integer.
@@ -455,7 +455,7 @@ namespace EdgeDB
         ///     Create a `float32` value.
         /// </summary>
         [EdgeQLFunction("to_float32", "std", "std::float32", false, false)]
-        public static Single ToFloat32(String s, String? fmt = null)
+        public static Single ToFloat32(String s, String? fmt)
             => default!;
         /// <summary>
         ///     Return the sum of the set of numbers.
@@ -494,7 +494,7 @@ namespace EdgeDB
         ///     Create a `float64` value.
         /// </summary>
         [EdgeQLFunction("to_float64", "std", "std::float64", false, false)]
-        public static Double ToFloat64(String s, String? fmt = null)
+        public static Double ToFloat64(String s, String? fmt)
             => default!;
         /// <summary>
         ///     Round up to the nearest integer.
@@ -752,37 +752,37 @@ namespace EdgeDB
         ///     Return string representation of the input value.
         /// </summary>
         [EdgeQLFunction("to_str", "std", "std::str", false, false)]
-        public static String ToStr(DateTimeOffset dt, String? fmt = null)
+        public static String ToStr(DateTimeOffset dt, String? fmt)
             => default!;
         /// <summary>
         ///     Return string representation of the input value.
         /// </summary>
         [EdgeQLFunction("to_str", "std", "std::str", false, false)]
-        public static String ToStr(TimeSpan td, String? fmt = null)
+        public static String ToStr(TimeSpan td, String? fmt)
             => default!;
         /// <summary>
         ///     Return string representation of the input value.
         /// </summary>
         [EdgeQLFunction("to_str", "std", "std::str", false, false)]
-        public static String ToStr(Int64 i, String? fmt = null)
+        public static String ToStr(Int64 i, String? fmt)
             => default!;
         /// <summary>
         ///     Return string representation of the input value.
         /// </summary>
         [EdgeQLFunction("to_str", "std", "std::str", false, false)]
-        public static String ToStr(Double f, String? fmt = null)
+        public static String ToStr(Double f, String? fmt)
             => default!;
         /// <summary>
         ///     Return string representation of the input value.
         /// </summary>
         [EdgeQLFunction("to_str", "std", "std::str", false, false)]
-        public static String ToStr(BigInteger d, String? fmt = null)
+        public static String ToStr(BigInteger d, String? fmt)
             => default!;
         /// <summary>
         ///     Return string representation of the input value.
         /// </summary>
         [EdgeQLFunction("to_str", "std", "std::str", false, false)]
-        public static String ToStr(Decimal d, String? fmt = null)
+        public static String ToStr(Decimal d, String? fmt)
             => default!;
         /// <summary>
         ///     Return string representation of the input value.
@@ -794,7 +794,7 @@ namespace EdgeDB
         ///     Return string representation of the input value.
         /// </summary>
         [EdgeQLFunction("to_str", "std", "std::str", false, false)]
-        public static String ToStr(Json json, String? fmt = null)
+        public static String ToStr(Json json, String? fmt)
             => default!;
         /// <summary>
         ///     Convert a binary UTF-8 string to a text value.
@@ -824,13 +824,13 @@ namespace EdgeDB
         ///     Return string representation of the input value.
         /// </summary>
         [EdgeQLFunction("to_str", "std", "std::str", false, false)]
-        public static String ToStr(DateTime dt, String? fmt = null)
+        public static String ToStr(DateTime dt, String? fmt)
             => default!;
         /// <summary>
         ///     Return string representation of the input value.
         /// </summary>
         [EdgeQLFunction("to_str", "std", "std::str", false, false)]
-        public static String ToStr(DateOnly d, String? fmt = null)
+        public static String ToStr(DateOnly d, String? fmt)
             => default!;
         /// <summary>
         ///     Encode given data as a base64 string
@@ -839,7 +839,7 @@ namespace EdgeDB
         public static String Base64Encode(Byte[] data, Base64Alphabet alphabet = Base64Alphabet.standard, Boolean padding = true)
             => default!;
         [EdgeQLFunction("CONCAT", "std", "std::str", false, false)]
-        public static String Concat(String l = null, String r = null)
+        public static String Concat(String l, String r)
             => default!;
         /// <summary>
         ///     Return the smallest value of the input set.
@@ -884,7 +884,7 @@ namespace EdgeDB
         ///     Create a `datetime` value.
         /// </summary>
         [EdgeQLFunction("to_datetime", "std", "std::datetime", false, false)]
-        public static DateTimeOffset ToDatetime(String s, String? fmt = null)
+        public static DateTimeOffset ToDatetime(String s, String? fmt)
             => default!;
         /// <summary>
         ///     Create a `datetime` value.
@@ -1004,7 +1004,7 @@ namespace EdgeDB
         ///     Create a `int16` value.
         /// </summary>
         [EdgeQLFunction("to_int16", "std", "std::int16", false, false)]
-        public static Int16 ToInt16(String s, String? fmt = null)
+        public static Int16 ToInt16(String s, String? fmt)
             => default!;
         /// <summary>
         ///     Bitwise AND operator for 32-bit integers.
@@ -1052,7 +1052,7 @@ namespace EdgeDB
         ///     Create a `int32` value.
         /// </summary>
         [EdgeQLFunction("to_int32", "std", "std::int32", false, false)]
-        public static Int32 ToInt32(String s, String? fmt = null)
+        public static Int32 ToInt32(String s, String? fmt)
             => default!;
         /// <summary>
         ///     Return the array made from all of the input set elements.
@@ -1142,13 +1142,13 @@ namespace EdgeDB
         ///     Return the JSON value at the end of the specified path or an empty set.
         /// </summary>
         [EdgeQLFunction("json_get", "std", "std::json", false, true)]
-        public static Json? JsonGet(Json json, IEnumerable<String> path, Json? @default = default)
+        public static Json? JsonGet(Json json, IEnumerable<String> path, Json? @default)
             => default!;
         /// <summary>
         ///     Return an updated JSON target with a new value.
         /// </summary>
         [EdgeQLFunction("json_set", "std", "std::json", false, true)]
-        public static Json? JsonSet(Json target, IEnumerable<String> path, Json? value = default, Boolean create_if_missing = true, JsonEmpty empty_treatment = JsonEmpty.ReturnEmpty)
+        public static Json? JsonSet(Json target, IEnumerable<String> path, Json? value, Boolean create_if_missing = true, JsonEmpty empty_treatment = JsonEmpty.ReturnEmpty)
             => default!;
         /// <summary>
         ///     Return JSON value represented by the input *string*.
@@ -1157,10 +1157,10 @@ namespace EdgeDB
         public static Json ToJson(String str)
             => default!;
         [EdgeQLFunction("get_config_json", "cfg", "std::json", false, false)]
-        public static Json GetConfigJson(IEnumerable<String>? sources = null, String? max_source = null)
+        public static Json GetConfigJson(IEnumerable<String>? sources, String? max_source)
             => default!;
         [EdgeQLFunction("CONCAT", "std", "std::json", false, false)]
-        public static Json Concat(Json l = default, Json r = default)
+        public static Json Concat(Json l, Json r)
             => default!;
         /// <summary>
         ///     Return a version 1 UUID.
@@ -1175,7 +1175,7 @@ namespace EdgeDB
         public static Guid UuidGenerateV4()
             => default!;
         [EdgeQLFunction("range", "std", "range<std::anypoint>", false, false)]
-        public static Range<TPoint> Range<TPoint>(TPoint? lower = default, TPoint? upper = default, Boolean inc_lower = true, Boolean inc_upper = false, Boolean empty = false)
+        public static Range<TPoint> Range<TPoint>(TPoint? lower, TPoint? upper, Boolean inc_lower = true, Boolean inc_upper = false, Boolean empty = false)
             where TPoint : struct
             => default!;
         [EdgeQLFunction("multirange_unpack", "std", "range<std::int32>", true, false)]
@@ -1227,7 +1227,7 @@ namespace EdgeDB
         public static Byte[] Base64Decode(String data, Base64Alphabet alphabet = Base64Alphabet.standard, Boolean padding = true)
             => default!;
         [EdgeQLFunction("CONCAT", "std", "std::bytes", false, false)]
-        public static Byte[] Concat(Byte[] l = null, Byte[] r = null)
+        public static Byte[] Concat(Byte[] l, Byte[] r)
             => default!;
         /// <summary>
         ///     Return the isolation level of the current transaction.
@@ -1239,7 +1239,7 @@ namespace EdgeDB
         ///     Create a `cal::local_datetime` value.
         /// </summary>
         [EdgeQLFunction("to_local_datetime", "cal", "cal::local_datetime", false, false)]
-        public static DateTime ToLocalDatetime(String s, String? fmt = null)
+        public static DateTime ToLocalDatetime(String s, String? fmt)
             => default!;
         /// <summary>
         ///     Create a `cal::local_datetime` value.
@@ -1272,7 +1272,7 @@ namespace EdgeDB
         ///     Create a `cal::local_date` value.
         /// </summary>
         [EdgeQLFunction("to_local_date", "cal", "cal::local_date", false, false)]
-        public static DateOnly ToLocalDate(String s, String? fmt = null)
+        public static DateOnly ToLocalDate(String s, String? fmt)
             => default!;
         /// <summary>
         ///     Create a `cal::local_date` value.
@@ -1308,7 +1308,7 @@ namespace EdgeDB
         ///     Create a `cal::local_time` value.
         /// </summary>
         [EdgeQLFunction("to_local_time", "cal", "cal::local_time", false, false)]
-        public static TimeSpan ToLocalTime(String s, String? fmt = null)
+        public static TimeSpan ToLocalTime(String s, String? fmt)
             => default!;
         /// <summary>
         ///     Create a `cal::local_time` value.
