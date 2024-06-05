@@ -53,23 +53,15 @@ internal class SelectedProperty(MemberInfo member)
     }
 }
 
-internal readonly struct ShapeElementExpression
+internal readonly struct ShapeElementExpression(LambdaExpression root, Expression exp)
 {
-    //public readonly bool IsSelector;
-
-    public readonly LambdaExpression Root;
-    public readonly Expression Expression;
-
-    public ShapeElementExpression(LambdaExpression root, Expression exp)
-    {
-        Root = root;
-        Expression = exp;
-    }
+    public readonly LambdaExpression Root = root;
+    public readonly Expression Expression = exp;
 }
 
 public abstract class BaseShapeBuilder : IShapeBuilder
 {
-    public BaseShapeBuilder(Type type)
+    protected BaseShapeBuilder(Type type)
     {
         SelectedType = type;
 
@@ -132,22 +124,11 @@ public abstract class BaseShapeBuilder : IShapeBuilder
 
     internal SelectShape GetShape() => new(SelectedProperties.Select(x => x.Value), SelectedType);
 
-    private class StaticShapeBuilder : BaseShapeBuilder
-    {
-        public StaticShapeBuilder(Type type)
-            : base(type)
-        {
-        }
-    }
+    private class StaticShapeBuilder(Type type) : BaseShapeBuilder(type);
 }
 
-public sealed class ShapeBuilder<T> : BaseShapeBuilder
+public sealed class ShapeBuilder<T>() : BaseShapeBuilder(typeof(T))
 {
-    public ShapeBuilder()
-        : base(typeof(T))
-    {
-    }
-
     public ShapeBuilder<T> IncludeMultiLink<TIncluded>(Expression<Func<T, IEnumerable<TIncluded?>?>> selector)
         => IncludeInternal<TIncluded>(selector);
 
@@ -175,7 +156,7 @@ public sealed class ShapeBuilder<T> : BaseShapeBuilder
     public ShapeBuilder<T> Computeds<TAnon>(Expression<Func<T, TAnon>> computedsSelector)
         => ComputedsInternal(computedsSelector);
 
-    public ShapeBuilder<T> Computeds<TAnon>(Expression<Func<QueryContextSelf<T>, T, TAnon>> computedsSelector)
+    public ShapeBuilder<T> Computeds<TAnon>(Expression<Func<T, QueryContextSelf<T>, TAnon>> computedsSelector)
         => ComputedsInternal(computedsSelector);
 
     internal ShapeBuilder<T> ComputedsInternal(LambdaExpression expression)
@@ -192,7 +173,7 @@ public sealed class ShapeBuilder<T> : BaseShapeBuilder
     public ShapeBuilder<T, TAnon> Explicitly<TAnon>(Expression<Func<T, TAnon>> explicitSelector)
         => ExplicitlyInternal<TAnon>(explicitSelector);
 
-    public ShapeBuilder<T, TAnon> Explicitly<TAnon>(Expression<Func<QueryContextSelf<T>, T, TAnon>> explicitSelector)
+    public ShapeBuilder<T, TAnon> Explicitly<TAnon>(Expression<Func<T, QueryContextSelf<T>, TAnon>> explicitSelector)
         => ExplicitlyInternal<TAnon>(explicitSelector);
 
 
