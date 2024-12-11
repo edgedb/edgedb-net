@@ -66,7 +66,7 @@ internal sealed class EdgeDBTypeDeserializeInfo
 
     public string EdgeDBTypeName { get; }
 
-    public bool IsAbtractType
+    public bool IsAbstractType
         => _type.IsAbstract || _type.IsInterface;
 
     public bool RequiresTypeName { get; private set; }
@@ -91,10 +91,10 @@ internal sealed class EdgeDBTypeDeserializeInfo
 
     private ObjectActivator? CreateActivator()
     {
-        if (IsAbtractType)
+        if (IsAbstractType)
             return null;
 
-        if (!ConstructorInfo.HasValue || ConstructorInfo.Value.EmptyConstructor is null)
+        if (ConstructorInfo?.EmptyConstructor is null)
             return null;
 
         Expression newExp = Expression.New(ConstructorInfo.Value.EmptyConstructor);
@@ -267,7 +267,7 @@ internal sealed class EdgeDBTypeDeserializeInfo
         }
 
         // is it abstract
-        if (IsAbtractType)
+        if (IsAbstractType)
         {
             RequiresTypeName = true;
 
@@ -288,7 +288,7 @@ internal sealed class EdgeDBTypeDeserializeInfo
                 if ((info = Children.FirstOrDefault(x => x.Value.EdgeDBTypeName == typeName).Value) is null)
                 {
                     throw new EdgeDBException(
-                        $"Failed to deserialize the edgedb type '{typeName}'. Could not find relivant child of {_type.Name}");
+                        $"Failed to deserialize the EdgeDB type '{typeName}'. Could not find relevant child of {_type.Name}");
                 }
 
                 // deserialize as child

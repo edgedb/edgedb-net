@@ -1,0 +1,70 @@
+﻿using System.Linq.Expressions;
+
+namespace EdgeDB.Translators.Methods;
+
+/// <summary>
+///     Represents a parameter used within a method translator.
+/// </summary>
+internal class TranslatedParameter
+{
+    /// <summary>
+    ///     Constructs a new <see cref="TranslatedParameter" />.
+    /// </summary>
+    /// <param name="type">The type of the parameter.</param>
+    /// <param name="raw">The raw expression of the parameter.</param>
+    /// <param name="context">The context under which the raw expression is to be translated.</param>
+    public TranslatedParameter(Type type, Expression raw, ExpressionContext context)
+    {
+        ParameterType = type;
+        Context = context;
+        RawValue = raw;
+    }
+
+    /// <summary>
+    ///     Gets the type original type of the parameter.
+    /// </summary>
+    public Type ParameterType { get; }
+
+    /// <summary>
+    ///     Gets the context for translating the <see cref="RawValue" />.
+    /// </summary>
+    public ExpressionContext Context { get; set; }
+
+    /// <summary>
+    ///     Gets the raw expression of the parameter.
+    /// </summary>
+    public Expression RawValue { get; }
+
+    /// <summary>
+    ///     Gets whether or not the parameter type is a scalar array.
+    /// </summary>
+    public bool IsScalarArrayType
+        => EdgeDBTypeUtils.TryGetScalarType(ParameterType, out var info) && info.IsArray;
+
+    /// <summary>
+    ///     Gets whether or not the parameter is a scalar type.
+    /// </summary>
+    public bool IsScalarType
+        => EdgeDBTypeUtils.TryGetScalarType(ParameterType, out _);
+
+    /// <summary>
+    ///     Gets whether or not the parameter is a valid link type.
+    /// </summary>
+    public bool IsLinkType
+        => EdgeDBTypeUtils.IsLink(ParameterType, out _, out _);
+
+    /// <summary>
+    ///     Gets whether or not the parameter is a valid multi-link type.
+    /// </summary>
+    public bool IsMultiLinkType
+        => EdgeDBTypeUtils.IsLink(ParameterType, out var isMulti, out _) && isMulti;
+
+    public bool IsNullValue
+        => RawValue is ConstantExpression {Value: null};
+
+    public void WriteTo(QueryWriter writer)
+        => ExpressionTranslator.ContextualTranslate(RawValue, Context, writer);
+
+    public static implicit operator Token(TranslatedParameter param) => Token.Of(param.WriteTo);
+    public static implicit operator Terms.FunctionArg(TranslatedParameter param) => new(Token.Of(param.WriteTo));
+}

@@ -1,0 +1,34 @@
+﻿using System.Linq.Expressions;
+
+namespace EdgeDB.Interfaces.Queries;
+
+/// <summary>
+///     Represents a generic <c>INSERT</c> query used within a <see cref="IQueryBuilder" />.
+/// </summary>
+/// <typeparam name="TType">The type which this <c>INSERT</c> query is querying against.</typeparam>
+/// <typeparam name="TContext">The type of context representing the current builder.</typeparam>
+public interface IInsertQuery<TType, TContext> : ISingleCardinalityExecutable<TType> where TContext : IQueryContext
+{
+    /// <summary>
+    ///     Automatically adds an <c>UNLESS CONFLICT ON ...</c> statement to the current insert
+    ///     query, preventing any conflicts from throwing an exception.
+    /// </summary>
+    /// <remarks>
+    ///     This query requires introspection of the database, multiple queries may be executed
+    ///     when this query executes.
+    /// </remarks>
+    /// <returns>The current query.</returns>
+    IUnlessConflictOn<TType, TContext> UnlessConflict();
+
+    /// <summary>
+    ///     Adds an <c>UNLESS CONFLICT ON</c> statement with the given property selector.
+    /// </summary>
+    /// <param name="propertySelector">
+    ///     A lambda function selecting which property will be added to the <c>UNLESS CONFLICT ON</c> statement
+    /// </param>
+    /// <returns>The current query.</returns>
+    IUnlessConflictOn<TType, TContext> UnlessConflictOn<TSelected>(Expression<Func<TType, TSelected>> propertySelector);
+
+    /// <inheritdoc cref="IInsertQuery{TType, TContext}.UnlessConflictOn{TSelected}(System.Linq.Expressions.Expression{System.Func{TType,TSelected?}})"/>
+    IUnlessConflictOn<TType, TContext> UnlessConflictOn<TSelected>(Expression<Func<TType, TContext, TSelected>> propertySelector);
+}

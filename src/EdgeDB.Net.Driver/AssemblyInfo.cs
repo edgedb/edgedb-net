@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("EdgeDB.Net.QueryBuilder")]
+[assembly: InternalsVisibleTo("EdgeDB.Net.Queryable")]
 [assembly: InternalsVisibleTo("EdgeDB.Runtime")]
 [assembly: InternalsVisibleTo("EdgeDB.ExampleApp")]
 [assembly: InternalsVisibleTo("EdgeDB.DotnetTool")]

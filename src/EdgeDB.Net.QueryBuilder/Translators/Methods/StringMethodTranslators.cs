@@ -1,0 +1,314 @@
+﻿using System.Linq.Expressions;
+
+namespace EdgeDB.Translators.Methods;
+
+/// <summary>
+///     Represents a translator for translating methods within the <see cref="string" /> class.
+/// </summary>
+internal class StringMethodTranslators : MethodTranslator<string>
+{
+    /// <summary>
+    ///     Translates the method <see cref="string.Concat(object?, object?)" />.
+    /// </summary>
+    /// <param name="writer">The query string writer to append the translated method to.</param>
+    /// <param name="instance">The instance of the string to concat against.</param>
+    /// <param name="variableArgs">The variable arguments that should be concatenated together.</param>
+    [MethodName(nameof(string.Concat))]
+    public void Concat(QueryWriter writer, TranslatedParameter? instance,
+        params TranslatedParameter[] variableArgs)
+    {
+        if (variableArgs.Length == 0)
+            throw new ArgumentException("At least 1 parameter is required for concatenation");
+
+        if (instance is not null)
+        {
+            writer
+                .Append(instance)
+                .Append(" ++ ");
+        }
+
+        for (var i = 0; i != variableArgs.Length;)
+        {
+            writer.Append(variableArgs[i++]);
+
+            if (i != variableArgs.Length)
+                writer.Append(" ++ ");
+        }
+    }
+
+    /// <summary>
+    ///     Translates the method <see cref="string.Contains(string)" />.
+    /// </summary>
+    /// <param name="writer">The query string writer to append the translated method to.</param>
+    /// <param name="instance">The instance of the string to concat against.</param>
+    /// <param name="target">The value to check whether or not its within the instance</param>
+    [MethodName(nameof(string.Contains))]
+    public void Contains(QueryWriter writer, TranslatedParameter instance, TranslatedParameter target)
+        => writer.Function("contains", instance, target);
+
+    /// <summary>
+    ///     Translates the method <see cref="string.IndexOf(string)" />.
+    /// </summary>
+    /// <param name="writer">The query string writer to append the translated method to.</param>
+    /// <param name="instance">The instance of the string.</param>
+    /// <param name="target">The target substring to find within the instance.</param>
+    [MethodName(nameof(string.IndexOf))]
+    public void Find(QueryWriter writer, TranslatedParameter instance, TranslatedParameter target)
+        => writer.Function("find", instance, target);
+
+    /// <summary>
+    ///     Translates the method <see cref="string.ToLower()" />.
+    /// </summary>
+    /// <param name="writer">The query string writer to append the translated method to.</param>
+    /// <param name="instance">The instance of the string.</param>
+    /// <returns>The EdgeQL equivalent of the method.</returns>
+    [MethodName(nameof(string.ToLower))]
+    [MethodName(nameof(string.ToLowerInvariant))]
+    public void ToLower(QueryWriter writer, TranslatedParameter instance)
+        => writer.Function("str_lower", instance);
+
+    /// <summary>
+    ///     Translates the method <see cref="string.ToUpper()" />.
+    /// </summary>
+    /// <param name="writer">The query string writer to append the translated method to.</param>
+    /// <param name="instance">The instance of the string.</param>
+    /// <returns>The EdgeQL equivalent of the method.</returns>
+    [MethodName(nameof(string.ToUpper))]
+    [MethodName(nameof(string.ToUpperInvariant))]
+    public void ToUpper(QueryWriter writer, TranslatedParameter instance)
+        => writer.Function("str_upper", instance);
+
+    /// <summary>
+    ///     Translates the method <see cref="string.PadLeft(int)" />.
+    /// </summary>
+    /// <param name="writer">The query string writer to append the translated method to.</param>
+    /// <param name="instance">The instance of the string.</param>
+    /// <param name="amount">The amount to pad left</param>
+    /// <param name="fill">The fill character to pad with</param>
+    /// <returns>The EdgeQL equivalent of the method.</returns>
+    [MethodName(nameof(string.PadLeft))]
+    public void PadLeft(QueryWriter writer, TranslatedParameter instance, TranslatedParameter amount,
+        TranslatedParameter? fill)
+        => writer.Function(
+            "str_pad_start",
+            instance,
+            amount,
+            OptionalArg(fill)
+        );
+
+    /// <summary>
+    ///     Translates the method <see cref="string.PadRight(int)" />.
+    /// </summary>
+    /// <param name="writer">The query string writer to append the translated method to.</param>
+    /// <param name="instance">The instance of the string.</param>
+    /// <param name="amount">The amount to pad left</param>
+    /// <param name="fill">The fill character to pad with</param>
+    /// <returns>The EdgeQL equivalent of the method.</returns>
+    [MethodName(nameof(string.PadRight))]
+    public void PadRight(QueryWriter writer, TranslatedParameter instance, TranslatedParameter amount,
+        TranslatedParameter? fill)
+        => writer.Function("str_pad_end", instance, amount, OptionalArg(fill));
+
+    /// <summary>
+    ///     Translates the method <see cref="string.Trim()" />.
+    /// </summary>
+    /// <param name="writer">The query string writer to append the translated method to.</param>
+    /// <param name="instance">The instance of the string.</param>
+    /// <param name="trimChars">The characters to trim.</param>
+    /// <returns>The EdgeQL equivalent of the method.</returns>
+    [MethodName(nameof(string.Trim))]
+    public void Trim(QueryWriter writer, TranslatedParameter instance,
+        params TranslatedParameter[]? trimChars)
+    {
+        if (trimChars is not null && trimChars.Any())
+        {
+            writer
+                .Function(
+                    "str_trim",
+                    instance,
+                    Token.Of(writer => writer
+                        .SingleQuoted(Token.Of(writer =>
+                        {
+                            foreach (var trimChar in trimChars)
+                                writer.Append(trimChar);
+                        }))
+                    )
+                );
+            return;
+        }
+
+        writer.Function("str_trim", instance);
+    }
+
+    /// <summary>
+    ///     Translates the method <see cref="string.TrimStart()" />.
+    /// </summary>
+    /// <param name="writer">The query string writer to append the translated method to.</param>
+    /// <param name="instance">The instance of the string.</param>
+    /// <param name="trimChars">The characters to trim.</param>
+    /// <returns>The EdgeQL equivalent of the method.</returns>
+    [MethodName(nameof(string.TrimStart))]
+    public void TrimStart(QueryWriter writer, TranslatedParameter instance,
+        params TranslatedParameter[]? trimChars)
+    {
+        if (trimChars != null && trimChars.Any())
+        {
+            writer
+                .Function(
+                    "str_trim_start",
+                    instance,
+                    Token.Of(writer => writer
+                        .SingleQuoted(Token.Of(writer =>
+                        {
+                            foreach (var trimChar in trimChars)
+                                writer.Append(trimChar);
+                        }))
+                    )
+                );
+            return;
+        }
+
+        writer.Function("str_trim_start", instance);
+    }
+
+    /// <summary>
+    ///     Translates the method <see cref="string.TrimEnd()" />.
+    /// </summary>
+    /// <param name="writer">The query string writer to append the translated method to.</param>
+    /// <param name="instance">The instance of the string.</param>
+    /// <param name="trimChars">The characters to trim.</param>
+    /// <returns>The EdgeQL equivalent of the method.</returns>
+    [MethodName(nameof(string.TrimEnd))]
+    public void TrimEnd(QueryWriter writer, TranslatedParameter instance,
+        params TranslatedParameter[]? trimChars)
+    {
+        if (trimChars != null && trimChars.Any())
+        {
+            writer
+                .Function(
+                    "str_trim_end",
+                    instance,
+                    Token.Of(writer => writer
+                        .SingleQuoted(Token.Of(writer =>
+                        {
+                            foreach (var trimChar in trimChars)
+                                writer.Append(trimChar);
+                        }))
+                    )
+                );
+            return;
+        }
+
+        writer.Function("str_trim_end", instance);
+    }
+
+    /// <summary>
+    ///     Translates the method <see cref="string.Replace(char, char)" />.
+    /// </summary>
+    /// <param name="writer">The query string writer to append the translated method to.</param>
+    /// <param name="instance">The instance of the string.</param>
+    /// <param name="old">The old string to replace.</param>
+    /// <param name="newStr">The new string to replace the old one.</param>
+    /// <returns>The EdgeQL equivalent of the method.</returns>
+    [MethodName(nameof(string.Replace))]
+    public void Replace(QueryWriter writer, TranslatedParameter instance, TranslatedParameter old,
+        TranslatedParameter newStr)
+        => writer.Function("str_replace", instance, old, newStr);
+
+    /// <summary>
+    ///     Translates the method <see cref="string.Split(char[])" />.
+    /// </summary>
+    /// <param name="writer">The query string writer to append the translated method to.</param>
+    /// <param name="instance">The instance of the string.</param>
+    /// <param name="separator">The char to split by.</param>
+    /// <returns>The EdgeQL equivalent of the method.</returns>
+    [MethodName(nameof(string.Split))]
+    public void Split(QueryWriter writer, TranslatedParameter instance, TranslatedParameter separator)
+        => writer.Function("str_split", instance, separator);
+
+    [MethodName(nameof(string.StartsWith))]
+    public void StartsWith(QueryWriter writer, TranslatedParameter instance, TranslatedParameter condition) =>
+        // multiple ways to do this, which one is more efficient?
+        // - len(condition) <= len(instance) and instance[:len(condition)] = condition
+        // - re_test('^' ++ condition, instance)
+        // - find(instance, condition) == 0
+        writer.Term(
+            TermType.BinaryOp,
+            "starts_with_check",
+            Defer.This(() => ""),
+            new BinaryOpMetadata(ExpressionType.Equal),
+            Token.Of(writer => writer.Function(
+                "find",
+                instance,
+                condition
+            )),
+            " = 0"
+        );
+
+    [MethodName(nameof(string.EndsWith))]
+    public void EndsWith(QueryWriter writer, TranslatedParameter instance, TranslatedParameter condition)
+    {
+        // - len(condition) <= len(instance) and instance[-len(condition):] = condition
+        Token[]? conditionCompiled = null;
+        Token[]? instanceCompiled = null;
+
+        var conditionValue = Token.Of(writer => writer
+            .AppendSpanned(
+                ref conditionCompiled,
+                writer => writer.Span(writer => writer
+                    .Append(condition)
+                )
+            )
+        );
+
+        var instanceValue = Token.Of(writer => writer
+            .AppendSpanned(
+                ref instanceCompiled,
+                writer => writer.Span(writer => writer
+                    .Append(instance)
+                )
+            )
+        );
+
+        writer.Term(
+            TermType.BinaryOp,
+            "ends_with_check",
+            Defer.This(() => ""),
+            metadata: null,
+            Token.Of(writer => writer
+                .Function(
+                    "len",
+                    Defer.This(() => "Length check for instance on ends with"),
+                    metadata: null,
+                    instanceValue
+                )
+            ),
+            " >= ",
+            Token.Of(writer => writer
+                .Function(
+                    "len",
+                    Defer.This(() => "Length check for condition on ends with"),
+                    metadata: null,
+                    conditionValue
+                )
+            ),
+            " and ",
+            instanceValue,
+            Token.Of(writer => writer.Wrapped(
+                Token.Of(writer => writer
+                    .Append('-')
+                    .Function(
+                        "len",
+                        Defer.This(() => "length call for ends with final check"),
+                        metadata: null,
+                        conditionValue
+                    )
+                    .Append(':')
+                ),
+                "[]"
+            )),
+            " = ",
+            conditionValue
+        );
+    }
+}

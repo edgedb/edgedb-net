@@ -1,0 +1,35 @@
+using System.Linq.Expressions;
+using System.Reflection;
+
+namespace EdgeDB.Translators.Expressions;
+
+/// <summary>
+///     Represents a translator for translating an expression with a constructor call.
+/// </summary>
+internal class NewExpressionTranslator : ExpressionTranslator<NewExpression>
+{
+    /// <inheritdoc />
+    public override void Translate(NewExpression expression, ExpressionContext context, QueryWriter writer)
+    {
+        var map = new Dictionary<PropertyInfo, EdgeDBPropertyInfo>(
+            EdgeDBPropertyMapInfo.Create(expression.Type).Properties
+                .Select(x => new KeyValuePair<PropertyInfo, EdgeDBPropertyInfo>(x.PropertyInfo, x)));
+
+        List<(EdgeDBPropertyInfo, Expression)> expressions = new();
+
+        for (var i = 0; i != expression.Members!.Count; i++)
+        {
+            var binding = expression.Members[i];
+            var value = expression.Arguments[i];
+
+            if (binding is not PropertyInfo propInfo || !map.TryGetValue(propInfo, out var edgedbPropInfo))
+                continue;
+
+            expressions.Add((edgedbPropInfo, value));
+        }
+
+        InitializationTranslator.Translate(
+            expressions, context, writer
+        );
+    }
+}

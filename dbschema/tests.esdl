@@ -20,4 +20,18 @@ module tests {
     r: cal::date_duration;
     s: bytes;
   }
+
+  type Person {
+    name: str;
+    age: int32;
+    email: str;
+    best_friend: Person;
+    multi friends: Person;
+  }
+
+  type Club {
+    name: str;
+    multi members: Person;
+    multi admins: Person;
+  }
 }

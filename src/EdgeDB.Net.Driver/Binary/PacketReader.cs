@@ -49,6 +49,9 @@ internal unsafe ref struct PacketReader
         _limit = Data.Length;
     }
 
+    public PacketReader CreateSubReader()
+        => new(Data, Position);
+
     private void VerifyInLimits(int sz)
     {
         if (Position + sz > _limit)

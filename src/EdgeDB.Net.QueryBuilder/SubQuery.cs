@@ -1,0 +1,85 @@
+﻿using EdgeDB.Schema;
+using System.Diagnostics.CodeAnalysis;
+
+namespace EdgeDB;
+
+/// <summary>
+///     Represents a generic subquery.
+/// </summary>
+internal class SubQuery
+{
+    /// <summary>
+    ///     Constructs a new <see cref="SubQuery" />.
+    /// </summary>
+    /// <param name="builder">The builder callback to build this <see cref="SubQuery" />.</param>
+    public SubQuery(SubQueryBuilder builder)
+    {
+        RequiresIntrospection = true;
+        Builder = builder;
+    }
+
+    /// <summary>
+    ///     Constructs a new <see cref="SubQuery" />.
+    /// </summary>
+    /// <param name="writer">The <see cref="WriterProxy" /> containing the sub query.</param>
+    public SubQuery(WriterProxy writer)
+    {
+        Query = writer;
+        RequiresIntrospection = false;
+    }
+
+    /// <summary>
+    ///     Gets the query string for this subquery.
+    /// </summary>
+    /// <remarks>
+    ///     This property is null when <see cref="RequiresIntrospection" /> is <see langword="true" />.
+    /// </remarks>
+    public WriterProxy? Query { get; init; }
+
+    /// <summary>
+    ///     Gets whether or not this query requires introspection to generate.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(Builder))]
+    [MemberNotNullWhen(false, nameof(Query))]
+    public bool RequiresIntrospection { get; init; }
+
+    /// <summary>
+    ///     Gets the builder for this subquery.
+    /// </summary>
+    private SubQueryBuilder? Builder { get; init; }
+
+    /// <summary>
+    ///     Builds this <see cref="SubQuery" /> using the provided introspection.
+    /// </summary>
+    /// <param name="info">The introspection info to build this <see cref="SubQuery" />.</param>
+    /// <param name="writer">The builder to append the compiled sub query to.</param>
+    /// <returns>
+    ///     A <see cref="SubQuery" /> representing the built form of this query.
+    /// </returns>
+    public void Build(QueryWriter writer, SchemaInfo? info = null)
+    {
+        if (info is null && RequiresIntrospection)
+            throw new NullReferenceException("Required introspection info, but it was null");
+
+        writer.Term(
+            TermType.SubQuery,
+            "sub_query",
+            Token.Of(writer =>
+            {
+                if (RequiresIntrospection)
+                {
+                    Builder(info!, writer);
+                }
+                else
+                {
+                    writer.Append(Query);
+                }
+            })
+        );
+    }
+
+    /// <summary>
+    ///     Represents a function used to compile a sub query.
+    /// </summary>
+    internal delegate void SubQueryBuilder(SchemaInfo schema, QueryWriter result);
+}
