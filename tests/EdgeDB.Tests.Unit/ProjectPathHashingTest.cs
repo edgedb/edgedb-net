@@ -90,6 +90,9 @@ public class ProjectPathHashingTest
         public bool DirectoryExists(string dir)
             => _dirs.Any(x => x == dir || x.StartsWith(dir));
 
+        public DirectoryInfo? DirectoryGetParent(string dir)
+            => Directory.GetParent(dir);
+
         public string GetFullPath(string path)
             => path;
 

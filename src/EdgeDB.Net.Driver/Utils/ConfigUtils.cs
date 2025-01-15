@@ -74,7 +74,7 @@ internal static class ConfigUtils
 
         while (true)
         {
-            var target = Path.Combine(dir!, "edgedb.toml");
+            var target = platform.CombinePaths(dir!, "edgedb.toml");
 
             if (platform.FileExists(target))
             {
@@ -83,7 +83,7 @@ internal static class ConfigUtils
             }
 
 
-            var parent = Directory.GetParent(dir!);
+            var parent = platform.DirectoryGetParent(dir!);
 
             if (parent is null || !parent.Exists)
                 break;
@@ -102,10 +102,10 @@ internal static class ConfigUtils
 
         database = null;
 
-        if (!Directory.Exists(stashDir))
+        if (!platform.DirectoryExists(stashDir))
             return false;
 
-        var databasePath = Path.Combine(stashDir, "database");
+        var databasePath = platform.CombinePaths(stashDir, "database");
 
         if (platform.FileExists(databasePath))
         {
@@ -118,13 +118,15 @@ internal static class ConfigUtils
 
     public static bool TryResolveInstanceCloudProfile(out string? profile, out string? linkedInstanceName, ISystemProvider? platform)
     {
+        platform ??= DefaultPlatformProvider;
+
         profile = null;
         linkedInstanceName = null;
 
         if (!TryResolveInstanceTOML(out var toml, platform))
             return false;
 
-        var stashDir = GetInstanceProjectDirectory(Directory.GetParent(toml)!.FullName!, platform);
+        var stashDir = GetInstanceProjectDirectory(platform.DirectoryGetParent(toml)!.FullName!, platform);
 
         return TryResolveInstanceCloudProfile(stashDir, out profile, out linkedInstanceName, platform);
     }
@@ -137,17 +139,17 @@ internal static class ConfigUtils
         profile = null;
         linkedInstanceName = null;
 
-        if (!Directory.Exists(stashDir))
+        if (!platform.DirectoryExists(stashDir))
             return false;
 
-        var cloudProfilePath = Path.Combine(stashDir, "cloud-profile");
+        var cloudProfilePath = platform.CombinePaths(stashDir, "cloud-profile");
 
         if (platform.FileExists(cloudProfilePath))
         {
             profile = platform.FileReadAllText(cloudProfilePath);
         }
 
-        var linkedInstancePath = Path.Combine(stashDir, "instance-name");
+        var linkedInstancePath = platform.CombinePaths(stashDir, "instance-name");
 
         if (platform.FileExists(linkedInstancePath))
         {

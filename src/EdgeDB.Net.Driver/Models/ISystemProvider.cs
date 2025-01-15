@@ -10,6 +10,7 @@ internal interface ISystemProvider
     string CombinePaths(params string[] paths);
     string GetFullPath(string path);
     bool DirectoryExists(string dir);
+    DirectoryInfo? DirectoryGetParent(string dir);
     bool IsRooted(string path);
     string? GetEnvVariable(string name);
     bool FileExists(string path);
@@ -23,6 +24,9 @@ internal sealed class DefaultSystemProvider : ISystemProvider
 
     public bool DirectoryExists(string dir)
         => Directory.Exists(dir);
+
+    public DirectoryInfo? DirectoryGetParent(string dir)
+        => Directory.GetParent(dir);
 
     public string CombinePaths(params string[] paths)
         => Path.Combine(paths);

@@ -512,14 +512,14 @@ public sealed class EdgeDBConnection
         if (!platform.FileExists(path))
             throw new FileNotFoundException("Couldn't find the specified project file", path);
 
-        path = Path.GetFullPath(path);
+        path = platform.GetFullPath(path);
 
         // get the folder name
-        var dirName = Directory.GetParent(path)!.FullName;
+        var dirName = platform.DirectoryGetParent(path)!.FullName;
 
         var projectDir = ConfigUtils.GetInstanceProjectDirectory(dirName, platform);
 
-        if (!Directory.Exists(projectDir))
+        if (!platform.DirectoryExists(projectDir))
             throw new DirectoryNotFoundException($"Couldn't find project directory for {path}: {projectDir}");
 
         if (!ConfigUtils.TryResolveInstanceCloudProfile(projectDir, out var profile, out var inst, platform) || inst is null)
@@ -558,7 +558,7 @@ public sealed class EdgeDBConnection
 
         if (Regex.IsMatch(name, @"^\w(-?\w)*$"))
         {
-            var configPath = Path.Combine(ConfigUtils.GetCredentialsDir(platform), $"{name}.json");
+            var configPath = platform.CombinePaths(ConfigUtils.GetCredentialsDir(platform), $"{name}.json");
 
             return !platform.FileExists(configPath)
                 ? throw new FileNotFoundException($"Config file couldn't be found at {configPath}")
@@ -594,10 +594,10 @@ public sealed class EdgeDBConnection
 
         while (true)
         {
-            if (platform.FileExists(Path.Combine(dir!, "edgedb.toml")))
-                return _FromProjectFile(Path.Combine(dir!, "edgedb.toml"), platform);
+            if (platform.FileExists(platform.CombinePaths(dir!, "edgedb.toml")))
+                return _FromProjectFile(platform.CombinePaths(dir!, "edgedb.toml"), platform);
 
-            var parent = Directory.GetParent(dir!);
+            var parent = platform.DirectoryGetParent(dir!);
 
             if (parent is null || !parent.Exists)
                 throw new FileNotFoundException("Couldn't resolve edgedb.toml file");
