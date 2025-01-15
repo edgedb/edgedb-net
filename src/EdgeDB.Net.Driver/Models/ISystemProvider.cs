@@ -17,38 +17,42 @@ internal interface ISystemProvider
     string FileReadAllText(string path);
 }
 
-internal sealed class DefaultSystemProvider : ISystemProvider
+internal class BaseDefaultSystemProvider : ISystemProvider
 {
-    public char DirectorySeparatorChar
+    public virtual char DirectorySeparatorChar
         => Path.DirectorySeparatorChar;
 
-    public bool DirectoryExists(string dir)
+    public virtual bool DirectoryExists(string dir)
         => Directory.Exists(dir);
 
-    public DirectoryInfo? DirectoryGetParent(string dir)
+    public virtual DirectoryInfo? DirectoryGetParent(string dir)
         => Directory.GetParent(dir);
 
-    public string CombinePaths(params string[] paths)
+    public virtual string CombinePaths(params string[] paths)
         => Path.Combine(paths);
 
-    public string GetFullPath(string path)
+    public virtual string GetFullPath(string path)
         => Path.GetFullPath(path);
 
-    public string GetHomeDir()
+    public virtual string GetHomeDir()
         => Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
-    public bool IsOSPlatform(OSPlatform platform)
+    public virtual bool IsOSPlatform(OSPlatform platform)
         => RuntimeInformation.IsOSPlatform(platform);
 
-    public bool IsRooted(string path)
+    public virtual bool IsRooted(string path)
         => Path.IsPathRooted(path);
 
-    public string? GetEnvVariable(string name)
+    public virtual string? GetEnvVariable(string name)
         => Environment.GetEnvironmentVariable(name);
 
-    public bool FileExists(string path)
+    public virtual bool FileExists(string path)
         => File.Exists(path);
 
-    public string FileReadAllText(string path)
+    public virtual string FileReadAllText(string path)
         => File.ReadAllText(path);
+}
+
+internal sealed class DefaultSystemProvider : BaseDefaultSystemProvider
+{
 }
