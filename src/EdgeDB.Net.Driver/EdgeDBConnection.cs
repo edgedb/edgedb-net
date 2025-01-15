@@ -1,3 +1,4 @@
+using EdgeDB.Abstractions;
 using EdgeDB.Utils;
 using Newtonsoft.Json;
 using System.Collections;
@@ -494,6 +495,11 @@ public sealed class EdgeDBConnection
     /// <exception cref="DirectoryNotFoundException">The project directory doesn't exist for the supplied toml file.</exception>
     public static EdgeDBConnection FromProjectFile(string path)
     {
+        return _FromProjectFile(path, null);
+    }
+
+    internal static EdgeDBConnection _FromProjectFile(string path, ISystemProvider? platform)
+    {
         if (!File.Exists(path))
             throw new FileNotFoundException("Couldn't find the specified project file", path);
 
@@ -502,7 +508,7 @@ public sealed class EdgeDBConnection
         // get the folder name
         var dirName = Directory.GetParent(path)!.FullName;
 
-        var projectDir = ConfigUtils.GetInstanceProjectDirectory(dirName);
+        var projectDir = ConfigUtils.GetInstanceProjectDirectory(dirName, platform);
 
         if (!Directory.Exists(projectDir))
             throw new DirectoryNotFoundException($"Couldn't find project directory for {path}: {projectDir}");
@@ -534,9 +540,14 @@ public sealed class EdgeDBConnection
     /// <exception cref="ConfigurationException">The configuration is invalid.</exception>
     public static EdgeDBConnection FromInstanceName(string name, string? cloudProfile = null)
     {
+        return _FromInstanceName(name, cloudProfile, null);
+    }
+
+    internal static EdgeDBConnection _FromInstanceName(string name, string? cloudProfile, ISystemProvider? platform)
+    {
         if (Regex.IsMatch(name, @"^\w(-?\w)*$"))
         {
-            var configPath = Path.Combine(ConfigUtils.GetCredentialsDir(), $"{name}.json");
+            var configPath = Path.Combine(ConfigUtils.GetCredentialsDir(platform), $"{name}.json");
 
             return !File.Exists(configPath)
                 ? throw new FileNotFoundException($"Config file couldn't be found at {configPath}")
@@ -546,7 +557,7 @@ public sealed class EdgeDBConnection
         if (Regex.IsMatch(name, @"^([A-Za-z0-9](-?[A-Za-z0-9])*)\/([A-Za-z0-9](-?[A-Za-z0-9])*)$"))
         {
             var conn = new EdgeDBConnection();
-            conn.ParseCloudInstanceName(name, cloudProfile);
+            conn.ParseCloudInstanceName(name, cloudProfile, platform);
             return conn;
         }
 
@@ -679,7 +690,7 @@ public sealed class EdgeDBConnection
         throw new ConfigurationException($"invalid duration {originalText}");
     }
 
-    private void ParseCloudInstanceName(string name, string? cloudProfile = null)
+    private void ParseCloudInstanceName(string name, string? cloudProfile, ISystemProvider? platform)
     {
         if (name.Length > DOMAIN_NAME_MAX_LEN)
         {
@@ -690,7 +701,7 @@ public sealed class EdgeDBConnection
 
         if (secretKey is null)
         {
-            var profile = ConfigUtils.ReadCloudProfile(cloudProfile ?? CloudProfile);
+            var profile = ConfigUtils.ReadCloudProfile(cloudProfile ?? CloudProfile, platform);
 
             if (profile.SecretKey is null)
             {
@@ -752,6 +763,12 @@ public sealed class EdgeDBConnection
     /// <exception cref="FileNotFoundException">A configuration file could not be found.</exception>
     public static EdgeDBConnection Parse(string? instance = null, string? dsn = null,
         Action<EdgeDBConnection>? configure = null, bool autoResolve = true)
+    {
+        return _Parse(instance, dsn, configure, autoResolve, null);
+    }
+
+    internal static EdgeDBConnection _Parse(string? instance, string? dsn,
+        Action<EdgeDBConnection>? configure, bool autoResolve, ISystemProvider? platform)
     {
         EdgeDBConnection? connection = null;
 
@@ -895,7 +912,7 @@ public sealed class EdgeDBConnection
             {
                 // cloud
                 connection ??= new EdgeDBConnection();
-                connection.ParseCloudInstanceName(dsn);
+                connection.ParseCloudInstanceName(dsn, null, platform);
             }
             else
             {
