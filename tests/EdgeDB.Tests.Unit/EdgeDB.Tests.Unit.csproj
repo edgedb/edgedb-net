@@ -20,4 +20,10 @@
     <ProjectReference Include="..\..\src\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="shared-client-testcases\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>
