@@ -64,7 +64,11 @@ internal static class ConfigUtils
         => (platform ?? DefaultPlatformProvider).CombinePaths(GetEdgeDBConfigDir(platform), "credentials");
 
     public static bool TryResolveInstanceTOML([NotNullWhen(true)] out string? tomlPath, ISystemProvider? platform)
-        => TryResolveInstanceTOML(Environment.CurrentDirectory, out tomlPath, platform);
+    {
+        platform ??= DefaultPlatformProvider;
+
+        return TryResolveInstanceTOML(platform.GetCurrentDirectory(), out tomlPath, platform);
+    }
 
     public static bool TryResolveInstanceTOML(string cdir, [NotNullWhen(true)] out string? tomlPath, ISystemProvider? platform)
     {

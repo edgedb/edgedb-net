@@ -95,6 +95,9 @@ public class ProjectPathHashingTest
         public string GetHomeDir()
             => _home;
 
+        public virtual string GetCurrentDirectory()
+            => Environment.CurrentDirectory;
+
         public bool IsOSPlatform(OSPlatform platform)
             => platform.Equals(_platform);
 

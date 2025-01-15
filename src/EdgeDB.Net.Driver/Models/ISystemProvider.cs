@@ -8,6 +8,7 @@ internal interface ISystemProvider
 {
     char DirectorySeparatorChar { get; }
     string GetHomeDir();
+    string GetCurrentDirectory();
     bool IsOSPlatform(OSPlatform platform);
     string CombinePaths(params string[] paths);
     string GetFullPath(string path);
@@ -69,6 +70,9 @@ internal class BaseDefaultSystemProvider : ISystemProvider
 
     public virtual string GetHomeDir()
         => Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+    public virtual string GetCurrentDirectory()
+        => Environment.CurrentDirectory;
 
     public virtual bool IsOSPlatform(OSPlatform platform)
         => RuntimeInformation.IsOSPlatform(platform);

@@ -590,7 +590,7 @@ public sealed class EdgeDBConnection
     {
         platform ??= ConfigUtils.DefaultPlatformProvider;
 
-        var dir = Environment.CurrentDirectory;
+        var dir = platform.GetCurrentDirectory();
 
         while (true)
         {
