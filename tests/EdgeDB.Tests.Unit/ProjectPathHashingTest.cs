@@ -108,5 +108,11 @@ public class ProjectPathHashingTest
             => _env.TryGetValue(name, out var val)
                 ? val
                 : null;
+
+        public bool FileExists(string path)
+            => File.Exists(path);
+
+        public string FileReadAllText(string path)
+            => File.ReadAllText(path);
     }
 }

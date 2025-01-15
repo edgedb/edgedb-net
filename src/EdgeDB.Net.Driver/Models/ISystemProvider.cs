@@ -12,6 +12,8 @@ internal interface ISystemProvider
     bool DirectoryExists(string dir);
     bool IsRooted(string path);
     string? GetEnvVariable(string name);
+    bool FileExists(string path);
+    string FileReadAllText(string path);
 }
 
 internal sealed class DefaultSystemProvider : ISystemProvider
@@ -39,4 +41,10 @@ internal sealed class DefaultSystemProvider : ISystemProvider
 
     public string? GetEnvVariable(string name)
         => Environment.GetEnvironmentVariable(name);
+
+    public bool FileExists(string path)
+        => File.Exists(path);
+
+    public string FileReadAllText(string path)
+        => File.ReadAllText(path);
 }
