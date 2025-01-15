@@ -1,6 +1,8 @@
+using EdgeDB.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace EdgeDB.Tests.Unit;
 
@@ -188,31 +190,13 @@ public class ConnectionTests
     {
         try
         {
-            // set envs
-            if (envVars is not null)
-            {
-                foreach (var env in envVars)
-                {
-                    Environment.SetEnvironmentVariable(env.Key, env.Value);
-                }
-            }
+            MockSystemProvider mockSystem = new(envVars ?? new());
 
-            return EdgeDBConnection.Parse(dsn: dsn, configure: configure, autoResolve: false);
+            return EdgeDBConnection._Parse(instance: null, dsn: dsn, configure: configure, autoResolve: false, platform: mockSystem);
         }
         catch (Exception x)
         {
             return x;
-        }
-        finally
-        {
-            // clear env variables
-            if (envVars is not null)
-            {
-                foreach (var env in envVars)
-                {
-                    Environment.SetEnvironmentVariable(env.Key, null);
-                }
-            }
         }
     }
 
@@ -223,6 +207,21 @@ public class ConnectionTests
 
         public static implicit operator Result(EdgeDBConnection c) => new() {Connection = c};
         public static implicit operator Result(Exception x) => new() {Exception = x};
+    }
+
+    private class MockSystemProvider : BaseDefaultSystemProvider
+    {
+        private readonly Dictionary<string, string> _envVars;
+
+        public MockSystemProvider(Dictionary<string, string> envVars)
+        {
+            _envVars = envVars;
+        }
+
+        public override string? GetEnvVariable(string name)
+            => _envVars.TryGetValue(name, out var val)
+                ? val
+                : null;
     }
 
     #endregion

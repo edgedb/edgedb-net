@@ -3,6 +3,7 @@ using EdgeDB.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -54,12 +55,7 @@ public class ProjectPathHashingTest
         var mockSystem = new MockSystemProvider(platform, homeDir,
             new Dictionary<string, string> {{"XDG_CONFIG_HOME", xdgconf!}}, projectDir, xdgconf ?? "/", expectedResult);
 
-        if (xdgconf is not null)
-            Environment.SetEnvironmentVariable("XDG_CONFIG_HOME", xdgconf);
-
         var result = ConfigUtils.GetInstanceProjectDirectory(projectDir, mockSystem);
-
-        Environment.SetEnvironmentVariable("XDG_CONFIG_HOME", null);
 
         Assert.AreEqual(expectedResult, result);
     }

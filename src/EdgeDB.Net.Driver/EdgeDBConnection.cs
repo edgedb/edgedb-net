@@ -479,7 +479,7 @@ public sealed class EdgeDBConnection
             }
             else if (envMatch.Success)
             {
-                var val = Environment.GetEnvironmentVariable(arg.Value, EnvironmentVariableTarget.Process);
+                var val = platform.GetEnvVariable(arg.Value);
 
                 if (val == null)
                     throw new KeyNotFoundException($"Environment variable \"{arg.Value}\" couldn't be found");
@@ -808,45 +808,34 @@ public sealed class EdgeDBConnection
 
         #region Env
 
-
-        Dictionary<string, string> env = new();
-        foreach (DictionaryEntry oldEnvVar in Environment.GetEnvironmentVariables())
-        {
-            object? value = oldEnvVar.Value;
-            if (value is not null)
-            {
-                env[(string)oldEnvVar.Key] = (string)value;
-            }
-        }
-
         var envName = string.Empty;
         var envVar = string.Empty;
 
-        if (GetEnvVariable(env, CLOUD_PROFILE_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(CLOUD_PROFILE_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
             connection.CloudProfile = envVar;
         }
 
-        if (GetEnvVariable(env, SECRET_KEY_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(SECRET_KEY_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
             connection.SecretKey = envVar;
         }
 
-        if (GetEnvVariable(env, INSTANCE_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(INSTANCE_ENV_NAME, out envName, out envVar))
         {
             var fromInst = _FromInstanceName(envVar, null, platform);
             connection = connection?.MergeInto(fromInst) ?? fromInst;
         }
 
-        if (GetEnvVariable(env, DSN_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(DSN_ENV_NAME, out envName, out envVar))
         {
             var fromDSN = _FromDSN(envVar, platform);
             connection = connection?.MergeInto(fromDSN) ?? fromDSN;
         }
 
-        if (GetEnvVariable(env, HOST_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(HOST_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
             try
@@ -866,7 +855,7 @@ public sealed class EdgeDBConnection
             }
         }
 
-        if (GetEnvVariable(env, PORT_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(PORT_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
 
@@ -877,7 +866,7 @@ public sealed class EdgeDBConnection
             connection.Port = port;
         }
 
-        if (GetEnvVariable(env, CREDENTIALS_FILE_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(CREDENTIALS_FILE_ENV_NAME, out envName, out envVar))
         {
             // check if file exists
             var path = envVar;
@@ -889,30 +878,30 @@ public sealed class EdgeDBConnection
             connection = connection?.MergeInto(credentials) ?? credentials;
         }
 
-        if (GetEnvVariable(env, USER_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(USER_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
             connection.Username = envVar;
         }
 
-        if (GetEnvVariable(env, PASSWORD_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(PASSWORD_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
             connection.Password = envVar;
         }
 
-        if (GetEnvVariable(env, DATABASE_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(DATABASE_ENV_NAME, out envName, out envVar))
         {
             var altName = string.Empty;
             var altVal = string.Empty;
-            if (GetEnvVariable(env, BRANCH_ENV_NAME, out altName, out altVal))
+            if (platform.GetGelEnvVariable(BRANCH_ENV_NAME, out altName, out altVal))
                 throw new ArgumentException($"{envName} conflicts with {altName}");
 
             connection ??= new EdgeDBConnection();
             connection.Database = envVar;
         }
 
-        if (GetEnvVariable(env, BRANCH_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(BRANCH_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
             connection.Branch = envVar;
@@ -955,37 +944,6 @@ public sealed class EdgeDBConnection
         }
 
         return connection ?? new EdgeDBConnection();
-    }
-
-    private static bool GetEnvVariable(IReadOnlyDictionary<string, string> env, string key, out string name, out string value)
-    {
-        string edgedbKey = $"EDGEDB_{key}";
-        string? edgedbVal = env.ContainsKey(edgedbKey) ? env[edgedbKey] : null;
-        string gelKey = $"GEL_{key}";
-        string? gelVal = env.ContainsKey(gelKey) ? env[gelKey] : null;
-        if (edgedbVal is not null && gelVal is not null)
-        {
-            Console.WriteLine($"Both GEL_{key} and EDGEDB_{key} are set; EDGEDB_{key} will be ignored");
-        }
-
-        if (gelVal is not null)
-        {
-            name = gelKey;
-            value = gelVal;
-            return true;
-        }
-        else if (edgedbVal is not null)
-        {
-            name = edgedbKey;
-            value = edgedbVal;
-            return true;
-        }
-        else
-        {
-            name = string.Empty;
-            value = string.Empty;
-            return false;
-        }
     }
 
     #endregion

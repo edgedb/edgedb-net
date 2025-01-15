@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 
 namespace EdgeDB.Abstractions;
@@ -15,6 +17,37 @@ internal interface ISystemProvider
     string? GetEnvVariable(string name);
     bool FileExists(string path);
     string FileReadAllText(string path);
+
+    public virtual bool GetGelEnvVariable(string key, out string name, out string value)
+    {
+        string edgedbKey = $"EDGEDB_{key}";
+        string? edgedbVal = GetEnvVariable(edgedbKey);
+        string gelKey = $"GEL_{key}";
+        string? gelVal = GetEnvVariable(gelKey);
+        if (edgedbVal is not null && gelVal is not null)
+        {
+            Console.WriteLine($"Both GEL_{key} and EDGEDB_{key} are set; EDGEDB_{key} will be ignored");
+        }
+
+        if (gelVal is not null)
+        {
+            name = gelKey;
+            value = gelVal;
+            return true;
+        }
+        else if (edgedbVal is not null)
+        {
+            name = edgedbKey;
+            value = edgedbVal;
+            return true;
+        }
+        else
+        {
+            name = string.Empty;
+            value = string.Empty;
+            return false;
+        }
+    }
 }
 
 internal class BaseDefaultSystemProvider : ISystemProvider
