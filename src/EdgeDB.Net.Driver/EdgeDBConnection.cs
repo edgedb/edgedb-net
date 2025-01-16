@@ -1,5 +1,6 @@
 using EdgeDB.Utils;
 using Newtonsoft.Json;
+using System.Collections;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -13,17 +14,17 @@ namespace EdgeDB;
 /// </summary>
 public sealed class EdgeDBConnection
 {
-    private const string EDGEDB_INSTANCE_ENV_NAME = "EDGEDB_INSTANCE";
-    private const string EDGEDB_DSN_ENV_NAME = "EDGEDB_DSN";
-    private const string EDGEDB_CREDENTIALS_FILE_ENV_NAME = "EDGEDB_CREDENTIALS_FILE";
-    private const string EDGEDB_USER_ENV_NAME = "EDGEDB_USER";
-    private const string EDGEDB_PASSWORD_ENV_NAME = "EDGEDB_PASSWORD";
-    private const string EDGEDB_DATABASE_ENV_NAME = "EDGEDB_DATABASE";
-    private const string EDGEDB_BRANCH_ENV_NAME = "EDGEDB_BRANCH";
-    private const string EDGEDB_HOST_ENV_NAME = "EDGEDB_HOST";
-    private const string EDGEDB_PORT_ENV_NAME = "EDGEDB_PORT";
-    private const string EDGEDB_CLOUD_PROFILE_ENV_NAME = "EDGEDB_CLOUD_PROFILE";
-    private const string EDGEDB_SECRET_KEY_ENV_NAME = "EDGEDB_SECRET_KEY";
+    private const string INSTANCE_ENV_NAME = "INSTANCE";
+    private const string DSN_ENV_NAME = "DSN";
+    private const string CREDENTIALS_FILE_ENV_NAME = "CREDENTIALS_FILE";
+    private const string USER_ENV_NAME = "USER";
+    private const string PASSWORD_ENV_NAME = "PASSWORD";
+    private const string DATABASE_ENV_NAME = "DATABASE";
+    private const string BRANCH_ENV_NAME = "BRANCH";
+    private const string HOST_ENV_NAME = "HOST";
+    private const string PORT_ENV_NAME = "PORT";
+    private const string CLOUD_PROFILE_ENV_NAME = "CLOUD_PROFILE";
+    private const string SECRET_KEY_ENV_NAME = "SECRET_KEY";
     private const int DOMAIN_NAME_MAX_LEN = 62;
 
     private EdgeDBConnection MergeInto(EdgeDBConnection other)
@@ -658,38 +659,50 @@ public sealed class EdgeDBConnection
 
         #region Env
 
-        var env = Environment.GetEnvironmentVariables();
 
-        if (env.Contains(EDGEDB_CLOUD_PROFILE_ENV_NAME))
+        Dictionary<string, string> env = new();
+        foreach (DictionaryEntry oldEnvVar in Environment.GetEnvironmentVariables())
         {
-            connection ??= new EdgeDBConnection();
-            connection.CloudProfile = (string)env[EDGEDB_CLOUD_PROFILE_ENV_NAME]!;
+            object? value = oldEnvVar.Value;
+            if (value is not null)
+            {
+                env[(string)oldEnvVar.Key] = (string)value;
+            }
         }
 
-        if (env.Contains(EDGEDB_SECRET_KEY_ENV_NAME))
+        var envName = string.Empty;
+        var envVar = string.Empty;
+
+        if (GetEnvVariable(env, CLOUD_PROFILE_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
-            connection.SecretKey = (string)env[EDGEDB_SECRET_KEY_ENV_NAME]!;
+            connection.CloudProfile = envVar;
         }
 
-        if (env.Contains(EDGEDB_INSTANCE_ENV_NAME))
+        if (GetEnvVariable(env, SECRET_KEY_ENV_NAME, out envName, out envVar))
         {
-            var fromInst = FromInstanceName((string)env[EDGEDB_INSTANCE_ENV_NAME]!);
+            connection ??= new EdgeDBConnection();
+            connection.SecretKey = envVar;
+        }
+
+        if (GetEnvVariable(env, INSTANCE_ENV_NAME, out envName, out envVar))
+        {
+            var fromInst = FromInstanceName(envVar);
             connection = connection?.MergeInto(fromInst) ?? fromInst;
         }
 
-        if (env.Contains(EDGEDB_DSN_ENV_NAME))
+        if (GetEnvVariable(env, DSN_ENV_NAME, out envName, out envVar))
         {
-            var fromDSN = FromDSN((string)env[EDGEDB_INSTANCE_ENV_NAME]!);
+            var fromDSN = FromDSN(envVar);
             connection = connection?.MergeInto(fromDSN) ?? fromDSN;
         }
 
-        if (env.Contains(EDGEDB_HOST_ENV_NAME))
+        if (GetEnvVariable(env, HOST_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
             try
             {
-                connection.Hostname = (string)env[EDGEDB_HOST_ENV_NAME]!;
+                connection.Hostname = envVar;
             }
             catch (ConfigurationException x)
             {
@@ -697,61 +710,63 @@ public sealed class EdgeDBConnection
                 {
                     case "DSN cannot contain more than one host":
                         throw new ConfigurationException(
-                            "Enviroment variable 'EDGEDB_HOST' cannot contain more than one host", x);
+                            $"Enviroment variable '{envName}' cannot contain more than one host", x);
                     default:
                         throw;
                 }
             }
         }
 
-        if (env.Contains(EDGEDB_PORT_ENV_NAME))
+        if (GetEnvVariable(env, PORT_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
 
-            if (!int.TryParse((string)env[EDGEDB_PORT_ENV_NAME]!, out var port))
+            if (!int.TryParse(envVar, out var port))
                 throw new ConfigurationException(
-                    $"Expected integer for environment variable '{EDGEDB_PORT_ENV_NAME}' but got '{env[EDGEDB_PORT_ENV_NAME]}'");
+                    $"Expected integer for environment variable '{envName}' but got '{envVar}'");
 
             connection.Port = port;
         }
 
-        if (env.Contains(EDGEDB_CREDENTIALS_FILE_ENV_NAME))
+        if (GetEnvVariable(env, CREDENTIALS_FILE_ENV_NAME, out envName, out envVar))
         {
             // check if file exists
-            var path = (string)env[EDGEDB_CREDENTIALS_FILE_ENV_NAME]!;
+            var path = envVar;
             if (!File.Exists(path))
                 throw new FileNotFoundException(
-                    $"Could not find the file specified in '{EDGEDB_CREDENTIALS_FILE_ENV_NAME}'");
+                    $"Could not find the file specified in '{envName}'");
 
             var credentials = JsonConvert.DeserializeObject<EdgeDBConnection>(File.ReadAllText(path))!;
             connection = connection?.MergeInto(credentials) ?? credentials;
         }
 
-        if (env.Contains(EDGEDB_USER_ENV_NAME))
+        if (GetEnvVariable(env, USER_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
-            connection.Username = (string)env[EDGEDB_USER_ENV_NAME]!;
+            connection.Username = envVar;
         }
 
-        if (env.Contains(EDGEDB_PASSWORD_ENV_NAME))
+        if (GetEnvVariable(env, PASSWORD_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
-            connection.Password = (string)env[EDGEDB_PASSWORD_ENV_NAME]!;
+            connection.Password = envVar;
         }
 
-        if (env.Contains(EDGEDB_DATABASE_ENV_NAME))
+        if (GetEnvVariable(env, DATABASE_ENV_NAME, out envName, out envVar))
         {
-            if (env.Contains(EDGEDB_BRANCH_ENV_NAME))
-                throw new ArgumentException($"{EDGEDB_DATABASE_ENV_NAME} conflicts with {EDGEDB_BRANCH_ENV_NAME}");
+            var altName = string.Empty;
+            var altVal = string.Empty;
+            if (GetEnvVariable(env, BRANCH_ENV_NAME, out altName, out altVal))
+                throw new ArgumentException($"{envName} conflicts with {altName}");
 
             connection ??= new EdgeDBConnection();
-            connection.Database = (string)env[EDGEDB_DATABASE_ENV_NAME]!;
+            connection.Database = envVar;
         }
 
-        if (env.Contains(EDGEDB_BRANCH_ENV_NAME))
+        if (GetEnvVariable(env, BRANCH_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
-            connection.Branch = (string)env[EDGEDB_BRANCH_ENV_NAME]!;
+            connection.Branch = envVar;
         }
 
         #endregion
@@ -791,6 +806,37 @@ public sealed class EdgeDBConnection
         }
 
         return connection ?? new EdgeDBConnection();
+    }
+
+    private static bool GetEnvVariable(IReadOnlyDictionary<string, string> env, string key, out string name, out string value)
+    {
+        string edgedbKey = $"EDGEDB_{key}";
+        string? edgedbVal = env.ContainsKey(edgedbKey) ? env[edgedbKey] : null;
+        string gelKey = $"GEL_{key}";
+        string? gelVal = env.ContainsKey(gelKey) ? env[gelKey] : null;
+        if (edgedbVal is not null && gelVal is not null)
+        {
+            Console.WriteLine($"Both GEL_{key} and EDGEDB_{key} are set; EDGEDB_{key} will be ignored");
+        }
+
+        if (gelVal is not null)
+        {
+            name = gelKey;
+            value = gelVal;
+            return true;
+        }
+        else if (edgedbVal is not null)
+        {
+            name = edgedbKey;
+            value = edgedbVal;
+            return true;
+        }
+        else
+        {
+            name = string.Empty;
+            value = string.Empty;
+            return false;
+        }
     }
 
     #endregion
