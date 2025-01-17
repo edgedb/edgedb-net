@@ -116,5 +116,8 @@ public class ProjectPathHashingTest
 
         public string FileReadAllText(string path)
             => File.ReadAllText(path);
+
+        public virtual void WriteWarning(string message)
+            => Console.WriteLine(message);
     }
 }

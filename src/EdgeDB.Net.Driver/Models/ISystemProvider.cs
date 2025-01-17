@@ -18,6 +18,7 @@ internal interface ISystemProvider
     string? GetEnvVariable(string name);
     bool FileExists(string path);
     string FileReadAllText(string path);
+    void WriteWarning(string message);
 
     public virtual bool GetGelEnvVariable(string key, out string name, out string value)
     {
@@ -27,7 +28,7 @@ internal interface ISystemProvider
         string? gelVal = GetEnvVariable(gelKey);
         if (edgedbVal is not null && gelVal is not null)
         {
-            Console.WriteLine($"Both GEL_{key} and EDGEDB_{key} are set; EDGEDB_{key} will be ignored");
+            WriteWarning($"Both GEL_{key} and EDGEDB_{key} are set; EDGEDB_{key} will be ignored");
         }
 
         if (gelVal is not null)
@@ -88,6 +89,9 @@ internal class BaseDefaultSystemProvider : ISystemProvider
 
     public virtual string FileReadAllText(string path)
         => File.ReadAllText(path);
+
+    public virtual void WriteWarning(string message)
+        => Console.WriteLine(message);
 }
 
 internal sealed class DefaultSystemProvider : BaseDefaultSystemProvider
