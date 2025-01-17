@@ -99,12 +99,6 @@ public class EdgeDBConfig
     public uint MaxConnectionRetries { get; set; } = 5;
 
     /// <summary>
-    ///     Gets or sets the number of miliseconds a client will wait for a connection to be
-    ///     established with the server.
-    /// </summary>
-    public uint ConnectionTimeout { get; set; } = 5000;
-
-    /// <summary>
     ///     Gets or sets the max amount of miliseconds a client will wait for an expected message.
     /// </summary>
     public uint MessageTimeout { get; set; } = 15000;
