@@ -30,13 +30,24 @@ public sealed class EdgeDBConnection
 
     private EdgeDBConnection MergeInto(EdgeDBConnection other)
     {
-        other._tlsSecurity ??= _tlsSecurity;
-        other._database ??= _database;
         other._hostname ??= _hostname;
-        other.Password ??= Password;
-        other.TLSCertificateAuthority ??= TLSCertificateAuthority;
         other._port ??= _port;
+        if (other._branch is null && other._database is null)
+        {
+            if (_branch is not null)
+            {
+                other._branch = _branch;
+            }
+            else if (_database is not null)
+            {
+                other._database = _database;
+            }
+        }
+        other.Password ??= Password;
         other._user ??= _user;
+        other._password ??= _password;
+        other.TLSCertificateAuthority ??= TLSCertificateAuthority;
+        other._tlsSecurity ??= _tlsSecurity;
         return other;
     }
 
@@ -87,45 +98,15 @@ public sealed class EdgeDBConnection
     #region Main connection args
 
     /// <summary>
-    ///     Gets or sets the username used to connect to the database.
-    /// </summary>
-    /// <remarks>
-    ///     This property defaults to edgedb
-    /// </remarks>
-    [JsonProperty("user")]
-    public string Username
-    {
-        get => _user ?? "edgedb";
-        set => _user = value;
-    }
-
-    /// <summary>
-    ///     Gets or sets the password to connect to the database.
-    /// </summary>
-    [JsonProperty("password")]
-    public string? Password { get; set; }
-
-    /// <summary>
     ///     Gets or sets the hostname of the edgedb instance to connect to.
     /// </summary>
     /// <remarks>
-    ///     This property defaults to 127.0.0.1.
+    ///     This property defaults to localhost.
     /// </remarks>
     public string Hostname
     {
-        get => _hostname ?? "127.0.0.1";
-        set
-        {
-            if (value.Contains('/'))
-            {
-                throw new ConfigurationException("Cannot use UNIX socket for 'Hostname'");
-            }
-
-            if (value.Contains(','))
-                throw new ConfigurationException("DSN cannot contain more than one host");
-
-            _hostname = value;
-        }
+        get => _hostname ?? "localhost";
+        set => _hostname = value;
     }
 
     /// <summary>
@@ -151,18 +132,25 @@ public sealed class EdgeDBConnection
     [JsonProperty("database")]
     public string? Database
     {
-        get => _database ?? _branch ?? "edgedb";
+        get => _database ?? _branch ?? _defaultDatabase;
         set
         {
             if (_branch is not null)
             {
-                throw new InvalidOperationException(
-                    "Cannot set database: database conflicts with already provided branch");
+                _branch = null;
             }
 
-            _database = value;
+            if (value == _defaultDatabase)
+            {
+                _database = null;
+            }
+            else
+            {
+                _database = value;
+            }
         }
     }
+    private static readonly string _defaultDatabase = "edgedb";
 
     /// <summary>
     ///     Gets or sets the branch name to use when connecting.
@@ -174,30 +162,52 @@ public sealed class EdgeDBConnection
     [JsonProperty("branch")]
     public string? Branch
     {
-        get => _database ?? _branch ?? "__default__";
+        get => _database ?? _branch ?? _defaultBranch;
         set
         {
             if (_database is not null)
             {
-                throw new InvalidOperationException(
-                    "Cannot set branch: branch conflicts with already provided database");
+                _database = null;
             }
 
-            _branch = value;
+            if (value == _defaultBranch)
+            {
+                _branch = null;
+            }
+            else
+            {
+                _branch = value;
+            }
         }
+    }
+    private static readonly string _defaultBranch = "__default__";
+
+    /// <summary>
+    ///     Gets or sets the username used to connect to the database.
+    /// </summary>
+    /// <remarks>
+    ///     This property defaults to edgedb
+    /// </remarks>
+    [JsonProperty("user")]
+    public string Username
+    {
+        get => _user ?? "edgedb";
+        set => _user = value;
     }
 
     /// <summary>
-    ///     Gets or sets the TLS certificate data used to very the certificate when authenticating.
+    ///     Gets or sets the password to connect to the database.
     /// </summary>
-    /// <remarks>
-    ///     This value is a legacy value pre 1.0 and should not be set explicity, use <see cref="TLSCertificateAuthority" />
-    ///     instead.
-    /// </remarks>
-    [JsonProperty("tls_cert_data")]
-    [Obsolete(
-        "his value is a legacy value pre 1.0 and should not be set explicity, use TLSCertificateAuthority instead.")]
-    public string? TLSCertData { get; set; }
+    [JsonProperty("password")]
+    public string? Password {
+        get => _password ?? "";
+        set => _password = value;
+    }
+
+    /// <summary>
+    ///     Gets or sets the secret key used to authenticate with cloud instances.
+    /// </summary>
+    public string? SecretKey { get; set; }
 
     /// <summary>
     ///     Gets or sets the TLS Certificate Authority.
@@ -219,16 +229,24 @@ public sealed class EdgeDBConnection
     }
 
     /// <summary>
+    ///     Gets or sets the TLS server name to be used.
+    /// </summary>
+    /// <remarks>
+    ///     Overrides the value provided by Hostname.
+    /// </remarks>
+    [JsonProperty("tls_server_name")]
+    public string? TLSServerName { get; set; }
+
+    /// <summary>
     ///     Gets or sets the number of miliseconds a client will wait for a connection to be
     ///     established with the server.
     /// </summary>
     [JsonProperty("wait_until_available")]
-    public int Timeout { get; set; } = 30000;
-
-    /// <summary>
-    ///     Gets or sets the secret key used to authenticate with cloud instances.
-    /// </summary>
-    public string? SecretKey { get; set; }
+    public int WaitUntilAvailable
+    {
+        get => _waitUntilAvailable ?? 30000;
+        set => _waitUntilAvailable = value;
+    }
 
     /// <summary>
     ///     Gets or sets the name of the cloud profile to use to resolve the <see cref="SecretKey" />.
@@ -238,7 +256,7 @@ public sealed class EdgeDBConnection
     /// </remarks>
     public string CloudProfile
     {
-        get => _cloudProfile ?? "default";
+        get => _cloudProfile ?? _defaultCloudProfile;
         set
         {
             if (value is null)
@@ -249,18 +267,29 @@ public sealed class EdgeDBConnection
             _cloudProfile = value;
         }
     }
+    private static readonly string _defaultCloudProfile = "default";
+
+    /// <summary>
+    ///     Additional settings for the server connection.
+    /// </summary>
+    /// <remarks>
+    ///     This currently has no effect.
+    /// </remarks>
+    public Dictionary<string, string> ServerSettings { get; set; } = new();
 
     #endregion
 
     #region Backing fields
 
-    private string? _user;
+    private string? _hostname;
+    private int? _port;
     private string? _database;
     private string? _branch;
-    private string? _hostname;
-    private string? _cloudProfile;
-    private int? _port;
+    private string? _user;
+    private string? _password;
     private TLSSecurityMode? _tlsSecurity;
+    private int? _waitUntilAvailable;
+    private string? _cloudProfile;
 
     #endregion
 
@@ -417,11 +446,17 @@ public sealed class EdgeDBConnection
 
                     conn.Hostname = value;
                     break;
-                case "database" or "branch":
+                case "database":
                     if (database is not null)
                         throw new ArgumentException("Database ambiguity mismatch");
 
                     conn.Database = value;
+                    break;
+                case "branch":
+                    if (database is not null)
+                        throw new ArgumentException("Database ambiguity mismatch");
+
+                    conn.Branch = value;
                     break;
                 case "user":
                     if (username is not null)
@@ -450,7 +485,7 @@ public sealed class EdgeDBConnection
                     conn.TLSSecurity = result;
                     break;
                 case "wait_until_available":
-                    conn.Timeout = ParseWaitUntilAvailable(value);
+                    conn.WaitUntilAvailable = ParseWaitUntilAvailable(value);
                     break;
 
                 default:
@@ -461,7 +496,7 @@ public sealed class EdgeDBConnection
         if (args.Any(x => x.Key.StartsWith("branch", StringComparison.InvariantCultureIgnoreCase)) && args.Any(x =>
                 x.Key.StartsWith("database", StringComparison.InvariantCultureIgnoreCase)))
         {
-            throw new ArgumentException("branch conflicts with database");
+            throw new ArgumentException("branch and database are mutually exclusive");
         }
 
 
@@ -895,15 +930,17 @@ public sealed class EdgeDBConnection
             var altName = string.Empty;
             var altVal = string.Empty;
             if (platform.GetGelEnvVariable(BRANCH_ENV_NAME, out altName, out altVal))
-                throw new ArgumentException($"{envName} conflicts with {altName}");
+                throw new ArgumentException($"{envName} and {altName} are mutually exclusive");
 
             connection ??= new EdgeDBConnection();
+
             connection.Database = envVar;
         }
 
         if (platform.GetGelEnvVariable(BRANCH_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
+
             connection.Branch = envVar;
         }
 

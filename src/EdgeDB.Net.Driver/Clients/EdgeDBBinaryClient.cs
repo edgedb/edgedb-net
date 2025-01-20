@@ -57,7 +57,7 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
         Connection = connection;
         ServerKey = new byte[32];
         MessageTimeout = TimeSpan.FromMilliseconds(clientConfig.MessageTimeout);
-        ConnectionTimeout = TimeSpan.FromMilliseconds(connection.Timeout);
+        ConnectionTimeout = TimeSpan.FromMilliseconds(connection.WaitUntilAvailable);
         _stateDescriptorId = CodecBuilder.InvalidCodec;
         ClientConfig = clientConfig;
         _semaphore = new SemaphoreSlim(1, 1);
