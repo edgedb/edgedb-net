@@ -218,6 +218,13 @@ public sealed class EdgeDBConnection
     }
 
     /// <summary>
+    ///     Gets or sets the number of miliseconds a client will wait for a connection to be
+    ///     established with the server.
+    /// </summary>
+    [JsonProperty("wait_until_available")]
+    public uint Timeout { get; set; } = 30000;
+
+    /// <summary>
     ///     Gets or sets the secret key used to authenticate with cloud instances.
     /// </summary>
     public string? SecretKey { get; set; }

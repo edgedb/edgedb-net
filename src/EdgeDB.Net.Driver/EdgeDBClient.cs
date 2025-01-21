@@ -343,9 +343,9 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
                 {
                     token.ThrowIfCancellationRequested();
                     return _availableClients.TryPop(out result);
-                }, (int)_poolConfig.ConnectionTimeout)
+                }, (int)_connection.Timeout)
                     ? result!
-                    : throw new TimeoutException($"Couldn't find a client after {_poolConfig.ConnectionTimeout}ms");
+                    : throw new TimeoutException($"Couldn't find a client after {_connection.Timeout}ms");
 
                 client.AcceptHolder(await _poolHolder.GetPoolHandleAsync(token).ConfigureAwait(false));
                 return client.WithSession(_session);
