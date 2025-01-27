@@ -18,16 +18,19 @@ public sealed class EdgeDBConnection
     private const string INSTANCE_ENV_NAME = "INSTANCE";
     private const string DSN_ENV_NAME = "DSN";
     private const string CREDENTIALS_FILE_ENV_NAME = "CREDENTIALS_FILE";
-    private const string USER_ENV_NAME = "USER";
-    private const string PASSWORD_ENV_NAME = "PASSWORD";
-    private const string DATABASE_ENV_NAME = "DATABASE";
-    private const string BRANCH_ENV_NAME = "BRANCH";
     private const string HOST_ENV_NAME = "HOST";
     private const string PORT_ENV_NAME = "PORT";
+    private const string DATABASE_ENV_NAME = "DATABASE";
+    private const string BRANCH_ENV_NAME = "BRANCH";
+    private const string USER_ENV_NAME = "USER";
+    private const string PASSWORD_ENV_NAME = "PASSWORD";
+    private const string SECRET_KEY_ENV_NAME = "SECRET_KEY";
+    private const string TLS_CA_ENV_NAME = "TLS_CA";
     private const string CLIENT_SECURITY_ENV_NAME = "CLIENT_SECURITY";
     private const string CLIENT_TLS_SECURITY_ENV_NAME = "CLIENT_TLS_SECURITY";
+    private const string TLS_SERVER_NAME_ENV_NAME = "TLS_SERVER_NAME";
+    private const string TIMEOUT_ENV_NAME = "WAIT_UNTIL_AVAILABLE";
     private const string CLOUD_PROFILE_ENV_NAME = "CLOUD_PROFILE";
-    private const string SECRET_KEY_ENV_NAME = "SECRET_KEY";
     private const int DOMAIN_NAME_MAX_LEN = 62;
 
     private EdgeDBConnection MergeInto(EdgeDBConnection other)
@@ -297,6 +300,35 @@ public sealed class EdgeDBConnection
 
     #region Construct methods
 
+    internal class Credentials
+    {
+        [JsonProperty("host")]
+        public string? Host { get; init; }
+
+        [JsonProperty("port")]
+        [JsonConverter(typeof(AsStringConverter))]
+        public string? Port { get; init; }
+
+        [JsonProperty("database")]
+        public string? Database { get; init; }
+
+        [JsonProperty("branch")]
+        public string? Branch { get; init; }
+
+        [JsonProperty("user")]
+        public string? User { get; init; }
+
+        [JsonProperty("password")]
+        public string? Password { get; init; }
+
+        [JsonProperty("tls_ca")]
+        public string? TlsCA { get; init; }
+
+        [JsonProperty("tls_security")]
+        [JsonConverter(typeof(TLSSecurityModeParser))]
+        public TLSSecurityMode? TlsSecurity { get; init; }
+    }
+
     internal record DatabaseOrBranch
     {
         private DatabaseOrBranch(string value) { Value = value; }
@@ -343,13 +375,27 @@ public sealed class EdgeDBConnection
         }
     }
 
+    internal static bool TryGetFieldValue<T>(ResolvedField<T>? field, out T value)
+    {
+        if (field is ResolvedField<T>.Valid)
+        {
+            value = field.Value!;
+            return true;
+        }
+        else
+        {
+            value = default(T)!;
+            return false;
+        }
+    }
+
     static ResolvedField<T>? MergeField<T>(ResolvedField<T>? to, ResolvedField<T>? from)
     {
         if (to is null)
         {
             return from;
         }
-        else if (from is not null && from.Value is not null)
+        else if (from is ResolvedField<T>.Valid)
         {
             return from;
         }
@@ -460,31 +506,80 @@ public sealed class EdgeDBConnection
 
             return result;
         }
+
+        internal static ResolvedFields FromCredentials(Credentials credentials)
+        {
+            ResolvedFields result = new();
+
+            if (credentials.Host is not null) { result.Host = credentials.Host; }
+            if (credentials.Port is not null)
+            {
+                result.Port = MergeField(result.Port, ParsePort(credentials.Port));
+            }
+            if (credentials.Database is not null)
+            {
+                result.DatabaseOrBranch = new DatabaseOrBranch.DatabaseName(credentials.Database);
+            }
+            if (credentials.Branch is not null)
+            {
+                result.DatabaseOrBranch = new DatabaseOrBranch.BranchName(credentials.Branch);
+            }
+            if (credentials.User is not null) { result.User = credentials.User; }
+            if (credentials.Password is not null) { result.Password = credentials.Password; }
+            if (credentials.TlsCA is not null) { result.TLSCertificateAuthority = credentials.TlsCA; }
+            if (credentials.TlsSecurity is not null) { result.TLSSecurity = credentials.TlsSecurity; }
+
+            return result;
+        }
     }
 
     internal static EdgeDBConnection _FromResolvedFields(ResolvedFields resolvedFields, ISystemProvider? platform)
     {
         platform ??= ConfigUtils.DefaultPlatformProvider;
 
-        if (resolvedFields.Host?.Value is not null && resolvedFields.Host.Value.Contains(','))
+        if (TryGetFieldValue(resolvedFields.Host, out string host))
         {
-            throw new ConfigurationException(
-                $"Invalid host: \"{resolvedFields.Host.Value}\", DSN cannot contain more than one host");
-        }
-        if (resolvedFields.DatabaseOrBranch?.Value?.Value == "")
-        {
-            throw resolvedFields.DatabaseOrBranch.Value switch
+            if (host.Contains(','))
             {
-                DatabaseOrBranch.DatabaseName name => new ConfigurationException(
-                    $"Invalid database name: \"{name.Value}\""),
-                DatabaseOrBranch.BranchName name => new ConfigurationException(
-                    $"Invalid branch name: \"{name.Value}\""),
-                _ => new ConfigurationException("Invalid database or branch name"),
-            };
+                throw new ConfigurationException(
+                    $"Invalid host: \"{host}\", DSN cannot contain more than one host");
+            }
+            if (host == "")
+            {
+                throw new ConfigurationException($"Invalid host: \"{host}\"");
+            }
+            if (host.StartsWith("/"))
+            {
+                throw new ConfigurationException($"Invalid host: \"{host}\", unix socket paths not supported");
+            }
         }
-        if (resolvedFields.User == "")
+        if (TryGetFieldValue(resolvedFields.Port, out int port))
         {
-            throw new ConfigurationException($"Invalid user: \"{resolvedFields.User.Value}\"");
+            if (port < 1 || 65535 < port)
+            {
+                throw new ConfigurationException($"Invalid port: \"{port}\", must be between 1 and 65535");
+            }
+        }
+        if (TryGetFieldValue(resolvedFields.DatabaseOrBranch, out DatabaseOrBranch databaseOrBranch))
+        {
+            if (databaseOrBranch.Value == "")
+            {
+                throw databaseOrBranch switch
+                {
+                    DatabaseOrBranch.DatabaseName name => new ConfigurationException(
+                        $"Invalid database name: \"{name.Value}\""),
+                    DatabaseOrBranch.BranchName name => new ConfigurationException(
+                        $"Invalid branch name: \"{name.Value}\""),
+                    _ => new ConfigurationException("Invalid database or branch name"),
+                };
+            }
+        }
+        if (TryGetFieldValue(resolvedFields.User, out string user))
+        {
+            if (user == "")
+            {
+                throw new ConfigurationException($"Invalid user: \"{user}\"");
+            }
         }
 
         return new()
@@ -690,10 +785,9 @@ public sealed class EdgeDBConnection
             string key = arg.Key;
             ResolvedField<string> value = arg.Value;
 
-            if (key.EndsWith("_env"))
+            if (key.EndsWith("_env") && TryGetFieldValue(value, out string envName))
             {
                 string oldKey = key;
-                string envName = value.Value!;
                 key = key.Substring(0, key.Length - "_env".Length);
                 string? envVar = platform.GetEnvVariable(envName);
                 if (envVar is not null)
@@ -707,10 +801,9 @@ public sealed class EdgeDBConnection
                 }
             }
 
-            if (key.EndsWith("_file") && value.Value is not null)
+            if (key.EndsWith("_file") && TryGetFieldValue(value, out string fileName))
             {
                 string oldKey = key;
-                string fileName = value.Value!;
                 key = key.Substring(0, key.Length - "_file".Length);
                 if (platform.FileExists(fileName))
                 {
@@ -800,17 +893,7 @@ public sealed class EdgeDBConnection
                     });
                     break;
                 case "wait_until_available":
-                    resolvedFields.Timeout = value.Convert<int>(v =>
-                    {
-                        try
-                        {
-                            return ParseWaitUntilAvailable(v);
-                        }
-                        catch (Exception e)
-                        {
-                            return e;
-                        }
-                    });
+                    resolvedFields.Timeout = value.Convert(ParseWaitUntilAvailable);
                     break;
 
                 default:
@@ -990,7 +1073,7 @@ public sealed class EdgeDBConnection
         @"(?<time>(?:(?<=\s|^)-\s*)?\d*\.?\d*)\s*(?:us(\s|\d|\.|$)|microseconds?(?:\s|$))",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    internal static int ParseWaitUntilAvailable(string text)
+    internal static ResolvedField<int> ParseWaitUntilAvailable(string text)
     {
         string originalText = text;
 
@@ -1065,7 +1148,7 @@ public sealed class EdgeDBConnection
             }
         }
 
-        throw new ConfigurationException($"invalid duration {originalText}");
+        return new ConfigurationException($"invalid duration {originalText}");
     }
 
     private static ResolvedFields ParseCloudInstanceName(
@@ -1124,6 +1207,460 @@ public sealed class EdgeDBConnection
         };
     }
 
+    public class Options
+    {
+        public string? Instance { get; set; }
+        public string? Dsn { get; set; }
+        public string? Database { get; set; }
+        public string? Branch { get; set; }
+        public string? Host { get; set; }
+        public int? Port { get; set; }
+        public string? User { get; set; }
+        public string? Password { get; set; }
+        public string? SecretKey { get; set; }
+        public string? Credentials { get; set; }
+        public string? CredentialsFile { get; set; }
+        public string? TLSCertificateAuthority { get; set; }
+        public string? TLSCertificateAuthorityFile { get; set; }
+        public TLSSecurityMode? TLSSecurity { get; set; }
+        public string? TLSServerName { get; set; }
+        public string? WaitUntilAvailable { get; set; }
+        public Dictionary<string, string>? ServerSettings { get; set; }
+
+        public bool IsEmpty =>
+            Instance is null
+            && Dsn is null
+            && Database is null
+            && Branch is null
+            && Host is null
+            && Port is null
+            && User is null
+            && Password is null
+            && SecretKey is null
+            && Credentials is null
+            && CredentialsFile is null
+            && TLSCertificateAuthority is null
+            && TLSCertificateAuthorityFile is null
+            && TLSSecurity is null
+            && TLSServerName is null
+            && WaitUntilAvailable is null
+            && ServerSettings is null;
+    }
+
+    public static EdgeDBConnection Create(Options? options = null)
+    {
+        return _Create(options ?? new(), null);
+    }
+
+    internal static EdgeDBConnection _Create(Options options, ISystemProvider? platform)
+    {
+        platform ??= ConfigUtils.DefaultPlatformProvider;
+
+        ResolvedFields resolvedFields = new();
+
+        #region Compound Options
+
+        // First, check compound options
+        // If any compound options are present, environment variables are ignored
+
+        bool hasCompoundOptions = false;
+        {
+            // These options can set multiple fields and should be resolved first
+            // More than one compound options should raise an error
+
+            Exception compoundError = new ConfigurationException(
+                "Connection options cannot have more than one of the following "
+                + "values: \"Instance\", \"Dsn\", \"Credentials\", "
+                + "\"CredentialsFile\" or \"Host\"/\"Port\"");
+            // The compoundEnvError has priority, so hold on to any other exception
+            // until all compound options are processed.
+            Exception? deferredCompoundError = null;
+
+            if (options.Instance is not null)
+            {
+                if (hasCompoundOptions) { throw compoundError; }
+                if (options.Instance == "")
+                {
+                    try
+                    {
+                        var fromDSN = _FromInstanceName(options.Instance, null, platform);
+                        resolvedFields.MergeFrom(fromDSN);
+                    }
+                    catch (Exception e)
+                    {
+                        deferredCompoundError = e;
+                    }
+                }
+                else
+                {
+                    deferredCompoundError = new ConfigurationException(
+                        $"Invalid instance name: \"{options.Instance}\"");
+                }
+                hasCompoundOptions = true;
+            }
+
+            if (options.Dsn is not null)
+            {
+                if (hasCompoundOptions) { throw compoundError; }
+                var fromDSN = _FromDSN(options.Dsn, platform);
+                resolvedFields.MergeFrom(fromDSN);
+                hasCompoundOptions = true;
+            }
+
+            {
+                string? credentialsText = null;
+                if (options.Credentials is not null)
+                {
+                    if (hasCompoundOptions) { throw compoundError; }
+                    credentialsText = options.Credentials;
+                    hasCompoundOptions = true;
+                }
+                if (options.CredentialsFile is not null)
+                {
+                    if (hasCompoundOptions) { throw compoundError; }
+                    if (platform.FileExists(options.CredentialsFile))
+                    {
+                        credentialsText = platform.FileReadAllText(options.CredentialsFile) ?? "{}";
+                    }
+                    else
+                    {
+                        deferredCompoundError = new ConfigurationException(
+                            $"Invalid CredentialsFile: \"{options.CredentialsFile}\", could not find file");
+                    }
+                    hasCompoundOptions = true;
+                }
+                if (credentialsText is not null)
+                {
+                    try
+                    {
+                        Credentials? credentials = new JsonSerializer().DeserializeObject<Credentials>(credentialsText);
+                        if (credentials is not null)
+                        {
+                            resolvedFields.MergeFrom(ResolvedFields.FromCredentials(credentials));
+                        }
+                    }
+                    catch (JsonException)
+                    {
+                        deferredCompoundError = new ConfigurationException("Invalid Credentials: could not parse json");
+                    }
+                }
+            }
+
+            {
+                bool hasHostOrPort = false;
+                if (options.Host is not null)
+                {
+                    if (hasCompoundOptions) { throw compoundError; }
+                    resolvedFields.Host = options.Host;
+                    hasHostOrPort = true;
+                }
+                if (options.Port is not null)
+                {
+                    if (hasCompoundOptions) { throw compoundError; }
+                    resolvedFields.Port = options.Port;
+                    hasHostOrPort = true;
+                }
+                if (hasHostOrPort)
+                {
+                    hasCompoundOptions = true;
+                }
+            }
+
+            if (deferredCompoundError is not null)
+            {
+                throw deferredCompoundError;
+            }
+        }
+
+        #endregion
+
+        #region Compound Env
+
+        var envName = string.Empty;
+        var envVar = string.Empty;
+
+        bool hasCompoundEnv = false;
+
+        if (!hasCompoundOptions)
+        {
+            // These env vars can set multiple fields and should be resolved first
+            // More than one compound env var should raise an error
+
+            Exception compoundError = new ConfigurationException(
+                "Cannot have more than one of the following connection "
+                + "environment variables: \"GEL_DSN\", \"GEL_INSTANCE\", "
+                + "\"GEL_CREDENTIALS_FILE\" or \"GEL_HOST\"/\"GEL_PORT\"");
+            // The compoundError has priority, so hold on to any other exception
+            // until all compound env vars are processed.
+            Exception? deferredCompoundError = null;
+
+            if (platform.GetGelEnvVariable(INSTANCE_ENV_NAME, out envName, out envVar))
+            {
+                if (hasCompoundEnv) { throw compoundError; }
+                try
+                {
+                    var fromInst = _FromInstanceName(envVar, null, platform);
+                    resolvedFields.MergeFrom(fromInst);
+                }
+                catch (Exception e)
+                {
+                    deferredCompoundError = e;
+                }
+                hasCompoundEnv = true;
+            }
+
+            if (platform.GetGelEnvVariable(DSN_ENV_NAME, out envName, out envVar))
+            {
+                if (hasCompoundEnv) { throw compoundError; }
+                var fromDSN = _FromDSN(envVar, platform);
+                resolvedFields.MergeFrom(fromDSN);
+                hasCompoundEnv = true;
+            }
+
+            if (platform.GetGelEnvVariable(CREDENTIALS_FILE_ENV_NAME, out envName, out envVar))
+            {
+                if (hasCompoundEnv) { throw compoundError; }
+                if (platform.FileExists(envVar))
+                {
+                    var credentials = JsonConvert.DeserializeObject<EdgeDBConnection>(platform.FileReadAllText(envVar))!;
+                    resolvedFields.MergeFrom(ResolvedFields.FromConnection(credentials));
+                }
+                else
+                {
+                    deferredCompoundError = new FileNotFoundException(
+                        $"Invalid credential file from {envName}: \"{envVar}\", could not find file");
+                }
+                hasCompoundEnv = true;
+            }
+
+            {
+                bool hasHostOrPort = false;
+                if (platform.GetGelEnvVariable(HOST_ENV_NAME, out envName, out envVar))
+                {
+                    if (hasCompoundEnv) { throw compoundError; }
+                    resolvedFields.Host = envVar;
+                    hasHostOrPort = true;
+                }
+                if (platform.GetGelEnvVariable(PORT_ENV_NAME, out envName, out envVar))
+                {
+                    ResolvedField<int>? port = ParsePort(envVar);
+                    if (port is not null)
+                    {
+                        if (hasCompoundEnv) { throw compoundError; }
+                        resolvedFields.Port = MergeField(resolvedFields.Port, port);
+                        hasHostOrPort = true;
+                    }
+                }
+                if (hasHostOrPort)
+                {
+                    hasCompoundEnv = true;
+                }
+            }
+
+            if (deferredCompoundError is not null)
+            {
+                throw deferredCompoundError;
+            }
+        }
+
+        #endregion
+
+        #region Toml File
+
+        if (!hasCompoundOptions && !hasCompoundEnv)
+        {
+            ResolvedFields? fromToml = _ResolveEdgeDBTOML(platform);
+            if (fromToml is not null)
+            {
+                resolvedFields.MergeFrom(fromToml);
+            }
+        }
+
+        #endregion
+
+        #region Other Env
+
+        if (!hasCompoundOptions)
+        {
+            if (platform.GetGelEnvVariable(DATABASE_ENV_NAME, out envName, out envVar))
+            {
+                var altName = string.Empty;
+                var altVal = string.Empty;
+                if (platform.GetGelEnvVariable(BRANCH_ENV_NAME, out altName, out altVal))
+                {
+                    throw new ConfigurationException(
+                        $"Environment variables {envName} and {altName} are mutually exclusive");
+                }
+
+                resolvedFields.DatabaseOrBranch = new DatabaseOrBranch.DatabaseName(envVar);
+            }
+
+            if (platform.GetGelEnvVariable(BRANCH_ENV_NAME, out envName, out envVar))
+            {
+                resolvedFields.DatabaseOrBranch = new DatabaseOrBranch.BranchName(envVar);
+            }
+
+            if (platform.GetGelEnvVariable(USER_ENV_NAME, out envName, out envVar))
+            {
+                resolvedFields.User = envVar;
+            }
+
+            if (platform.GetGelEnvVariable(PASSWORD_ENV_NAME, out envName, out envVar))
+            {
+                resolvedFields.Password = envVar;
+            }
+
+            if (platform.GetGelEnvVariable(TLS_CA_ENV_NAME, out envName, out envVar))
+            {
+                resolvedFields.TLSCertificateAuthority = envVar;
+            }
+
+            {
+                string clientSecurityEnvName;
+                string clientTlsSecurityEnvName;
+                TLSSecurityMode? clientSecurity = null;
+                TLSSecurityMode? clientTlsSecurity = null;
+                bool hasDefault = false;
+                if (platform.GetGelEnvVariable(CLIENT_SECURITY_ENV_NAME, out clientSecurityEnvName, out envVar))
+                {
+                    if (TLSSecurityModeParser.TryParse(envVar, true, out clientSecurity))
+                    {
+                        if (clientSecurity is not null)
+                        {
+                            resolvedFields.TLSSecurity = clientSecurity;
+                        }
+                        else
+                        {
+                            hasDefault = true;
+                        }
+                    }
+                    else
+                    {
+                        resolvedFields.TLSSecurity = new ConfigurationException(
+                            $"Invalid TLS Security from {clientSecurityEnvName}: \"{envVar}\"");
+                    }
+                }
+                if (platform.GetGelEnvVariable(CLIENT_TLS_SECURITY_ENV_NAME, out clientTlsSecurityEnvName, out envVar))
+                {
+                    if (TLSSecurityModeParser.TryParse(envVar, true, out clientTlsSecurity))
+                    {
+                        if (clientTlsSecurity is null)
+                        {
+                            hasDefault = true;
+                        }
+                        else if (clientSecurity is null)
+                        {
+                            // overwrite default value
+                            resolvedFields.TLSSecurity = clientTlsSecurity.Value;
+                        }
+                        else if (clientSecurity == TLSSecurityMode.Strict
+                            && clientTlsSecurity != TLSSecurityMode.Strict)
+                        {
+                            throw new ConfigurationException(
+                                $"{clientSecurityEnvName}=strict but {clientTlsSecurityEnvName}={envVar}. "
+                                + $"{clientTlsSecurityEnvName} must be strict when {clientSecurityEnvName} "
+                                + $"is strict"
+                            );
+                        }
+                        else
+                        {
+                            // overwrite existing value
+                            resolvedFields.TLSSecurity = clientTlsSecurity.Value;
+                        }
+                    }
+                    else
+                    {
+                        resolvedFields.TLSSecurity = new ConfigurationException(
+                            $"Invalid TLS Security from {clientTlsSecurityEnvName}: \"{envVar}\"");
+                    }
+                }
+                if (hasDefault)
+                {
+                    // finally, apply default value if no non-default value or error present
+                    resolvedFields.TLSSecurity ??= TLSSecurityMode.Default;
+                }
+            }
+
+            if (platform.GetGelEnvVariable(TLS_SERVER_NAME_ENV_NAME, out envName, out envVar))
+            {
+                resolvedFields.TLSServerName = envVar;
+            }
+
+            if (platform.GetGelEnvVariable(TIMEOUT_ENV_NAME, out envName, out envVar))
+            {
+                resolvedFields.Timeout = ParseWaitUntilAvailable(envVar);
+            }
+        }
+
+        #endregion
+
+        #region Other Options
+
+        // Finally, check non-compound options
+        // Non-compound options should override environment variables
+
+        // Validate options
+
+        if (options.Database is not null && options.Branch is not null)
+        {
+            throw new ConfigurationException("Invalid options: Database and Branch are mutually exclusive.");
+        }
+
+        // Resolve other options
+
+        if (options.Database is not null)
+        {
+            resolvedFields.DatabaseOrBranch = new DatabaseOrBranch.DatabaseName(options.Database);
+        }
+        else if (options.Branch is not null)
+        {
+            resolvedFields.DatabaseOrBranch = new DatabaseOrBranch.BranchName(options.Branch);
+        }
+        if (options.User is not null) { resolvedFields.User = options.User; }
+        if (options.Password is not null) { resolvedFields.Password = options.Password; }
+        if (options.SecretKey is not null) { resolvedFields.SecretKey = options.SecretKey; }
+        if (options.TLSCertificateAuthority is not null)
+        {
+            resolvedFields.TLSCertificateAuthority = options.TLSCertificateAuthority;
+        }
+        if (options.TLSCertificateAuthorityFile is not null)
+        {
+            if (platform.FileExists(options.TLSCertificateAuthorityFile))
+            {
+                resolvedFields.TLSCertificateAuthority =
+                    platform.FileReadAllText(options.TLSCertificateAuthorityFile);
+            }
+            else
+            {
+                throw new ConfigurationException(
+                    $"Invalid TLSCertificateAuthorityFile: \"{options.TLSCertificateAuthorityFile}\", could not find file");
+            }
+        }
+        if (options.TLSSecurity is not null) { resolvedFields.TLSSecurity = options.TLSSecurity; }
+        if (options.TLSServerName is not null) { resolvedFields.TLSServerName = options.TLSServerName; }
+        if (options.WaitUntilAvailable is not null)
+        {
+            resolvedFields.Timeout = MergeField(resolvedFields.Timeout, ParseWaitUntilAvailable(options.WaitUntilAvailable));
+        }
+        if (options.ServerSettings is not null)
+        {
+            foreach (KeyValuePair<string,string> entry in options.ServerSettings)
+            {
+                resolvedFields.ServerSettings = AddServerSettingField(
+                    resolvedFields.ServerSettings, entry.Key, entry.Value);
+            }
+        }
+
+        #endregion
+
+        if (options.IsEmpty && resolvedFields.IsEmpty)
+        {
+            throw new ConfigurationException("No `gel.toml` found and no connection options specified.");
+        }
+
+        return _FromResolvedFields(resolvedFields, platform);
+    }
+
     /// <summary>
     ///     Parses the provided arguments to build an <see cref="EdgeDBConnection" /> class; Parse logic follows
     ///     the
@@ -1165,7 +1702,7 @@ public sealed class EdgeDBConnection
             }
         }
 
-        #region Env
+        #region Old Env
 
         var envName = string.Empty;
         var envVar = string.Empty;

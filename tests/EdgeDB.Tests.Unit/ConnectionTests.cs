@@ -357,8 +357,9 @@ public class ConnectionTests
     [DataRow("\t1s\t", 1)]
     public void TestValidWaitUntilAvailable(string input, double expectedSeconds)
     {
-        int actualMilliseconds = EdgeDBConnection.ParseWaitUntilAvailable(input);
-        Assert.IsTrue(Math.Abs(actualMilliseconds * 0.001 - expectedSeconds) < 0.0005);
+        EdgeDBConnection.ResolvedField<int> actualMilliseconds = EdgeDBConnection.ParseWaitUntilAvailable(input);
+        Assert.IsNotNull(actualMilliseconds.Value);
+        Assert.IsTrue(Math.Abs(actualMilliseconds.Value * 0.001 - expectedSeconds) < 0.0005);
     }
 
     [TestMethod]
@@ -400,11 +401,8 @@ public class ConnectionTests
     [DataRow("s")]
     public void TestInvalidWaitUntilAvailable(string input)
     {
-        void TryParse()
-        {
-            EdgeDBConnection.ParseWaitUntilAvailable(input);
-        }
-        Assert.ThrowsException<ConfigurationException>(TryParse);
+        EdgeDBConnection.ResolvedField<int> actualMilliseconds = EdgeDBConnection.ParseWaitUntilAvailable(input);
+        Assert.IsNotNull(actualMilliseconds.Error);
     }
 
     #endregion
