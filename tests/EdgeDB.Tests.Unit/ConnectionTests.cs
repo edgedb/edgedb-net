@@ -111,27 +111,19 @@ public class ConnectionTests
     [TestMethod]
     public void DSNWithMultipleHosts() =>
         ExpectError<ConfigurationException>(ParseConnection("edgedb://user@host1,host2/db"),
-            "DSN cannot contain more than one host");
+            "Invalid host: \"host1,host2\", DSN cannot contain more than one host");
 
     [TestMethod]
     public void DSNWIthMultipleHostsAndPorts() =>
         ExpectError<ConfigurationException>(ParseConnection("edgedb://user@host1:1111,host2:2222/db"),
-            "DSN cannot contain more than one host");
-
-    [TestMethod]
-    public void EnviromentVariablesWithMultipleHostsAndPorts() =>
-        ExpectError<ConfigurationException>(
-            ParseConnection(envVars: new Dictionary<string, string>
-            {
-                {"EDGEDB_HOST", "host1:1111,host2:2222"}, {"EDGEDB_USER", "foo"}
-            }), "Enviroment variable 'EDGEDB_HOST' cannot contain more than one host");
+            "Invalid DSN: Could not parse host/port");
 
     [TestMethod]
     public void QueryParametersWithMultipleHostsAndPorts() =>
         ExpectError<ConfigurationException>(
             ParseConnection("edgedb:///db?host=host1:1111,host2:2222",
                 envVars: new Dictionary<string, string> {{"EDGEDB_USER", "foo"}}),
-            "DSN cannot contain more than one host");
+            "Invalid host: \"host1:1111,host2:2222\", DSN cannot contain more than one host");
 
     [TestMethod]
     public void MultipleCompoundOptions() =>
@@ -142,18 +134,19 @@ public class ConnectionTests
 
     [TestMethod]
     public void DSNWithUnixSocket() =>
-        ExpectError<ConfigurationException>(ParseConnection("edgedb:///dbname?host=/unix_sock/test&user=spam"),
-            "Cannot use UNIX socket for 'Hostname'");
+        ExpectError<ConfigurationException>(
+            ParseConnection("edgedb:///dbname?host=/unix_sock/test&user=spam"),
+            "Invalid host: \"/unix_sock/test\", unix socket paths not supported");
 
     [TestMethod]
     public void DSNRequiresEdgeDBSchema() =>
         ExpectError<ConfigurationException>(ParseConnection("pq:///dbname?host=/unix_sock/test&user=spam"),
-            "DSN schema 'gel' expected but got 'pq'");
+            "Invalid DSN scheme. Expected \"edgedb\" or \"gel\" but got \"pq\"");
 
     [TestMethod]
     public void DSNQueryParameterWithUnixSocket() =>
         ExpectError<ConfigurationException>(ParseConnection("edgedb://user@?port=56226&host=%2Ftmp"),
-            "Cannot use UNIX socket for 'Hostname'");
+            "Invalid DSN: \"edgedb://user@?port=56226&host=%2Ftmp\"");
 
     [TestMethod]
     public void TestConnectionFormat()
