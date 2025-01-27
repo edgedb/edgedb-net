@@ -24,6 +24,8 @@ public sealed class EdgeDBConnection
     private const string BRANCH_ENV_NAME = "BRANCH";
     private const string HOST_ENV_NAME = "HOST";
     private const string PORT_ENV_NAME = "PORT";
+    private const string CLIENT_SECURITY_ENV_NAME = "CLIENT_SECURITY";
+    private const string CLIENT_TLS_SECURITY_ENV_NAME = "CLIENT_TLS_SECURITY";
     private const string CLOUD_PROFILE_ENV_NAME = "CLOUD_PROFILE";
     private const string SECRET_KEY_ENV_NAME = "SECRET_KEY";
     private const int DOMAIN_NAME_MAX_LEN = 62;
@@ -479,10 +481,7 @@ public sealed class EdgeDBConnection
                 }
                     break;
                 case "tls_security":
-                    if (!Enum.TryParse<TLSSecurityMode>(value, true, out var result))
-                        throw new FormatException($"\"{result}\" must be a value of TLSSecurityMode");
-
-                    conn.TLSSecurity = result;
+                    conn.TLSSecurity = TLSSecurityModeParser.Parse(value);
                     break;
                 case "wait_until_available":
                     conn.Timeout = ParseWaitUntilAvailable(value);
@@ -942,6 +941,64 @@ public sealed class EdgeDBConnection
             connection ??= new EdgeDBConnection();
 
             connection.Branch = envVar;
+        }
+
+        {
+            string clientSecurityEnvName;
+            string clientTlsSecurityEnvName;
+            TLSSecurityMode? clientSecurity = null;
+            TLSSecurityMode? clientTlsSecurity = null;
+            if (platform.GetGelEnvVariable(CLIENT_SECURITY_ENV_NAME, out clientSecurityEnvName, out envVar))
+            {
+                connection ??= new EdgeDBConnection();
+
+                clientSecurity = TLSSecurityModeParser.Parse(envVar);
+                if (clientSecurity == TLSSecurityMode.Default)
+                {
+                    // ignore explicit defaults
+                    clientSecurity = null;
+                }
+
+                if (clientSecurity is not null)
+                {
+                    connection.TLSSecurity = clientSecurity.Value;
+                }
+            }
+            if (platform.GetGelEnvVariable(CLIENT_TLS_SECURITY_ENV_NAME, out clientTlsSecurityEnvName, out envVar))
+            {
+                connection ??= new EdgeDBConnection();
+
+                clientTlsSecurity = TLSSecurityModeParser.Parse(envVar);
+                if (clientTlsSecurity == TLSSecurityMode.Default)
+                {
+                    // ignore explicit defaults
+                    clientTlsSecurity = null;
+                }
+
+                if (clientTlsSecurity is null)
+                {
+                    // do nothing
+                }
+                else if (clientSecurity is null)
+                {
+                    // overwrite default value
+                    connection.TLSSecurity = clientTlsSecurity.Value;
+                }
+                else if (clientSecurity == TLSSecurityMode.Strict
+                    && clientTlsSecurity != TLSSecurityMode.Strict)
+                {
+                    throw new ConfigurationException(
+                        $"{clientSecurityEnvName}=strict but {clientTlsSecurityEnvName}={envVar}. "
+                        + $"{clientTlsSecurityEnvName} must be strict when {clientSecurityEnvName} "
+                        + $"is strict"
+                    );
+                }
+                else
+                {
+                    // overwrite existing value
+                    connection.TLSSecurity = clientTlsSecurity.Value;
+                }
+            }
         }
 
         #endregion
