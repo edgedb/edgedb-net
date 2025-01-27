@@ -81,7 +81,7 @@ internal class DebuggerClient : EdgeDBBinaryClient
         {
             AllowRenegotiation = true,
             ApplicationProtocols = new List<SslApplicationProtocol> {new("edgedb-binary")},
-            TargetHost = Connection.Hostname,
+            TargetHost = Connection.TLSServerName ?? Connection.Hostname,
             EnabledSslProtocols = SslProtocols.None,
             CertificateRevocationCheckMode = X509RevocationMode.NoCheck
         };
