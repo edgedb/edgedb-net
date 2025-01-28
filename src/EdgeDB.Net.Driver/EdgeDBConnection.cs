@@ -832,10 +832,10 @@ public sealed class EdgeDBConnection
     /// <exception cref="DirectoryNotFoundException">The project directory doesn't exist for the supplied toml file.</exception>
     public static EdgeDBConnection FromProjectFile(string path)
     {
-        return _FromProjectFile(path, null);
+        return _FromResolvedFields(_FromProjectFile(path, null), null);
     }
 
-    internal static EdgeDBConnection _FromProjectFile(string path, ISystemProvider? platform)
+    internal static ResolvedFields _FromProjectFile(string path, ISystemProvider? platform)
     {
         platform ??= ConfigUtils.DefaultPlatformProvider;
 
@@ -855,12 +855,14 @@ public sealed class EdgeDBConnection
         if (!ConfigUtils.TryResolveInstanceCloudProfile(projectDir, out var profile, out var inst, platform) || inst is null)
             throw new FileNotFoundException($"Could not find instance name under project directory {projectDir}");
 
-        var connection = _FromInstanceName(inst, profile, platform);
+        var resolvedFields = _FromInstanceName(inst, profile, platform);
 
-        if (ConfigUtils.TryResolveProjectDatabase(projectDir, out var database, platform))
-            connection.Database = database;
+        if (ConfigUtils.TryResolveProjectDatabase(projectDir, out var database, platform) && database is not null)
+        {
+            resolvedFields.DatabaseOrBranch = new DatabaseOrBranch.DatabaseName(database);
+        }
 
-        return connection;
+        return resolvedFields;
     }
 
     /// <summary>
@@ -879,10 +881,10 @@ public sealed class EdgeDBConnection
     /// <exception cref="ConfigurationException">The configuration is invalid.</exception>
     public static EdgeDBConnection FromInstanceName(string name, string? cloudProfile = null)
     {
-        return _FromInstanceName(name, cloudProfile, null);
+        return _FromResolvedFields(_FromInstanceName(name, cloudProfile, null), null);
     }
 
-    internal static EdgeDBConnection _FromInstanceName(string name, string? cloudProfile, ISystemProvider? platform)
+    internal static ResolvedFields _FromInstanceName(string name, string? cloudProfile, ISystemProvider? platform)
     {
         platform ??= ConfigUtils.DefaultPlatformProvider;
 
@@ -890,16 +892,20 @@ public sealed class EdgeDBConnection
         {
             var configPath = platform.CombinePaths(ConfigUtils.GetCredentialsDir(platform), $"{name}.json");
 
-            return !platform.FileExists(configPath)
-                ? throw new FileNotFoundException($"Config file couldn't be found at {configPath}")
-                : JsonConvert.DeserializeObject<EdgeDBConnection>(platform.FileReadAllText(configPath))!;
+            if (!platform.FileExists(configPath))
+            {
+                throw new FileNotFoundException($"Config file couldn't be found at {configPath}");
+            }
+
+            EdgeDBConnection connection = JsonConvert.DeserializeObject<EdgeDBConnection>(
+                platform.FileReadAllText(configPath))!;
+
+            return ResolvedFields.FromConnection(connection);
         }
 
         if (Regex.IsMatch(name, @"^([A-Za-z0-9](-?[A-Za-z0-9])*)\/([A-Za-z0-9](-?[A-Za-z0-9])*)$"))
         {
-            var conn = new EdgeDBConnection();
-            conn.ParseCloudInstanceName(name, cloudProfile, platform);
-            return conn;
+            return ParseCloudInstanceName(name, null, cloudProfile, platform);
         }
 
         throw new ConfigurationException($"Invalid instance name '{name}'");
@@ -913,10 +919,15 @@ public sealed class EdgeDBConnection
     /// <exception cref="FileNotFoundException">No 'edgedb.toml' file could be found.</exception>
     public static EdgeDBConnection ResolveEdgeDBTOML()
     {
-        return _ResolveEdgeDBTOML(null);
+        ResolvedFields? resolvedFields = _ResolveEdgeDBTOML(null);
+        if (resolvedFields is null)
+        {
+            throw new ConfigurationException("Couldn't resolve gel.toml file");
+        }
+        return _FromResolvedFields(resolvedFields, null);
     }
 
-    internal static EdgeDBConnection _ResolveEdgeDBTOML(ISystemProvider? platform)
+    internal static ResolvedFields? _ResolveEdgeDBTOML(ISystemProvider? platform)
     {
         platform ??= ConfigUtils.DefaultPlatformProvider;
 
@@ -924,13 +935,16 @@ public sealed class EdgeDBConnection
 
         while (true)
         {
+            if (platform.FileExists(platform.CombinePaths(dir!, "gel.toml")))
+                return _FromProjectFile(platform.CombinePaths(dir!, "gel.toml"), platform);
+
             if (platform.FileExists(platform.CombinePaths(dir!, "edgedb.toml")))
                 return _FromProjectFile(platform.CombinePaths(dir!, "edgedb.toml"), platform);
 
             var parent = platform.DirectoryGetParent(dir!);
 
             if (parent is null || !parent.Exists)
-                throw new FileNotFoundException("Couldn't resolve edgedb.toml file");
+                return null;
 
             dir = parent.FullName;
         }
@@ -1054,18 +1068,17 @@ public sealed class EdgeDBConnection
         throw new ConfigurationException($"invalid duration {originalText}");
     }
 
-    private void ParseCloudInstanceName(string name, string? cloudProfile, ISystemProvider? platform)
+    private static ResolvedFields ParseCloudInstanceName(
+        string name, string? secretKey, string? cloudProfile, ISystemProvider? platform)
     {
         if (name.Length > DOMAIN_NAME_MAX_LEN)
         {
             throw new ConfigurationException($"Cloud instance name must be {DOMAIN_NAME_MAX_LEN} characters or less");
         }
 
-        var secretKey = SecretKey;
-
         if (secretKey is null)
         {
-            var profile = ConfigUtils.ReadCloudProfile(cloudProfile ?? CloudProfile, platform);
+            var profile = ConfigUtils.ReadCloudProfile(cloudProfile ?? _defaultCloudProfile, platform);
 
             if (profile.SecretKey is null)
             {
@@ -1104,8 +1117,11 @@ public sealed class EdgeDBConnection
 
         spl = name.Split("/");
 
-        Hostname = $"{spl[1]}--{spl[0]}.c-{dnsBucket}.i.{dnsZone}";
-        SecretKey ??= secretKey;
+        return new()
+        {
+            Host = $"{spl[1]}--{spl[0]}.c-{dnsBucket}.i.{dnsZone}",
+            SecretKey = secretKey,
+        };
     }
 
     /// <summary>
@@ -1142,13 +1158,10 @@ public sealed class EdgeDBConnection
         if (autoResolve && !((instance is not null && instance.Contains('/')) ||
                              (dsn is not null && !dsn.StartsWith("edgedb://") && !dsn.StartsWith("gel://"))))
         {
-            try
+            ResolvedFields? resolvedFields = _ResolveEdgeDBTOML(platform);
+            if (resolvedFields is not null)
             {
-                connection = _ResolveEdgeDBTOML(platform);
-            }
-            catch (FileNotFoundException)
-            {
-                // ignore
+                connection = _FromResolvedFields(resolvedFields, platform);
             }
         }
 
@@ -1171,7 +1184,7 @@ public sealed class EdgeDBConnection
 
         if (platform.GetGelEnvVariable(INSTANCE_ENV_NAME, out envName, out envVar))
         {
-            var fromInst = _FromInstanceName(envVar, null, platform);
+            var fromInst = _FromResolvedFields(_FromInstanceName(envVar, null, platform), platform);
             connection = connection?.MergeInto(fromInst) ?? fromInst;
         }
 
@@ -1317,7 +1330,7 @@ public sealed class EdgeDBConnection
 
         if (instance is not null)
         {
-            var fromInst = _FromInstanceName(instance, null, platform);
+            var fromInst = _FromResolvedFields(_FromInstanceName(instance, null, platform), platform);
             connection = connection?.MergeInto(fromInst) ?? fromInst;
         }
 
@@ -1326,8 +1339,8 @@ public sealed class EdgeDBConnection
             if (Regex.IsMatch(dsn, @"^([A-Za-z0-9](-?[A-Za-z0-9])*)\/([A-Za-z0-9](-?[A-Za-z0-9])*)$"))
             {
                 // cloud
-                connection ??= new EdgeDBConnection();
-                connection.ParseCloudInstanceName(dsn, null, platform);
+                var fromCloud = _FromResolvedFields(ParseCloudInstanceName(dsn, connection?.SecretKey, null, platform), platform);
+                connection = connection?.MergeInto(fromCloud) ?? fromCloud;
             }
             else
             {
