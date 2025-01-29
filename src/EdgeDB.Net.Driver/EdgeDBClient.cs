@@ -146,19 +146,19 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     /// <remarks>
     ///     This constructor uses the default config and will attempt to find your EdgeDB project toml file in the current
     ///     working directory. If
-    ///     no file is found this method will throw a <see cref="FileNotFoundException" />.
+    ///     no file is found this method will throw a <see cref="ConfigurationException" />.
     /// </remarks>
-    public EdgeDBClient() : this(EdgeDBConnection.ResolveEdgeDBTOML(), new EdgeDBClientPoolConfig()) { }
+    public EdgeDBClient() : this(EdgeDBConnection.Create(), new EdgeDBClientPoolConfig()) { }
 
     /// <summary>
     ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
     /// </summary>
     /// <remarks>
     ///     This constructor will attempt to find your EdgeDB project toml file in the current working directory. If
-    ///     no file is found this method will throw a <see cref="FileNotFoundException" />.
+    ///     no file is found this method will throw a <see cref="ConfigurationException" />.
     /// </remarks>
     /// <param name="clientPoolConfig">The config for this client pool.</param>
-    public EdgeDBClient(EdgeDBClientPoolConfig clientPoolConfig) : this(EdgeDBConnection.ResolveEdgeDBTOML(),
+    public EdgeDBClient(EdgeDBClientPoolConfig clientPoolConfig) : this(EdgeDBConnection.Create(),
         clientPoolConfig)
     {
     }
