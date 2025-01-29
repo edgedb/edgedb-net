@@ -67,54 +67,6 @@ public sealed class EdgeDBConnection
     private const string CLOUD_PROFILE_ENV_NAME = "CLOUD_PROFILE";
     private const int DOMAIN_NAME_MAX_LEN = 62;
 
-    private EdgeDBConnection MergeInto(EdgeDBConnection other)
-    {
-        other._hostname ??= _hostname;
-        other._port ??= _port;
-        if (other._branch is null && other._database is null)
-        {
-            if (_branch is not null)
-            {
-                other._branch = _branch;
-            }
-            else if (_database is not null)
-            {
-                other._database = _database;
-            }
-        }
-        other.Password ??= Password;
-        other._user ??= _user;
-        other._password ??= _password;
-        other.TLSCertificateAuthority ??= TLSCertificateAuthority;
-        other._tlsSecurity ??= _tlsSecurity;
-        return other;
-    }
-
-    internal bool ValidateServerCertificateCallback(object sender, X509Certificate? certificate, X509Chain? chain,
-        SslPolicyErrors sslPolicyErrors)
-    {
-        if (TLSSecurity is TLSSecurityMode.Insecure)
-            return true;
-
-        if (TLSCertificateAuthority is not null)
-        {
-            var cert = this.GetCertificate()!;
-
-            X509Chain chain2 = new();
-            chain2.ChainPolicy.ExtraStore.Add(cert);
-            chain2.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
-            chain2.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-
-            var isValid = chain2.Build(new X509Certificate2(certificate!));
-            var chainRoot = chain2.ChainElements[^1].Certificate;
-            isValid = isValid && chainRoot.RawData.SequenceEqual(cert.RawData);
-
-            return isValid;
-        }
-
-        return sslPolicyErrors is SslPolicyErrors.None;
-    }
-
     /// <inheritdoc />
     public override string ToString()
     {
@@ -137,7 +89,7 @@ public sealed class EdgeDBConnection
     #region Main connection args
 
     /// <summary>
-    ///     Gets or sets the hostname of the edgedb instance to connect to.
+    ///     Gets the hostname of the edgedb instance to connect to.
     /// </summary>
     /// <remarks>
     ///     This property defaults to localhost.
@@ -145,168 +97,109 @@ public sealed class EdgeDBConnection
     public string Hostname
     {
         get => _hostname ?? "localhost";
-        set => _hostname = value;
     }
+    private string? _hostname;
 
     /// <summary>
-    ///     Gets or sets the port of the edgedb instance to connect to.
+    ///     Gets the port of the edgedb instance to connect to.
     /// </summary>
     /// <remarks>
     ///     This property defaults to 5656
     /// </remarks>
-    [JsonProperty("port")]
     public int Port
     {
         get => _port ?? 5656;
-        set => _port = value;
     }
+    private int? _port;
 
     /// <summary>
-    ///     Gets or sets the database name to use when connecting.
+    ///     Gets the database name to use when connecting.
     /// </summary>
     /// <remarks>
     ///     This property defaults to <c>edgedb</c>.  It is mutually exclusive with <see cref="Branch"/>.
     /// </remarks>
     /// <exception cref="InvalidOperationException"><see cref="Branch"/> already contains a value; they're mutually exclusive</exception>
-    [JsonProperty("database")]
     public string? Database
     {
         get => _database ?? _branch ?? _defaultDatabase;
-        set
-        {
-            if (_branch is not null)
-            {
-                _branch = null;
-            }
-
-            if (value == _defaultDatabase)
-            {
-                _database = null;
-            }
-            else
-            {
-                _database = value;
-            }
-        }
     }
+    private string? _database;
     private static readonly string _defaultDatabase = "edgedb";
 
     /// <summary>
-    ///     Gets or sets the branch name to use when connecting.
+    ///     Gets the branch name to use when connecting.
     /// </summary>
     /// <remarks>
     ///     This property defaults to <c>__default__</c>. It is mutually exclusive with <see cref="Database"/>
     /// </remarks>
     /// <exception cref="InvalidOperationException"><see cref="Database"/> already contains a value; they're mutually exclusive</exception>
-    [JsonProperty("branch")]
     public string? Branch
     {
         get => _database ?? _branch ?? _defaultBranch;
-        set
-        {
-            if (_database is not null)
-            {
-                _database = null;
-            }
-
-            if (value == _defaultBranch)
-            {
-                _branch = null;
-            }
-            else
-            {
-                _branch = value;
-            }
-        }
     }
+    private string? _branch;
     private static readonly string _defaultBranch = "__default__";
 
     /// <summary>
-    ///     Gets or sets the username used to connect to the database.
+    ///     Gets the username used to connect to the database.
     /// </summary>
     /// <remarks>
     ///     This property defaults to edgedb
     /// </remarks>
-    [JsonProperty("user")]
     public string Username
     {
         get => _user ?? "edgedb";
-        set => _user = value;
     }
+    private string? _user;
 
     /// <summary>
-    ///     Gets or sets the password to connect to the database.
+    ///     Gets the password to connect to the database.
     /// </summary>
-    [JsonProperty("password")]
-    public string? Password {
+    public string? Password
+    {
         get => _password ?? "";
-        set => _password = value;
     }
+    private string? _password;
 
     /// <summary>
-    ///     Gets or sets the secret key used to authenticate with cloud instances.
+    ///     Gets the secret key used to authenticate with cloud instances.
     /// </summary>
-    public string? SecretKey { get; set; }
+    public string? SecretKey { get; private set; }
 
     /// <summary>
-    ///     Gets or sets the TLS Certificate Authority.
+    ///     Gets the TLS Certificate Authority.
     /// </summary>
-    [JsonProperty("tls_ca")]
-    public string? TLSCertificateAuthority { get; set; }
+    public string? TLSCertificateAuthority { get; private set; }
 
     /// <summary>
-    ///     Gets or sets the TLS security level.
+    ///     Gets the TLS security level.
     /// </summary>
     /// <remarks>
     ///     The default value is <see cref="TLSSecurityMode.Strict" />.
     /// </remarks>
-    [JsonProperty("tls_security")]
     public TLSSecurityMode TLSSecurity
     {
         get => _tlsSecurity ?? TLSSecurityMode.Strict;
-        set => _tlsSecurity = value;
     }
+    private TLSSecurityMode? _tlsSecurity;
 
     /// <summary>
-    ///     Gets or sets the TLS server name to be used.
+    ///     Gets the TLS server name to be used.
     /// </summary>
     /// <remarks>
     ///     Overrides the value provided by Hostname.
     /// </remarks>
-    [JsonProperty("tls_server_name")]
-    public string? TLSServerName { get; set; }
+    public string? TLSServerName { get; private set; }
 
     /// <summary>
-    ///     Gets or sets the number of miliseconds a client will wait for a connection to be
+    ///     Gets the number of miliseconds a client will wait for a connection to be
     ///     established with the server.
     /// </summary>
-    [JsonProperty("wait_until_available")]
     public int WaitUntilAvailable
     {
         get => _waitUntilAvailable ?? 30000;
-        set => _waitUntilAvailable = value;
     }
-
-    /// <summary>
-    ///     Gets or sets the name of the cloud profile to use to resolve the <see cref="SecretKey" />.
-    /// </summary>
-    /// <remarks>
-    ///     The default cloud profile is called 'default'
-    /// </remarks>
-    public string CloudProfile
-    {
-        get => _cloudProfile ?? _defaultCloudProfile;
-        set
-        {
-            if (value is null)
-            {
-                throw new ArgumentNullException(nameof(value), "Cloud Profile must not be null");
-            }
-
-            _cloudProfile = value;
-        }
-    }
-    private static readonly string _defaultCloudProfile = "default";
+    private int? _waitUntilAvailable;
 
     /// <summary>
     ///     Additional settings for the server connection.
@@ -314,21 +207,7 @@ public sealed class EdgeDBConnection
     /// <remarks>
     ///     This currently has no effect.
     /// </remarks>
-    public Dictionary<string, string> ServerSettings { get; set; } = new();
-
-    #endregion
-
-    #region Backing fields
-
-    private string? _hostname;
-    private int? _port;
-    private string? _database;
-    private string? _branch;
-    private string? _user;
-    private string? _password;
-    private TLSSecurityMode? _tlsSecurity;
-    private int? _waitUntilAvailable;
-    private string? _cloudProfile;
+    public Dictionary<string, string> ServerSettings { get; private set; } = new();
 
     #endregion
 
@@ -901,21 +780,6 @@ public sealed class EdgeDBConnection
         };
     }
 
-    /// <summary>
-    ///     Creates an <see cref="EdgeDBConnection" /> from a
-    ///     <see href="https://www.edgedb.com/docs/reference/dsn#dsn-specification">valid DSN</see>.
-    /// </summary>
-    /// <param name="dsn">The DSN to create the connection from.</param>
-    /// <returns>A <see cref="EdgeDBConnection" /> representing the DSN.</returns>
-    /// <exception cref="ArgumentException">A query parameter has already been defined in the DSN.</exception>
-    /// <exception cref="FormatException">Port was not in the correct format of int.</exception>
-    /// <exception cref="FileNotFoundException">A file parameter wasn't found.</exception>
-    /// <exception cref="KeyNotFoundException">An environment variable couldn't be found.</exception>
-    public static EdgeDBConnection FromDSN(string dsn)
-    {
-        return _FromResolvedFields(_FromDSN(dsn, null), null);
-    }
-
     static private readonly Regex _dsnRegex = new(
         @"^(?:(?:edgedb|gel|(?<invalid_scheme>\w+))://)"
         + @"(?:"
@@ -1196,18 +1060,6 @@ public sealed class EdgeDBConnection
         return resolvedFields;
     }
 
-    /// <summary>
-    ///     Creates a new EdgeDBConnection from a .toml project file.
-    /// </summary>
-    /// <param name="path">The path to the .toml project file.</param>
-    /// <returns>A <see cref="EdgeDBConnection" /> representing the project defined in the .toml file.</returns>
-    /// <exception cref="FileNotFoundException">The supplied file path, credentials path, or instance-name file doesn't exist.</exception>
-    /// <exception cref="DirectoryNotFoundException">The project directory doesn't exist for the supplied toml file.</exception>
-    public static EdgeDBConnection FromProjectFile(string path)
-    {
-        return _FromResolvedFields(_FromProjectFile(path, null), null);
-    }
-
     internal static ConfigUtils.ResolvedFields _FromProjectFile(string path, ISystemProvider? platform)
     {
         platform ??= ConfigUtils.DefaultPlatformProvider;
@@ -1238,25 +1090,6 @@ public sealed class EdgeDBConnection
         return resolvedFields;
     }
 
-    /// <summary>
-    ///     Creates a new <see cref="EdgeDBConnection" /> from an instance name.
-    /// </summary>
-    /// <remarks>
-    ///     This method supports both local instances and cloud instances. Environment
-    ///     variables will not be applied to the returned <see cref="EdgeDBConnection" />,
-    ///     instead, use <see cref="Parse(string?, string?, Action{EdgeDBConnection}?, bool)" /> to
-    ///     apply environment variables.
-    /// </remarks>
-    /// <param name="name">The name of the instance.</param>
-    /// <param name="cloudProfile">The optional cloud profile if the instance name is a cloud instance.</param>
-    /// <returns>A <see cref="EdgeDBConnection" /> containing connection details for the specific instance.</returns>
-    /// <exception cref="FileNotFoundException">The instances config file couldn't be found.</exception>
-    /// <exception cref="ConfigurationException">The configuration is invalid.</exception>
-    public static EdgeDBConnection FromInstanceName(string name, string? cloudProfile = null)
-    {
-        return _FromResolvedFields(_FromInstanceName(name, cloudProfile, null), null);
-    }
-
     internal static ConfigUtils.ResolvedFields _FromInstanceName(string name, string? cloudProfile, ISystemProvider? platform)
     {
         platform ??= ConfigUtils.DefaultPlatformProvider;
@@ -1284,22 +1117,6 @@ public sealed class EdgeDBConnection
         throw new ConfigurationException($"Invalid instance name '{name}'");
     }
 
-    /// <summary>
-    ///     Resolves a connection by traversing the current working directory and its parents
-    ///     to find an 'edgedb.toml' file.
-    /// </summary>
-    /// <returns>A resolved <see cref="EdgeDBConnection" />.</returns>
-    /// <exception cref="FileNotFoundException">No 'edgedb.toml' file could be found.</exception>
-    public static EdgeDBConnection ResolveEdgeDBTOML()
-    {
-        ConfigUtils.ResolvedFields? resolvedFields = _ResolveEdgeDBTOML(null);
-        if (resolvedFields is null)
-        {
-            throw new ConfigurationException("Couldn't resolve gel.toml file");
-        }
-        return _FromResolvedFields(resolvedFields, null);
-    }
-
     internal static ConfigUtils.ResolvedFields? _ResolveEdgeDBTOML(ISystemProvider? platform)
     {
         platform ??= ConfigUtils.DefaultPlatformProvider;
@@ -1323,6 +1140,7 @@ public sealed class EdgeDBConnection
         }
     }
 
+    private static readonly string _defaultCloudProfile = "default";
     private static ConfigUtils.ResolvedFields ParseCloudInstanceName(
         string name, string? secretKey, string? cloudProfile, ISystemProvider? platform)
     {
@@ -1379,247 +1197,6 @@ public sealed class EdgeDBConnection
         };
     }
 
-    /// <summary>
-    ///     Parses the provided arguments to build an <see cref="EdgeDBConnection" /> class; Parse logic follows
-    ///     the
-    ///     <see href="https://www.edgedb.com/docs/reference/connection#ref-reference-connection-priority">Priority levels</see>
-    ///     of arguments.
-    /// </summary>
-    /// <param name="instance">The instance name to connect to.</param>
-    /// <param name="dsn">A DSN string or cloud instance name.</param>
-    /// <param name="configure">A configuration delegate.</param>
-    /// <param name="autoResolve">Whether or not to autoresolve a connection using <see cref="ResolveEdgeDBTOML" />.</param>
-    /// <returns>
-    ///     A <see cref="EdgeDBConnection" /> class that can be used to connect to a EdgeDB instance.
-    /// </returns>
-    /// <exception cref="ConfigurationException">
-    ///     An error occured while parsing or configuring the <see cref="EdgeDBConnection" />.
-    /// </exception>
-    /// <exception cref="FileNotFoundException">A configuration file could not be found.</exception>
-    public static EdgeDBConnection Parse(string? instance = null, string? dsn = null,
-        Action<EdgeDBConnection>? configure = null, bool autoResolve = true)
-    {
-        return _Parse(instance, dsn, configure, autoResolve, null);
-    }
-
-    internal static EdgeDBConnection _Parse(string? instance, string? dsn,
-        Action<EdgeDBConnection>? configure, bool autoResolve, ISystemProvider? platform)
-    {
-        platform ??= ConfigUtils.DefaultPlatformProvider;
-
-        EdgeDBConnection? connection = null;
-
-        // try to resolve the toml, don't do this for cloud-like conn params.
-        if (autoResolve && !((instance is not null && instance.Contains('/')) ||
-                             (dsn is not null && !dsn.StartsWith("edgedb://") && !dsn.StartsWith("gel://"))))
-        {
-            ConfigUtils.ResolvedFields? resolvedFields = _ResolveEdgeDBTOML(platform);
-            if (resolvedFields is not null)
-            {
-                connection = _FromResolvedFields(resolvedFields, platform);
-            }
-        }
-
-        #region Old Env
-
-        var envName = string.Empty;
-        var envVar = string.Empty;
-
-        if (platform.GetGelEnvVariable(CLOUD_PROFILE_ENV_NAME, out envName, out envVar))
-        {
-            connection ??= new EdgeDBConnection();
-            connection.CloudProfile = envVar;
-        }
-
-        if (platform.GetGelEnvVariable(SECRET_KEY_ENV_NAME, out envName, out envVar))
-        {
-            connection ??= new EdgeDBConnection();
-            connection.SecretKey = envVar;
-        }
-
-        if (platform.GetGelEnvVariable(INSTANCE_ENV_NAME, out envName, out envVar))
-        {
-            var fromInst = _FromResolvedFields(_FromInstanceName(envVar, null, platform), platform);
-            connection = connection?.MergeInto(fromInst) ?? fromInst;
-        }
-
-        if (platform.GetGelEnvVariable(DSN_ENV_NAME, out envName, out envVar))
-        {
-            var fromDSN = _FromResolvedFields(_FromDSN(envVar, platform), platform);
-            connection = connection?.MergeInto(fromDSN) ?? fromDSN;
-        }
-
-        if (platform.GetGelEnvVariable(HOST_ENV_NAME, out envName, out envVar))
-        {
-            connection ??= new EdgeDBConnection();
-            try
-            {
-                connection.Hostname = envVar;
-            }
-            catch (ConfigurationException x)
-            {
-                switch (x.Message)
-                {
-                    case "DSN cannot contain more than one host":
-                        throw new ConfigurationException(
-                            $"Enviroment variable '{envName}' cannot contain more than one host", x);
-                    default:
-                        throw;
-                }
-            }
-        }
-
-        if (platform.GetGelEnvVariable(PORT_ENV_NAME, out envName, out envVar))
-        {
-            connection ??= new EdgeDBConnection();
-
-            if (!int.TryParse(envVar, out var port))
-                throw new ConfigurationException(
-                    $"Expected integer for environment variable '{envName}' but got '{envVar}'");
-
-            connection.Port = port;
-        }
-
-        if (platform.GetGelEnvVariable(CREDENTIALS_FILE_ENV_NAME, out envName, out envVar))
-        {
-            // check if file exists
-            var path = envVar;
-            if (!platform.FileExists(path))
-                throw new FileNotFoundException(
-                    $"Could not find the file specified in '{envName}'");
-
-            var credentials = JsonConvert.DeserializeObject<EdgeDBConnection>(platform.FileReadAllText(path))!;
-            connection = connection?.MergeInto(credentials) ?? credentials;
-        }
-
-        if (platform.GetGelEnvVariable(USER_ENV_NAME, out envName, out envVar))
-        {
-            connection ??= new EdgeDBConnection();
-            connection.Username = envVar;
-        }
-
-        if (platform.GetGelEnvVariable(PASSWORD_ENV_NAME, out envName, out envVar))
-        {
-            connection ??= new EdgeDBConnection();
-            connection.Password = envVar;
-        }
-
-        if (platform.GetGelEnvVariable(DATABASE_ENV_NAME, out envName, out envVar))
-        {
-            var altName = string.Empty;
-            var altVal = string.Empty;
-            if (platform.GetGelEnvVariable(BRANCH_ENV_NAME, out altName, out altVal))
-                throw new ArgumentException($"{envName} and {altName} are mutually exclusive");
-
-            connection ??= new EdgeDBConnection();
-
-            connection.Database = envVar;
-        }
-
-        if (platform.GetGelEnvVariable(BRANCH_ENV_NAME, out envName, out envVar))
-        {
-            connection ??= new EdgeDBConnection();
-
-            connection.Branch = envVar;
-        }
-
-        {
-            string clientSecurityEnvName;
-            string clientTlsSecurityEnvName;
-            TLSSecurityMode? clientSecurity = null;
-            TLSSecurityMode? clientTlsSecurity = null;
-            if (platform.GetGelEnvVariable(CLIENT_SECURITY_ENV_NAME, out clientSecurityEnvName, out envVar))
-            {
-                connection ??= new EdgeDBConnection();
-
-                clientSecurity = TLSSecurityModeParser.Parse(envVar);
-                if (clientSecurity == TLSSecurityMode.Default)
-                {
-                    // ignore explicit defaults
-                    clientSecurity = null;
-                }
-
-                if (clientSecurity is not null)
-                {
-                    connection.TLSSecurity = clientSecurity.Value;
-                }
-            }
-            if (platform.GetGelEnvVariable(CLIENT_TLS_SECURITY_ENV_NAME, out clientTlsSecurityEnvName, out envVar))
-            {
-                connection ??= new EdgeDBConnection();
-
-                clientTlsSecurity = TLSSecurityModeParser.Parse(envVar);
-                if (clientTlsSecurity == TLSSecurityMode.Default)
-                {
-                    // ignore explicit defaults
-                    clientTlsSecurity = null;
-                }
-
-                if (clientTlsSecurity is null)
-                {
-                    // do nothing
-                }
-                else if (clientSecurity is null)
-                {
-                    // overwrite default value
-                    connection.TLSSecurity = clientTlsSecurity.Value;
-                }
-                else if (clientSecurity == TLSSecurityMode.Strict
-                    && clientTlsSecurity != TLSSecurityMode.Strict)
-                {
-                    throw new ConfigurationException(
-                        $"{clientSecurityEnvName}=strict but {clientTlsSecurityEnvName}={envVar}. "
-                        + $"{clientTlsSecurityEnvName} must be strict when {clientSecurityEnvName} "
-                        + $"is strict"
-                    );
-                }
-                else
-                {
-                    // overwrite existing value
-                    connection.TLSSecurity = clientTlsSecurity.Value;
-                }
-            }
-        }
-
-        #endregion
-
-        if (instance is not null)
-        {
-            var fromInst = _FromResolvedFields(_FromInstanceName(instance, null, platform), platform);
-            connection = connection?.MergeInto(fromInst) ?? fromInst;
-        }
-
-        if (dsn is not null)
-        {
-            if (Regex.IsMatch(dsn, @"^([A-Za-z0-9](-?[A-Za-z0-9])*)\/([A-Za-z0-9](-?[A-Za-z0-9])*)$"))
-            {
-                // cloud
-                var fromCloud = _FromResolvedFields(ParseCloudInstanceName(dsn, connection?.SecretKey, null, platform), platform);
-                connection = connection?.MergeInto(fromCloud) ?? fromCloud;
-            }
-            else
-            {
-                var fromDSN = _FromResolvedFields(_FromDSN(dsn, platform), platform);
-                connection = connection?.MergeInto(fromDSN) ?? fromDSN;
-            }
-        }
-
-        if (configure is not null)
-        {
-            connection ??= new EdgeDBConnection();
-
-            var cloned = (EdgeDBConnection)connection.MemberwiseClone()!;
-            configure(cloned);
-
-            if (dsn is not null && cloned._hostname is not null)
-                throw new ConfigurationException("Cannot specify DSN and 'Hostname'; they are mutually exclusive");
-
-            connection = connection.MergeInto(cloned);
-        }
-
-        return connection ?? new EdgeDBConnection();
-    }
-
     #endregion
 
     #region HTTP-based connection methods
@@ -1638,4 +1215,29 @@ public sealed class EdgeDBConnection
         => _execUri ??= GetBaseUri() + $"/db/{Database}";
 
     #endregion
+
+    internal bool ValidateServerCertificateCallback(object sender, X509Certificate? certificate, X509Chain? chain,
+        SslPolicyErrors sslPolicyErrors)
+    {
+        if (TLSSecurity is TLSSecurityMode.Insecure)
+            return true;
+
+        if (TLSCertificateAuthority is not null)
+        {
+            var cert = this.GetCertificate()!;
+
+            X509Chain chain2 = new();
+            chain2.ChainPolicy.ExtraStore.Add(cert);
+            chain2.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+            chain2.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+
+            var isValid = chain2.Build(new X509Certificate2(certificate!));
+            var chainRoot = chain2.ChainElements[^1].Certificate;
+            isValid = isValid && chainRoot.RawData.SequenceEqual(cert.RawData);
+
+            return isValid;
+        }
+
+        return sslPolicyErrors is SslPolicyErrors.None;
+    }
 }

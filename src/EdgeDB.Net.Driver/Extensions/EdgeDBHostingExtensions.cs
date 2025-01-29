@@ -22,7 +22,7 @@ public static class EdgeDBHostingExtensions
     public static IServiceCollection AddEdgeDB(this IServiceCollection collection, EdgeDBConnection? connection = null,
         Action<EdgeDBClientPoolConfig>? clientConfig = null)
     {
-        var conn = connection ?? EdgeDBConnection.ResolveEdgeDBTOML();
+        var conn = connection ?? EdgeDBConnection.Create();
 
         collection.AddSingleton(conn);
         collection.AddSingleton<EdgeDBClientPoolConfig>(provider =>
