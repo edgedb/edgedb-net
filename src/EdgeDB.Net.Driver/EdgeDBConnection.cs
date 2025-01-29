@@ -52,16 +52,19 @@ public sealed class EdgeDBConnection
     private const string INSTANCE_ENV_NAME = "INSTANCE";
     private const string DSN_ENV_NAME = "DSN";
     private const string CREDENTIALS_FILE_ENV_NAME = "CREDENTIALS_FILE";
-    private const string USER_ENV_NAME = "USER";
-    private const string PASSWORD_ENV_NAME = "PASSWORD";
-    private const string DATABASE_ENV_NAME = "DATABASE";
-    private const string BRANCH_ENV_NAME = "BRANCH";
     private const string HOST_ENV_NAME = "HOST";
     private const string PORT_ENV_NAME = "PORT";
+    private const string DATABASE_ENV_NAME = "DATABASE";
+    private const string BRANCH_ENV_NAME = "BRANCH";
+    private const string USER_ENV_NAME = "USER";
+    private const string PASSWORD_ENV_NAME = "PASSWORD";
+    private const string SECRET_KEY_ENV_NAME = "SECRET_KEY";
+    private const string TLS_CA_ENV_NAME = "TLS_CA";
     private const string CLIENT_SECURITY_ENV_NAME = "CLIENT_SECURITY";
     private const string CLIENT_TLS_SECURITY_ENV_NAME = "CLIENT_TLS_SECURITY";
+    private const string TLS_SERVER_NAME_ENV_NAME = "TLS_SERVER_NAME";
+    private const string WAIT_UNTIL_AVAILABLE_ENV_NAME = "WAIT_UNTIL_AVAILABLE";
     private const string CLOUD_PROFILE_ENV_NAME = "CLOUD_PROFILE";
-    private const string SECRET_KEY_ENV_NAME = "SECRET_KEY";
     private const int DOMAIN_NAME_MAX_LEN = 62;
 
     private EdgeDBConnection MergeInto(EdgeDBConnection other)
@@ -329,7 +332,496 @@ public sealed class EdgeDBConnection
 
     #endregion
 
-    #region Construct methods
+    #region Create Function
+
+    /// <summary>
+    ///     Optional args which can be passed into <see cref="Create"/>.
+    /// </summary>
+    public class Options
+    {
+        // Primary args
+        // These can set host/port of the connection.
+        public string? Instance { get; set; }
+        public string? Dsn { get; set; }
+        public string? Host { get; set; }
+        public int? Port { get; set; }
+
+        // Secondary args
+        public string? Database { get; set; }
+        public string? Branch { get; set; }
+        public string? User { get; set; }
+        public string? Password { get; set; }
+        public string? SecretKey { get; set; }
+        public string? Credentials { get; set; }
+        public string? CredentialsFile { get; set; }
+        public string? TLSCertificateAuthority { get; set; }
+        public string? TLSCertificateAuthorityFile { get; set; }
+        public TLSSecurityMode? TLSSecurity { get; set; }
+        public string? TLSServerName { get; set; }
+        public string? WaitUntilAvailable { get; set; }
+        public Dictionary<string, string>? ServerSettings { get; set; }
+
+        public bool IsEmpty =>
+            Instance is null
+            && Dsn is null
+            && Host is null
+            && Port is null
+            && Database is null
+            && Branch is null
+            && User is null
+            && Password is null
+            && SecretKey is null
+            && Credentials is null
+            && CredentialsFile is null
+            && TLSCertificateAuthority is null
+            && TLSCertificateAuthorityFile is null
+            && TLSSecurity is null
+            && TLSServerName is null
+            && WaitUntilAvailable is null
+            && ServerSettings is null;
+    }
+
+    /// <summary>
+    ///     Parses the `gel.toml`, optional <see cref="Options"/>, and environment variables to build an
+    ///     <see cref="EdgeDBConnection" />.
+    /// 
+    ///     This function will first search for the first valid primary args (which can set host/port)
+    ///     in the following order:
+    ///     - <see cref="Options"/>
+    ///     - Environment variables
+    ///     - `gel.toml` file
+    /// 
+    ///     It will then apply any secondary args from the environment variables and options.
+    /// 
+    ///     If any primary <see cref="Options"/> are present, then all environment variables are ignored.
+    /// 
+    ///     See the <see href="https://www.edgedb.com/docs/reference/connection">documentation</see>
+    ///     for more information.
+    /// </summary>
+    /// <param name="options">Options used to build the <see cref="EdgeDBConnection" />.</param>
+    /// <returns>
+    ///     A <see cref="EdgeDBConnection" /> class that can be used to connect to a EdgeDB instance.
+    /// </returns>
+    /// <exception cref="ConfigurationException">
+    ///     An error occured while parsing or configuring the <see cref="EdgeDBConnection" />.
+    /// </exception>
+    public static EdgeDBConnection Create(Options? options = null)
+    {
+        return _Create(options ?? new(), null);
+    }
+
+    internal static EdgeDBConnection _Create(Options options, ISystemProvider? platform)
+    {
+        platform ??= ConfigUtils.DefaultPlatformProvider;
+
+        ConfigUtils.ResolvedFields resolvedFields = new();
+
+        #region Primary Options
+
+        // First, check primary options
+        // If any primary options are present, environment variables are ignored
+
+        bool hasPrimaryOptions = false;
+        {
+            // These options can set host/port and should be resolved first
+            // More than one primary options should raise an error
+
+            Exception primaryError = new ConfigurationException(
+                "Connection options cannot have more than one of the following "
+                + "values: \"Instance\", \"Dsn\", \"Credentials\", "
+                + "\"CredentialsFile\" or \"Host\"/\"Port\"");
+            // The primaryError has priority, so hold on to any other exception
+            // until all primary options are processed.
+            Exception? deferredPrimaryError = null;
+
+            if (options.Instance is not null)
+            {
+                if (hasPrimaryOptions) { throw primaryError; }
+                if (options.Instance != "")
+                {
+                    try
+                    {
+                        var fromDSN = _FromInstanceName(options.Instance, null, platform);
+                        resolvedFields.MergeFrom(fromDSN);
+                    }
+                    catch (Exception e)
+                    {
+                        deferredPrimaryError = e;
+                    }
+                }
+                else
+                {
+                    deferredPrimaryError = new ConfigurationException(
+                        $"Invalid instance name: \"{options.Instance}\"");
+                }
+                hasPrimaryOptions = true;
+            }
+
+            if (options.Dsn is not null)
+            {
+                if (hasPrimaryOptions) { throw primaryError; }
+                var fromDSN = _FromDSN(options.Dsn, platform);
+                resolvedFields.MergeFrom(fromDSN);
+                hasPrimaryOptions = true;
+            }
+
+            {
+                string? credentialsText = null;
+                if (options.Credentials is not null)
+                {
+                    if (hasPrimaryOptions) { throw primaryError; }
+                    credentialsText = options.Credentials;
+                    hasPrimaryOptions = true;
+                }
+                if (options.CredentialsFile is not null)
+                {
+                    if (hasPrimaryOptions) { throw primaryError; }
+                    if (platform.FileExists(options.CredentialsFile))
+                    {
+                        credentialsText = platform.FileReadAllText(options.CredentialsFile) ?? "{}";
+                    }
+                    else
+                    {
+                        deferredPrimaryError = new ConfigurationException(
+                            $"Invalid CredentialsFile: \"{options.CredentialsFile}\", could not find file");
+                    }
+                    hasPrimaryOptions = true;
+                }
+                if (credentialsText is not null)
+                {
+                    try
+                    {
+                        ConnectionCredentials? credentials =
+                            new JsonSerializer().DeserializeObject<ConnectionCredentials>(credentialsText);
+                        if (credentials is not null)
+                        {
+                            resolvedFields.MergeFrom(ConfigUtils.ResolvedFields.FromCredentials(credentials));
+                        }
+                    }
+                    catch (JsonException)
+                    {
+                        deferredPrimaryError = new ConfigurationException("Invalid Credentials: could not parse json");
+                    }
+                }
+            }
+
+            {
+                bool hasHostOrPort = false;
+                if (options.Host is not null)
+                {
+                    if (hasPrimaryOptions) { throw primaryError; }
+                    resolvedFields.Host = options.Host;
+                    hasHostOrPort = true;
+                }
+                if (options.Port is not null)
+                {
+                    if (hasPrimaryOptions) { throw primaryError; }
+                    resolvedFields.Port = options.Port;
+                    hasHostOrPort = true;
+                }
+                if (hasHostOrPort)
+                {
+                    hasPrimaryOptions = true;
+                }
+            }
+
+            if (deferredPrimaryError is not null)
+            {
+                throw deferredPrimaryError;
+            }
+        }
+
+        #endregion
+
+        #region Primary Env
+
+        var envName = string.Empty;
+        var envVar = string.Empty;
+
+        bool hasPrimaryEnv = false;
+
+        if (!hasPrimaryOptions)
+        {
+            // These env vars can set host/port and should be resolved first
+            // More than one primary env var should raise an error
+
+            Exception primaryError = new ConfigurationException(
+                "Cannot have more than one of the following connection "
+                + "environment variables: \"GEL_DSN\", \"GEL_INSTANCE\", "
+                + "\"GEL_CREDENTIALS_FILE\" or \"GEL_HOST\"/\"GEL_PORT\"");
+            // The primaryError has priority, so hold on to any other exception
+            // until all primary env vars are processed.
+            Exception? deferredPrimaryError = null;
+
+            if (platform.GetGelEnvVariable(INSTANCE_ENV_NAME, out envName, out envVar))
+            {
+                if (hasPrimaryEnv) { throw primaryError; }
+                try
+                {
+                    var fromInst = _FromInstanceName(envVar, null, platform);
+                    resolvedFields.MergeFrom(fromInst);
+                }
+                catch (Exception e)
+                {
+                    deferredPrimaryError = e;
+                }
+                hasPrimaryEnv = true;
+            }
+
+            if (platform.GetGelEnvVariable(DSN_ENV_NAME, out envName, out envVar))
+            {
+                if (hasPrimaryEnv) { throw primaryError; }
+                var fromDSN = _FromDSN(envVar, platform);
+                resolvedFields.MergeFrom(fromDSN);
+                hasPrimaryEnv = true;
+            }
+
+            if (platform.GetGelEnvVariable(CREDENTIALS_FILE_ENV_NAME, out envName, out envVar))
+            {
+                if (hasPrimaryEnv) { throw primaryError; }
+                if (platform.FileExists(envVar))
+                {
+                    var credentials =
+                        JsonConvert.DeserializeObject<ConnectionCredentials>(platform.FileReadAllText(envVar))!;
+                    resolvedFields.MergeFrom(ConfigUtils.ResolvedFields.FromCredentials(credentials));
+                }
+                else
+                {
+                    deferredPrimaryError = new FileNotFoundException(
+                        $"Invalid credential file from {envName}: \"{envVar}\", could not find file");
+                }
+                hasPrimaryEnv = true;
+            }
+
+            {
+                bool hasHostOrPort = false;
+                if (platform.GetGelEnvVariable(HOST_ENV_NAME, out envName, out envVar))
+                {
+                    if (hasPrimaryEnv) { throw primaryError; }
+                    resolvedFields.Host = envVar;
+                    hasHostOrPort = true;
+                }
+                if (platform.GetGelEnvVariable(PORT_ENV_NAME, out envName, out envVar))
+                {
+                    ConfigUtils.ResolvedField<int>? port = ConfigUtils.ParsePort(envVar);
+                    if (port is not null)
+                    {
+                        if (hasPrimaryEnv) { throw primaryError; }
+                        resolvedFields.Port = ConfigUtils.MergeField(resolvedFields.Port, port);
+                        hasHostOrPort = true;
+                    }
+                }
+                if (hasHostOrPort)
+                {
+                    hasPrimaryEnv = true;
+                }
+            }
+
+            if (deferredPrimaryError is not null)
+            {
+                throw deferredPrimaryError;
+            }
+        }
+
+        #endregion
+
+        #region Toml File
+
+        if (!hasPrimaryOptions && !hasPrimaryEnv)
+        {
+            ConfigUtils.ResolvedFields? fromToml = _ResolveEdgeDBTOML(platform);
+            if (fromToml is not null)
+            {
+                resolvedFields.MergeFrom(fromToml);
+            }
+        }
+
+        #endregion
+
+        #region Secondary Env
+
+        if (!hasPrimaryOptions)
+        {
+            if (platform.GetGelEnvVariable(DATABASE_ENV_NAME, out envName, out envVar))
+            {
+                var altName = string.Empty;
+                var altVal = string.Empty;
+                if (platform.GetGelEnvVariable(BRANCH_ENV_NAME, out altName, out altVal))
+                {
+                    throw new ConfigurationException(
+                        $"Environment variables {envName} and {altName} are mutually exclusive");
+                }
+
+                resolvedFields.DatabaseOrBranch = new ConfigUtils.DatabaseOrBranch.DatabaseName(envVar);
+            }
+
+            if (platform.GetGelEnvVariable(BRANCH_ENV_NAME, out envName, out envVar))
+            {
+                resolvedFields.DatabaseOrBranch = new ConfigUtils.DatabaseOrBranch.BranchName(envVar);
+            }
+
+            if (platform.GetGelEnvVariable(USER_ENV_NAME, out envName, out envVar))
+            {
+                resolvedFields.User = envVar;
+            }
+
+            if (platform.GetGelEnvVariable(PASSWORD_ENV_NAME, out envName, out envVar))
+            {
+                resolvedFields.Password = envVar;
+            }
+
+            if (platform.GetGelEnvVariable(TLS_CA_ENV_NAME, out envName, out envVar))
+            {
+                resolvedFields.TLSCertificateAuthority = envVar;
+            }
+
+            {
+                string clientSecurityEnvName;
+                string clientTlsSecurityEnvName;
+                TLSSecurityMode? clientSecurity = null;
+                TLSSecurityMode? clientTlsSecurity = null;
+                bool hasDefault = false;
+                if (platform.GetGelEnvVariable(CLIENT_SECURITY_ENV_NAME, out clientSecurityEnvName, out envVar))
+                {
+                    if (TLSSecurityModeParser.TryParse(envVar, true, out clientSecurity))
+                    {
+                        if (clientSecurity is not null)
+                        {
+                            resolvedFields.TLSSecurity = clientSecurity;
+                        }
+                        else
+                        {
+                            hasDefault = true;
+                        }
+                    }
+                    else
+                    {
+                        resolvedFields.TLSSecurity = new ConfigurationException(
+                            $"Invalid TLS Security from {clientSecurityEnvName}: \"{envVar}\"");
+                    }
+                }
+                if (platform.GetGelEnvVariable(CLIENT_TLS_SECURITY_ENV_NAME, out clientTlsSecurityEnvName, out envVar))
+                {
+                    if (TLSSecurityModeParser.TryParse(envVar, true, out clientTlsSecurity))
+                    {
+                        if (clientTlsSecurity is null)
+                        {
+                            hasDefault = true;
+                        }
+                        else if (clientSecurity is null)
+                        {
+                            // overwrite default value
+                            resolvedFields.TLSSecurity = clientTlsSecurity.Value;
+                        }
+                        else if (clientSecurity == TLSSecurityMode.Strict
+                            && clientTlsSecurity != TLSSecurityMode.Strict)
+                        {
+                            throw new ConfigurationException(
+                                $"{clientSecurityEnvName}=strict but {clientTlsSecurityEnvName}={envVar}. "
+                                + $"{clientTlsSecurityEnvName} must be strict when {clientSecurityEnvName} "
+                                + $"is strict"
+                            );
+                        }
+                        else
+                        {
+                            // overwrite existing value
+                            resolvedFields.TLSSecurity = clientTlsSecurity.Value;
+                        }
+                    }
+                    else
+                    {
+                        resolvedFields.TLSSecurity = new ConfigurationException(
+                            $"Invalid TLS Security from {clientTlsSecurityEnvName}: \"{envVar}\"");
+                    }
+                }
+                if (hasDefault)
+                {
+                    // finally, apply default value if no non-default value or error present
+                    resolvedFields.TLSSecurity ??= TLSSecurityMode.Default;
+                }
+            }
+
+            if (platform.GetGelEnvVariable(TLS_SERVER_NAME_ENV_NAME, out envName, out envVar))
+            {
+                resolvedFields.TLSServerName = envVar;
+            }
+
+            if (platform.GetGelEnvVariable(WAIT_UNTIL_AVAILABLE_ENV_NAME, out envName, out envVar))
+            {
+                resolvedFields.WaitUntilAvailable = ConfigUtils.ParseWaitUntilAvailable(envVar);
+            }
+        }
+
+        #endregion
+
+        #region Secondary Options
+
+        // Finally, check secondary options
+        // Secondary options should override environment variables
+
+        if (options.Database is not null && options.Branch is not null)
+        {
+            throw new ConfigurationException("Invalid options: Database and Branch are mutually exclusive.");
+        }
+        else if (options.Database is not null)
+        {
+            resolvedFields.DatabaseOrBranch = new ConfigUtils.DatabaseOrBranch.DatabaseName(options.Database);
+        }
+        else if (options.Branch is not null)
+        {
+            resolvedFields.DatabaseOrBranch = new ConfigUtils.DatabaseOrBranch.BranchName(options.Branch);
+        }
+
+        if (options.User is not null) { resolvedFields.User = options.User; }
+        if (options.Password is not null) { resolvedFields.Password = options.Password; }
+        if (options.SecretKey is not null) { resolvedFields.SecretKey = options.SecretKey; }
+        if (options.TLSCertificateAuthority is not null)
+        {
+            resolvedFields.TLSCertificateAuthority = options.TLSCertificateAuthority;
+        }
+        if (options.TLSCertificateAuthorityFile is not null)
+        {
+            if (platform.FileExists(options.TLSCertificateAuthorityFile))
+            {
+                resolvedFields.TLSCertificateAuthority =
+                    platform.FileReadAllText(options.TLSCertificateAuthorityFile);
+            }
+            else
+            {
+                throw new ConfigurationException(
+                    $"Invalid TLSCertificateAuthorityFile: \"{options.TLSCertificateAuthorityFile}\", could not find file");
+            }
+        }
+        if (options.TLSSecurity is not null) { resolvedFields.TLSSecurity = options.TLSSecurity; }
+        if (options.TLSServerName is not null) { resolvedFields.TLSServerName = options.TLSServerName; }
+        if (options.WaitUntilAvailable is not null)
+        {
+            resolvedFields.WaitUntilAvailable = ConfigUtils.MergeField(
+                resolvedFields.WaitUntilAvailable,
+                ConfigUtils.ParseWaitUntilAvailable(options.WaitUntilAvailable));
+        }
+        if (options.ServerSettings is not null)
+        {
+            foreach (KeyValuePair<string,string> entry in options.ServerSettings)
+            {
+                resolvedFields.ServerSettings = ConfigUtils.AddServerSettingField(
+                    resolvedFields.ServerSettings, entry.Key, entry.Value);
+            }
+        }
+
+        #endregion
+
+        if (options.IsEmpty && resolvedFields.IsEmpty)
+        {
+            throw new ConfigurationException("No `gel.toml` found and no connection options specified.");
+        }
+
+        return _FromResolvedFields(resolvedFields, platform);
+    }
+
+    #endregion
+
+    #region Create Helpers
 
     internal static EdgeDBConnection _FromResolvedFields(ConfigUtils.ResolvedFields resolvedFields, ISystemProvider? platform)
     {
@@ -583,10 +1075,9 @@ public sealed class EdgeDBConnection
             string key = arg.Key;
             ConfigUtils.ResolvedField<string> value = arg.Value;
 
-            if (key.EndsWith("_env"))
+            if (key.EndsWith("_env") && ConfigUtils.TryGetFieldValue(value, out string envName))
             {
                 string oldKey = key;
-                string envName = value.Value!;
                 key = key.Substring(0, key.Length - "_env".Length);
                 string? envVar = platform.GetEnvVariable(envName);
                 if (envVar is not null)
@@ -600,10 +1091,9 @@ public sealed class EdgeDBConnection
                 }
             }
 
-            if (key.EndsWith("_file") && value.Value is not null)
+            if (key.EndsWith("_file") && ConfigUtils.TryGetFieldValue(value, out string fileName))
             {
                 string oldKey = key;
-                string fileName = value.Value!;
                 key = key.Substring(0, key.Length - "_file".Length);
                 if (platform.FileExists(fileName))
                 {
@@ -693,17 +1183,7 @@ public sealed class EdgeDBConnection
                     });
                     break;
                 case "wait_until_available":
-                    resolvedFields.WaitUntilAvailable = value.Convert<int>(v =>
-                    {
-                        try
-                        {
-                            return ConfigUtils.ParseWaitUntilAvailable(v);
-                        }
-                        catch (Exception e)
-                        {
-                            return e;
-                        }
-                    });
+                    resolvedFields.WaitUntilAvailable = value.Convert(ConfigUtils.ParseWaitUntilAvailable);
                     break;
 
                 default:
@@ -940,7 +1420,7 @@ public sealed class EdgeDBConnection
             }
         }
 
-        #region Env
+        #region Old Env
 
         var envName = string.Empty;
         var envVar = string.Empty;
