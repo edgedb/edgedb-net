@@ -1,3 +1,4 @@
+using EdgeDB.Abstractions;
 using EdgeDB.Utils;
 using Newtonsoft.Json;
 using System.Collections;
@@ -277,6 +278,13 @@ public sealed class EdgeDBConnection
     /// <exception cref="KeyNotFoundException">An environment variable couldn't be found.</exception>
     public static EdgeDBConnection FromDSN(string dsn)
     {
+        return _FromDSN(dsn, null);
+    }
+
+    internal static EdgeDBConnection _FromDSN(string dsn, ISystemProvider? platform)
+    {
+        platform ??= ConfigUtils.DefaultPlatformProvider;
+
         if (!dsn.StartsWith("edgedb://") && !dsn.StartsWith("gel://"))
             throw new ConfigurationException("DSN schema 'gel' expected but got 'pq'");
 
@@ -429,10 +437,10 @@ public sealed class EdgeDBConnection
                     break;
                 case "tls_cert_file":
                 {
-                    if (!File.Exists(value))
+                    if (!platform.FileExists(value))
                         throw new FileNotFoundException("The specified tls_cert_file file was not found");
 
-                    conn.TLSCertificateAuthority = File.ReadAllText(value);
+                    conn.TLSCertificateAuthority = platform.FileReadAllText(value);
                 }
                     break;
                 case "tls_security":
@@ -465,13 +473,13 @@ public sealed class EdgeDBConnection
 
             if (fileMatch.Success)
             {
-                var val = File.ReadAllText(arg.Value);
+                var val = platform.FileReadAllText(arg.Value);
 
                 SetArgument(fileMatch.Groups[1].Value, val, conn);
             }
             else if (envMatch.Success)
             {
-                var val = Environment.GetEnvironmentVariable(arg.Value, EnvironmentVariableTarget.Process);
+                var val = platform.GetEnvVariable(arg.Value);
 
                 if (val == null)
                     throw new KeyNotFoundException($"Environment variable \"{arg.Value}\" couldn't be found");
@@ -494,25 +502,32 @@ public sealed class EdgeDBConnection
     /// <exception cref="DirectoryNotFoundException">The project directory doesn't exist for the supplied toml file.</exception>
     public static EdgeDBConnection FromProjectFile(string path)
     {
-        if (!File.Exists(path))
+        return _FromProjectFile(path, null);
+    }
+
+    internal static EdgeDBConnection _FromProjectFile(string path, ISystemProvider? platform)
+    {
+        platform ??= ConfigUtils.DefaultPlatformProvider;
+
+        if (!platform.FileExists(path))
             throw new FileNotFoundException("Couldn't find the specified project file", path);
 
-        path = Path.GetFullPath(path);
+        path = platform.GetFullPath(path);
 
         // get the folder name
-        var dirName = Directory.GetParent(path)!.FullName;
+        var dirName = platform.DirectoryGetParent(path)!.FullName;
 
-        var projectDir = ConfigUtils.GetInstanceProjectDirectory(dirName);
+        var projectDir = ConfigUtils.GetInstanceProjectDirectory(dirName, platform);
 
-        if (!Directory.Exists(projectDir))
+        if (!platform.DirectoryExists(projectDir))
             throw new DirectoryNotFoundException($"Couldn't find project directory for {path}: {projectDir}");
 
-        if (!ConfigUtils.TryResolveInstanceCloudProfile(projectDir, out var profile, out var inst) || inst is null)
+        if (!ConfigUtils.TryResolveInstanceCloudProfile(projectDir, out var profile, out var inst, platform) || inst is null)
             throw new FileNotFoundException($"Could not find instance name under project directory {projectDir}");
 
-        var connection = FromInstanceName(inst, profile);
+        var connection = _FromInstanceName(inst, profile, platform);
 
-        if (ConfigUtils.TryResolveProjectDatabase(projectDir, out var database))
+        if (ConfigUtils.TryResolveProjectDatabase(projectDir, out var database, platform))
             connection.Database = database;
 
         return connection;
@@ -534,19 +549,26 @@ public sealed class EdgeDBConnection
     /// <exception cref="ConfigurationException">The configuration is invalid.</exception>
     public static EdgeDBConnection FromInstanceName(string name, string? cloudProfile = null)
     {
+        return _FromInstanceName(name, cloudProfile, null);
+    }
+
+    internal static EdgeDBConnection _FromInstanceName(string name, string? cloudProfile, ISystemProvider? platform)
+    {
+        platform ??= ConfigUtils.DefaultPlatformProvider;
+
         if (Regex.IsMatch(name, @"^\w(-?\w)*$"))
         {
-            var configPath = Path.Combine(ConfigUtils.GetCredentialsDir(), $"{name}.json");
+            var configPath = platform.CombinePaths(ConfigUtils.GetCredentialsDir(platform), $"{name}.json");
 
-            return !File.Exists(configPath)
+            return !platform.FileExists(configPath)
                 ? throw new FileNotFoundException($"Config file couldn't be found at {configPath}")
-                : JsonConvert.DeserializeObject<EdgeDBConnection>(File.ReadAllText(configPath))!;
+                : JsonConvert.DeserializeObject<EdgeDBConnection>(platform.FileReadAllText(configPath))!;
         }
 
         if (Regex.IsMatch(name, @"^([A-Za-z0-9](-?[A-Za-z0-9])*)\/([A-Za-z0-9](-?[A-Za-z0-9])*)$"))
         {
             var conn = new EdgeDBConnection();
-            conn.ParseCloudInstanceName(name, cloudProfile);
+            conn.ParseCloudInstanceName(name, cloudProfile, platform);
             return conn;
         }
 
@@ -561,14 +583,21 @@ public sealed class EdgeDBConnection
     /// <exception cref="FileNotFoundException">No 'edgedb.toml' file could be found.</exception>
     public static EdgeDBConnection ResolveEdgeDBTOML()
     {
-        var dir = Environment.CurrentDirectory;
+        return _ResolveEdgeDBTOML(null);
+    }
+
+    internal static EdgeDBConnection _ResolveEdgeDBTOML(ISystemProvider? platform)
+    {
+        platform ??= ConfigUtils.DefaultPlatformProvider;
+
+        var dir = platform.GetCurrentDirectory();
 
         while (true)
         {
-            if (File.Exists(Path.Combine(dir!, "edgedb.toml")))
-                return FromProjectFile(Path.Combine(dir!, "edgedb.toml"));
+            if (platform.FileExists(platform.CombinePaths(dir!, "edgedb.toml")))
+                return _FromProjectFile(platform.CombinePaths(dir!, "edgedb.toml"), platform);
 
-            var parent = Directory.GetParent(dir!);
+            var parent = platform.DirectoryGetParent(dir!);
 
             if (parent is null || !parent.Exists)
                 throw new FileNotFoundException("Couldn't resolve edgedb.toml file");
@@ -679,7 +708,7 @@ public sealed class EdgeDBConnection
         throw new ConfigurationException($"invalid duration {originalText}");
     }
 
-    private void ParseCloudInstanceName(string name, string? cloudProfile = null)
+    private void ParseCloudInstanceName(string name, string? cloudProfile, ISystemProvider? platform)
     {
         if (name.Length > DOMAIN_NAME_MAX_LEN)
         {
@@ -690,7 +719,7 @@ public sealed class EdgeDBConnection
 
         if (secretKey is null)
         {
-            var profile = ConfigUtils.ReadCloudProfile(cloudProfile ?? CloudProfile);
+            var profile = ConfigUtils.ReadCloudProfile(cloudProfile ?? CloudProfile, platform);
 
             if (profile.SecretKey is null)
             {
@@ -753,6 +782,14 @@ public sealed class EdgeDBConnection
     public static EdgeDBConnection Parse(string? instance = null, string? dsn = null,
         Action<EdgeDBConnection>? configure = null, bool autoResolve = true)
     {
+        return _Parse(instance, dsn, configure, autoResolve, null);
+    }
+
+    internal static EdgeDBConnection _Parse(string? instance, string? dsn,
+        Action<EdgeDBConnection>? configure, bool autoResolve, ISystemProvider? platform)
+    {
+        platform ??= ConfigUtils.DefaultPlatformProvider;
+
         EdgeDBConnection? connection = null;
 
         // try to resolve the toml, don't do this for cloud-like conn params.
@@ -761,7 +798,7 @@ public sealed class EdgeDBConnection
         {
             try
             {
-                connection = ResolveEdgeDBTOML();
+                connection = _ResolveEdgeDBTOML(platform);
             }
             catch (FileNotFoundException)
             {
@@ -771,45 +808,34 @@ public sealed class EdgeDBConnection
 
         #region Env
 
-
-        Dictionary<string, string> env = new();
-        foreach (DictionaryEntry oldEnvVar in Environment.GetEnvironmentVariables())
-        {
-            object? value = oldEnvVar.Value;
-            if (value is not null)
-            {
-                env[(string)oldEnvVar.Key] = (string)value;
-            }
-        }
-
         var envName = string.Empty;
         var envVar = string.Empty;
 
-        if (GetEnvVariable(env, CLOUD_PROFILE_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(CLOUD_PROFILE_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
             connection.CloudProfile = envVar;
         }
 
-        if (GetEnvVariable(env, SECRET_KEY_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(SECRET_KEY_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
             connection.SecretKey = envVar;
         }
 
-        if (GetEnvVariable(env, INSTANCE_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(INSTANCE_ENV_NAME, out envName, out envVar))
         {
-            var fromInst = FromInstanceName(envVar);
+            var fromInst = _FromInstanceName(envVar, null, platform);
             connection = connection?.MergeInto(fromInst) ?? fromInst;
         }
 
-        if (GetEnvVariable(env, DSN_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(DSN_ENV_NAME, out envName, out envVar))
         {
-            var fromDSN = FromDSN(envVar);
+            var fromDSN = _FromDSN(envVar, platform);
             connection = connection?.MergeInto(fromDSN) ?? fromDSN;
         }
 
-        if (GetEnvVariable(env, HOST_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(HOST_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
             try
@@ -829,7 +855,7 @@ public sealed class EdgeDBConnection
             }
         }
 
-        if (GetEnvVariable(env, PORT_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(PORT_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
 
@@ -840,42 +866,42 @@ public sealed class EdgeDBConnection
             connection.Port = port;
         }
 
-        if (GetEnvVariable(env, CREDENTIALS_FILE_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(CREDENTIALS_FILE_ENV_NAME, out envName, out envVar))
         {
             // check if file exists
             var path = envVar;
-            if (!File.Exists(path))
+            if (!platform.FileExists(path))
                 throw new FileNotFoundException(
                     $"Could not find the file specified in '{envName}'");
 
-            var credentials = JsonConvert.DeserializeObject<EdgeDBConnection>(File.ReadAllText(path))!;
+            var credentials = JsonConvert.DeserializeObject<EdgeDBConnection>(platform.FileReadAllText(path))!;
             connection = connection?.MergeInto(credentials) ?? credentials;
         }
 
-        if (GetEnvVariable(env, USER_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(USER_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
             connection.Username = envVar;
         }
 
-        if (GetEnvVariable(env, PASSWORD_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(PASSWORD_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
             connection.Password = envVar;
         }
 
-        if (GetEnvVariable(env, DATABASE_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(DATABASE_ENV_NAME, out envName, out envVar))
         {
             var altName = string.Empty;
             var altVal = string.Empty;
-            if (GetEnvVariable(env, BRANCH_ENV_NAME, out altName, out altVal))
+            if (platform.GetGelEnvVariable(BRANCH_ENV_NAME, out altName, out altVal))
                 throw new ArgumentException($"{envName} conflicts with {altName}");
 
             connection ??= new EdgeDBConnection();
             connection.Database = envVar;
         }
 
-        if (GetEnvVariable(env, BRANCH_ENV_NAME, out envName, out envVar))
+        if (platform.GetGelEnvVariable(BRANCH_ENV_NAME, out envName, out envVar))
         {
             connection ??= new EdgeDBConnection();
             connection.Branch = envVar;
@@ -885,7 +911,7 @@ public sealed class EdgeDBConnection
 
         if (instance is not null)
         {
-            var fromInst = FromInstanceName(instance);
+            var fromInst = _FromInstanceName(instance, null, platform);
             connection = connection?.MergeInto(fromInst) ?? fromInst;
         }
 
@@ -895,11 +921,11 @@ public sealed class EdgeDBConnection
             {
                 // cloud
                 connection ??= new EdgeDBConnection();
-                connection.ParseCloudInstanceName(dsn);
+                connection.ParseCloudInstanceName(dsn, null, platform);
             }
             else
             {
-                var fromDSN = FromDSN(dsn);
+                var fromDSN = _FromDSN(dsn, platform);
                 connection = connection?.MergeInto(fromDSN) ?? fromDSN;
             }
         }
@@ -918,37 +944,6 @@ public sealed class EdgeDBConnection
         }
 
         return connection ?? new EdgeDBConnection();
-    }
-
-    private static bool GetEnvVariable(IReadOnlyDictionary<string, string> env, string key, out string name, out string value)
-    {
-        string edgedbKey = $"EDGEDB_{key}";
-        string? edgedbVal = env.ContainsKey(edgedbKey) ? env[edgedbKey] : null;
-        string gelKey = $"GEL_{key}";
-        string? gelVal = env.ContainsKey(gelKey) ? env[gelKey] : null;
-        if (edgedbVal is not null && gelVal is not null)
-        {
-            Console.WriteLine($"Both GEL_{key} and EDGEDB_{key} are set; EDGEDB_{key} will be ignored");
-        }
-
-        if (gelVal is not null)
-        {
-            name = gelKey;
-            value = gelVal;
-            return true;
-        }
-        else if (edgedbVal is not null)
-        {
-            name = edgedbKey;
-            value = edgedbVal;
-            return true;
-        }
-        else
-        {
-            name = string.Empty;
-            value = string.Empty;
-            return false;
-        }
     }
 
     #endregion

@@ -10,11 +10,11 @@ namespace EdgeDB.Utils;
 
 internal static class ConfigUtils
 {
-    private static readonly ISystemProvider _defaultPlatformProvider = new DefaultSystemProvider();
+    internal static ISystemProvider DefaultPlatformProvider { get; } = new DefaultSystemProvider();
 
-    private static string GetEdgeDBKnownBasePath(ISystemProvider? platform = null)
+    private static string GetEdgeDBKnownBasePath(ISystemProvider? platform)
     {
-        platform ??= _defaultPlatformProvider;
+        platform ??= DefaultPlatformProvider;
 
         if (platform.IsOSPlatform(OSPlatform.Windows))
             return platform.CombinePaths(platform.GetHomeDir(), "AppData", "Local", "EdgeDB");
@@ -28,9 +28,9 @@ internal static class ConfigUtils
         return platform.CombinePaths(xdgConfigDir, "edgedb");
     }
 
-    private static string GetEdgeDBBasePath(ISystemProvider? platform = null)
+    private static string GetEdgeDBBasePath(ISystemProvider? platform)
     {
-        platform ??= _defaultPlatformProvider;
+        platform ??= DefaultPlatformProvider;
 
         var basePath = GetEdgeDBKnownBasePath(platform);
         return platform.DirectoryExists(basePath)
@@ -38,9 +38,9 @@ internal static class ConfigUtils
             : platform.CombinePaths(platform.GetHomeDir(), ".edgedb");
     }
 
-    public static string GetInstanceProjectDirectory(string projectDir, ISystemProvider? platform = null)
+    public static string GetInstanceProjectDirectory(string projectDir, ISystemProvider? platform)
     {
-        platform ??= _defaultPlatformProvider;
+        platform ??= DefaultPlatformProvider;
 
         var fullPath = platform.GetFullPath(projectDir);
         var baseName = projectDir.Split(platform.DirectorySeparatorChar).Last();
@@ -55,33 +55,39 @@ internal static class ConfigUtils
         return platform.CombinePaths(GetEdgeDBConfigDir(platform), "projects", $"{baseName}-{hash.ToLower()}");
     }
 
-    public static string GetEdgeDBConfigDir(ISystemProvider? platform = null)
-        => (platform ?? _defaultPlatformProvider).IsOSPlatform(OSPlatform.Windows)
-            ? (platform ?? _defaultPlatformProvider).CombinePaths(GetEdgeDBBasePath(platform), "config")
+    public static string GetEdgeDBConfigDir(ISystemProvider? platform)
+        => (platform ?? DefaultPlatformProvider).IsOSPlatform(OSPlatform.Windows)
+            ? (platform ?? DefaultPlatformProvider).CombinePaths(GetEdgeDBBasePath(platform), "config")
             : GetEdgeDBBasePath(platform);
 
-    public static string GetCredentialsDir(ISystemProvider? platform = null)
-        => (platform ?? _defaultPlatformProvider).CombinePaths(GetEdgeDBConfigDir(platform), "credentials");
+    public static string GetCredentialsDir(ISystemProvider? platform)
+        => (platform ?? DefaultPlatformProvider).CombinePaths(GetEdgeDBConfigDir(platform), "credentials");
 
-    public static bool TryResolveInstanceTOML([NotNullWhen(true)] out string? tomlPath)
-        => TryResolveInstanceTOML(Environment.CurrentDirectory, out tomlPath);
-
-    public static bool TryResolveInstanceTOML(string cdir, [NotNullWhen(true)] out string? tomlPath)
+    public static bool TryResolveInstanceTOML([NotNullWhen(true)] out string? tomlPath, ISystemProvider? platform)
     {
+        platform ??= DefaultPlatformProvider;
+
+        return TryResolveInstanceTOML(platform.GetCurrentDirectory(), out tomlPath, platform);
+    }
+
+    public static bool TryResolveInstanceTOML(string cdir, [NotNullWhen(true)] out string? tomlPath, ISystemProvider? platform)
+    {
+        platform ??= DefaultPlatformProvider;
+
         var dir = cdir;
 
         while (true)
         {
-            var target = Path.Combine(dir!, "edgedb.toml");
+            var target = platform.CombinePaths(dir!, "edgedb.toml");
 
-            if (File.Exists(target))
+            if (platform.FileExists(target))
             {
                 tomlPath = target;
                 return true;
             }
 
 
-            var parent = Directory.GetParent(dir!);
+            var parent = platform.DirectoryGetParent(dir!);
 
             if (parent is null || !parent.Exists)
                 break;
@@ -94,72 +100,78 @@ internal static class ConfigUtils
         return false;
     }
 
-    public static bool TryResolveProjectDatabase(string stashDir, [NotNullWhen(true)] out string? database)
+    public static bool TryResolveProjectDatabase(string stashDir, [NotNullWhen(true)] out string? database, ISystemProvider? platform)
     {
+        platform ??= DefaultPlatformProvider;
+
         database = null;
 
-        if (!Directory.Exists(stashDir))
+        if (!platform.DirectoryExists(stashDir))
             return false;
 
-        var databasePath = Path.Combine(stashDir, "database");
+        var databasePath = platform.CombinePaths(stashDir, "database");
 
-        if (File.Exists(databasePath))
+        if (platform.FileExists(databasePath))
         {
-            database = File.ReadAllText(databasePath);
+            database = platform.FileReadAllText(databasePath);
             return true;
         }
 
         return false;
     }
 
-    public static bool TryResolveInstanceCloudProfile(out string? profile, out string? linkedInstanceName)
+    public static bool TryResolveInstanceCloudProfile(out string? profile, out string? linkedInstanceName, ISystemProvider? platform)
     {
+        platform ??= DefaultPlatformProvider;
+
         profile = null;
         linkedInstanceName = null;
 
-        if (!TryResolveInstanceTOML(out var toml))
+        if (!TryResolveInstanceTOML(out var toml, platform))
             return false;
 
-        var stashDir = GetInstanceProjectDirectory(Directory.GetParent(toml)!.FullName!);
+        var stashDir = GetInstanceProjectDirectory(platform.DirectoryGetParent(toml)!.FullName!, platform);
 
-        return TryResolveInstanceCloudProfile(stashDir, out profile, out linkedInstanceName);
+        return TryResolveInstanceCloudProfile(stashDir, out profile, out linkedInstanceName, platform);
     }
 
     public static bool TryResolveInstanceCloudProfile(string stashDir, out string? profile,
-        out string? linkedInstanceName)
+        out string? linkedInstanceName, ISystemProvider? platform)
     {
+        platform ??= DefaultPlatformProvider;
+
         profile = null;
         linkedInstanceName = null;
 
-        if (!Directory.Exists(stashDir))
+        if (!platform.DirectoryExists(stashDir))
             return false;
 
-        var cloudProfilePath = Path.Combine(stashDir, "cloud-profile");
+        var cloudProfilePath = platform.CombinePaths(stashDir, "cloud-profile");
 
-        if (File.Exists(cloudProfilePath))
+        if (platform.FileExists(cloudProfilePath))
         {
-            profile = File.ReadAllText(cloudProfilePath);
+            profile = platform.FileReadAllText(cloudProfilePath);
         }
 
-        var linkedInstancePath = Path.Combine(stashDir, "instance-name");
+        var linkedInstancePath = platform.CombinePaths(stashDir, "instance-name");
 
-        if (File.Exists(linkedInstancePath))
+        if (platform.FileExists(linkedInstancePath))
         {
-            linkedInstanceName = File.ReadAllText(linkedInstancePath);
+            linkedInstanceName = platform.FileReadAllText(linkedInstancePath);
         }
 
         return profile is not null || linkedInstanceName is not null;
     }
 
-    public static CloudProfile ReadCloudProfile(string profile, ISystemProvider? platform = null)
+    public static CloudProfile ReadCloudProfile(string profile, ISystemProvider? platform)
     {
-        platform ??= _defaultPlatformProvider;
+        platform ??= DefaultPlatformProvider;
 
         var profilePath = platform.CombinePaths(GetEdgeDBConfigDir(platform), "cloud-credentials", $"{profile}.json");
 
-        if (!File.Exists(profilePath))
+        if (!platform.FileExists(profilePath))
             throw new ConfigurationException($"Unknown cloud profile '{profile}'");
 
-        return JsonConvert.DeserializeObject<CloudProfile>(File.ReadAllText(profilePath))!;
+        return JsonConvert.DeserializeObject<CloudProfile>(platform.FileReadAllText(profilePath))!;
     }
 }

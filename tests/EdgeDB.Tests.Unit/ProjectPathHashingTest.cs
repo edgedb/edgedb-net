@@ -3,6 +3,7 @@ using EdgeDB.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -54,12 +55,7 @@ public class ProjectPathHashingTest
         var mockSystem = new MockSystemProvider(platform, homeDir,
             new Dictionary<string, string> {{"XDG_CONFIG_HOME", xdgconf!}}, projectDir, xdgconf ?? "/", expectedResult);
 
-        if (xdgconf is not null)
-            Environment.SetEnvironmentVariable("XDG_CONFIG_HOME", xdgconf);
-
         var result = ConfigUtils.GetInstanceProjectDirectory(projectDir, mockSystem);
-
-        Environment.SetEnvironmentVariable("XDG_CONFIG_HOME", null);
 
         Assert.AreEqual(expectedResult, result);
     }
@@ -90,11 +86,17 @@ public class ProjectPathHashingTest
         public bool DirectoryExists(string dir)
             => _dirs.Any(x => x == dir || x.StartsWith(dir));
 
+        public DirectoryInfo? DirectoryGetParent(string dir)
+            => Directory.GetParent(dir);
+
         public string GetFullPath(string path)
             => path;
 
         public string GetHomeDir()
             => _home;
+
+        public virtual string GetCurrentDirectory()
+            => Environment.CurrentDirectory;
 
         public bool IsOSPlatform(OSPlatform platform)
             => platform.Equals(_platform);
@@ -108,5 +110,14 @@ public class ProjectPathHashingTest
             => _env.TryGetValue(name, out var val)
                 ? val
                 : null;
+
+        public bool FileExists(string path)
+            => File.Exists(path);
+
+        public string FileReadAllText(string path)
+            => File.ReadAllText(path);
+
+        public virtual void WriteWarning(string message)
+            => Console.WriteLine(message);
     }
 }
