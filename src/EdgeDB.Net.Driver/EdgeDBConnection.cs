@@ -222,7 +222,7 @@ public sealed class EdgeDBConnection
     ///     established with the server.
     /// </summary>
     [JsonProperty("wait_until_available")]
-    public uint Timeout { get; set; } = 30000;
+    public int Timeout { get; set; } = 30000;
 
     /// <summary>
     ///     Gets or sets the secret key used to authenticate with cloud instances.
@@ -441,6 +441,9 @@ public sealed class EdgeDBConnection
 
                     conn.TLSSecurity = result;
                     break;
+                case "wait_until_available":
+                    conn.Timeout = ParseWaitUntilAvailable(value);
+                    break;
 
                 default:
                     throw new FormatException($"Unexpected configuration option \"{name}\"");
@@ -572,6 +575,108 @@ public sealed class EdgeDBConnection
 
             dir = parent.FullName;
         }
+    }
+
+    private static readonly Regex _isoUnitlessHours = new Regex(
+        @"^(-?\d+|-?\d+\.\d*|-?\d*\.\d+)$",
+        RegexOptions.Compiled);
+    private static readonly Regex _isoTimeWithUnits = new Regex(
+        @"(?<Hours>(?<vh>-?\d+|-?\d+\.\d*|-?\d*\.\d+)H)?"
+        + @"(?<Minutes>(?<vm>-?\d+|-?\d+\.\d*|-?\d*\.\d+)M)?"
+        + @"(?<Seconds>(?<vs>-?\d+|-?\d+\.\d*|-?\d*\.\d+)S)?",
+        RegexOptions.Compiled);
+    private static readonly Regex _humanHours = new Regex(
+        @"(?<time>(?:(?<=\s|^)-\s*)?\d*\.?\d*)\s*(?:h(?=\s|\d|\.|$)|hours?(?:\s|$))",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex _humanMinutes = new Regex(
+        @"(?<time>(?:(?<=\s|^)-\s*)?\d*\.?\d*)\s*(?:m(?=\s|\d|\.|$)|minutes?(?:\s|$))",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex _humanSeconds = new Regex(
+        @"(?<time>(?:(?<=\s|^)-\s*)?\d*\.?\d*)\s*(?:s(?=\s|\d|\.|$)|seconds?(?:\s|$))",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex _humanMilliseconds = new Regex(
+        @"(?<time>(?:(?<=\s|^)-\s*)?\d*\.?\d*)\s*(?:ms(?=\s|\d|\.|$)|milliseconds?(?:\s|$))",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex _humanNanoseconds = new Regex(
+        @"(?<time>(?:(?<=\s|^)-\s*)?\d*\.?\d*)\s*(?:us(\s|\d|\.|$)|microseconds?(?:\s|$))",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    internal static int ParseWaitUntilAvailable(string text)
+    {
+        string originalText = text;
+
+        if (text.StartsWith("PT"))
+        {
+            // ISO duration
+            text = text.Substring(2);
+            Match match = _isoUnitlessHours.Match(text);
+            if (match.Success)
+            {
+                double hours = double.Parse(match.Groups[0].Value);
+                return Convert.ToInt32(hours * 3600)* 1000;
+            }
+
+            match = _isoTimeWithUnits.Match(text);
+            if (match.Success)
+            {
+                static void PopIsoDuration(
+                    Match match, string groupName, string valueName, int factor, ref string text, ref int time)
+                {
+                    if (match.Groups.TryGetValue(valueName, out Group? value) && value.Value != "")
+                    {
+                        text = text.Replace(match.Groups[groupName].Value, "");
+                        time += Convert.ToInt32(double.Parse(value.Value) * factor);
+                    }
+                }
+
+                int time = 0;
+                PopIsoDuration(match, "Hours", "vh", 3600 * 1000, ref text, ref time);
+                PopIsoDuration(match, "Minutes", "vm", 60 * 1000, ref text, ref time);
+                PopIsoDuration(match, "Seconds", "vs", 1 * 1000, ref text, ref time);
+                if (text == "")
+                {
+                    return time;
+                }
+            }
+        }
+        else
+        {
+            // human duration
+            static bool PopHumanDuration(Regex regex, int factor, ref string text, ref int time)
+            {
+                Match match = regex.Match(text);
+                if (!match.Success || string.IsNullOrEmpty(match.Groups["time"].Value))
+                {
+                    return false;
+                }
+
+                string part = Regex.Replace(match.Groups["time"].Value, @"\s+", "");
+                if (part == "" || part.EndsWith('.') || part.StartsWith("-."))
+                {
+                    return false;
+                }
+
+                time += Convert.ToInt32(double.Parse(part) * factor);
+                text = text.Replace(match.Value, "");
+
+                return true;
+            }
+
+            bool found = false;
+            int time = 0;
+            if (PopHumanDuration(_humanHours, 3600 * 1000, ref text, ref time)) { found = true; }
+            if (PopHumanDuration(_humanMinutes, 60 * 1000, ref text, ref time)) { found = true; }
+            if (PopHumanDuration(_humanSeconds, 1 * 1000, ref text, ref time)) { found = true; }
+            if (PopHumanDuration(_humanMilliseconds, 1, ref text, ref time)) { found = true; }
+            // We parse nanoseconds, but don't support them
+            if (PopHumanDuration(_humanNanoseconds, 0, ref text, ref time)) { found = true; }
+            if (found && text.Trim() == "")
+            {
+                return time;
+            }
+        }
+
+        throw new ConfigurationException($"invalid duration {originalText}");
     }
 
     private void ParseCloudInstanceName(string name, string? cloudProfile = null)
