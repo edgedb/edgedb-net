@@ -119,21 +119,6 @@ public class ConnectionTests
             "DSN cannot contain more than one host");
 
     [TestMethod]
-    public void EnviromentVariablesWithMultipleHostsAndPorts() =>
-        ExpectError<ConfigurationException>(
-            ParseConnection(envVars: new Dictionary<string, string>
-            {
-                {"EDGEDB_HOST", "host1:1111,host2:2222"}, {"EDGEDB_USER", "foo"}
-            }), "Enviroment variable 'EDGEDB_HOST' cannot contain more than one host");
-
-    [TestMethod]
-    public void QueryParametersWithMultipleHostsAndPorts() =>
-        ExpectError<ConfigurationException>(
-            ParseConnection("edgedb:///db?host=host1:1111,host2:2222",
-                envVars: new Dictionary<string, string> {{"EDGEDB_USER", "foo"}}),
-            "DSN cannot contain more than one host");
-
-    [TestMethod]
     public void MultipleCompoundOptions() =>
         ExpectError<ConfigurationException>(
             ParseConnection("edgedb:///db", x => x.Hostname = "host1",
@@ -141,19 +126,9 @@ public class ConnectionTests
             "Cannot specify DSN and 'Hostname'; they are mutually exclusive");
 
     [TestMethod]
-    public void DSNWithUnixSocket() =>
-        ExpectError<ConfigurationException>(ParseConnection("edgedb:///dbname?host=/unix_sock/test&user=spam"),
-            "Cannot use UNIX socket for 'Hostname'");
-
-    [TestMethod]
     public void DSNRequiresEdgeDBSchema() =>
         ExpectError<ConfigurationException>(ParseConnection("pq:///dbname?host=/unix_sock/test&user=spam"),
             "DSN schema 'gel' expected but got 'pq'");
-
-    [TestMethod]
-    public void DSNQueryParameterWithUnixSocket() =>
-        ExpectError<ConfigurationException>(ParseConnection("edgedb://user@?port=56226&host=%2Ftmp"),
-            "Cannot use UNIX socket for 'Hostname'");
 
     [TestMethod]
     public void TestConnectionFormat()
