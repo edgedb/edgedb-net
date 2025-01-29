@@ -148,7 +148,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     ///     working directory. If
     ///     no file is found this method will throw a <see cref="FileNotFoundException" />.
     /// </remarks>
-    public EdgeDBClient() : this(EdgeDBConnection.ResolveEdgeDBTOML(), new EdgeDBClientPoolConfig()) { }
+    public EdgeDBClient() : this(EdgeDBConnection.Create(), new EdgeDBClientPoolConfig()) { }
 
     /// <summary>
     ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
@@ -158,7 +158,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     ///     no file is found this method will throw a <see cref="FileNotFoundException" />.
     /// </remarks>
     /// <param name="clientPoolConfig">The config for this client pool.</param>
-    public EdgeDBClient(EdgeDBClientPoolConfig clientPoolConfig) : this(EdgeDBConnection.ResolveEdgeDBTOML(),
+    public EdgeDBClient(EdgeDBClientPoolConfig clientPoolConfig) : this(EdgeDBConnection.Create(),
         clientPoolConfig)
     {
     }

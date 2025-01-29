@@ -106,7 +106,7 @@ public class SharedClientTests
                 ServerSettings = testCase?.Options?.ServerSettings,
             };
 
-            EdgeDBConnection connection = EdgeDBConnection._FromOptions(config, mockSystem);
+            EdgeDBConnection connection = EdgeDBConnection._Create(config, mockSystem);
 
             return connection;
         }
