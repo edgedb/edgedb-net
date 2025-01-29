@@ -297,6 +297,60 @@ public sealed class EdgeDBConnection
 
     #region Construct methods
 
+    internal static EdgeDBConnection _FromResolvedFields(ConfigUtils.ResolvedFields resolvedFields, ISystemProvider? platform)
+    {
+        platform ??= ConfigUtils.DefaultPlatformProvider;
+
+        if (resolvedFields.Host?.Value is not null && resolvedFields.Host.Value.Contains(','))
+        {
+            throw new ConfigurationException(
+                $"Invalid host: \"{resolvedFields.Host.Value}\", DSN cannot contain more than one host");
+        }
+        if (resolvedFields.DatabaseOrBranch?.Value?.Value == "")
+        {
+            throw resolvedFields.DatabaseOrBranch.Value switch
+            {
+                ConfigUtils.DatabaseOrBranch.DatabaseName name => new ConfigurationException(
+                    $"Invalid database name: \"{name.Value}\""),
+                ConfigUtils.DatabaseOrBranch.BranchName name => new ConfigurationException(
+                    $"Invalid branch name: \"{name.Value}\""),
+                _ => new ConfigurationException("Invalid database or branch name"),
+            };
+        }
+        if (resolvedFields.User == "")
+        {
+            throw new ConfigurationException($"Invalid user: \"{resolvedFields.User.Value}\"");
+        }
+
+        return new()
+        {
+            _hostname = resolvedFields.Host?.CheckAndGetValue(),
+            _port = resolvedFields.Port?.CheckAndGetValue(),
+            _database = (
+                resolvedFields.DatabaseOrBranch?.Value switch
+                {
+                    ConfigUtils.DatabaseOrBranch.DatabaseName name => name.Value,
+                    _ => null,
+                }
+            ),
+            _branch = (
+                resolvedFields.DatabaseOrBranch?.Value switch
+                {
+                    ConfigUtils.DatabaseOrBranch.BranchName name => name.Value,
+                    _ => null,
+                }
+            ),
+            _user = resolvedFields.User?.CheckAndGetValue(),
+            _password = resolvedFields.Password?.CheckAndGetValue(),
+            SecretKey = resolvedFields.SecretKey?.CheckAndGetValue(),
+            TLSCertificateAuthority = resolvedFields.TLSCertificateAuthority?.CheckAndGetValue(),
+            _tlsSecurity = resolvedFields.TLSSecurity?.CheckAndGetValue(),
+            TLSServerName = resolvedFields.TLSServerName?.CheckAndGetValue(),
+            _waitUntilAvailable = resolvedFields.WaitUntilAvailable?.CheckAndGetValue(),
+            ServerSettings = ConfigUtils.CheckAndGetServerSettings(resolvedFields.ServerSettings),
+        };
+    }
+
     /// <summary>
     ///     Creates an <see cref="EdgeDBConnection" /> from a
     ///     <see href="https://www.edgedb.com/docs/reference/dsn#dsn-specification">valid DSN</see>.
@@ -309,222 +363,299 @@ public sealed class EdgeDBConnection
     /// <exception cref="KeyNotFoundException">An environment variable couldn't be found.</exception>
     public static EdgeDBConnection FromDSN(string dsn)
     {
-        return _FromDSN(dsn, null);
+        return _FromResolvedFields(_FromDSN(dsn, null), null);
     }
 
-    internal static EdgeDBConnection _FromDSN(string dsn, ISystemProvider? platform)
+    static private readonly Regex _dsnRegex = new(
+        @"^(?:(?:edgedb|gel|(?<invalid_scheme>\w+))://)"
+        + @"(?:"
+            + @"(?:"
+                + @"(?<user>[^@/?:,]+)(?::(?<password>[^@/?:,]+))?@"
+                + @"|(?<invalid_user>[^@/?]+)@"
+                + @")?"
+            + @"(?:"
+                + @"(?:(?<host>[^@/?:]+)|\[(?<host>[^\[\]]+)\])"
+                    + @"(?::(?<port>[^@/?:,]+))?"
+                + @"|(?<invalid_host>[^@/?]+)"
+                + @")"
+            + @")?"
+        + @"(?:"
+            + @"/(?<branch>[^@/?:,]*(?:/[^@/?:,]+)*)"
+            + @"|/(?<invalid_branch>[^/?]+)"
+            + @")?"
+        + @"(?:\?(?<params>.*))?"
+        + @"$",
+        RegexOptions.Compiled
+    );
+    static private readonly Regex _dsnParamsRegex = new(
+        @"^(?<entry>[^=&]+(?:=[^=&]*)?)(?:&(?<entry>[^=&]+(?:=[^=&]*)?))*$"
+    );
+
+    internal static ConfigUtils.ResolvedFields _FromDSN(string dsn, ISystemProvider? platform)
     {
         platform ??= ConfigUtils.DefaultPlatformProvider;
 
-        if (!dsn.StartsWith("edgedb://") && !dsn.StartsWith("gel://"))
-            throw new ConfigurationException("DSN schema 'gel' expected but got 'pq'");
+        Match dsnMatch = _dsnRegex.Match(Uri.UnescapeDataString(dsn));
+        if (!dsnMatch.Success)
+        {
+            throw new ConfigurationException($"Invalid DSN: \"{dsn}\"");
+        }
+        if (dsnMatch.Groups["invalid_scheme"].Success)
+        {
+            string scheme = dsnMatch.Groups["invalid_scheme"].Value;
+            throw new ConfigurationException(
+                $"Invalid DSN scheme. Expected \"gel\" but got \"{scheme}\"");
+        }
+        if (dsnMatch.Groups["invalid_user"].Success)
+        {
+            throw new ConfigurationException($"Invalid DSN: Could not parse user/password");
+        }
+        if (dsnMatch.Groups["invalid_host"].Success)
+        {
+            throw new ConfigurationException($"Invalid DSN: Could not parse host/port");
+        }
+        if (dsnMatch.Groups["invalid_branch"].Success)
+        {
+            throw new ConfigurationException($"Invalid DSN: Could not parse branch");
+        }
 
-        string? database = null, username = null, port = null, host = null, password = null;
+        string? GetMatchGroupOrNull(string groupName)
+        {
+            return dsnMatch.Groups[groupName].Success ? dsnMatch.Groups[groupName].Value : null;
+        }
 
+        string? username = GetMatchGroupOrNull("user");
+        string? password = GetMatchGroupOrNull("password");
+        string? port = GetMatchGroupOrNull("port");
+        string? host = GetMatchGroupOrNull("host");
+        string? branch = GetMatchGroupOrNull("branch");
+
+        // Check that a param is not used twice in the dsn
+        HashSet<string> usedParamNames = new();
+        if (branch is not null && branch != "") usedParamNames.Add("branch");
+        if (host is not null && host != "") usedParamNames.Add("host");
+        if (username is not null && username != "") usedParamNames.Add("user");
+        if (password is not null && password != "") usedParamNames.Add("password");
+        if (port is not null && port != "") usedParamNames.Add("port");
+
+        // Parse query params
         Dictionary<string, string> args = new();
-
-        string? proto;
-
-        var formattedDsn = Regex.Replace(dsn, @"^([a-z]+):\/\/", x =>
+        if (dsnMatch.Groups["params"].Success)
         {
-            proto = x.Groups[1].Value;
-            return "";
-        });
-
-        var queryParams = Regex.Match(dsn, @"((?:.(?!\?))+$)");
-
-        if (queryParams.Success)
-        {
-            var parsed = HttpUtility.ParseQueryString(queryParams.Groups[1].Value.Remove(0, 1));
-
-            if (parsed.AllKeys.Length >= 1 && parsed.AllKeys[0] != null)
+            Match paramsMatch = _dsnParamsRegex.Match(dsnMatch.Groups["params"].Value);
+            if (!paramsMatch.Success)
             {
-                args = parsed.AllKeys.ToDictionary(x => x!, x => parsed[x]!);
+                throw new ConfigurationException("Invalid DSN: could not parse query parameters");
+            }
 
-                // remove args from formatted dsn
-                formattedDsn = formattedDsn.Replace(queryParams.Groups[1].Value, "");
+            foreach (Capture capture in paramsMatch.Groups["entry"].Captures)
+            {
+                string[] entry = capture.Value.Split('=');
+                if (entry.Length == 2)
+                {
+                    if (args.ContainsKey(entry[0]))
+                    {
+                        throw new ConfigurationException($"Invalid DSN: dupliate query parameter \"{entry[0]}\"");
+                    }
+
+                    string paramName = entry[0];
+                    if (paramName.EndsWith("_env")) paramName = paramName.Substring(0, paramName.Length - "_env".Length);
+                    if (paramName.EndsWith("_file")) paramName = paramName.Substring(0, paramName.Length - "_file".Length);
+
+                    if (usedParamNames.Contains(paramName))
+                    {
+                        throw new ConfigurationException(
+                            $"Invalid DSN: more than one of "
+                            + $"\"{paramName}\", "
+                            + $"\"?{paramName}=\", \"?{paramName}_env=\", \"?{paramName}_file=\" "
+                            + $"was specified.");
+                    }
+
+                    args[entry[0]] = entry[1];
+                    usedParamNames.Add(paramName);
+                }
+                else
+                {
+                    if (entry[0] == "port")
+                    {
+                        throw new ConfigurationException("Invalid port in dsn query parameters");
+                    }
+                    else if (entry[0] == "database")
+                    {
+                        throw new ConfigurationException("Invalid database in dsn query parameters");
+                    }
+                    else if (entry[0] == "branch")
+                    {
+                        throw new ConfigurationException("Invalid branch in dsn query parameters");
+                    }
+                    else if (entry[0] == "tls_security")
+                    {
+                        throw new ConfigurationException("Invalid TLS Security in dsn query parameters");
+                    }
+                }
             }
         }
 
-        var sub1 = formattedDsn.Split('/');
+        var resolvedFields = new ConfigUtils.ResolvedFields();
 
-        if (sub1.Length == 2)
-        {
-            database = sub1[1];
-            formattedDsn = sub1[0];
-        }
-
-        var sub2 = formattedDsn.Split('@');
-
-        if (sub2.Length == 2)
-        {
-            if (sub2[1] == "")
-            {
-                // empty host/port
-                goto connectionDefinition;
-            }
-
-            if (sub2[1].Contains(','))
-                throw new ConfigurationException("DSN cannot contain more than one host");
-
-            var right = sub2[1].Split(':');
-
-            if (right.Length == 2)
-            {
-                host = right[0];
-                port = right[1];
-            }
-            else
-                host = right[0];
-
-            var left = sub2[0].Split(':');
-
-            if (left.Length == 2)
-            {
-                username = left[0];
-                password = left[1];
-            }
-            else
-                username = left[0];
-        }
-        else
-        {
-            var spl = sub2[0].Split(':');
-
-            if (spl.Length == 2)
-            {
-                host = spl[0];
-                port = spl[1];
-            }
-            else if (!string.IsNullOrEmpty(spl[0]))
-                host = spl[0];
-        }
-
-        connectionDefinition:
-
-        var conn = new EdgeDBConnection();
-
-        if (database is not null)
-            conn.Database = database;
-
-        if (host is not null)
-            conn.Hostname = host;
-
-        if (username is not null)
-            conn.Username = username;
-
-        if (password is not null)
-            conn.Password = password;
-
+        if (host is not null) { resolvedFields.Host = host; }
         if (port is not null)
         {
             if (!int.TryParse(port, out var parsedPort))
-                throw new FormatException("port was not in the correct format");
+                throw new ConfigurationException("Invalid DSN: port was not in the correct format");
 
-            conn.Port = parsedPort;
+            resolvedFields.Port = parsedPort;
+        }
+        if (branch is not null && branch != "")
+        {
+            resolvedFields.DatabaseOrBranch = new ConfigUtils.DatabaseOrBranch.BranchName(branch);
+        }
+        if (username is not null) { resolvedFields.User = username; }
+        if (password is not null) { resolvedFields.Password = password; }
+
+        if (args.Any(x => x.Key.StartsWith("branch", StringComparison.InvariantCultureIgnoreCase))
+            && args.Any(x => x.Key.StartsWith("database", StringComparison.InvariantCultureIgnoreCase)))
+        {
+            throw new ConfigurationException("Invalid DSN: branch and database are mutually exclusive");
         }
 
-        void SetArgument(string name, string? value, EdgeDBConnection conn)
+        // Resolve query arguments
+        foreach (var arg in args)
         {
-            if (string.IsNullOrEmpty(value))
-                return;
+            string key = arg.Key;
+            ConfigUtils.ResolvedField<string> value = arg.Value;
 
-            switch (name)
+            if (key.EndsWith("_env"))
             {
-                case "port":
+                string oldKey = key;
+                string envName = value.Value!;
+                key = key.Substring(0, key.Length - "_env".Length);
+                string? envVar = platform.GetEnvVariable(envName);
+                if (envVar is not null)
                 {
-                    if (port is not null)
-                        throw new ArgumentException("Port ambiguity mismatch");
-
-                    if (!int.TryParse(value, out var parsedPort))
-                        throw new FormatException("port was not in the correct format");
-
-                    conn.Port = parsedPort;
+                    value = envVar;
                 }
-                    break;
-                case "host":
-                    if (host is not null)
-                        throw new ArgumentException("Host ambiguity mismatch");
+                else
+                {
+                    value = new ConfigurationException(
+                        $"Invalid DSN query parameter: \"{oldKey}\", environment variable \"{envName}\" doesn\'t exist");
+                }
+            }
 
-                    conn.Hostname = value;
+            if (key.EndsWith("_file") && value.Value is not null)
+            {
+                string oldKey = key;
+                string fileName = value.Value!;
+                key = key.Substring(0, key.Length - "_file".Length);
+                if (platform.FileExists(fileName))
+                {
+                    value = platform.FileReadAllText(fileName);
+                }
+                else
+                {
+                    throw new ConfigurationException(
+                        $"Invalid DSN query parameter: \"{oldKey}\" could not find file \"{fileName}\"");
+                }
+            }
+
+            if (value is null) { continue; }
+
+            switch (key)
+            {
+                case "host":
+                    resolvedFields.Host = value;
+                    break;
+                case "port":
+                    resolvedFields.Port = value.Convert(ConfigUtils.ParsePort);
                     break;
                 case "database":
-                    if (database is not null)
-                        throw new ArgumentException("Database ambiguity mismatch");
-
-                    conn.Database = value;
+                    resolvedFields.DatabaseOrBranch = value.Convert<ConfigUtils.DatabaseOrBranch>(v =>
+                    {
+                        if (v.StartsWith("/"))
+                        {
+                            v = v.Substring(1);
+                        }
+                        if (v != "")
+                        {
+                            return new ConfigUtils.DatabaseOrBranch.DatabaseName(v);
+                        }
+                        return null;
+                    });
                     break;
                 case "branch":
-                    if (database is not null)
-                        throw new ArgumentException("Database ambiguity mismatch");
-
-                    conn.Branch = value;
+                    resolvedFields.DatabaseOrBranch = value.Convert<ConfigUtils.DatabaseOrBranch>(v =>
+                    {
+                        if (v.StartsWith("/"))
+                        {
+                            v = v.Substring(1);
+                        }
+                        if (v != "")
+                        {
+                            return new ConfigUtils.DatabaseOrBranch.BranchName(v);
+                        }
+                        return null;
+                    });
                     break;
                 case "user":
-                    if (username is not null)
-                        throw new ArgumentException("User ambiguity mismatch");
-
-                    conn.Username = value;
+                    resolvedFields.User = value;
                     break;
                 case "password":
-                    if (password is not null)
-                        throw new ArgumentException("Password ambiguity mismatch");
-
-                    conn.Password = value;
+                    resolvedFields.Password = value;
+                    break;
+                case "secret_key":
+                    resolvedFields.SecretKey = value;
                     break;
                 case "tls_cert_file":
-                {
-                    if (!platform.FileExists(value))
-                        throw new FileNotFoundException("The specified tls_cert_file file was not found");
-
-                    conn.TLSCertificateAuthority = platform.FileReadAllText(value);
-                }
+                    resolvedFields.TLSCertificateAuthority = value.Convert<string>(v =>
+                    {
+                        if (platform.FileExists(v))
+                        {
+                            return platform.FileReadAllText(v);
+                        }
+                        else
+                        {
+                            return new FileNotFoundException("The specified tls_cert_file file was not found");
+                        }
+                    });
+                    break;
+                case "tls_server_name":
+                    resolvedFields.TLSServerName = value;
                     break;
                 case "tls_security":
-                    conn.TLSSecurity = TLSSecurityModeParser.Parse(value);
+                    resolvedFields.TLSSecurity = value.Convert<TLSSecurityMode>(v =>
+                    {
+                        try
+                        {
+                            return TLSSecurityModeParser.Parse(v);
+                        }
+                        catch (Exception e)
+                        {
+                            return e;
+                        }
+                    });
                     break;
                 case "wait_until_available":
-                    conn.WaitUntilAvailable = ParseWaitUntilAvailable(value);
+                    resolvedFields.WaitUntilAvailable = value.Convert<int>(v =>
+                    {
+                        try
+                        {
+                            return ConfigUtils.ParseWaitUntilAvailable(v);
+                        }
+                        catch (Exception e)
+                        {
+                            return e;
+                        }
+                    });
                     break;
 
                 default:
-                    throw new FormatException($"Unexpected configuration option \"{name}\"");
+                    resolvedFields.ServerSettings =
+                        ConfigUtils.AddServerSettingField(resolvedFields.ServerSettings, key, value);
+                    break;
             }
         }
 
-        if (args.Any(x => x.Key.StartsWith("branch", StringComparison.InvariantCultureIgnoreCase)) && args.Any(x =>
-                x.Key.StartsWith("database", StringComparison.InvariantCultureIgnoreCase)))
-        {
-            throw new ArgumentException("branch and database are mutually exclusive");
-        }
-
-
-        // query arguments
-        foreach (var arg in args)
-        {
-            var fileMatch = Regex.Match(arg.Key!, @"(.*?)_file");
-            var envMatch = Regex.Match(arg.Key!, @"(.*?)_env");
-
-            if (fileMatch.Success)
-            {
-                var val = platform.FileReadAllText(arg.Value);
-
-                SetArgument(fileMatch.Groups[1].Value, val, conn);
-            }
-            else if (envMatch.Success)
-            {
-                var val = platform.GetEnvVariable(arg.Value);
-
-                if (val == null)
-                    throw new KeyNotFoundException($"Environment variable \"{arg.Value}\" couldn't be found");
-
-                SetArgument(envMatch.Groups[1].Value, val, conn);
-            }
-            else
-                SetArgument(arg.Key, arg.Value, conn);
-        }
-
-        return conn;
+        return resolvedFields;
     }
 
     /// <summary>
@@ -638,108 +769,6 @@ public sealed class EdgeDBConnection
 
             dir = parent.FullName;
         }
-    }
-
-    private static readonly Regex _isoUnitlessHours = new Regex(
-        @"^(-?\d+|-?\d+\.\d*|-?\d*\.\d+)$",
-        RegexOptions.Compiled);
-    private static readonly Regex _isoTimeWithUnits = new Regex(
-        @"(?<Hours>(?<vh>-?\d+|-?\d+\.\d*|-?\d*\.\d+)H)?"
-        + @"(?<Minutes>(?<vm>-?\d+|-?\d+\.\d*|-?\d*\.\d+)M)?"
-        + @"(?<Seconds>(?<vs>-?\d+|-?\d+\.\d*|-?\d*\.\d+)S)?",
-        RegexOptions.Compiled);
-    private static readonly Regex _humanHours = new Regex(
-        @"(?<time>(?:(?<=\s|^)-\s*)?\d*\.?\d*)\s*(?:h(?=\s|\d|\.|$)|hours?(?:\s|$))",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex _humanMinutes = new Regex(
-        @"(?<time>(?:(?<=\s|^)-\s*)?\d*\.?\d*)\s*(?:m(?=\s|\d|\.|$)|minutes?(?:\s|$))",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex _humanSeconds = new Regex(
-        @"(?<time>(?:(?<=\s|^)-\s*)?\d*\.?\d*)\s*(?:s(?=\s|\d|\.|$)|seconds?(?:\s|$))",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex _humanMilliseconds = new Regex(
-        @"(?<time>(?:(?<=\s|^)-\s*)?\d*\.?\d*)\s*(?:ms(?=\s|\d|\.|$)|milliseconds?(?:\s|$))",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex _humanNanoseconds = new Regex(
-        @"(?<time>(?:(?<=\s|^)-\s*)?\d*\.?\d*)\s*(?:us(\s|\d|\.|$)|microseconds?(?:\s|$))",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-    internal static int ParseWaitUntilAvailable(string text)
-    {
-        string originalText = text;
-
-        if (text.StartsWith("PT"))
-        {
-            // ISO duration
-            text = text.Substring(2);
-            Match match = _isoUnitlessHours.Match(text);
-            if (match.Success)
-            {
-                double hours = double.Parse(match.Groups[0].Value);
-                return Convert.ToInt32(hours * 3600)* 1000;
-            }
-
-            match = _isoTimeWithUnits.Match(text);
-            if (match.Success)
-            {
-                static void PopIsoDuration(
-                    Match match, string groupName, string valueName, int factor, ref string text, ref int time)
-                {
-                    if (match.Groups.TryGetValue(valueName, out Group? value) && value.Value != "")
-                    {
-                        text = text.Replace(match.Groups[groupName].Value, "");
-                        time += Convert.ToInt32(double.Parse(value.Value) * factor);
-                    }
-                }
-
-                int time = 0;
-                PopIsoDuration(match, "Hours", "vh", 3600 * 1000, ref text, ref time);
-                PopIsoDuration(match, "Minutes", "vm", 60 * 1000, ref text, ref time);
-                PopIsoDuration(match, "Seconds", "vs", 1 * 1000, ref text, ref time);
-                if (text == "")
-                {
-                    return time;
-                }
-            }
-        }
-        else
-        {
-            // human duration
-            static bool PopHumanDuration(Regex regex, int factor, ref string text, ref int time)
-            {
-                Match match = regex.Match(text);
-                if (!match.Success || string.IsNullOrEmpty(match.Groups["time"].Value))
-                {
-                    return false;
-                }
-
-                string part = Regex.Replace(match.Groups["time"].Value, @"\s+", "");
-                if (part == "" || part.EndsWith('.') || part.StartsWith("-."))
-                {
-                    return false;
-                }
-
-                time += Convert.ToInt32(double.Parse(part) * factor);
-                text = text.Replace(match.Value, "");
-
-                return true;
-            }
-
-            bool found = false;
-            int time = 0;
-            if (PopHumanDuration(_humanHours, 3600 * 1000, ref text, ref time)) { found = true; }
-            if (PopHumanDuration(_humanMinutes, 60 * 1000, ref text, ref time)) { found = true; }
-            if (PopHumanDuration(_humanSeconds, 1 * 1000, ref text, ref time)) { found = true; }
-            if (PopHumanDuration(_humanMilliseconds, 1, ref text, ref time)) { found = true; }
-            // We parse nanoseconds, but don't support them
-            if (PopHumanDuration(_humanNanoseconds, 0, ref text, ref time)) { found = true; }
-            if (found && text.Trim() == "")
-            {
-                return time;
-            }
-        }
-
-        throw new ConfigurationException($"invalid duration {originalText}");
     }
 
     private void ParseCloudInstanceName(string name, string? cloudProfile, ISystemProvider? platform)
@@ -865,7 +894,7 @@ public sealed class EdgeDBConnection
 
         if (platform.GetGelEnvVariable(DSN_ENV_NAME, out envName, out envVar))
         {
-            var fromDSN = _FromDSN(envVar, platform);
+            var fromDSN = _FromResolvedFields(_FromDSN(envVar, platform), platform);
             connection = connection?.MergeInto(fromDSN) ?? fromDSN;
         }
 
@@ -1019,7 +1048,7 @@ public sealed class EdgeDBConnection
             }
             else
             {
-                var fromDSN = _FromDSN(dsn, platform);
+                var fromDSN = _FromResolvedFields(_FromDSN(dsn, platform), platform);
                 connection = connection?.MergeInto(fromDSN) ?? fromDSN;
             }
         }

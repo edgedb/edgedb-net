@@ -1,4 +1,5 @@
 using EdgeDB.Abstractions;
+using EdgeDB.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -111,12 +112,12 @@ public class ConnectionTests
     [TestMethod]
     public void DSNWithMultipleHosts() =>
         ExpectError<ConfigurationException>(ParseConnection("edgedb://user@host1,host2/db"),
-            "DSN cannot contain more than one host");
+            "Invalid host: \"host1,host2\", DSN cannot contain more than one host");
 
     [TestMethod]
     public void DSNWIthMultipleHostsAndPorts() =>
         ExpectError<ConfigurationException>(ParseConnection("edgedb://user@host1:1111,host2:2222/db"),
-            "DSN cannot contain more than one host");
+            "Invalid DSN: Could not parse host/port");
 
     [TestMethod]
     public void MultipleCompoundOptions() =>
@@ -128,7 +129,7 @@ public class ConnectionTests
     [TestMethod]
     public void DSNRequiresEdgeDBSchema() =>
         ExpectError<ConfigurationException>(ParseConnection("pq:///dbname?host=/unix_sock/test&user=spam"),
-            "DSN schema 'gel' expected but got 'pq'");
+            "Invalid DSN scheme. Expected \"gel\" but got \"pq\"");
 
     [TestMethod]
     public void TestConnectionFormat()
@@ -332,8 +333,9 @@ public class ConnectionTests
     [DataRow("\t1s\t", 1)]
     public void TestValidWaitUntilAvailable(string input, double expectedSeconds)
     {
-        int actualMilliseconds = EdgeDBConnection.ParseWaitUntilAvailable(input);
-        Assert.IsTrue(Math.Abs(actualMilliseconds * 0.001 - expectedSeconds) < 0.0005);
+        ConfigUtils.ResolvedField<int> actualMilliseconds = ConfigUtils.ParseWaitUntilAvailable(input);
+        Assert.IsNotNull(actualMilliseconds.Value);
+        Assert.IsTrue(Math.Abs(actualMilliseconds.Value * 0.001 - expectedSeconds) < 0.0005);
     }
 
     [TestMethod]
@@ -375,11 +377,8 @@ public class ConnectionTests
     [DataRow("s")]
     public void TestInvalidWaitUntilAvailable(string input)
     {
-        void TryParse()
-        {
-            EdgeDBConnection.ParseWaitUntilAvailable(input);
-        }
-        Assert.ThrowsException<ConfigurationException>(TryParse);
+        ConfigUtils.ResolvedField<int> actualMilliseconds = ConfigUtils.ParseWaitUntilAvailable(input);
+        Assert.IsNotNull(actualMilliseconds.Error);
     }
 
     #endregion
