@@ -224,7 +224,21 @@ internal static class ConfigUtils
         }
     }
 
-    static ResolvedField<T>? MergeField<T>(ResolvedField<T>? to, ResolvedField<T>? from)
+    internal static bool TryGetFieldValue<T>(ResolvedField<T>? field, out T value)
+    {
+        if (field is ResolvedField<T>.Valid)
+        {
+            value = field.Value!;
+            return true;
+        }
+        else
+        {
+            value = default(T)!;
+            return false;
+        }
+    }
+
+    internal static ResolvedField<T>? MergeField<T>(ResolvedField<T>? to, ResolvedField<T>? from)
     {
         if (to is null)
         {
@@ -312,6 +326,31 @@ internal static class ConfigUtils
             && TLSServerName is null
             && WaitUntilAvailable is null
             && ServerSettings.Count == 0;
+
+        internal static ResolvedFields FromCredentials(ConnectionCredentials credentials)
+        {
+            ResolvedFields result = new();
+
+            if (credentials.Host is not null) { result.Host = credentials.Host; }
+            if (credentials.Port is not null)
+            {
+                result.Port = MergeField(result.Port, ParsePort(credentials.Port));
+            }
+            if (credentials.Database is not null)
+            {
+                result.DatabaseOrBranch = new DatabaseOrBranch.DatabaseName(credentials.Database);
+            }
+            if (credentials.Branch is not null)
+            {
+                result.DatabaseOrBranch = new DatabaseOrBranch.BranchName(credentials.Branch);
+            }
+            if (credentials.User is not null) { result.User = credentials.User; }
+            if (credentials.Password is not null) { result.Password = credentials.Password; }
+            if (credentials.TlsCA is not null) { result.TLSCertificateAuthority = credentials.TlsCA; }
+            if (credentials.TlsSecurity is not null) { result.TLSSecurity = credentials.TlsSecurity; }
+
+            return result;
+        }
     }
 
     #endregion
