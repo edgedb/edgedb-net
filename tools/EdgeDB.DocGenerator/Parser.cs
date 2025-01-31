@@ -9,9 +9,9 @@ internal class Parser
 {
     public static DocMember[] Load(string file)
     {
-        var serializer = new XmlSerializer(typeof(doc));
+        var serializer = new XmlSerializer(typeof(Doc));
         using var reader = new StreamReader(file);
-        var t = (doc)serializer.Deserialize(reader)!;
+        var t = (Doc)serializer.Deserialize(reader)!;
 
         var members = t.members!.Select(x => DocMember.FromMember(x)).OrderByDescending(x => x.Type).ToArray();
 
@@ -437,7 +437,7 @@ public enum MemberType
 [DesignerCategory("code")]
 [XmlTypeAttribute(AnonymousType = true)]
 [XmlRootAttribute(Namespace = "", IsNullable = false)]
-public class doc
+public class Doc
 {
     private docAssembly? assemblyField;
 

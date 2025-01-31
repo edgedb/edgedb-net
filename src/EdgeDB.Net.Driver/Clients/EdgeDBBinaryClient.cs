@@ -421,7 +421,14 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
             token: token);
 
         return result.ProtocolResult.Data.Any()
-            ? result.ProtocolResult.Data.Select(x => new Json((string?)result.ProtocolResult.OutCodecInfo.Codec.Deserialize(this, in x)))
+            ? result.ProtocolResult.Data
+                .Select(x => 
+                {
+                    object? text = result.ProtocolResult.OutCodecInfo.Codec.Deserialize(this, in x);
+                    return text is string
+                        ? new Json((string)text)
+                        : throw new EdgeDBException("Error parsing JsonElements.");
+                })
                 .ToImmutableArray()
             : ImmutableArray<Json>.Empty;
     }

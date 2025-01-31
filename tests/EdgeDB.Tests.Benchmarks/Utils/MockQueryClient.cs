@@ -72,7 +72,6 @@ internal class MockQueryClient : EdgeDBBinaryClient
     {
         private byte[]? _nextBuffer;
         private int _pos;
-        private bool _trigger;
         public override bool CanRead => true;
 
         public override bool CanSeek => true;
@@ -93,7 +92,7 @@ internal class MockQueryClient : EdgeDBBinaryClient
                 _pos += count;
                 return count;
             }
-            catch (Exception x)
+            catch (Exception)
             {
                 return 0;
             }
@@ -108,7 +107,7 @@ internal class MockQueryClient : EdgeDBBinaryClient
                 _pos += buffer.Length;
                 return ValueTask.FromResult(buffer.Length);
             }
-            catch (Exception x)
+            catch (Exception)
             {
                 return ValueTask.FromResult(0);
             }
@@ -142,7 +141,6 @@ internal class MockQueryClient : EdgeDBBinaryClient
                 _ => throw new Exception($"unknown message type {type}")
             };
             _pos = 0;
-            _trigger = true;
         }
     }
 }
