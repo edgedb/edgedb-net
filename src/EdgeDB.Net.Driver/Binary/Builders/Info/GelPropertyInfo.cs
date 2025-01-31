@@ -3,7 +3,7 @@ using System.Reflection;
 
 namespace EdgeDB;
 
-internal sealed class EdgeDBPropertyInfo
+internal sealed class GelPropertyInfo
 {
     private readonly GelIgnoreAttribute? _ignore;
 
@@ -11,7 +11,7 @@ internal sealed class EdgeDBPropertyInfo
     private readonly IEdgeDBTypeConverter? _typeConverter;
     private readonly GelTypeConverterAttribute? _typeConverterAttribute;
 
-    public EdgeDBPropertyInfo(PropertyInfo propInfo)
+    public GelPropertyInfo(PropertyInfo propInfo)
     {
         PropertyInfo = propInfo;
         _propertyAttribute = propInfo.GetCustomAttribute<GelPropertyAttribute>();

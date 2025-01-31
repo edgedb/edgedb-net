@@ -5,9 +5,9 @@ namespace EdgeDB;
 
 internal readonly struct EdgeDBPropertyMapInfo
 {
-    public readonly EdgeDBPropertyInfo[] Properties { get; init; }
-    public readonly Dictionary<string, EdgeDBPropertyInfo> Map { get; init; }
-    public readonly Dictionary<EdgeDBPropertyInfo, int> IndexMap { get; init; }
+    public readonly GelPropertyInfo[] Properties { get; init; }
+    public readonly Dictionary<string, GelPropertyInfo> Map { get; init; }
+    public readonly Dictionary<GelPropertyInfo, int> IndexMap { get; init; }
 
 
     private static readonly ConcurrentDictionary<Type, EdgeDBPropertyMapInfo> _cache = new();
@@ -18,14 +18,14 @@ internal readonly struct EdgeDBPropertyMapInfo
             return cached;
 
         var props = type.GetProperties();
-        var edgedbProps = new EdgeDBPropertyInfo[props.Length];
-        var indexMap = new Dictionary<EdgeDBPropertyInfo, int>(props.Length);
-        var map = new Dictionary<string, EdgeDBPropertyInfo>(props.Length);
+        var edgedbProps = new GelPropertyInfo[props.Length];
+        var indexMap = new Dictionary<GelPropertyInfo, int>(props.Length);
+        var map = new Dictionary<string, GelPropertyInfo>(props.Length);
 
         for (var i = 0; i != props.Length; i++)
         {
             var prop = props[i];
-            var edbProp = new EdgeDBPropertyInfo(prop);
+            var edbProp = new GelPropertyInfo(prop);
             edgedbProps[i] = edbProp;
 
             indexMap.Add(edbProp, i);

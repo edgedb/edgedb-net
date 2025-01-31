@@ -75,7 +75,7 @@ internal sealed class EdgeDBTypeDeserializeInfo
 
     public Dictionary<Type, EdgeDBTypeDeserializeInfo> Children { get; } = new();
 
-    internal EdgeDBPropertyInfo[] Properties
+    internal GelPropertyInfo[] Properties
         => PropertyMapInfo.Properties;
 
     internal EdgeDBPropertyMapInfo PropertyMapInfo
