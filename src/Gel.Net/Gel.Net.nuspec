@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>Gel.Net</id>
+    <version>0.1.0$suffix$</version>
+    <title>Gel.Net</title>
+    <authors>quinchs</authors>
+    <owners>quinchs</owners>
+    <description>An asynchronous library for interfacing with Gel</description>
+    <tags>edgedb;gel;database</tags>
+    <projectUrl>https://github.com/edgedb/edgedb-net</projectUrl>
+    <licenseUrl>http://opensource.org/licenses/MIT</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <iconUrl>https://github.com/edgedb/edgedb-net/raw/dev/branding/PackageLogo.png</iconUrl>
+    <dependencies>
+        <group targetFramework="net8.0">
+            <dependency id="Gel.Net.Driver" version="0.1.0$suffix$" />
+            <dependency id="Gel.Net.QueryBuilder" version="0.1.0$suffix$" />
+        </group>
+    </dependencies>
+  </metadata>
+</package>
