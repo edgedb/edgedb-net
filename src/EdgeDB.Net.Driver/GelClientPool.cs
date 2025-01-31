@@ -418,7 +418,7 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
             case GelClientType.Http:
             {
                 var holder = await _poolHolder.GetPoolHandleAsync(token).ConfigureAwait(false);
-                var client = new EdgeDBHttpClient(_connection, _poolConfig, holder, id);
+                var client = new GelHttpClient(_connection, _poolConfig, holder, id);
 
                 client.WithSession(_session);
 

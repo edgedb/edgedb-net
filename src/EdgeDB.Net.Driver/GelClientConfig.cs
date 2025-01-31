@@ -54,7 +54,7 @@ public enum GelClientType
     Tcp,
 
     /// <summary>
-    ///     The client pool will use <see cref="EdgeDBHttpClient" />s
+    ///     The client pool will use <see cref="GelHttpClient" />s
     /// </summary>
     Http,
 

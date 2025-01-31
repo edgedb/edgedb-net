@@ -10,7 +10,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents a client that can preform queries over HTTP.
 /// </summary>
-internal sealed class EdgeDBHttpClient : GelBinaryClient
+internal sealed class GelHttpClient : GelBinaryClient
 {
     public const string HTTP_TOKEN_AUTH_METHOD = "SCRAM-SHA-256";
     private readonly HttpDuplexer _duplexer;
@@ -19,7 +19,7 @@ internal sealed class EdgeDBHttpClient : GelBinaryClient
 
     private bool _authed;
 
-    internal EdgeDBHttpClient(GelConnection connection, GelClientConfig clientConfig, IDisposable poolHolder, ulong clientId)
+    internal GelHttpClient(GelConnection connection, GelClientConfig clientConfig, IDisposable poolHolder, ulong clientId)
         : base(connection, clientConfig, poolHolder, clientId)
     {
         var manager = new HttpClientHandler

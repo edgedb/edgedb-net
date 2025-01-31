@@ -13,13 +13,13 @@ internal sealed class HttpDuplexer : IBinaryDuplexer
 {
     private static readonly Regex _contentTypeRegex = new(@"application\/x\.edgedb\.v_(\d+)_(\d+)\.binary");
 
-    private readonly EdgeDBHttpClient _client;
+    private readonly GelHttpClient _client;
     private readonly Queue<IReceiveable> _packetQueue;
     private readonly SemaphoreSlim _readSemaphore;
     private readonly SemaphoreSlim _sendSemaphore;
     private TaskCompletionSource _packetReadTCS;
 
-    public HttpDuplexer(EdgeDBHttpClient client)
+    public HttpDuplexer(GelHttpClient client)
     {
         _client = client;
         _packetQueue = new Queue<IReceiveable>(5);
