@@ -6,7 +6,7 @@ namespace EdgeDB;
 /// <summary>
 ///     A class containing extension methods for DI.
 /// </summary>
-public static class EdgeDBHostingExtensions
+public static class HostingExtensions
 {
     /// <summary>
     ///     Adds a <see cref="GelClientPool" /> singleton to a <see cref="IServiceCollection" />.
