@@ -29,7 +29,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.BinaryDebugger", "to
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gel.Examples.ExampleTODOApi", "examples\Gel.Examples.ExampleTODOApi\Gel.Examples.ExampleTODOApi.csproj", "{E38429C6-53A5-4311-8189-1F78238666DC}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "EdgeDB.Examples.FSharp", "examples\EdgeDB.Examples.FSharp\EdgeDB.Examples.FSharp.fsproj", "{F25AA805-163F-46B4-942E-B1A5EBE8383C}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Gel.Examples.FSharp", "examples\Gel.Examples.FSharp\Gel.Examples.FSharp.fsproj", "{F25AA805-163F-46B4-942E-B1A5EBE8383C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EdgeDB.DocGenerator", "tools\EdgeDB.DocGenerator\EdgeDB.DocGenerator.csproj", "{776EAE34-5A30-45B0-9277-C399CC2ABA53}"
 EndProject
