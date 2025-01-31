@@ -19,7 +19,7 @@ internal sealed class EdgeDBHttpClient : EdgeDBBinaryClient
 
     private bool _authed;
 
-    internal EdgeDBHttpClient(EdgeDBConnection connection, EdgeDBConfig config, IDisposable poolHolder, ulong clientId)
+    internal EdgeDBHttpClient(GelConnection connection, EdgeDBConfig config, IDisposable poolHolder, ulong clientId)
         : base(connection, config, poolHolder, clientId)
     {
         var manager = new HttpClientHandler

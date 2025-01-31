@@ -19,10 +19,10 @@ public static class EdgeDBHostingExtensions
     /// <returns>
     ///     The source <see cref="IServiceCollection" /> with <see cref="EdgeDBClient" /> added as a singleton.
     /// </returns>
-    public static IServiceCollection AddEdgeDB(this IServiceCollection collection, EdgeDBConnection? connection = null,
+    public static IServiceCollection AddEdgeDB(this IServiceCollection collection, GelConnection? connection = null,
         Action<EdgeDBClientPoolConfig>? clientConfig = null)
     {
-        var conn = connection ?? EdgeDBConnection.Create();
+        var conn = connection ?? GelConnection.Create();
 
         collection.AddSingleton(conn);
         collection.AddSingleton<EdgeDBClientPoolConfig>(provider =>

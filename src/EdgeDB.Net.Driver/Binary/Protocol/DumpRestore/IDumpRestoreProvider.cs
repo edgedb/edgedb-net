@@ -6,7 +6,7 @@ namespace EdgeDB.Binary.Protocol.DumpRestore;
 internal interface IDumpRestoreProvider
 {
     private static IDumpRestoreProvider? _defaultProvider;
-    private static readonly ConcurrentDictionary<EdgeDBConnection, IDumpRestoreProvider> _providers = new();
+    private static readonly ConcurrentDictionary<GelConnection, IDumpRestoreProvider> _providers = new();
 
     public static readonly Dictionary<ProtocolVersion, (Type Type, Func<IDumpRestoreProvider> Factory)> Providers =
         new() {{(1, 0), (typeof(V1DumpRestoreProvider), () => new V1DumpRestoreProvider())}};

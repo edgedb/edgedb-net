@@ -15,7 +15,7 @@ public class SCRAMTests
     public const string SCRAM_SALT = "W22ZaJ0SNY7soEsUEjb6gQ==";
 
     private static readonly EdgeDBBinaryClient _client =
-        new EdgeDBTcpClient(new EdgeDBConnection(), new EdgeDBConfig(), null!);
+        new EdgeDBTcpClient(new GelConnection(), new EdgeDBConfig(), null!);
 
     [TestMethod]
     public void TestSCRAM()

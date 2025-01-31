@@ -16,7 +16,7 @@ internal delegate ref ITypeDescriptor RelativeDescriptorDelegate(in int position
 internal interface IProtocolProvider
 {
     private static ProtocolProviderFactory? _defaultProvider;
-    private static readonly ConcurrentDictionary<EdgeDBConnection, ProtocolProviderFactory> _providers = new();
+    private static readonly ConcurrentDictionary<GelConnection, ProtocolProviderFactory> _providers = new();
 
     public static readonly Dictionary<ProtocolVersion, (Type Type, ProtocolProviderFactory Factory)> Providers = new()
     {

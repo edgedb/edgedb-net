@@ -12,7 +12,7 @@ namespace EdgeDB.Tests.Unit;
 public class ScalarCodecsTests
 {
     private static readonly EdgeDBBinaryClient _client =
-        new EdgeDBTcpClient(new EdgeDBConnection(), new EdgeDBConfig(), null!);
+        new EdgeDBTcpClient(new GelConnection(), new EdgeDBConfig(), null!);
 
     internal static void TestCodec<TType>(IScalarCodec<TType>? codec, TType expectedValue,
         byte[] expectedSerializedValue)

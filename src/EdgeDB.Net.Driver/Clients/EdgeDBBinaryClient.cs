@@ -20,7 +20,7 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
     private readonly SemaphoreSlim _commandSemaphore;
     private readonly SemaphoreSlim _connectSemaphone;
     private readonly SemaphoreSlim _semaphore;
-    internal readonly EdgeDBConnection Connection;
+    internal readonly GelConnection Connection;
     internal readonly TimeSpan ConnectionTimeout;
 
     internal readonly ILogger Logger;
@@ -47,7 +47,7 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
     /// <param name="clientPoolHolder">The client pool holder for this client.</param>
     /// <param name="clientId">The optional client id of this client. This is used for logging and client pooling.</param>
     public EdgeDBBinaryClient(
-        EdgeDBConnection connection,
+        GelConnection connection,
         EdgeDBConfig clientConfig,
         IDisposable clientPoolHolder,
         ulong? clientId = null)

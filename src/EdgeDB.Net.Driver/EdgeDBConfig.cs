@@ -37,7 +37,7 @@ public sealed class EdgeDBClientPoolConfig : EdgeDBConfig
     /// <remarks>
     ///     The <see cref="ClientType" /> must be <see cref="EdgeDBClientType.Custom" /> to use this property.
     /// </remarks>
-    internal Func<ulong, EdgeDBConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? ClientFactory { get; set; }
+    internal Func<ulong, GelConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? ClientFactory { get; set; }
 
     internal bool HasCustomPoolSize
         => _poolSize.HasValue;

@@ -8,7 +8,7 @@ namespace EdgeDB.Tests.Benchmarks;
 public class TypeBuilderBenchmarks
 {
     private static readonly EdgeDBBinaryClient client =
-        new EdgeDBTcpClient(new EdgeDBConnection(), new EdgeDBConfig(), null!);
+        new EdgeDBTcpClient(new GelConnection(), new EdgeDBConfig(), null!);
 
     internal static ObjectCodec Codec;
     internal static Data Data;
