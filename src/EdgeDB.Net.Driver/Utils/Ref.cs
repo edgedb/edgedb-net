@@ -1,4 +1,4 @@
-namespace EdgeDB.Utils;
+namespace Gel.Utils;
 
 internal sealed class Ref<T>(T value)
 where T : class

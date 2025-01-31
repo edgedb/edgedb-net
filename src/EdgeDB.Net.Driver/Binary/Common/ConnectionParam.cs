@@ -1,6 +1,6 @@
-using EdgeDB.Utils;
+using Gel.Utils;
 
-namespace EdgeDB.Binary;
+namespace Gel.Binary;
 
 internal readonly struct ConnectionParam
 {

@@ -1,7 +1,7 @@
 module CancelQueries
 
 open Examples
-open EdgeDB
+open Gel
 open Microsoft.Extensions.Logging
 open System.Threading
 open System

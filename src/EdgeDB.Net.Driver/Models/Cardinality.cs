@@ -1,4 +1,4 @@
-﻿namespace EdgeDB;
+﻿namespace Gel;
 
 /// <summary>
 ///     A enum containing the cardinality specification of a command.

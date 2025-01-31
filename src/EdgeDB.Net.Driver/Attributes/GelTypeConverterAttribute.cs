@@ -1,6 +1,6 @@
-using EdgeDB.TypeConverters;
+using Gel.TypeConverters;
 
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Marks the current property to be deserialized/serialized with a specific

@@ -1,7 +1,7 @@
-using EdgeDB.Binary;
-using EdgeDB.Utils;
+using Gel.Binary;
+using Gel.Utils;
 
-namespace EdgeDB.Tests.Benchmarks.Utils;
+namespace Gel.Tests.Benchmarks.Utils;
 
 internal class MockQueryClient : GelBinaryClient
 {

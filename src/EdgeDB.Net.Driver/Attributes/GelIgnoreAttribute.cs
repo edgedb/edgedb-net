@@ -1,4 +1,4 @@
-﻿namespace EdgeDB;
+﻿namespace Gel;
 
 /// <summary>
 ///     Marks the current target to be ignored when deserializing or building queries.

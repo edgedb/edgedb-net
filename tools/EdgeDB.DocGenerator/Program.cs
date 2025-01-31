@@ -1,5 +1,5 @@
 using CliWrap;
-using EdgeDB.DocGenerator;
+using Gel.DocGenerator;
 
 // take in the path to the edgedb-net folder
 var path = args[0];

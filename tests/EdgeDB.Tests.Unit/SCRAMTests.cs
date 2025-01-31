@@ -1,8 +1,8 @@
-using EdgeDB.Utils;
+using Gel.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 
-namespace EdgeDB.Tests.Unit;
+namespace Gel.Tests.Unit;
 
 [TestClass]
 public class SCRAMTests

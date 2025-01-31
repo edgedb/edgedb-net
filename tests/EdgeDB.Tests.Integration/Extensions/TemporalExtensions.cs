@@ -1,6 +1,6 @@
 using System;
 
-namespace EdgeDB.Tests.Integration;
+namespace Gel.Tests.Integration;
 
 internal static class TemporalExtensions
 {

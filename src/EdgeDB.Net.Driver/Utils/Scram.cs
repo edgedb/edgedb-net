@@ -1,10 +1,10 @@
-using EdgeDB.Binary;
-using EdgeDB.Binary.Codecs;
+using Gel.Binary;
+using Gel.Binary.Codecs;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace EdgeDB.Utils;
+namespace Gel.Utils;
 
 internal sealed class Scram : IDisposable
 {

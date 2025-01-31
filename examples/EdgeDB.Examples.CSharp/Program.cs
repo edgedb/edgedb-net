@@ -1,5 +1,5 @@
-using EdgeDB;
-using EdgeDB.ExampleApp;
+using Gel;
+using Gel.ExampleApp;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

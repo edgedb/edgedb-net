@@ -1,10 +1,10 @@
-using EdgeDB.State;
+using Gel.State;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace EdgeDB.Tests.Integration;
+namespace Gel.Tests.Integration;
 
 [TestClass]
 public class DDLTests

@@ -1,7 +1,7 @@
-using EdgeDB.TypeConverters;
+using Gel.TypeConverters;
 using System.Reflection;
 
-namespace EdgeDB;
+namespace Gel;
 
 internal sealed class GelPropertyInfo
 {

@@ -1,14 +1,14 @@
-using EdgeDB.Binary;
-using EdgeDB.Binary.Builders.Wrappers;
-using EdgeDB.Binary.Codecs;
-using EdgeDB.TypeConverters;
+using Gel.Binary;
+using Gel.Binary.Builders.Wrappers;
+using Gel.Binary.Codecs;
+using Gel.TypeConverters;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Represents the class used to build types from edgedb query results.

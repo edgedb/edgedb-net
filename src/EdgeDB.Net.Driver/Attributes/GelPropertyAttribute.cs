@@ -1,4 +1,4 @@
-﻿namespace EdgeDB;
+﻿namespace Gel;
 
 /// <summary>
 ///     Marks the current field or property as a valid target for serializing/deserializing.

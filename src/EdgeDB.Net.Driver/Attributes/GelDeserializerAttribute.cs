@@ -1,4 +1,4 @@
-﻿namespace EdgeDB;
+﻿namespace Gel;
 
 /// <summary>
 ///     Marks the current method as the method to use to deserialize the current type.

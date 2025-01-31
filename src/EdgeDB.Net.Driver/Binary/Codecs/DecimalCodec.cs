@@ -1,7 +1,7 @@
-using EdgeDB.Binary.Protocol.Common.Descriptors;
+using Gel.Binary.Protocol.Common.Descriptors;
 using System.Globalization;
 
-namespace EdgeDB.Binary.Codecs;
+namespace Gel.Binary.Codecs;
 
 // TODO: get rid of ugly strings and convert the Win32 DECIMAL to correct format
 internal sealed class DecimalCodec

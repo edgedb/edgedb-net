@@ -1,4 +1,4 @@
-namespace EdgeDB.Binary;
+namespace Gel.Binary;
 
 /// <summary>
 ///     Represents all supported message types sent by the server.

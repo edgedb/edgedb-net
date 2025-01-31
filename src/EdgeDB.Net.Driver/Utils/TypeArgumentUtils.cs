@@ -4,7 +4,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace EdgeDB;
+namespace Gel;
 
 internal static class TypeArgumentUtils
 {

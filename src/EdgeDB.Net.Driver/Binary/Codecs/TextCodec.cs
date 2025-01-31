@@ -1,7 +1,7 @@
-using EdgeDB.Binary.Protocol.Common.Descriptors;
+using Gel.Binary.Protocol.Common.Descriptors;
 using System.Text;
 
-namespace EdgeDB.Binary.Codecs;
+namespace Gel.Binary.Codecs;
 
 internal class TextCodec
     : BaseScalarCodec<string>

@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace EdgeDB.State;
+namespace Gel.State;
 
 internal sealed class Session
 {

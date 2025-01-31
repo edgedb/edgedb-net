@@ -1,4 +1,4 @@
-﻿namespace EdgeDB.DotnetTool;
+﻿namespace Gel.DotnetTool;
 
 internal class Type
 {

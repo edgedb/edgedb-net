@@ -1,6 +1,6 @@
-using EdgeDB.Binary.Codecs;
+using Gel.Binary.Codecs;
 
-namespace EdgeDB.Binary.Protocol.Common.Descriptors;
+namespace Gel.Binary.Protocol.Common.Descriptors;
 
 internal sealed class CodecMetadata
 {

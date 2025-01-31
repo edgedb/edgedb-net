@@ -1,9 +1,9 @@
-using EdgeDB.DataTypes;
+using Gel.DataTypes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System.Reflection;
 
-namespace EdgeDB.ContractResolvers;
+namespace Gel.ContractResolvers;
 
 internal sealed class JsonContractResolver : DefaultContractResolver
 {

@@ -1,8 +1,8 @@
-using EdgeDB.Binary.Protocol.Common.Descriptors;
-using EdgeDB.Utils.FSharp;
+using Gel.Binary.Protocol.Common.Descriptors;
+using Gel.Utils.FSharp;
 using System.Collections.Concurrent;
 
-namespace EdgeDB.Binary.Codecs;
+namespace Gel.Binary.Codecs;
 
 internal sealed class TypeInitializedObjectCodec : ObjectCodec
 {

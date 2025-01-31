@@ -1,6 +1,6 @@
-using EdgeDB.Binary;
+using Gel.Binary;
 
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Represents an exception that occurs when the client receives an unexpected message.

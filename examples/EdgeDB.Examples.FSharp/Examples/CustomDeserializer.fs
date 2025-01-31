@@ -1,7 +1,7 @@
 module CustomDeserializer
 
 open Examples
-open EdgeDB
+open Gel
 open Microsoft.Extensions.Logging
 open System
 open System.Collections.Generic

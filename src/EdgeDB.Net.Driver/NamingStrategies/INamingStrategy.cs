@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Represents an abstract naming strategy used to convert property names within

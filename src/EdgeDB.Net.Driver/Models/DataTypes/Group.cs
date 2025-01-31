@@ -1,9 +1,9 @@
-using EdgeDB.DataTypes;
+using Gel.DataTypes;
 using System.Collections;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Represents a group result returned from the <c>GROUP</c> expression.

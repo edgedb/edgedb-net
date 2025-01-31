@@ -1,9 +1,9 @@
-using EdgeDB.Binary;
-using EdgeDB.Binary.Codecs;
-using EdgeDB.Binary.Protocol;
+using Gel.Binary;
+using Gel.Binary.Codecs;
+using Gel.Binary.Protocol;
 using Microsoft.Extensions.Logging;
 
-namespace EdgeDB;
+namespace Gel;
 
 internal static partial class Log
 {

@@ -1,7 +1,7 @@
-using EdgeDB.DataTypes;
-using EdgeDB.State;
+using Gel.DataTypes;
+using Gel.State;
 
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Represents a base edgedb client that can interaction with the EdgeDB database.

@@ -1,9 +1,9 @@
-using EdgeDB.Binary;
-using EdgeDB.Binary.Codecs;
+using Gel.Binary;
+using Gel.Binary.Codecs;
 using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Represents an enumerator for creating objects.

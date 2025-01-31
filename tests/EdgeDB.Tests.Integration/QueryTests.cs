@@ -1,4 +1,4 @@
-using EdgeDB.DataTypes;
+using Gel.DataTypes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections;
@@ -8,7 +8,7 @@ using System.Numerics;
 using System.Threading.Tasks;
 using DateTime = System.DateTime;
 
-namespace EdgeDB.Tests.Integration;
+namespace Gel.Tests.Integration;
 
 [TestClass]
 public class QueryTests
@@ -532,7 +532,7 @@ public class QueryTests
         public decimal? I { get; set; }
         public Guid? J { get; set; }
         public Json? K { get; set; }
-        public EdgeDB.DataTypes.DateTime? L { get; set; }
+        public Gel.DataTypes.DateTime? L { get; set; }
         public DataTypes.LocalDateTime? M { get; set; }
         public DataTypes.LocalDate? N { get; set; }
         public DataTypes.LocalTime? O { get; set; }

@@ -1,6 +1,6 @@
-using EdgeDB.DataTypes;
+using Gel.DataTypes;
 
-namespace EdgeDB.Tests.Benchmarks;
+namespace Gel.Tests.Benchmarks;
 
 internal class MockedEdgeDBClient : BaseGelClient
 {

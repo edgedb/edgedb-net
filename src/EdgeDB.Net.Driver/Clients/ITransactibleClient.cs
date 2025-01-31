@@ -1,4 +1,4 @@
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Represents a client that supports transactions.

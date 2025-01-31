@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace EdgeDB.Binary.Codecs;
+namespace Gel.Binary.Codecs;
 
 internal class CodecContext
 {

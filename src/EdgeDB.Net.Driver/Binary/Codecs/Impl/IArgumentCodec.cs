@@ -1,4 +1,4 @@
-namespace EdgeDB.Binary.Codecs;
+namespace Gel.Binary.Codecs;
 
 internal interface IArgumentCodec<T> : IArgumentCodec, ICodec<T>
 {

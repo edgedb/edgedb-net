@@ -1,4 +1,4 @@
-namespace EdgeDB.Binary.Builders.Wrappers;
+namespace Gel.Binary.Builders.Wrappers;
 
 internal sealed class FSharpOptionWrapper : IWrapper
 {

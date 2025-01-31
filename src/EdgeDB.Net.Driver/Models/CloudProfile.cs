@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace EdgeDB.Models;
+namespace Gel.Models;
 
 internal sealed class CloudProfile
 {

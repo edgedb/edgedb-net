@@ -1,4 +1,4 @@
-namespace EdgeDB.DataTypes;
+namespace Gel.DataTypes;
 
 /// <summary>
 ///     Represents the memory type in EdgeDB.

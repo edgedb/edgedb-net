@@ -1,4 +1,4 @@
-﻿namespace EdgeDB;
+﻿namespace Gel;
 
 /// <summary>
 ///     An enum representing the retry mode when connecting new clients.

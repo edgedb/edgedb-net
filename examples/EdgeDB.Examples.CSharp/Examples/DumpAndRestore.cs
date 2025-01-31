@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 
-namespace EdgeDB.ExampleApp.Examples;
+namespace Gel.ExampleApp.Examples;
 
 public class DumpAndRestore : IExample
 {

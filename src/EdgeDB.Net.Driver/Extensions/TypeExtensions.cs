@@ -1,7 +1,7 @@
-using EdgeDB.DataTypes;
+using Gel.DataTypes;
 using System.Runtime.CompilerServices;
 
-namespace EdgeDB;
+namespace Gel;
 
 internal static class TypeExtensions
 {

@@ -1,4 +1,4 @@
-namespace EdgeDB.Binary.Protocol.Common.Descriptors;
+namespace Gel.Binary.Protocol.Common.Descriptors;
 
 internal enum TypeOperation : byte
 {

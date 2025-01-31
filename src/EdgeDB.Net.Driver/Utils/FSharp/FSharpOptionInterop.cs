@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace EdgeDB.Utils.FSharp;
+namespace Gel.Utils.FSharp;
 
 internal readonly ref struct FSharpOptionInterop
 {

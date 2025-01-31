@@ -1,4 +1,4 @@
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Represents an error with the provided connection details.

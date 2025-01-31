@@ -1,5 +1,5 @@
 using BenchmarkDotNet.Running;
-using EdgeDB.Tests.Benchmarks;
+using Gel.Tests.Benchmarks;
 
 BenchmarkRunner.Run<FullExecuteBenchmark>();
 

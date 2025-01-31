@@ -1,4 +1,4 @@
-﻿namespace EdgeDB;
+﻿namespace Gel;
 
 /// <summary>
 ///     Marks this class or struct as a valid type to use when serializing/deserializing.

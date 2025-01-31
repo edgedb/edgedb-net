@@ -1,4 +1,4 @@
-namespace EdgeDB;
+namespace Gel;
 
 [AttributeUsage(AttributeTargets.Field)]
 internal sealed class ShouldRetryAttribute : Attribute

@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 
-namespace EdgeDB.Binary.Builders.Wrappers;
+namespace Gel.Binary.Builders.Wrappers;
 
 internal interface IWrapper
 {

@@ -1,7 +1,7 @@
-using EdgeDB.DataTypes;
+using Gel.DataTypes;
 using Newtonsoft.Json;
 
-namespace EdgeDB.Utils;
+namespace Gel.Utils;
 
 internal class AsStringConverter : JsonConverter<string>
 {

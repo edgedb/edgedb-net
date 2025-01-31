@@ -1,6 +1,6 @@
 ﻿// This project generates the edgeql operators as functions within the edgeql class and operators folder
 
-using EdgeDB.QueryBuilder.OperatorGenerator;
+using Gel.QueryBuilder.OperatorGenerator;
 using System.Text.RegularExpressions;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;

@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Dynamic;
 using System.Reflection;
 
-namespace EdgeDB;
+namespace Gel;
 
 internal enum GelConstructorParamType
 {

@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Represents the TLS security mode the client will follow.

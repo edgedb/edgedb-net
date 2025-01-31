@@ -1,6 +1,6 @@
-using EdgeDB.Binary.Protocol;
+using Gel.Binary.Protocol;
 
-namespace EdgeDB.Binary;
+namespace Gel.Binary;
 
 internal interface IBinaryDuplexer : IDisposable
 {
