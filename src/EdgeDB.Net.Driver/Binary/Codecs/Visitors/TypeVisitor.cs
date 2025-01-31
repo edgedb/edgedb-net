@@ -264,7 +264,7 @@ internal sealed class TypeVisitor : CodecVisitor
             => Type == typeof(object);
 
         public string? Name { get; set; }
-        public EdgeDBTypeDeserializeInfo? Deserializer { get; set; }
+        public GelTypeDeserializeInfo? Deserializer { get; set; }
         public bool InnerRealType { get; set; }
 
         public int Depth { get; init; }

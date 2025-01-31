@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 
 namespace EdgeDB;
 
-internal sealed class EdgeDBTypeDeserializeInfo
+internal sealed class GelTypeDeserializeInfo
 {
     private readonly Type _type;
     private EdgeDBTypeConstructorInfo? _ctorInfo;
@@ -18,7 +18,7 @@ internal sealed class EdgeDBTypeDeserializeInfo
 
     private readonly IWrapper? _wrapper;
 
-    public EdgeDBTypeDeserializeInfo(Type type)
+    public GelTypeDeserializeInfo(Type type)
     {
         IWrapper.TryGetWrapper(type, out _wrapper);
 
@@ -42,7 +42,7 @@ internal sealed class EdgeDBTypeDeserializeInfo
         }
     }
 
-    public EdgeDBTypeDeserializeInfo(Type type, TypeDeserializerFactory factory)
+    public GelTypeDeserializeInfo(Type type, TypeDeserializerFactory factory)
     {
         IWrapper.TryGetWrapper(type, out _wrapper);
 
@@ -73,7 +73,7 @@ internal sealed class EdgeDBTypeDeserializeInfo
 
     public TypeDeserializerFactory Factory { get; private set; }
 
-    public Dictionary<Type, EdgeDBTypeDeserializeInfo> Children { get; } = new();
+    public Dictionary<Type, GelTypeDeserializeInfo> Children { get; } = new();
 
     internal GelPropertyInfo[] Properties
         => PropertyMapInfo.Properties;
@@ -105,10 +105,10 @@ internal sealed class EdgeDBTypeDeserializeInfo
         return Expression.Lambda<ObjectActivator>(newExp).Compile();
     }
 
-    public void AddOrUpdateChildren(EdgeDBTypeDeserializeInfo child)
+    public void AddOrUpdateChildren(GelTypeDeserializeInfo child)
         => Children[child._type] = child;
 
-    public void AddOrUpdateChildren(IEnumerable<EdgeDBTypeDeserializeInfo> children)
+    public void AddOrUpdateChildren(IEnumerable<GelTypeDeserializeInfo> children)
     {
         foreach (var child in children)
             AddOrUpdateChildren(child);
@@ -283,7 +283,7 @@ internal sealed class EdgeDBTypeDeserializeInfo
                 // remove the modulename
                 typeName = typeName.Split("::").Last();
 
-                EdgeDBTypeDeserializeInfo? info = null;
+                GelTypeDeserializeInfo? info = null;
 
                 if ((info = Children.FirstOrDefault(x => x.Value.EdgeDBTypeName == typeName).Value) is null)
                 {
@@ -326,7 +326,7 @@ internal sealed class EdgeDBTypeDeserializeInfo
     public object? Deserialize(ref ObjectEnumerator enumerator)
         => Factory(ref enumerator);
 
-    public static implicit operator TypeDeserializerFactory(EdgeDBTypeDeserializeInfo info) => info.Factory;
+    public static implicit operator TypeDeserializerFactory(GelTypeDeserializeInfo info) => info.Factory;
 
     private delegate object ObjectActivator();
 }
