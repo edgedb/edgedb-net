@@ -6,13 +6,13 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents a base edgedb client that can interaction with the EdgeDB database.
 /// </summary>
-internal abstract class BaseEdgeDBClient : IGelQueryable, IAsyncDisposable
+internal abstract class BaseGelClient : IGelQueryable, IAsyncDisposable
 {
-    private readonly AsyncEvent<Func<BaseEdgeDBClient, ValueTask<bool>>> _onDisposed = new();
+    private readonly AsyncEvent<Func<BaseGelClient, ValueTask<bool>>> _onDisposed = new();
 
-    internal readonly AsyncEvent<Func<BaseEdgeDBClient, ValueTask>> OnConnectInternal = new();
+    internal readonly AsyncEvent<Func<BaseGelClient, ValueTask>> OnConnectInternal = new();
 
-    internal readonly AsyncEvent<Func<BaseEdgeDBClient, ValueTask>> OnDisconnectInternal = new();
+    internal readonly AsyncEvent<Func<BaseGelClient, ValueTask>> OnDisconnectInternal = new();
 
     protected IDisposable? ClientPoolHolder;
 
@@ -21,7 +21,7 @@ internal abstract class BaseEdgeDBClient : IGelQueryable, IAsyncDisposable
     /// </summary>
     /// <param name="clientId">The id of this client.</param>
     /// <param name="clientPoolHolder">The client pool holder for this client.</param>
-    public BaseEdgeDBClient(ulong clientId, IDisposable clientPoolHolder)
+    public BaseGelClient(ulong clientId, IDisposable clientPoolHolder)
     {
         Session = Session.Default;
         ClientId = clientId;
@@ -44,19 +44,19 @@ internal abstract class BaseEdgeDBClient : IGelQueryable, IAsyncDisposable
     /// </summary>
     internal Session Session { get; set; }
 
-    internal event Func<BaseEdgeDBClient, ValueTask<bool>> OnDisposed
+    internal event Func<BaseGelClient, ValueTask<bool>> OnDisposed
     {
         add => _onDisposed.Add(value);
         remove => _onDisposed.Remove(value);
     }
 
-    internal event Func<BaseEdgeDBClient, ValueTask> OnDisconnect
+    internal event Func<BaseGelClient, ValueTask> OnDisconnect
     {
         add => OnDisconnectInternal.Add(value);
         remove => OnDisconnectInternal.Remove(value);
     }
 
-    internal event Func<BaseEdgeDBClient, ValueTask> OnConnect
+    internal event Func<BaseGelClient, ValueTask> OnConnect
     {
         add => OnConnectInternal.Add(value);
         remove => OnConnectInternal.Remove(value);
@@ -71,25 +71,25 @@ internal abstract class BaseEdgeDBClient : IGelQueryable, IAsyncDisposable
 
     #region State
 
-    internal BaseEdgeDBClient WithSession(Session session)
+    internal BaseGelClient WithSession(Session session)
     {
         Session = session;
         return this;
     }
 
-    public BaseEdgeDBClient WithModuleAliases(IDictionary<string, string> aliases)
+    public BaseGelClient WithModuleAliases(IDictionary<string, string> aliases)
     {
         Session.WithModuleAliases(aliases);
         return this;
     }
 
-    public BaseEdgeDBClient WithConfig(Config config)
+    public BaseGelClient WithConfig(Config config)
     {
         Session.WithConfig(config);
         return this;
     }
 
-    public BaseEdgeDBClient WithGlobals(IDictionary<string, object?> globals)
+    public BaseGelClient WithGlobals(IDictionary<string, object?> globals)
     {
         Session.WithGlobals(globals);
         return this;

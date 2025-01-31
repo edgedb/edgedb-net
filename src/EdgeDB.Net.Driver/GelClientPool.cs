@@ -10,8 +10,8 @@ namespace EdgeDB;
 /// </summary>
 public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
 {
-    private readonly Func<ulong, GelConnection, GelClientConfig, ValueTask<BaseEdgeDBClient>>? _clientFactory;
-    private readonly ConcurrentDictionary<ulong, BaseEdgeDBClient> _clients;
+    private readonly Func<ulong, GelConnection, GelClientConfig, ValueTask<BaseGelClient>>? _clientFactory;
+    private readonly ConcurrentDictionary<ulong, BaseGelClient> _clients;
     private readonly object _clientsLock = new();
     private readonly SemaphoreSlim _clientWaitSemaphore;
 
@@ -19,7 +19,7 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
     private readonly GelClientPoolConfig _poolConfig;
     private readonly ClientPoolHolder _poolHolder;
     private readonly Session _session;
-    private ConcurrentStack<BaseEdgeDBClient> _availableClients;
+    private ConcurrentStack<BaseGelClient> _availableClients;
     private ulong _clientIndex;
 
     private readonly int _poolSize;
@@ -28,7 +28,7 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
     /// <summary>
     ///     Gets all clients within the client pool.
     /// </summary>
-    internal IReadOnlyCollection<BaseEdgeDBClient> Clients
+    internal IReadOnlyCollection<BaseGelClient> Clients
         => _clients.Values.ToImmutableArray();
 
     /// <summary>
@@ -108,7 +108,7 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
     ///     Disconnects all clients within the client pool.
     /// </summary>
     /// <remarks>
-    ///     This task will run all <see cref="BaseEdgeDBClient.DisconnectAsync" /> methods in parallel.
+    ///     This task will run all <see cref="BaseGelClient.DisconnectAsync" /> methods in parallel.
     /// </remarks>
     /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
     /// <returns>The total number of clients disconnected.</returns>
@@ -133,7 +133,7 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
         lock (_clientsLock)
         {
             _availableClients =
-                new ConcurrentStack<BaseEdgeDBClient>(_availableClients.Where(x => x.ClientId != id).ToArray());
+                new ConcurrentStack<BaseGelClient>(_availableClients.Where(x => x.ClientId != id).ToArray());
             _clients.TryRemove(id, out _);
         }
     }
@@ -180,11 +180,11 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
             throw new CustomClientException("You must specify a client factory in order to use custom clients");
 
         _poolConfig = clientPoolConfig;
-        _clients = new ConcurrentDictionary<ulong, BaseEdgeDBClient>();
+        _clients = new ConcurrentDictionary<ulong, BaseGelClient>();
         _poolSize = clientPoolConfig.DefaultPoolSize;
         _connection = connection;
         ServerConfig = new Dictionary<string, object?>();
-        _availableClients = new ConcurrentStack<BaseEdgeDBClient>();
+        _availableClients = new ConcurrentStack<BaseGelClient>();
         _clientWaitSemaphore = new SemaphoreSlim(1, 1);
         _poolHolder = new(_poolSize);
         _session = Session.Default;
@@ -296,7 +296,7 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
     /// </returns>
     /// <exception cref="CustomClientException">The client returned cannot be assigned to <typeparamref name="TClient" />.</exception>
     internal async ValueTask<TClient> GetOrCreateClientAsync<TClient>(CancellationToken token = default)
-        where TClient : BaseEdgeDBClient
+        where TClient : BaseGelClient
     {
         var client = await GetOrCreateClientAsync(token);
         if (client is TClient clientTyped)
@@ -318,9 +318,9 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
     /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
     /// <returns>
     ///     A task that represents the asynchonous operation of getting an available client. The tasks
-    ///     result is a <see cref="BaseEdgeDBClient" /> instance.
+    ///     result is a <see cref="BaseGelClient" /> instance.
     /// </returns>
-    internal async Task<BaseEdgeDBClient> GetOrCreateClientAsync(CancellationToken token = default)
+    internal async Task<BaseGelClient> GetOrCreateClientAsync(CancellationToken token = default)
     {
         // try get an available client ready for commands
         if (_availableClients.TryPop(out var result))
@@ -371,7 +371,7 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
         return await CreateClientAsync(clientIndex, token).ConfigureAwait(false);
     }
 
-    private async Task<BaseEdgeDBClient> CreateClientAsync(ulong id, CancellationToken token = default)
+    private async Task<BaseGelClient> CreateClientAsync(ulong id, CancellationToken token = default)
     {
         switch (_poolConfig.ClientType)
         {
@@ -383,7 +383,7 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
                 // clone the default state to prevent modification to our reference to default state
                 client.WithSession(_session);
 
-                async ValueTask OnConnect(BaseEdgeDBClient _)
+                async ValueTask OnConnect(BaseGelClient _)
                 {
                     if (client.SuggestedPoolConcurrency.HasValue && !_poolConfig.HasCustomPoolSize)
                     {

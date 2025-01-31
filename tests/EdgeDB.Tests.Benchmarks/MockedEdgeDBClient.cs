@@ -2,7 +2,7 @@ using EdgeDB.DataTypes;
 
 namespace EdgeDB.Tests.Benchmarks;
 
-internal class MockedEdgeDBClient : BaseEdgeDBClient
+internal class MockedEdgeDBClient : BaseGelClient
 {
     public MockedEdgeDBClient(ulong id)
         : base(id, null!)

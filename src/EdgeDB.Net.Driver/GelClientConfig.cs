@@ -37,7 +37,7 @@ public sealed class GelClientPoolConfig : GelClientConfig
     /// <remarks>
     ///     The <see cref="ClientType" /> must be <see cref="GelClientType.Custom" /> to use this property.
     /// </remarks>
-    internal Func<ulong, GelConnection, GelClientConfig, ValueTask<BaseEdgeDBClient>>? ClientFactory { get; set; }
+    internal Func<ulong, GelConnection, GelClientConfig, ValueTask<BaseGelClient>>? ClientFactory { get; set; }
 
     internal bool HasCustomPoolSize
         => _poolSize.HasValue;

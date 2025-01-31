@@ -90,7 +90,7 @@ public class ClientTests
     [TestMethod]
     public async Task TestPoolRelease()
     {
-        BaseEdgeDBClient client;
+        BaseGelClient client;
         await using (client = await ClientPool.GetOrCreateClientAsync(_getToken()))
         {
             await Task.Delay(100);

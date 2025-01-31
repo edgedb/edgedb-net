@@ -16,7 +16,7 @@ public class FullExecuteBenchmark
             ClientFactory = (id, c, cng) =>
             {
                 var client = new MockQueryClient(c, cng, null!, id);
-                return ValueTask.FromResult<BaseEdgeDBClient>(client);
+                return ValueTask.FromResult<BaseGelClient>(client);
             }
         });
 

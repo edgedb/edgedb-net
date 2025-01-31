@@ -15,7 +15,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents an abstract binary client.
 /// </summary>
-internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
+internal abstract class EdgeDBBinaryClient : BaseGelClient
 {
     private readonly SemaphoreSlim _commandSemaphore;
     private readonly SemaphoreSlim _connectSemaphone;
