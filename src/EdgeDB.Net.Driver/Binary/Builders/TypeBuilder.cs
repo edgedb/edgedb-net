@@ -142,7 +142,7 @@ public static class TypeBuilder
         return info is not null;
     }
 
-    internal static object? BuildObject(EdgeDBBinaryClient client, Type type, ObjectCodec codec,
+    internal static object? BuildObject(GelBinaryClient client, Type type, ObjectCodec codec,
         in ReadOnlyMemory<byte> data)
     {
         if (!IsValidObjectType(type))

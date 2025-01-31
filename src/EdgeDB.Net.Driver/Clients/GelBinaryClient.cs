@@ -15,7 +15,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents an abstract binary client.
 /// </summary>
-internal abstract class EdgeDBBinaryClient : BaseGelClient
+internal abstract class GelBinaryClient : BaseGelClient
 {
     private readonly SemaphoreSlim _commandSemaphore;
     private readonly SemaphoreSlim _connectSemaphone;
@@ -46,7 +46,7 @@ internal abstract class EdgeDBBinaryClient : BaseGelClient
     /// <param name="clientConfig">The configuration for this client.</param>
     /// <param name="clientPoolHolder">The client pool holder for this client.</param>
     /// <param name="clientId">The optional client id of this client. This is used for logging and client pooling.</param>
-    public EdgeDBBinaryClient(
+    public GelBinaryClient(
         GelConnection connection,
         GelClientConfig clientConfig,
         IDisposable clientPoolHolder,

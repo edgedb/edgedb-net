@@ -54,7 +54,7 @@ public class ClientTests
     [TestMethod]
     public async Task TestCommandLocks()
     {
-        await using var client = await ClientPool.GetOrCreateClientAsync<EdgeDBBinaryClient>(_getToken());
+        await using var client = await ClientPool.GetOrCreateClientAsync<GelBinaryClient>(_getToken());
         var timeoutToken = new CancellationTokenSource();
         timeoutToken.CancelAfter(1000);
         using var firstLock = await client.AquireCommandLockAsync(timeoutToken.Token);

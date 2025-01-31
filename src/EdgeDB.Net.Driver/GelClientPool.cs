@@ -47,7 +47,7 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
     public int AvailableClients
         => _availableClients.Count(x =>
         {
-            if (x is EdgeDBBinaryClient binaryClient)
+            if (x is GelBinaryClient binaryClient)
                 return binaryClient.IsIdle;
             return x.IsConnected;
         });

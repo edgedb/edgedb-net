@@ -311,7 +311,7 @@ public static class EdgeDBClientExtensions
             throw new ArgumentException("Cannot write to stream");
         }
 
-        await using var client = await clientPool.GetOrCreateClientAsync<EdgeDBBinaryClient>(token).ConfigureAwait(false);
+        await using var client = await clientPool.GetOrCreateClientAsync<GelBinaryClient>(token).ConfigureAwait(false);
 
         var dumprestoreProvider = IDumpRestoreProvider.GetProvider(client, dumprestoreVersion);
 
@@ -337,7 +337,7 @@ public static class EdgeDBClientExtensions
         ProtocolVersion? dumprestoreVersion = null,
         CancellationToken token = default)
     {
-        await using var client = await clientPool.GetOrCreateClientAsync<EdgeDBBinaryClient>(token).ConfigureAwait(false);
+        await using var client = await clientPool.GetOrCreateClientAsync<GelBinaryClient>(token).ConfigureAwait(false);
 
         if (!stream.CanRead)
         {

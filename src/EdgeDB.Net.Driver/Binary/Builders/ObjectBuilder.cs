@@ -13,7 +13,7 @@ internal sealed class ObjectBuilder
     private static readonly ConcurrentDictionary<Type, (int Version, ICodec Codec)> _codecVisitorStateTable = new();
     private static readonly object _visitorLock = new();
 
-    public static async Task<PreheatedCodec> PreheatCodecAsync<T>(EdgeDBBinaryClient client, ICodec codec,
+    public static async Task<PreheatedCodec> PreheatCodecAsync<T>(GelBinaryClient client, ICodec codec,
         CancellationToken token)
     {
         // if the codec has been visited before and we have the most up-to-date version, return it.
@@ -44,7 +44,7 @@ internal sealed class ObjectBuilder
         return new PreheatedCodec(reference.Value);
     }
 
-    public static T? BuildResult<T>(EdgeDBBinaryClient client, in PreheatedCodec preheated,
+    public static T? BuildResult<T>(GelBinaryClient client, in PreheatedCodec preheated,
         in ReadOnlyMemory<byte> data)
     {
         if (preheated.Codec is ObjectCodec objectCodec)
@@ -58,7 +58,7 @@ internal sealed class ObjectBuilder
     }
 
     public static async Task<T?> BuildResultAsync<T>(
-        EdgeDBBinaryClient client, ICodec codec, ReadOnlyMemory<byte> data, CancellationToken token)
+        GelBinaryClient client, ICodec codec, ReadOnlyMemory<byte> data, CancellationToken token)
         => BuildResult<T>(client, await PreheatCodecAsync<T>(client, codec, token), data);
 
     public static object? ConvertTo(Type type, object? value)

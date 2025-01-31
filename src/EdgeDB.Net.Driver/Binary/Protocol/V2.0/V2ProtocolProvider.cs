@@ -6,7 +6,7 @@ namespace EdgeDB.Binary.Protocol.V2._0;
 
 internal class V2ProtocolProvider : V1ProtocolProvider
 {
-    public V2ProtocolProvider(EdgeDBBinaryClient client)
+    public V2ProtocolProvider(GelBinaryClient client)
         : base(client)
     {
     }

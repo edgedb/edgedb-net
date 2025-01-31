@@ -12,11 +12,11 @@ namespace EdgeDB.Binary.Protocol.V1._0;
 
 internal class V1ProtocolProvider : IProtocolProvider
 {
-    private readonly EdgeDBBinaryClient _client;
+    private readonly GelBinaryClient _client;
     private Dictionary<string, object?> _rawServerConfig = new();
     private ReadOnlyMemory<byte> _serverKey;
 
-    public V1ProtocolProvider(EdgeDBBinaryClient client)
+    public V1ProtocolProvider(GelBinaryClient client)
     {
         _client = client;
     }

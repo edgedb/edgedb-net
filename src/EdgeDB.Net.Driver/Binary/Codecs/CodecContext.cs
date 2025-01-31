@@ -4,12 +4,12 @@ namespace EdgeDB.Binary.Codecs;
 
 internal class CodecContext
 {
-    public CodecContext(EdgeDBBinaryClient client)
+    public CodecContext(GelBinaryClient client)
     {
         Client = client;
     }
 
-    public EdgeDBBinaryClient Client { get; }
+    public GelBinaryClient Client { get; }
 
     public ILogger Logger
         => Client.Logger;

@@ -10,7 +10,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents a client that can preform queries over HTTP.
 /// </summary>
-internal sealed class EdgeDBHttpClient : EdgeDBBinaryClient
+internal sealed class EdgeDBHttpClient : GelBinaryClient
 {
     public const string HTTP_TOKEN_AUTH_METHOD = "SCRAM-SHA-256";
     private readonly HttpDuplexer _duplexer;

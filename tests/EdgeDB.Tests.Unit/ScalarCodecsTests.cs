@@ -11,7 +11,7 @@ namespace EdgeDB.Tests.Unit;
 [TestClass]
 public class ScalarCodecsTests
 {
-    private static readonly EdgeDBBinaryClient _client =
+    private static readonly GelBinaryClient _client =
         new EdgeDBTcpClient(new GelConnection(), new GelClientConfig(), null!);
 
     internal static void TestCodec<TType>(IScalarCodec<TType>? codec, TType expectedValue,

@@ -7,7 +7,7 @@ namespace EdgeDB.Tests.Benchmarks;
 [MemoryDiagnoser]
 public class TypeBuilderBenchmarks
 {
-    private static readonly EdgeDBBinaryClient client =
+    private static readonly GelBinaryClient client =
         new EdgeDBTcpClient(new GelConnection(), new GelClientConfig(), null!);
 
     internal static ObjectCodec Codec;

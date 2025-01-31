@@ -13,7 +13,7 @@ internal sealed class StreamDuplexer : IBinaryDuplexer
 {
     public const int PACKET_HEADER_SIZE = 5;
 
-    private readonly EdgeDBBinaryClient _client;
+    private readonly GelBinaryClient _client;
 
     private readonly object _connectivityLock = new();
     private readonly SemaphoreSlim _duplexLock;
@@ -29,7 +29,7 @@ internal sealed class StreamDuplexer : IBinaryDuplexer
 
     private Stream? _stream;
 
-    public unsafe StreamDuplexer(EdgeDBBinaryClient client)
+    public unsafe StreamDuplexer(GelBinaryClient client)
     {
         _client = client;
         _disconnectTokenSource = new CancellationTokenSource();

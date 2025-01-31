@@ -11,14 +11,14 @@ namespace EdgeDB.Binary.Codecs;
 
 internal sealed class TypeVisitor : CodecVisitor
 {
-    private readonly EdgeDBBinaryClient _client;
+    private readonly GelBinaryClient _client;
 
     private readonly ILogger _logger;
 
     private Type? _targetType;
     private TypeVisitorContext? _context;
 
-    public TypeVisitor(EdgeDBBinaryClient client)
+    public TypeVisitor(GelBinaryClient client)
     {
         _logger = client.Logger;
         _client = client;

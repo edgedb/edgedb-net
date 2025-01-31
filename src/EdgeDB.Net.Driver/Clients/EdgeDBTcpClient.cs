@@ -9,7 +9,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents a TCP client used to interact with EdgeDB.
 /// </summary>
-internal sealed class EdgeDBTcpClient : EdgeDBBinaryClient, ITransactibleClient
+internal sealed class EdgeDBTcpClient : GelBinaryClient, ITransactibleClient
 {
     private readonly StreamDuplexer _duplexer;
     private SslStream? _secureStream;

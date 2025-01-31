@@ -6,9 +6,9 @@ internal sealed class ArgumentVisitor : CodecVisitor
 {
     public ICodec[] VisitedChildCodecs { get; private set; } = Array.Empty<ICodec>();
     private readonly IDictionary<string, object?> _arguments;
-    private readonly EdgeDBBinaryClient _client;
+    private readonly GelBinaryClient _client;
 
-    public ArgumentVisitor(EdgeDBBinaryClient client, IDictionary<string, object?> args)
+    public ArgumentVisitor(GelBinaryClient client, IDictionary<string, object?> args)
     {
         _client = client;
         _arguments = args;

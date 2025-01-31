@@ -3,7 +3,7 @@ using EdgeDB.Utils;
 
 namespace EdgeDB.Tests.Benchmarks.Utils;
 
-internal class MockQueryClient : EdgeDBBinaryClient
+internal class MockQueryClient : GelBinaryClient
 {
     public static readonly byte[] AuthenticationFirst;
     public static readonly byte[] AuthenticationSecond;

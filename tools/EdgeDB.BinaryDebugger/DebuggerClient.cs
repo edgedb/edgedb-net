@@ -9,7 +9,7 @@ using System.Text;
 
 namespace EdgeDB.BinaryDebugger;
 
-internal class DebuggerClient : EdgeDBBinaryClient
+internal class DebuggerClient : GelBinaryClient
 {
     private readonly StreamDuplexer _duplexer;
 

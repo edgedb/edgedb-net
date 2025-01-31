@@ -16,14 +16,14 @@ internal interface IDumpRestoreProvider
     public static IDumpRestoreProvider GetDefaultProvider()
         => _defaultProvider ??= Providers[ProtocolVersion.DumpRestoreDefaultVersion].Factory();
 
-    public static IDumpRestoreProvider GetProvider(EdgeDBBinaryClient client)
+    public static IDumpRestoreProvider GetProvider(GelBinaryClient client)
         => _providers.GetOrAdd(client.Connection, _ => GetDefaultProvider());
 
-    public static void UpdateProviderFor(EdgeDBBinaryClient client, IDumpRestoreProvider provider,
+    public static void UpdateProviderFor(GelBinaryClient client, IDumpRestoreProvider provider,
         IDumpRestoreProvider old)
         => _providers.TryUpdate(client.Connection, provider, old);
 
-    public static IDumpRestoreProvider GetProvider(EdgeDBBinaryClient client, ProtocolVersion? requestedVersion)
+    public static IDumpRestoreProvider GetProvider(GelBinaryClient client, ProtocolVersion? requestedVersion)
     {
         if (requestedVersion is null)
             return GetProvider(client);
@@ -45,6 +45,6 @@ internal interface IDumpRestoreProvider
         return dumprestoreProvider;
     }
 
-    Task<string> RestoreDatabaseAsync(EdgeDBBinaryClient client, Stream stream, CancellationToken token);
-    Task DumpDatabaseAsync(EdgeDBBinaryClient client, Stream stream, CancellationToken token = default);
+    Task<string> RestoreDatabaseAsync(GelBinaryClient client, Stream stream, CancellationToken token);
+    Task DumpDatabaseAsync(GelBinaryClient client, Stream stream, CancellationToken token = default);
 }
