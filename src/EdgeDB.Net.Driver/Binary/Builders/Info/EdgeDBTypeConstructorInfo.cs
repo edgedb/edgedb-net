@@ -21,11 +21,11 @@ internal struct EdgeDBTypeConstructorInfo
     public ConstructorInfo? EmptyConstructor { get; set; }
 
     public static bool TryGetConstructorInfo(Type type, out EdgeDBTypeConstructorInfo info)
-        => TryGetConstructorInfo(type, EdgeDBPropertyMapInfo.Create(type), out info);
+        => TryGetConstructorInfo(type, GelPropertyMapInfo.Create(type), out info);
 
     private static readonly ConcurrentDictionary<Type, EdgeDBTypeConstructorInfo> _cache = new();
 
-    public static bool TryGetConstructorInfo(Type type, EdgeDBPropertyMapInfo map, out EdgeDBTypeConstructorInfo info)
+    public static bool TryGetConstructorInfo(Type type, GelPropertyMapInfo map, out EdgeDBTypeConstructorInfo info)
     {
         if (_cache.TryGetValue(type, out info))
         {

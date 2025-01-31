@@ -3,16 +3,16 @@ using System.Reflection;
 
 namespace EdgeDB;
 
-internal readonly struct EdgeDBPropertyMapInfo
+internal readonly struct GelPropertyMapInfo
 {
     public readonly GelPropertyInfo[] Properties { get; init; }
     public readonly Dictionary<string, GelPropertyInfo> Map { get; init; }
     public readonly Dictionary<GelPropertyInfo, int> IndexMap { get; init; }
 
 
-    private static readonly ConcurrentDictionary<Type, EdgeDBPropertyMapInfo> _cache = new();
+    private static readonly ConcurrentDictionary<Type, GelPropertyMapInfo> _cache = new();
 
-    public static EdgeDBPropertyMapInfo Create(Type type)
+    public static GelPropertyMapInfo Create(Type type)
     {
         if (_cache.TryGetValue(type, out var cached))
             return cached;
@@ -36,7 +36,7 @@ internal readonly struct EdgeDBPropertyMapInfo
             }
         }
 
-        var info = new EdgeDBPropertyMapInfo {IndexMap = indexMap, Map = map, Properties = edgedbProps};
+        var info = new GelPropertyMapInfo {IndexMap = indexMap, Map = map, Properties = edgedbProps};
 
         _cache.TryAdd(type, info);
 

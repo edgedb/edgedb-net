@@ -12,7 +12,7 @@ internal sealed class EdgeDBTypeDeserializeInfo
     private readonly Type _type;
     private EdgeDBTypeConstructorInfo? _ctorInfo;
 
-    private EdgeDBPropertyMapInfo? _propertyMapInfo;
+    private GelPropertyMapInfo? _propertyMapInfo;
 
     private ObjectActivator? _typeActivator;
 
@@ -78,8 +78,8 @@ internal sealed class EdgeDBTypeDeserializeInfo
     internal GelPropertyInfo[] Properties
         => PropertyMapInfo.Properties;
 
-    internal EdgeDBPropertyMapInfo PropertyMapInfo
-        => _propertyMapInfo ??= EdgeDBPropertyMapInfo.Create(_type);
+    internal GelPropertyMapInfo PropertyMapInfo
+        => _propertyMapInfo ??= GelPropertyMapInfo.Create(_type);
 
     internal EdgeDBTypeConstructorInfo? ConstructorInfo
         => _ctorInfo ??= EdgeDBTypeConstructorInfo.TryGetConstructorInfo(_type, PropertyMapInfo, out var ctorInfo)
