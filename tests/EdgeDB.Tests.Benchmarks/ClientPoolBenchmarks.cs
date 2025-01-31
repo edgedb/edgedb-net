@@ -12,7 +12,7 @@ public class ClientPoolBenchmarks
         SingleClient = new MockedEdgeDBClient(0);
         ClientPool = new GelClientPool(new GelClientPoolConfig
         {
-            ClientType = EdgeDBClientType.Custom,
+            ClientType = GelClientType.Custom,
             ClientFactory = (id, _, _) => ValueTask.FromResult<BaseEdgeDBClient>(new MockedEdgeDBClient(id)),
             DefaultPoolSize = 100
         });

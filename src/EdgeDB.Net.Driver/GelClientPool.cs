@@ -85,7 +85,7 @@ public sealed class GelClientPool : IEdgeDBQueryable, IAsyncDisposable
     /// </remarks>
     public IReadOnlyDictionary<string, object?> ServerConfig { get; private set; }
 
-    internal EdgeDBClientType ClientType
+    internal GelClientType ClientType
         => _poolConfig.ClientType;
 
     public async ValueTask DisposeAsync()
@@ -176,7 +176,7 @@ public sealed class GelClientPool : IEdgeDBQueryable, IAsyncDisposable
     /// <param name="clientPoolConfig">The config for this client pool.</param>
     public GelClientPool(GelConnection connection, GelClientPoolConfig clientPoolConfig)
     {
-        if (clientPoolConfig.ClientType == EdgeDBClientType.Custom && clientPoolConfig.ClientFactory == null)
+        if (clientPoolConfig.ClientType == GelClientType.Custom && clientPoolConfig.ClientFactory == null)
             throw new CustomClientException("You must specify a client factory in order to use custom clients");
 
         _poolConfig = clientPoolConfig;
@@ -375,7 +375,7 @@ public sealed class GelClientPool : IEdgeDBQueryable, IAsyncDisposable
     {
         switch (_poolConfig.ClientType)
         {
-            case EdgeDBClientType.Tcp:
+            case GelClientType.Tcp:
             {
                 var holder = await _poolHolder.GetPoolHandleAsync(token).ConfigureAwait(false);
                 var client = new EdgeDBTcpClient(_connection, _poolConfig, holder, id);
@@ -415,7 +415,7 @@ public sealed class GelClientPool : IEdgeDBQueryable, IAsyncDisposable
 
                 return client;
             }
-            case EdgeDBClientType.Http:
+            case GelClientType.Http:
             {
                 var holder = await _poolHolder.GetPoolHandleAsync(token).ConfigureAwait(false);
                 var client = new EdgeDBHttpClient(_connection, _poolConfig, holder, id);
@@ -440,7 +440,7 @@ public sealed class GelClientPool : IEdgeDBQueryable, IAsyncDisposable
 
                 return client;
             }
-            case EdgeDBClientType.Custom when _clientFactory is not null:
+            case GelClientType.Custom when _clientFactory is not null:
             {
                 var client = await _clientFactory(id, _connection, _poolConfig).ConfigureAwait(false)!;
 

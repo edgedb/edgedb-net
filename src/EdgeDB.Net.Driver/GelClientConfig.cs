@@ -29,13 +29,13 @@ public sealed class GelClientPoolConfig : GelClientConfig
     /// <summary>
     ///     Gets or sets the client type the pool will use.
     /// </summary>
-    public EdgeDBClientType ClientType { get; set; }
+    public GelClientType ClientType { get; set; }
 
     /// <summary>
     ///     Gets or sets the client factory to use when adding new clients to the client pool.
     /// </summary>
     /// <remarks>
-    ///     The <see cref="ClientType" /> must be <see cref="EdgeDBClientType.Custom" /> to use this property.
+    ///     The <see cref="ClientType" /> must be <see cref="GelClientType.Custom" /> to use this property.
     /// </remarks>
     internal Func<ulong, GelConnection, GelClientConfig, ValueTask<BaseEdgeDBClient>>? ClientFactory { get; set; }
 
@@ -46,7 +46,7 @@ public sealed class GelClientPoolConfig : GelClientConfig
 /// <summary>
 ///     Represents different client types used in a <see cref="GelClientPool" />.
 /// </summary>
-public enum EdgeDBClientType
+public enum GelClientType
 {
     /// <summary>
     ///     The client pool will use <see cref="EdgeDBTcpClient" />s

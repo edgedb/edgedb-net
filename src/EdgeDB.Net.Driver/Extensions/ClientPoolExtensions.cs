@@ -12,7 +12,7 @@ public static class ClientPoolExtensions
     ///     <see langword="true" /> if the client pool supports transactions; otherwise <see langword="false" />.
     /// </returns>
     public static bool SupportsTransactions(this GelClientPool clientPool)
-        => clientPool.ClientType is EdgeDBClientType.Tcp;
+        => clientPool.ClientType is GelClientType.Tcp;
 
     /// <summary>
     ///     Creates a transaction and executes a callback with the transaction object.

@@ -9,7 +9,7 @@ var clientPool = new GelClientPool(new GelClientPoolConfig
         await client.ConnectAsync();
         return client;
     },
-    ClientType = EdgeDBClientType.Custom
+    ClientType = GelClientType.Custom
 });
 
 var debugClientPool = await clientPool.GetOrCreateClientAsync<DebuggerClient>();

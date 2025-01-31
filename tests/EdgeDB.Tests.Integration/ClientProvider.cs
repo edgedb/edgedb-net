@@ -11,7 +11,7 @@ internal class ClientProvider
     public static GelClientPool HttpClientPool
         => new(new GelClientPoolConfig
         {
-            SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy, ClientType = EdgeDBClientType.Http
+            SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy, ClientType = GelClientType.Http
         });
 
     public static GelClientPool ConfigureClient(Action<GelClientPoolConfig> conf)
