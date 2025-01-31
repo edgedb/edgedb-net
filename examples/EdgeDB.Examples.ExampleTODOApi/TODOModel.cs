@@ -2,7 +2,7 @@
 
 namespace EdgeDB.Examples.ExampleTODOApi;
 
-[EdgeDBType]
+[GelType]
 public class TODOModel
 {
     [JsonPropertyName("title")]

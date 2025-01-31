@@ -26,7 +26,7 @@ internal sealed class EdgeDBTypeDeserializeInfo
 
         var factory = CreateDefaultFactory();
 
-        EdgeDBTypeName = _type.GetCustomAttribute<EdgeDBTypeAttribute>()?.Name ?? _type.Name;
+        EdgeDBTypeName = _type.GetCustomAttribute<GelTypeAttribute>()?.Name ?? _type.Name;
 
         if (_wrapper is not null)
         {
@@ -48,7 +48,7 @@ internal sealed class EdgeDBTypeDeserializeInfo
 
         _type = _wrapper?.GetInnerType(type) ?? type;
 
-        EdgeDBTypeName = _type.GetCustomAttribute<EdgeDBTypeAttribute>()?.Name ?? _type.Name;
+        EdgeDBTypeName = _type.GetCustomAttribute<GelTypeAttribute>()?.Name ?? _type.Name;
 
         if (_wrapper is not null)
         {

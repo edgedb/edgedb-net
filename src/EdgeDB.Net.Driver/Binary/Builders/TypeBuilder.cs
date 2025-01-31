@@ -262,7 +262,7 @@ public static class TypeBuilder
                 return;
 
             // look for any type marked with the 'EdgeDBType' attribute
-            var types = assembly.DefinedTypes.Where(x => x.GetCustomAttribute<EdgeDBTypeAttribute>() != null);
+            var types = assembly.DefinedTypes.Where(x => x.GetCustomAttribute<GelTypeAttribute>() != null);
 
             // register them with the default builder
             foreach (var type in types)
