@@ -17,7 +17,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{6F
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{67ED9EF0-7828-44C0-8CB0-DEBD69EC94CA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.QueryBuilder.OperatorGenerator", "tools\EdgeDB.QueryBuilder.OperatorGenerator\EdgeDB.QueryBuilder.OperatorGenerator.csproj", "{1557B745-EB4F-449A-9BE7-180C8990AD47}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gel.QueryBuilder.OperatorGenerator", "tools\Gel.QueryBuilder.OperatorGenerator\Gel.QueryBuilder.OperatorGenerator.csproj", "{1557B745-EB4F-449A-9BE7-180C8990AD47}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gel.DotnetTool", "tools\Gel.DotnetTool\Gel.DotnetTool.csproj", "{74DB9D5E-9BA9-4282-90EA-2F7BDC4C4FBD}"
 EndProject
