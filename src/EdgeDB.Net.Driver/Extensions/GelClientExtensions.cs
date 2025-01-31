@@ -5,7 +5,7 @@ namespace EdgeDB;
 /// <summary>
 ///     A class containing extension methods for edgedb clients.
 /// </summary>
-public static class EdgeDBClientExtensions
+public static class GelClientExtensions
 {
     #region Extended Query Methods
 
