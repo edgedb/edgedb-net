@@ -49,7 +49,7 @@ public static class TypeBuilder
     public static void AddOrUpdateTypeBuilder<TType>(
         Action<TType, IDictionary<string, object?>> builder)
     {
-        if (!EdgeDBTypeConstructorInfo.TryGetConstructorInfo(typeof(TType), out var ctorInfo) ||
+        if (!GelTypeConstructorInfo.TryGetConstructorInfo(typeof(TType), out var ctorInfo) ||
             ctorInfo.EmptyConstructor is null)
             throw new TargetInvocationException(
                 $"Cannot create an instance of {typeof(TType).Name}: no empty constructor found", null);
@@ -204,7 +204,7 @@ public static class TypeBuilder
             type.IsRecord() ||
             type.IsAnonymousType() ||
             ((type.IsClass || type.IsValueType)
-             && EdgeDBTypeConstructorInfo.TryGetConstructorInfo(type, out _));
+             && GelTypeConstructorInfo.TryGetConstructorInfo(type, out _));
     }
 
     internal static bool TryGetCollectionParser(Type type, out Func<Array, Type, object>? builder)

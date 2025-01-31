@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace EdgeDB;
 
-internal enum EdgeDBConstructorParamType
+internal enum GelConstructorParamType
 {
     None,
     Dynamic,
@@ -14,18 +14,18 @@ internal enum EdgeDBConstructorParamType
     Props
 }
 
-internal struct EdgeDBTypeConstructorInfo
+internal struct GelTypeConstructorInfo
 {
     public readonly ConstructorInfo Constructor { get; init; }
-    public readonly EdgeDBConstructorParamType ParamType { get; init; }
+    public readonly GelConstructorParamType ParamType { get; init; }
     public ConstructorInfo? EmptyConstructor { get; set; }
 
-    public static bool TryGetConstructorInfo(Type type, out EdgeDBTypeConstructorInfo info)
+    public static bool TryGetConstructorInfo(Type type, out GelTypeConstructorInfo info)
         => TryGetConstructorInfo(type, GelPropertyMapInfo.Create(type), out info);
 
-    private static readonly ConcurrentDictionary<Type, EdgeDBTypeConstructorInfo> _cache = new();
+    private static readonly ConcurrentDictionary<Type, GelTypeConstructorInfo> _cache = new();
 
-    public static bool TryGetConstructorInfo(Type type, GelPropertyMapInfo map, out EdgeDBTypeConstructorInfo info)
+    public static bool TryGetConstructorInfo(Type type, GelPropertyMapInfo map, out GelTypeConstructorInfo info)
     {
         if (_cache.TryGetValue(type, out info))
         {
@@ -47,20 +47,20 @@ internal struct EdgeDBTypeConstructorInfo
             {
                 var param = ctorParams[0];
 
-                UpgradeInfo(ref info, new EdgeDBTypeConstructorInfo
+                UpgradeInfo(ref info, new GelTypeConstructorInfo
                 {
                     ParamType = param.ParameterType switch
                     {
                         _ when param.ParameterType == ObjectEnumerator.RefType
-                            => EdgeDBConstructorParamType.RefObjectEnumerator,
+                            => GelConstructorParamType.RefObjectEnumerator,
                         _ when param.ParameterType == typeof(ObjectEnumerator)
-                            => EdgeDBConstructorParamType.ObjectEnumerator,
+                            => GelConstructorParamType.ObjectEnumerator,
                         _ when param.ParameterType == typeof(IDictionary<string, object?>)
-                            => EdgeDBConstructorParamType.Dictionary,
+                            => GelConstructorParamType.Dictionary,
                         _ when param.ParameterType == typeof(object) ||
                                param.ParameterType == typeof(ExpandoObject)
-                            => EdgeDBConstructorParamType.Dynamic,
-                        _ => EdgeDBConstructorParamType.None
+                            => GelConstructorParamType.Dynamic,
+                        _ => GelConstructorParamType.None
                     },
                     Constructor = ctor
                 });
@@ -84,9 +84,9 @@ internal struct EdgeDBTypeConstructorInfo
                 if (valid)
                 {
                     UpgradeInfo(ref info,
-                        new EdgeDBTypeConstructorInfo
+                        new GelTypeConstructorInfo
                         {
-                            ParamType = EdgeDBConstructorParamType.Props, Constructor = ctor
+                            ParamType = GelConstructorParamType.Props, Constructor = ctor
                         });
                 }
             }
@@ -99,9 +99,9 @@ internal struct EdgeDBTypeConstructorInfo
             if (!foundDeserializer)
             {
                 UpgradeInfo(ref info,
-                    new EdgeDBTypeConstructorInfo
+                    new GelTypeConstructorInfo
                     {
-                        Constructor = emptyCtor, ParamType = EdgeDBConstructorParamType.None
+                        Constructor = emptyCtor, ParamType = GelConstructorParamType.None
                     });
             }
 
@@ -114,7 +114,7 @@ internal struct EdgeDBTypeConstructorInfo
         return emptyCtor is not null || foundDeserializer;
     }
 
-    private static void UpgradeInfo(ref EdgeDBTypeConstructorInfo current, EdgeDBTypeConstructorInfo next)
+    private static void UpgradeInfo(ref GelTypeConstructorInfo current, GelTypeConstructorInfo next)
     {
         if (current.ParamType <= next.ParamType)
             current = next;

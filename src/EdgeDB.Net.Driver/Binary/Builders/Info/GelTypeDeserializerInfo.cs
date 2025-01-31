@@ -10,7 +10,7 @@ namespace EdgeDB;
 internal sealed class GelTypeDeserializeInfo
 {
     private readonly Type _type;
-    private EdgeDBTypeConstructorInfo? _ctorInfo;
+    private GelTypeConstructorInfo? _ctorInfo;
 
     private GelPropertyMapInfo? _propertyMapInfo;
 
@@ -81,8 +81,8 @@ internal sealed class GelTypeDeserializeInfo
     internal GelPropertyMapInfo PropertyMapInfo
         => _propertyMapInfo ??= GelPropertyMapInfo.Create(_type);
 
-    internal EdgeDBTypeConstructorInfo? ConstructorInfo
-        => _ctorInfo ??= EdgeDBTypeConstructorInfo.TryGetConstructorInfo(_type, PropertyMapInfo, out var ctorInfo)
+    internal GelTypeConstructorInfo? ConstructorInfo
+        => _ctorInfo ??= GelTypeConstructorInfo.TryGetConstructorInfo(_type, PropertyMapInfo, out var ctorInfo)
             ? ctorInfo
             : null;
 
@@ -202,17 +202,17 @@ internal sealed class GelTypeDeserializeInfo
 
             switch (ConstructorInfo.Value.ParamType)
             {
-                case EdgeDBConstructorParamType.Dynamic:
+                case GelConstructorParamType.Dynamic:
                     return (ref ObjectEnumerator enumerator) =>
                     {
                         return ctor.Invoke(new object?[] {enumerator.ToDynamic()});
                     };
-                case EdgeDBConstructorParamType.Dictionary:
+                case GelConstructorParamType.Dictionary:
                     return (ref ObjectEnumerator enumerator) =>
                     {
                         return ctor.Invoke(new object?[] {enumerator.Flatten()});
                     };
-                case EdgeDBConstructorParamType.ObjectEnumerator:
+                case GelConstructorParamType.ObjectEnumerator:
                     return (ref ObjectEnumerator enumerator) =>
                     {
                         var lambda = Expression.Lambda<NonRefTypeDeserializerFactory>(
@@ -222,12 +222,12 @@ internal sealed class GelTypeDeserializeInfo
 
                         return lambda(enumerator);
                     };
-                case EdgeDBConstructorParamType.RefObjectEnumerator:
+                case GelConstructorParamType.RefObjectEnumerator:
                     return Expression.Lambda<TypeDeserializerFactory>(
                         Expression.New(ctor, Expression.Parameter(ObjectEnumerator.RefType, "enumerator")),
                         Expression.Parameter(ObjectEnumerator.RefType, "enumerator")
                     ).Compile();
-                case EdgeDBConstructorParamType.Props:
+                case GelConstructorParamType.Props:
                     return (ref ObjectEnumerator enumerator) =>
                     {
                         var ctorParams = new object?[Properties.Length];
