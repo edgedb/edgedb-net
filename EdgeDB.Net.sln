@@ -25,7 +25,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gel.Tests.Integration", "te
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gel.Tests.Benchmarks", "tests\Gel.Tests.Benchmarks\Gel.Tests.Benchmarks.csproj", "{5FFD1E88-614D-409B-8420-F9571AC7CA60}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.BinaryDebugger", "tools\EdgeDB.BinaryDebugger\EdgeDB.BinaryDebugger.csproj", "{3A4AAAA0-9948-43D3-B838-8EFAC130240C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gel.BinaryDebugger", "tools\Gel.BinaryDebugger\Gel.BinaryDebugger.csproj", "{3A4AAAA0-9948-43D3-B838-8EFAC130240C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gel.Examples.ExampleTODOApi", "examples\Gel.Examples.ExampleTODOApi\Gel.Examples.ExampleTODOApi.csproj", "{E38429C6-53A5-4311-8189-1F78238666DC}"
 EndProject

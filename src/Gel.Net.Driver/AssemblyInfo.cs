@@ -7,5 +7,5 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Gel.Tests.Unit")]
 [assembly: InternalsVisibleTo("Gel.Tests.Integration")]
 [assembly: InternalsVisibleTo("Gel.Tests.Benchmarks")]
-[assembly: InternalsVisibleTo("EdgeDB.BinaryDebugger")]
+[assembly: InternalsVisibleTo("Gel.BinaryDebugger")]
 [assembly: InternalsVisibleTo("EdgeDB.Serializer.Experiments")]
