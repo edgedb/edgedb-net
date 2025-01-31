@@ -1,16 +1,16 @@
 using CliWrap;
 using Gel.DocGenerator;
 
-// take in the path to the edgedb-net folder
+// take in the path to the gel-net folder
 var path = args[0];
 
-var driverPath = Path.Combine(path, "src", "EdgeDB.Net.Driver");
+var driverPath = Path.Combine(path, "src", "Gel.Net.Driver");
 var docsTemp = Path.Combine(path, "docs", "tmp");
 try
 {
     // build the driver with doc files in release mode
     await Cli.Wrap("dotnet")
-        .WithArguments($"build {Path.Combine(driverPath, "EdgeDB.Net.Driver.csproj")} -c Release -f net6.0 --force")
+        .WithArguments($"build {Path.Combine(driverPath, "Gel.Net.Driver.csproj")} -c Release -f net6.0 --force")
         .WithStandardOutputPipe(PipeTarget.ToStream(Console.OpenStandardOutput()))
         .WithStandardErrorPipe(PipeTarget.ToStream(Console.OpenStandardError()))
         .WithValidation(CommandResultValidation.ZeroExitCode)
@@ -28,7 +28,7 @@ try
     // copy the doc files to a tmp dir in the docs folder
     var driverXMLPath = Path.Combine(docsTemp, "driver.xml");
     Directory.CreateDirectory(docsTemp);
-    File.Move(Path.Combine(driverPath, "bin", "Release", "net6.0", "EdgeDB.Net.Driver.xml"), driverXMLPath, true);
+    File.Move(Path.Combine(driverPath, "bin", "Release", "net6.0", "Gel.Net.Driver.xml"), driverXMLPath, true);
 
     var data = Parser.Load(driverXMLPath);
 
