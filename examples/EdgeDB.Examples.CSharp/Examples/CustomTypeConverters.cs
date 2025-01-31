@@ -25,7 +25,7 @@ internal class CustomTypeConverters : IExample
         public string? Username { get; set; }
     }
 
-    public class DiscordSnowflakeIdConverter : EdgeDBTypeConverter<DiscordSnowflakeId, string>
+    public class DiscordSnowflakeIdConverter : GelTypeConverter<DiscordSnowflakeId, string>
     {
         public override DiscordSnowflakeId ConvertFrom(string? value)
             => value is null ? default : new DiscordSnowflakeId(ulong.Parse(value));

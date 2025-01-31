@@ -74,7 +74,7 @@ public static class TypeBuilder
     }
 
     /// <summary>
-    ///     Adds or updates a custom <see cref="EdgeDBTypeConverter{TSource, TTarget}" />
+    ///     Adds or updates a custom <see cref="GelTypeConverter{TSource, TTarget}" />
     /// </summary>
     /// <typeparam name="TConverter">The type converter to add.</typeparam>
     /// <returns />

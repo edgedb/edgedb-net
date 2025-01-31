@@ -7,7 +7,7 @@ namespace EdgeDB.TypeConverters;
 /// </summary>
 /// <typeparam name="TSource">The client-side type which the converter is responsible for converting.</typeparam>
 /// <typeparam name="TTarget">The database-side type which the converter is responsible for converting to.</typeparam>
-public abstract class EdgeDBTypeConverter<TSource, TTarget> : IEdgeDBTypeConverter
+public abstract class GelTypeConverter<TSource, TTarget> : IEdgeDBTypeConverter
 {
     /// <inheritdoc />
     public virtual bool CanConvert(Type from, Type to)

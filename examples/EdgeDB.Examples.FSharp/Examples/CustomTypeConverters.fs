@@ -27,7 +27,7 @@ type DiscordSnowflakeId =
     end
 
 type DiscordSnowflakeConverter() =
-    inherit EdgeDBTypeConverter<DiscordSnowflakeId, string>()
+    inherit GelTypeConverter<DiscordSnowflakeId, string>()
     override this.ConvertFrom(value: string) = DiscordSnowflakeId(uint64 value)
     override this.ConvertTo(value: DiscordSnowflakeId) = value.Snowflake.ToString()
 

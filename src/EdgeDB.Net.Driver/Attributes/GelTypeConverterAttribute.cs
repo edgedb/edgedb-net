@@ -4,7 +4,7 @@ namespace EdgeDB;
 
 /// <summary>
 ///     Marks the current property to be deserialized/serialized with a specific
-///     <see cref="EdgeDBTypeConverter{TSource,TTarget}" />.
+///     <see cref="GelTypeConverter{TSource,TTarget}" />.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property)]
 public class GelTypeConverterAttribute : Attribute
@@ -13,12 +13,12 @@ public class GelTypeConverterAttribute : Attribute
 
     /// <summary>
     ///     Initializes the <see cref="GelTypeConverterAttribute" /> with the
-    ///     specified <see cref="EdgeDBTypeConverter{TSource, TTarget}" />.
+    ///     specified <see cref="GelTypeConverter{TSource, TTarget}" />.
     /// </summary>
     /// <param name="converterType">The type of the converter.</param>
     /// <exception cref="ArgumentException">
     ///     <paramref name="converterType" /> is not a valid
-    ///     <see cref="EdgeDBTypeConverter{TSource, TTarget}" />.
+    ///     <see cref="GelTypeConverter{TSource, TTarget}" />.
     /// </exception>
     public GelTypeConverterAttribute(Type converterType)
     {
