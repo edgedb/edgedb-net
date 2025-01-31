@@ -233,7 +233,7 @@ public static class TypeBuilder
         info = null;
         var method = objectType.GetMethods().FirstOrDefault(x =>
         {
-            if (x.GetCustomAttribute<EdgeDBDeserializerAttribute>() != null && x.ReturnType == typeof(void))
+            if (x.GetCustomAttribute<GelDeserializerAttribute>() != null && x.ReturnType == typeof(void))
             {
                 var parameters = x.GetParameters();
 

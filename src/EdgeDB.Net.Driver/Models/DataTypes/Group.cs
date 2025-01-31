@@ -25,7 +25,7 @@ public sealed class Group<TKey, TElement> : IGrouping<TKey, TElement>
         Elements = elements.ToImmutableArray();
     }
 
-    [EdgeDBDeserializer]
+    [GelDeserializer]
     internal Group(IDictionary<string, object?> raw)
     {
         if (!raw.TryGetValue("key", out var keyValue) || !raw.TryGetValue("grouping", out var groupingValue) ||

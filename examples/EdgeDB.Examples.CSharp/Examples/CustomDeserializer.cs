@@ -54,7 +54,7 @@ public class CustomDeserializer : IExample
 
     public class PersonConstructor
     {
-        [EdgeDBDeserializer]
+        [GelDeserializer]
         public PersonConstructor(IDictionary<string, object?> raw)
         {
             Name = (string)raw["name"]!;
@@ -70,7 +70,7 @@ public class CustomDeserializer : IExample
         public string? Name { get; set; }
         public string? Email { get; set; }
 
-        [EdgeDBDeserializer]
+        [GelDeserializer]
         public void PersonBuilder(IDictionary<string, object?> raw)
         {
             Name = (string)raw["name"]!;

@@ -43,7 +43,7 @@ internal struct EdgeDBTypeConstructorInfo
             if (!ctorParams.Any())
                 emptyCtor = ctor;
 
-            if (ctorParams.Length == 1 && ctor.GetCustomAttribute<EdgeDBDeserializerAttribute>() is not null)
+            if (ctorParams.Length == 1 && ctor.GetCustomAttribute<GelDeserializerAttribute>() is not null)
             {
                 var param = ctorParams[0];
 

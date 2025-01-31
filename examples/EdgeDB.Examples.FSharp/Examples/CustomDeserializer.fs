@@ -18,7 +18,7 @@ type PersonConstructor() =
         with get () = email
         and set (v) = email <- v
 
-    [<EdgeDBDeserializer>]
+    [<GelDeserializer>]
     new(raw: IDictionary<string, obj>) as this =
         PersonConstructor()
         then
@@ -29,7 +29,7 @@ type PersonMethod() =
     member val Name = "" with get, set
     member val Email = "" with get, set
 
-    [<EdgeDBDeserializer>]
+    [<GelDeserializer>]
     member this.Deserialize(raw: IDictionary<string, obj>) =
         this.Name <- raw.["name"] :?> string
         this.Email <- raw.["email"] :?> string

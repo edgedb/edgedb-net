@@ -177,7 +177,7 @@ public class TypeBuilderTests
 
         public bool CustomDeserializerCalled { get; private set; }
 
-        [EdgeDBDeserializer]
+        [GelDeserializer]
         public void Build(IDictionary<string, object?> data)
         {
             Name = (string?)data["name"];
@@ -189,7 +189,7 @@ public class TypeBuilderTests
 
     public class PersonConstructorBuilder
     {
-        [EdgeDBDeserializer]
+        [GelDeserializer]
         public PersonConstructorBuilder(IDictionary<string, object?> data)
         {
             Name = (string?)data["name"];
