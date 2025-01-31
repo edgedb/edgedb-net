@@ -44,7 +44,7 @@ public interface IGelQueryable
     /// </summary>
     /// <remarks>
     ///     This method enforces <see cref="Cardinality.AtMostOne" />, if your query returns
-    ///     more than one result a <see cref="EdgeDBException" /> will be thrown.
+    ///     more than one result a <see cref="GelException" /> will be thrown.
     /// </remarks>
     /// <typeparam name="TResult">The return type of the query.</typeparam>
     /// <param name="query">The query to execute.</param>
@@ -63,7 +63,7 @@ public interface IGelQueryable
     /// </summary>
     /// <remarks>
     ///     This method enforces <see cref="Cardinality.One" />, if your query returns zero
-    ///     or more than one result a <see cref="EdgeDBException" /> will be thrown.
+    ///     or more than one result a <see cref="GelException" /> will be thrown.
     /// </remarks>
     /// <typeparam name="TResult">The return type of the query.</typeparam>
     /// <param name="query">The query to execute.</param>

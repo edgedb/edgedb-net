@@ -140,7 +140,7 @@ internal sealed class GelTcpClient : GelBinaryClient, ITransactibleClient
         var isolationMode = isolation switch
         {
             Isolation.Serializable => "serializable",
-            _ => throw new EdgeDBException("Unknown isolation mode")
+            _ => throw new GelException("Unknown isolation mode")
         };
 
         var readMode = readOnly ? "read only" : "read write";

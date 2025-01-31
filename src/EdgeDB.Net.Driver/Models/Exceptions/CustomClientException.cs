@@ -3,7 +3,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents a generic error with custom clients.
 /// </summary>
-public sealed class CustomClientException : EdgeDBException
+public sealed class CustomClientException : GelException
 {
     /// <summary>
     ///     Constructs a new <see cref="CustomClientException" /> with the specified error message.

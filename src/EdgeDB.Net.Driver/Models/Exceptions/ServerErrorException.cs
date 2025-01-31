@@ -6,7 +6,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents an exception that was caused by an error from EdgeDB.
 /// </summary>
-public sealed class ServerErrorException : EdgeDBException
+public sealed class ServerErrorException : GelException
 {
     private const ushort ERROR_LINE_START = 0xFFF3;
     private const ushort ERROR_LINE_END = 0xFFF6;

@@ -3,7 +3,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents an exception that occurs when the server signature is incorrect.
 /// </summary>
-public class InvalidSignatureException : EdgeDBException
+public class InvalidSignatureException : GelException
 {
     /// <summary>
     ///     Constructs a new <see cref="InvalidSignatureException" />.

@@ -63,7 +63,7 @@ internal sealed class StreamDuplexer : IBinaryDuplexer
             if (IsConnected)
                 await SendAsync(token, _client.ProtocolProvider.Terminate()).ConfigureAwait(false);
         }
-        catch (EdgeDBException) { } // assume its because the connection is closed.
+        catch (GelException) { } // assume its because the connection is closed.
 
         await DisconnectInternalAsync();
     }
@@ -175,7 +175,7 @@ internal sealed class StreamDuplexer : IBinaryDuplexer
         // check stream after reconnect
         if (_stream is null)
         {
-            throw new EdgeDBException("Cannot send message to a force-closed connection");
+            throw new GelException("Cannot send message to a force-closed connection");
         }
 
         using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectTokenSource.Token);

@@ -24,7 +24,7 @@ internal sealed class FSharpOptionWrapper : IWrapper
 
         return (
             target.GetConstructor(new[] {value.GetType()})
-            ?? throw new EdgeDBException($"Failed to find constructor for {target}")
+            ?? throw new GelException($"Failed to find constructor for {target}")
         ).Invoke(new[] {value});
     }
 
@@ -35,7 +35,7 @@ internal sealed class FSharpOptionWrapper : IWrapper
 
         return (
             target.GetConstructor(new[] {value.GetType()})
-            ?? throw new EdgeDBException($"Failed to find constructor for {target}")
+            ?? throw new GelException($"Failed to find constructor for {target}")
         ).Invoke(new[] {value});
     }
 }

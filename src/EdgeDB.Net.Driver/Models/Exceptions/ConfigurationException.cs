@@ -3,7 +3,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents a generic configuration error.
 /// </summary>
-public sealed class ConfigurationException : EdgeDBException
+public sealed class ConfigurationException : GelException
 {
     /// <summary>
     ///     Creates a new <see cref="ConfigurationException" />.

@@ -35,7 +35,7 @@ public static class GelClientExtensions
     /// </summary>
     /// <remarks>
     ///     This method enforces <see cref="Cardinality.AtMostOne" />, if your query returns
-    ///     more than one result a <see cref="EdgeDBException" /> will be thrown.
+    ///     more than one result a <see cref="GelException" /> will be thrown.
     /// </remarks>
     /// <param name="client">The client to execute the query on.</param>
     /// <param name="query">The query to execute.</param>
@@ -56,7 +56,7 @@ public static class GelClientExtensions
     /// </summary>
     /// <remarks>
     ///     This method enforces <see cref="Cardinality.One" />, if your query returns zero
-    ///     or more than one result a <see cref="EdgeDBException" /> will be thrown.
+    ///     or more than one result a <see cref="GelException" /> will be thrown.
     /// </remarks>
     /// <param name="client">The client to execute the query on.</param>
     /// <param name="query">The query to execute.</param>
@@ -256,7 +256,7 @@ public static class GelClientExtensions
                     await transaction.RollbackAsync().ConfigureAwait(false);
                 }
                 catch (Exception rollbackErr) when
-                    (rollbackErr is not EdgeDBException) // see https://github.com/edgedb/edgedb-js/blob/f170b5f53eab605454704e869e083c2afc693ada/src/client.ts#L142
+                    (rollbackErr is not GelException) // see https://github.com/edgedb/edgedb-js/blob/f170b5f53eab605454704e869e083c2afc693ada/src/client.ts#L142
                 {
                     throw;
                 }
@@ -278,7 +278,7 @@ public static class GelClientExtensions
     /// <param name="token">A token to cancel the operation with.</param>
     /// <returns>A memory stream containing the entire dumped database.</returns>
     /// <exception cref="ServerErrorException">The server sent an error message during the dumping process.</exception>
-    /// <exception cref="EdgeDBException">The server sent a mismatched packet.</exception>
+    /// <exception cref="GelException">The server sent a mismatched packet.</exception>
     public static async Task<Stream?> DumpDatabaseAsync(
         this GelClientPool clientPool,
         ProtocolVersion? dumprestoreVersion = null,
@@ -298,7 +298,7 @@ public static class GelClientExtensions
     /// <param name="token">A token to cancel the operation with.</param>
     /// <returns>A memory stream containing the entire dumped database.</returns>
     /// <exception cref="ServerErrorException">The server sent an error message during the dumping process.</exception>
-    /// <exception cref="EdgeDBException">The server sent a mismatched packet.</exception>
+    /// <exception cref="GelException">The server sent a mismatched packet.</exception>
     /// <exception cref="ArgumentException">The provided stream cannot be written to.</exception>
     public static async Task DumpDatabaseAsync(
         this GelClientPool clientPool,
@@ -326,7 +326,7 @@ public static class GelClientExtensions
     /// <param name="dumprestoreVersion">The version of the dump format to use.</param>
     /// <param name="token">A token to cancel the operation with.</param>
     /// <returns>The status result of the restore.</returns>
-    /// <exception cref="EdgeDBException">
+    /// <exception cref="GelException">
     ///     The server sent an invalid packet or the restore operation couldn't proceed
     ///     due to the database not being empty.
     /// </exception>

@@ -5,7 +5,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents an exception that occurs when the client receives an unexpected message.
 /// </summary>
-public class UnexpectedMessageException : EdgeDBException
+public class UnexpectedMessageException : GelException
 {
     /// <summary>
     ///     Constructs a new <see cref="UnexpectedMessageException" /> with the message type the client <i>wasn't</i>

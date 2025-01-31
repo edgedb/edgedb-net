@@ -164,7 +164,7 @@ internal class V1ProtocolProvider : IProtocolProvider
                         // if we have not, this is a issue with the client implementation
                         if (!gotStateDescriptor)
                         {
-                            throw new EdgeDBException("Failed to properly encode state data, this is a bug.");
+                            throw new GelException("Failed to properly encode state data, this is a bug.");
                         }
 
                         // we can safely retry by finishing this duplex and starting a
@@ -214,9 +214,9 @@ internal class V1ProtocolProvider : IProtocolProvider
                 if (parseAttempts > 2)
                 {
                     throw error.HasValue
-                        ? new EdgeDBException($"Failed to parse query after {parseAttempts} attempts",
+                        ? new GelException($"Failed to parse query after {parseAttempts} attempts",
                             new ServerErrorException(error.Value, queryParameters.Query))
-                        : new EdgeDBException($"Failed to parse query after {parseAttempts} attempts");
+                        : new GelException($"Failed to parse query after {parseAttempts} attempts");
                 }
 
                 await foreach (var result in Duplexer.DuplexAndSyncAsync(new Parse
@@ -244,7 +244,7 @@ internal class V1ProtocolProvider : IProtocolProvider
                             // if we have not, this is a issue with the client implementation
                             if (!gotStateDescriptor)
                             {
-                                throw new EdgeDBException("Failed to properly encode state data, this is a bug.");
+                                throw new GelException("Failed to properly encode state data, this is a bug.");
                             }
 
                             // we can safely retry by finishing this duplex and starting a
@@ -489,7 +489,7 @@ internal class V1ProtocolProvider : IProtocolProvider
                 if (authStatus.AuthStatus == AuthStatus.AuthenticationRequiredSASLMessage)
                 {
                     if (authStatus.AuthenticationMethods is null || authStatus.AuthenticationMethods.Length == 0)
-                        throw new EdgeDBException(
+                        throw new GelException(
                             "Expected an authentication method for AuthenticationStatus message. but got null");
 
                     return new ValueTask(StartSASLAuthenticationAsync(authStatus.AuthenticationMethods[0]));

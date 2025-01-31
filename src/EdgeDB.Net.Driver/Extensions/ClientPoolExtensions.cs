@@ -76,7 +76,7 @@ public static class ClientPoolExtensions
         var client = await clientPool.GetOrCreateClientAsync().ConfigureAwait(false);
 
         if (client is not ITransactibleClient tranactibleClient)
-            throw new EdgeDBException($"Cannot use transactions with {clientPool.ClientType} clients");
+            throw new GelException($"Cannot use transactions with {clientPool.ClientType} clients");
 
         return tranactibleClient;
     }

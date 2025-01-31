@@ -73,7 +73,7 @@ public sealed class Transaction : IGelQueryable
             }
         }
 
-        EdgeDBException? innerException = null;
+        GelException? innerException = null;
 
         for (var i = 0; i != _settings.RetryAttempts; i++)
         {
@@ -82,7 +82,7 @@ public sealed class Transaction : IGelQueryable
                 await func().ConfigureAwait(false);
                 return;
             }
-            catch (EdgeDBException x) when (x.ShouldRetry)
+            catch (GelException x) when (x.ShouldRetry)
             {
                 innerException = x;
             }
@@ -102,7 +102,7 @@ public sealed class Transaction : IGelQueryable
             }
         }
 
-        EdgeDBException? innerException = null;
+        GelException? innerException = null;
 
         for (var i = 0; i != _settings.RetryAttempts; i++)
         {
@@ -110,7 +110,7 @@ public sealed class Transaction : IGelQueryable
             {
                 return await func().ConfigureAwait(false);
             }
-            catch (EdgeDBException x) when (x.ShouldRetry)
+            catch (GelException x) when (x.ShouldRetry)
             {
                 innerException = x;
             }

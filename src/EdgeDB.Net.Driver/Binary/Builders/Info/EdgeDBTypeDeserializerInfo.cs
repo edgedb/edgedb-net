@@ -287,7 +287,7 @@ internal sealed class EdgeDBTypeDeserializeInfo
 
                 if ((info = Children.FirstOrDefault(x => x.Value.EdgeDBTypeName == typeName).Value) is null)
                 {
-                    throw new EdgeDBException(
+                    throw new GelException(
                         $"Failed to deserialize the edgedb type '{typeName}'. Could not find relivant child of {_type.Name}");
                 }
 

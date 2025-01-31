@@ -5,7 +5,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents a temporary connection failiure exception.
 /// </summary>
-public sealed class ConnectionFailedTemporarilyException : EdgeDBException
+public sealed class ConnectionFailedTemporarilyException : GelException
 {
     /// <summary>
     ///     Constructs a new <see cref="ConnectionFailedTemporarilyException" /> with the specified socket error.

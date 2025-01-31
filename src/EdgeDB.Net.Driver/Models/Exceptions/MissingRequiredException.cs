@@ -3,7 +3,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents an exception that occurs when required data isn't returned.
 /// </summary>
-public class MissingRequiredException : EdgeDBException
+public class MissingRequiredException : GelException
 {
     /// <summary>
     ///     Constructs a new <see cref="MissingRequiredException" />.

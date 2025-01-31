@@ -4,7 +4,7 @@ namespace EdgeDB;
 ///     Represents an exception that occurs when the client doesn't
 ///     have a codec for incoming or outgoing data.
 /// </summary>
-public class MissingCodecException : EdgeDBException
+public class MissingCodecException : GelException
 {
     /// <summary>
     ///     Constructs a new <see cref="MissingCodecException" /> with the specified error message.

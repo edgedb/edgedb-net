@@ -181,7 +181,7 @@ internal sealed class ObjectBuilder
                 if (arr.GetType().IsAssignableTo(targetType))
                     return ReflectionUtils.DynamicCast(arr, targetType);
 
-                throw new EdgeDBException($"Couldn't convert {valueType} to {targetType}");
+                throw new GelException($"Couldn't convert {valueType} to {targetType}");
             }
         }
     }

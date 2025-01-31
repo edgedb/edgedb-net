@@ -465,7 +465,7 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
             }
 
             default:
-                throw new EdgeDBException($"No client found for type {_poolConfig.ClientType}");
+                throw new GelException($"No client found for type {_poolConfig.ClientType}");
         }
     }
 

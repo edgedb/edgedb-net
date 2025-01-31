@@ -37,7 +37,7 @@ internal sealed class TypeVisitor : CodecVisitor
         Task VisitCodecAsync(Ref<ICodec> codec, CancellationToken token)
     {
         if (_context is null)
-            throw new EdgeDBException("Context was not initialized for type walking");
+            throw new GelException("Context was not initialized for type walking");
 
 #if DEBUG
         var sw = Stopwatch.StartNew();

@@ -143,7 +143,7 @@ internal abstract class GelBinaryClient : BaseGelClient
         ObjectBuilder.PreheatedCodec? PreheatedCodec
     );
 
-    /// <exception cref="EdgeDBException">A general error occored.</exception>
+    /// <exception cref="GelException">A general error occored.</exception>
     /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
@@ -217,7 +217,7 @@ internal abstract class GelBinaryClient : BaseGelClient
                 throw new QueryTimeoutException(ClientConfig.MessageTimeout, query, ce);
             else throw;
         }
-        catch (EdgeDBException x) when (x.ShouldReconnect && !isRetry)
+        catch (GelException x) when (x.ShouldReconnect && !isRetry)
         {
             Logger.LogDebug("Execute threw an exception which allows reconnects, reconnecting...");
 
@@ -229,7 +229,7 @@ internal abstract class GelBinaryClient : BaseGelClient
             return await ExecuteInternalAsync(query, args, cardinality, capabilities, format, true, implicitTypeName,
                 preheat, token).ConfigureAwait(false);
         }
-        catch (EdgeDBException x) when (x.ShouldRetry && !isRetry)
+        catch (GelException x) when (x.ShouldRetry && !isRetry)
         {
             Logger.LogDebug("Execute threw an exception which allows retries, retrying...");
 
@@ -246,7 +246,7 @@ internal abstract class GelBinaryClient : BaseGelClient
             if (x is ServerErrorException)
                 throw;
 
-            throw new EdgeDBException($"Failed to execute query{(isRetry ? " after retrying once" : "")}", x);
+            throw new GelException($"Failed to execute query{(isRetry ? " after retrying once" : "")}", x);
         }
         finally
         {
@@ -265,7 +265,7 @@ internal abstract class GelBinaryClient : BaseGelClient
     }
 
     /// <inheritdoc />
-    /// <exception cref="EdgeDBException">A general error occored.</exception>
+    /// <exception cref="GelException">A general error occored.</exception>
     /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
@@ -275,7 +275,7 @@ internal abstract class GelBinaryClient : BaseGelClient
             .ConfigureAwait(false);
 
     /// <inheritdoc />
-    /// <exception cref="EdgeDBException">A general error occored.</exception>
+    /// <exception cref="GelException">A general error occored.</exception>
     /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
@@ -321,7 +321,7 @@ internal abstract class GelBinaryClient : BaseGelClient
     }
 
     /// <inheritdoc />
-    /// <exception cref="EdgeDBException">A general error occored.</exception>
+    /// <exception cref="GelException">A general error occored.</exception>
     /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
@@ -356,7 +356,7 @@ internal abstract class GelBinaryClient : BaseGelClient
     }
 
     /// <inheritdoc />
-    /// <exception cref="EdgeDBException">A general error occored.</exception>
+    /// <exception cref="GelException">A general error occored.</exception>
     /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
@@ -393,7 +393,7 @@ internal abstract class GelBinaryClient : BaseGelClient
 
     /// <inheritdoc />
     /// <exception cref="ResultCardinalityMismatchException">The results cardinality was not what the query expected.</exception>
-    /// <exception cref="EdgeDBException">A general error occored.</exception>
+    /// <exception cref="GelException">A general error occored.</exception>
     /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
@@ -409,7 +409,7 @@ internal abstract class GelBinaryClient : BaseGelClient
     }
 
     /// <inheritdoc />
-    /// <exception cref="EdgeDBException">A general error occored.</exception>
+    /// <exception cref="GelException">A general error occored.</exception>
     /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
@@ -427,7 +427,7 @@ internal abstract class GelBinaryClient : BaseGelClient
                     object? text = result.ProtocolResult.OutCodecInfo.Codec.Deserialize(this, in x);
                     return text is string
                         ? new Json((string)text)
-                        : throw new EdgeDBException("Error parsing JsonElements.");
+                        : throw new GelException("Error parsing JsonElements.");
                 })
                 .ToImmutableArray()
             : ImmutableArray<Json>.Empty;
@@ -612,7 +612,7 @@ internal abstract class GelBinaryClient : BaseGelClient
             {
                 stream = await GetStreamAsync(token).ConfigureAwait(false);
             }
-            catch (EdgeDBException x) when (x.ShouldReconnect)
+            catch (GelException x) when (x.ShouldReconnect)
             {
                 attempts++;
                 Logger.AttemptToReconnect((uint)attempts, ClientConfig.MaxConnectionRetries);
@@ -629,7 +629,7 @@ internal abstract class GelBinaryClient : BaseGelClient
             // send handshake
             await Duplexer.SendAsync(token, _protocolProvider.Handshake()).ConfigureAwait(false);
         }
-        catch (EdgeDBException x) when (x.ShouldReconnect)
+        catch (GelException x) when (x.ShouldReconnect)
         {
             if (_currentRetries == ClientConfig.MaxConnectionRetries)
             {

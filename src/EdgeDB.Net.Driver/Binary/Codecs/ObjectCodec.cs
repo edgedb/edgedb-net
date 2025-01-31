@@ -45,7 +45,7 @@ internal sealed class TypeInitializedObjectCodec : ObjectCodec
         }
         catch (Exception x)
         {
-            throw new EdgeDBException($"Failed to deserialize object to {TargetType}", x);
+            throw new GelException($"Failed to deserialize object to {TargetType}", x);
         }
         finally
         {
@@ -103,7 +103,7 @@ internal class ObjectCodec
         }
         catch (Exception x)
         {
-            throw new EdgeDBException("Failed to deserialize object", x);
+            throw new GelException("Failed to deserialize object", x);
         }
         finally
         {

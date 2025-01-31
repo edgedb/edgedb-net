@@ -19,7 +19,7 @@ internal sealed class NullableWrapper : IWrapper
 
         return (
             _constructor ??= target.GetConstructor(new[] {value.GetType()})
-                             ?? throw new EdgeDBException($"Failed to find constructor for {target}")
+                             ?? throw new GelException($"Failed to find constructor for {target}")
         ).Invoke(new[] {value});
     }
 }

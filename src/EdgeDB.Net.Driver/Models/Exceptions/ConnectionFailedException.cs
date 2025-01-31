@@ -3,7 +3,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents a connection failure that cannot be retried.
 /// </summary>
-public sealed class ConnectionFailedException : EdgeDBException
+public sealed class ConnectionFailedException : GelException
 {
     /// <summary>
     ///     Constructs a new <see cref="ConnectionFailedException" /> with the number

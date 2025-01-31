@@ -4,7 +4,7 @@ namespace EdgeDB;
 ///     Represents an exception that occurs when a queries cardinality
 ///     isn't what the client was expecting.
 /// </summary>
-public class ResultCardinalityMismatchException : EdgeDBException
+public class ResultCardinalityMismatchException : GelException
 {
     /// <summary>
     ///     Constructs a new <see cref="ResultCardinalityMismatchException" />.

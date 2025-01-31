@@ -14,7 +14,7 @@ public class HttpClientTests : ClientTests
     [TestMethod]
     public override Task TestPoolTransactions()
     {
-        Assert.ThrowsExceptionAsync<EdgeDBException>(() => base.TestPoolTransactions());
+        Assert.ThrowsExceptionAsync<GelException>(() => base.TestPoolTransactions());
         return Task.CompletedTask;
     }
 }

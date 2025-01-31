@@ -3,7 +3,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents an exception thrown when no type converter could be found.
 /// </summary>
-public class NoTypeConverterException : EdgeDBException
+public class NoTypeConverterException : GelException
 {
     /// <summary>
     ///     Constructs a new <see cref="NoTypeConverterException" /> with the target and source types.
