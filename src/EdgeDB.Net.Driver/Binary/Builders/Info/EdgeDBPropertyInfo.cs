@@ -5,7 +5,7 @@ namespace EdgeDB;
 
 internal sealed class EdgeDBPropertyInfo
 {
-    private readonly EdgeDBIgnoreAttribute? _ignore;
+    private readonly GelIgnoreAttribute? _ignore;
 
     private readonly EdgeDBPropertyAttribute? _propertyAttribute;
     private readonly IEdgeDBTypeConverter? _typeConverter;
@@ -16,7 +16,7 @@ internal sealed class EdgeDBPropertyInfo
         PropertyInfo = propInfo;
         _propertyAttribute = propInfo.GetCustomAttribute<EdgeDBPropertyAttribute>();
         _typeConverterAttribute = propInfo.GetCustomAttribute<EdgeDBTypeConverterAttribute>();
-        _ignore = propInfo.GetCustomAttribute<EdgeDBIgnoreAttribute>();
+        _ignore = propInfo.GetCustomAttribute<GelIgnoreAttribute>();
 
         if (TypeBuilder.TypeConverters.TryGetValue(PropertyInfo.PropertyType, out var converter))
             _typeConverter = converter;

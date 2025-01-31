@@ -30,7 +30,7 @@ internal readonly struct EdgeDBPropertyMapInfo
 
             indexMap.Add(edbProp, i);
 
-            if (prop.GetCustomAttribute<EdgeDBIgnoreAttribute>() is null)
+            if (prop.GetCustomAttribute<GelIgnoreAttribute>() is null)
             {
                 map.Add(edbProp.EdgeDBName, edbProp);
             }

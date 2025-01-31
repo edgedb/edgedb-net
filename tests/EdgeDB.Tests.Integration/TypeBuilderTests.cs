@@ -167,7 +167,7 @@ public class TypeBuilderTests
         public string? Name { get; set; }
         public string? Email { get; set; }
 
-        [EdgeDBIgnore] public bool CustomDeserializer { get; set; }
+        [GelIgnore] public bool CustomDeserializer { get; set; }
     }
 
     public class PersonMethodBuilder
