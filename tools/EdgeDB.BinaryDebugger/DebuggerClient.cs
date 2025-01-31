@@ -19,7 +19,7 @@ internal class DebuggerClient : EdgeDBBinaryClient
 
     private TcpClient _tcpClient;
 
-    public DebuggerClient(GelConnection connection, EdgeDBConfig config, ulong? clientId = null)
+    public DebuggerClient(GelConnection connection, GelClientConfig config, ulong? clientId = null)
         : base(connection, config, null!, clientId)
     {
         if (File.Exists("./debug.log"))

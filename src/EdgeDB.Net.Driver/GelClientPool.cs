@@ -10,7 +10,7 @@ namespace EdgeDB;
 /// </summary>
 public sealed class GelClientPool : IEdgeDBQueryable, IAsyncDisposable
 {
-    private readonly Func<ulong, GelConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? _clientFactory;
+    private readonly Func<ulong, GelConnection, GelClientConfig, ValueTask<BaseEdgeDBClient>>? _clientFactory;
     private readonly ConcurrentDictionary<ulong, BaseEdgeDBClient> _clients;
     private readonly object _clientsLock = new();
     private readonly SemaphoreSlim _clientWaitSemaphore;

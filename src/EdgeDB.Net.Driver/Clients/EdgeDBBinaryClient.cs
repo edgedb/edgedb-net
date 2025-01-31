@@ -48,7 +48,7 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
     /// <param name="clientId">The optional client id of this client. This is used for logging and client pooling.</param>
     public EdgeDBBinaryClient(
         GelConnection connection,
-        EdgeDBConfig clientConfig,
+        GelClientConfig clientConfig,
         IDisposable clientPoolHolder,
         ulong? clientId = null)
         : base(clientId ?? 0, clientPoolHolder)
@@ -90,7 +90,7 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
     internal ref Guid StateDescriptorId
         => ref _stateDescriptorId;
 
-    internal EdgeDBConfig ClientConfig { get; }
+    internal GelClientConfig ClientConfig { get; }
 
     protected CancellationToken DisconnectCancelToken
         => Duplexer.DisconnectToken;

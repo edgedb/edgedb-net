@@ -25,7 +25,7 @@ internal sealed class EdgeDBTcpClient : EdgeDBBinaryClient, ITransactibleClient
     /// <param name="clientConfig">The configuration for this client.</param>
     /// <param name="clientPoolHolder">The client pool holder for this client.</param>
     /// <param name="clientId">The optional client id of this client. This is used for logging and client pooling.</param>
-    public EdgeDBTcpClient(GelConnection connection, EdgeDBConfig clientConfig, IDisposable clientPoolHolder,
+    public EdgeDBTcpClient(GelConnection connection, GelClientConfig clientConfig, IDisposable clientPoolHolder,
         ulong? clientId = null)
         : base(connection, clientConfig, clientPoolHolder, clientId)
     {

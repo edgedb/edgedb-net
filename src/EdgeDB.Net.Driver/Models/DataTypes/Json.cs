@@ -40,7 +40,7 @@ public readonly struct Json
             ? default
             : serializer is not null
                 ? serializer.Deserialize<T>(new JsonTextReader(new StringReader(Value)))
-                : EdgeDBConfig.JsonSerializer.DeserializeObject<T>(Value);
+                : GelClientConfig.JsonSerializer.DeserializeObject<T>(Value);
 
     public static implicit operator string(Json j) => j.Value;
     public static implicit operator Json(string value) => new(value);

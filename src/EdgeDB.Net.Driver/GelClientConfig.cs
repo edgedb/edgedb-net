@@ -5,9 +5,9 @@ using Newtonsoft.Json;
 namespace EdgeDB;
 
 /// <summary>
-///     Represents a config for a <see cref="GelClientPool" />, extending <see cref="EdgeDBConfig" />.
+///     Represents a config for a <see cref="GelClientPool" />, extending <see cref="GelClientConfig" />.
 /// </summary>
-public sealed class EdgeDBClientPoolConfig : EdgeDBConfig
+public sealed class EdgeDBClientPoolConfig : GelClientConfig
 {
     private int? _poolSize;
 
@@ -37,7 +37,7 @@ public sealed class EdgeDBClientPoolConfig : EdgeDBConfig
     /// <remarks>
     ///     The <see cref="ClientType" /> must be <see cref="EdgeDBClientType.Custom" /> to use this property.
     /// </remarks>
-    internal Func<ulong, GelConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? ClientFactory { get; set; }
+    internal Func<ulong, GelConnection, GelClientConfig, ValueTask<BaseEdgeDBClient>>? ClientFactory { get; set; }
 
     internal bool HasCustomPoolSize
         => _poolSize.HasValue;
@@ -73,7 +73,7 @@ public enum EdgeDBClientType
 /// <summary>
 ///     Represents the configuration options for a <see cref="GelClientPool" /> or <see cref="EdgeDBTcpClient" />
 /// </summary>
-public class EdgeDBConfig
+public class GelClientConfig
 {
     /// <summary>
     ///     Gets the <see cref="JsonSerializer" /> capable of serializing/deserializing edgedb types.

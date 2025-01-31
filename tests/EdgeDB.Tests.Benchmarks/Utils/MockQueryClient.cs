@@ -49,7 +49,7 @@ internal class MockQueryClient : EdgeDBBinaryClient
                 "430000002C000000000000000000000000000653454C4543540000000000000000000000000000000000000000");
     }
 
-    public MockQueryClient(GelConnection connection, EdgeDBConfig clientConfig, IDisposable clientPoolHolder,
+    public MockQueryClient(GelConnection connection, GelClientConfig clientConfig, IDisposable clientPoolHolder,
         ulong? clientId = null)
         : base(connection, clientConfig, clientPoolHolder, clientId)
     {

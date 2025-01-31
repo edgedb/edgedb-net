@@ -14,7 +14,7 @@ internal class CodecContext
     public ILogger Logger
         => Client.Logger;
 
-    public EdgeDBConfig Config
+    public GelClientConfig Config
         => Client.ClientConfig;
 
     public TypeVisitor CreateTypeVisitor() => new(Client);
