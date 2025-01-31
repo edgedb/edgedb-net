@@ -144,7 +144,7 @@ internal abstract class GelBinaryClient : BaseGelClient
     );
 
     /// <exception cref="EdgeDBException">A general error occored.</exception>
-    /// <exception cref="EdgeDBErrorException">The client received an <see cref="IProtocolError" />.</exception>
+    /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
     internal virtual async Task<ExecuteResult> ExecuteInternalAsync(string query,
@@ -243,7 +243,7 @@ internal abstract class GelBinaryClient : BaseGelClient
         {
             Logger.InternalExecuteFailed(x);
 
-            if (x is EdgeDBErrorException)
+            if (x is ServerErrorException)
                 throw;
 
             throw new EdgeDBException($"Failed to execute query{(isRetry ? " after retrying once" : "")}", x);
@@ -266,7 +266,7 @@ internal abstract class GelBinaryClient : BaseGelClient
 
     /// <inheritdoc />
     /// <exception cref="EdgeDBException">A general error occored.</exception>
-    /// <exception cref="EdgeDBErrorException">The client received an <see cref="IProtocolError" />.</exception>
+    /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
     public override async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null,
@@ -276,7 +276,7 @@ internal abstract class GelBinaryClient : BaseGelClient
 
     /// <inheritdoc />
     /// <exception cref="EdgeDBException">A general error occored.</exception>
-    /// <exception cref="EdgeDBErrorException">The client received an <see cref="IProtocolError" />.</exception>
+    /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
     /// <exception cref="InvalidOperationException">Target type doesn't match received type.</exception>
@@ -322,7 +322,7 @@ internal abstract class GelBinaryClient : BaseGelClient
 
     /// <inheritdoc />
     /// <exception cref="EdgeDBException">A general error occored.</exception>
-    /// <exception cref="EdgeDBErrorException">The client received an <see cref="IProtocolError" />.</exception>
+    /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
     /// <exception cref="ResultCardinalityMismatchException">The results cardinality was not what the query expected.</exception>
@@ -357,7 +357,7 @@ internal abstract class GelBinaryClient : BaseGelClient
 
     /// <inheritdoc />
     /// <exception cref="EdgeDBException">A general error occored.</exception>
-    /// <exception cref="EdgeDBErrorException">The client received an <see cref="IProtocolError" />.</exception>
+    /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
     /// <exception cref="ResultCardinalityMismatchException">The results cardinality was not what the query expected.</exception>
@@ -394,7 +394,7 @@ internal abstract class GelBinaryClient : BaseGelClient
     /// <inheritdoc />
     /// <exception cref="ResultCardinalityMismatchException">The results cardinality was not what the query expected.</exception>
     /// <exception cref="EdgeDBException">A general error occored.</exception>
-    /// <exception cref="EdgeDBErrorException">The client received an <see cref="IProtocolError" />.</exception>
+    /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
     public override async Task<Json> QueryJsonAsync(string query, IDictionary<string, object?>? args = null,
@@ -410,7 +410,7 @@ internal abstract class GelBinaryClient : BaseGelClient
 
     /// <inheritdoc />
     /// <exception cref="EdgeDBException">A general error occored.</exception>
-    /// <exception cref="EdgeDBErrorException">The client received an <see cref="IProtocolError" />.</exception>
+    /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
     public override async Task<IReadOnlyCollection<Json>> QueryJsonElementsAsync(string query,
@@ -542,7 +542,7 @@ internal abstract class GelBinaryClient : BaseGelClient
                     Logger.ConnectionMessageProcessing(message.Type);
                     await _protocolProvider.ProcessAsync(in message);
                 }
-                catch (EdgeDBErrorException x) when (x.ShouldReconnect)
+                catch (ServerErrorException x) when (x.ShouldReconnect)
                 {
                     if (ClientConfig.RetryMode is not ConnectionRetryMode.AlwaysRetry) throw;
 

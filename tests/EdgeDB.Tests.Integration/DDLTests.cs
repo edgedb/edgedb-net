@@ -23,7 +23,7 @@ public class DDLTests
 
     [TestMethod]
     public async Task TestDDLInvalidCapabilitiesAndSessionConfig() =>
-        await Assert.ThrowsExceptionAsync<EdgeDBErrorException>(async () =>
+        await Assert.ThrowsExceptionAsync<ServerErrorException>(async () =>
         {
             await _clientPool.ExecuteAsync("CREATE TYPE TestType { CREATE REQUIRED PROPERTY name -> str; }",
                 token: _getToken());
@@ -31,7 +31,7 @@ public class DDLTests
 
     [TestMethod]
     public async Task TestDDLInvalidCapabilitiesAndValidConfig() =>
-        await Assert.ThrowsExceptionAsync<EdgeDBErrorException>(async () =>
+        await Assert.ThrowsExceptionAsync<ServerErrorException>(async () =>
         {
             await _ddlClientPool.ExecuteAsync("CREATE TYPE TestType { CREATE REQUIRED PROPERTY name -> str; }",
                 token: _getToken());
@@ -58,7 +58,7 @@ public class DDLTests
             {
                 await _ddlClientPool.ExecuteAsync("DROP TYPE TestType", capabilities: Capabilities.All, token: _getToken());
             }
-            catch (EdgeDBErrorException) { }
+            catch (ServerErrorException) { }
         }
     }
 

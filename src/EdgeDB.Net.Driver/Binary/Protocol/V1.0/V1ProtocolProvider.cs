@@ -185,7 +185,7 @@ internal class V1ProtocolProvider : IProtocolProvider
         } while (!successfullyParsed && !executeSuccess);
 
         if (error.HasValue)
-            throw new EdgeDBErrorException(error.Value, queryParameters.Query);
+            throw new ServerErrorException(error.Value, queryParameters.Query);
 
         return new ExecuteResult(receivedData.ToArray(), parseResult.OutCodecInfo);
     }
@@ -215,7 +215,7 @@ internal class V1ProtocolProvider : IProtocolProvider
                 {
                     throw error.HasValue
                         ? new EdgeDBException($"Failed to parse query after {parseAttempts} attempts",
-                            new EdgeDBErrorException(error.Value, queryParameters.Query))
+                            new ServerErrorException(error.Value, queryParameters.Query))
                         : new EdgeDBException($"Failed to parse query after {parseAttempts} attempts");
                 }
 
@@ -288,7 +288,7 @@ internal class V1ProtocolProvider : IProtocolProvider
         }
 
         if (error.HasValue)
-            throw new EdgeDBErrorException(error.Value, queryParameters.Query);
+            throw new ServerErrorException(error.Value, queryParameters.Query);
 
         if (outCodecInfo is null)
             throw new MissingCodecException("Couldn't find a valid output codec");
@@ -651,7 +651,7 @@ internal class V1ProtocolProvider : IProtocolProvider
                 }
                     break;
                 case ErrorResponse err:
-                    throw new EdgeDBErrorException(err);
+                    throw new ServerErrorException(err);
             }
         }
     }

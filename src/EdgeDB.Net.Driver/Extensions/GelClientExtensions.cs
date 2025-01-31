@@ -277,7 +277,7 @@ public static class GelClientExtensions
     /// <param name="dumprestoreVersion"></param>
     /// <param name="token">A token to cancel the operation with.</param>
     /// <returns>A memory stream containing the entire dumped database.</returns>
-    /// <exception cref="EdgeDBErrorException">The server sent an error message during the dumping process.</exception>
+    /// <exception cref="ServerErrorException">The server sent an error message during the dumping process.</exception>
     /// <exception cref="EdgeDBException">The server sent a mismatched packet.</exception>
     public static async Task<Stream?> DumpDatabaseAsync(
         this GelClientPool clientPool,
@@ -297,7 +297,7 @@ public static class GelClientExtensions
     /// <param name="dumprestoreVersion">The version of the dump format to use.</param>
     /// <param name="token">A token to cancel the operation with.</param>
     /// <returns>A memory stream containing the entire dumped database.</returns>
-    /// <exception cref="EdgeDBErrorException">The server sent an error message during the dumping process.</exception>
+    /// <exception cref="ServerErrorException">The server sent an error message during the dumping process.</exception>
     /// <exception cref="EdgeDBException">The server sent a mismatched packet.</exception>
     /// <exception cref="ArgumentException">The provided stream cannot be written to.</exception>
     public static async Task DumpDatabaseAsync(
@@ -330,7 +330,7 @@ public static class GelClientExtensions
     ///     The server sent an invalid packet or the restore operation couldn't proceed
     ///     due to the database not being empty.
     /// </exception>
-    /// <exception cref="EdgeDBErrorException">The server sent an error during the restore operation.</exception>
+    /// <exception cref="ServerErrorException">The server sent an error during the restore operation.</exception>
     public static async Task<string> RestoreDatabaseAsync(
         this GelClientPool clientPool,
         Stream stream,

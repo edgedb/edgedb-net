@@ -45,7 +45,7 @@ internal class V1DumpRestoreProvider : IDumpRestoreProvider
                         break;
                     case ErrorResponse error:
                     {
-                        throw new EdgeDBErrorException(error);
+                        throw new ServerErrorException(error);
                     }
                 }
             }
@@ -81,7 +81,7 @@ internal class V1DumpRestoreProvider : IDumpRestoreProvider
             switch (result.Packet)
             {
                 case ErrorResponse err:
-                    throw new EdgeDBErrorException(err);
+                    throw new ServerErrorException(err);
                 case RestoreReady:
                     result.Finish();
                     break;
@@ -100,7 +100,7 @@ internal class V1DumpRestoreProvider : IDumpRestoreProvider
         return restoreResult is null
             ? throw new UnexpectedDisconnectException()
             : restoreResult is ErrorResponse error
-                ? throw new EdgeDBErrorException(error)
+                ? throw new ServerErrorException(error)
                 : restoreResult is not CommandComplete complete
                     ? throw new UnexpectedMessageException(ServerMessageType.CommandComplete, restoreResult.Type)
                     : complete.Status;

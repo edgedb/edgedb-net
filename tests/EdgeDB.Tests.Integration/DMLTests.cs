@@ -42,7 +42,7 @@ public class DMLTests
             {
                 await _ddlClientPool.ExecuteAsync("DROP TYPE TestType", capabilities: Capabilities.All, token: _getToken());
             }
-            catch (EdgeDBErrorException) { }
+            catch (ServerErrorException) { }
         }
     }
 
@@ -63,7 +63,7 @@ public class DMLTests
             {
                 await _ddlClientPool.ExecuteAsync("DROP TYPE TestType", capabilities: Capabilities.All, token: _getToken());
             }
-            catch (EdgeDBErrorException) { }
+            catch (ServerErrorException) { }
         }
     }
 
@@ -91,7 +91,7 @@ public class DMLTests
             {
                 await _ddlClientPool.ExecuteAsync("DROP TYPE TestType", capabilities: Capabilities.All, token: _getToken());
             }
-            catch (EdgeDBErrorException) { }
+            catch (ServerErrorException) { }
         }
     }
 
@@ -115,7 +115,7 @@ public class DMLTests
             {
                 await _ddlClientPool.ExecuteAsync("DROP TYPE TestType", capabilities: Capabilities.All, token: _getToken());
             }
-            catch (EdgeDBErrorException) { }
+            catch (ServerErrorException) { }
         }
     }
 

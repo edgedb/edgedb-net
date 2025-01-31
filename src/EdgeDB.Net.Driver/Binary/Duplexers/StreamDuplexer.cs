@@ -128,7 +128,7 @@ internal sealed class StreamDuplexer : IBinaryDuplexer
             _client.Logger.IdleDisconnect();
 
             await DisconnectInternalAsync();
-            throw new EdgeDBErrorException(err);
+            throw new ServerErrorException(err);
         }
         catch (IOException ioException) when (ioException.InnerException is SocketException socketException)
         {
@@ -150,7 +150,7 @@ internal sealed class StreamDuplexer : IBinaryDuplexer
             await DisconnectInternalAsync();
             return null;
         }
-        catch (EdgeDBErrorException)
+        catch (ServerErrorException)
         {
             throw;
         }

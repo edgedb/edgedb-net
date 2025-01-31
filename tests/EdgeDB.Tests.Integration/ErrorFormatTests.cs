@@ -20,7 +20,7 @@ public class ErrorFormatTests
     [TestMethod]
     public async Task TestErrorFormat()
     {
-        var exception = await Assert.ThrowsExceptionAsync<EdgeDBErrorException>(async () =>
+        var exception = await Assert.ThrowsExceptionAsync<ServerErrorException>(async () =>
         {
             await _clientPool.QueryAsync<object>("select {\n    ver := sys::get_version(),\n    unknown := .abc,\n};",
                 token: _getToken());
