@@ -1,7 +1,7 @@
 using EdgeDB;
 using EdgeDB.BinaryDebugger;
 
-var clientPool = new GelClientPool(new EdgeDBClientPoolConfig
+var clientPool = new GelClientPool(new GelClientPoolConfig
 {
     ClientFactory = async (id, conn, conf) =>
     {

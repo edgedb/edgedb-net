@@ -6,17 +6,17 @@ namespace EdgeDB.Tests.Integration;
 internal class ClientProvider
 {
     public static GelClientPool ClientPool
-        => new(new EdgeDBClientPoolConfig {SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy});
+        => new(new GelClientPoolConfig {SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy});
 
     public static GelClientPool HttpClientPool
-        => new(new EdgeDBClientPoolConfig
+        => new(new GelClientPoolConfig
         {
             SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy, ClientType = EdgeDBClientType.Http
         });
 
-    public static GelClientPool ConfigureClient(Action<EdgeDBClientPoolConfig> conf)
+    public static GelClientPool ConfigureClient(Action<GelClientPoolConfig> conf)
     {
-        var config = new EdgeDBClientPoolConfig();
+        var config = new GelClientPoolConfig();
         conf(config);
         return new GelClientPool(config);
     }

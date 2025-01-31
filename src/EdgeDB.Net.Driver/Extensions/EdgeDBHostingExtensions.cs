@@ -13,22 +13,22 @@ public static class EdgeDBHostingExtensions
     /// </summary>
     /// <param name="collection">The source collection to add a <see cref="GelClientPool" /> to.</param>
     /// <param name="connection">An optional connection arguments for the client.</param>
-    /// <param name="clientConfig">
+    /// <param name="clientPoolConfig">
     ///     An optional configuration delegate for configuring the <see cref="GelClientPool" />.
     /// </param>
     /// <returns>
     ///     The source <see cref="IServiceCollection" /> with <see cref="GelClientPool" /> added as a singleton.
     /// </returns>
     public static IServiceCollection AddEdgeDB(this IServiceCollection collection, GelConnection? connection = null,
-        Action<EdgeDBClientPoolConfig>? clientConfig = null)
+        Action<GelClientPoolConfig>? clientPoolConfig = null)
     {
         var conn = connection ?? GelConnection.Create();
 
         collection.AddSingleton(conn);
-        collection.AddSingleton<EdgeDBClientPoolConfig>(provider =>
+        collection.AddSingleton<GelClientPoolConfig>(provider =>
         {
-            var config = new EdgeDBClientPoolConfig();
-            clientConfig?.Invoke(config);
+            var config = new GelClientPoolConfig();
+            clientPoolConfig?.Invoke(config);
 
             if (config.Logger is null)
             {

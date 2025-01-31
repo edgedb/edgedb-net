@@ -7,7 +7,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents a config for a <see cref="GelClientPool" />, extending <see cref="GelClientConfig" />.
 /// </summary>
-public sealed class EdgeDBClientPoolConfig : GelClientConfig
+public sealed class GelClientPoolConfig : GelClientConfig
 {
     private int? _poolSize;
 
@@ -65,7 +65,7 @@ public enum EdgeDBClientType
     Unix,
 
     /// <summary>
-    ///     The client pool will use the <see cref="EdgeDBClientPoolConfig.ClientFactory" /> to add new clients.
+    ///     The client pool will use the <see cref="GelClientPoolConfig.ClientFactory" /> to add new clients.
     /// </summary>
     Custom
 }

@@ -20,7 +20,7 @@ using var host = Host.CreateDefaultBuilder()
             loggingBuilder.AddSerilog(dispose: true);
         });
 
-        services.AddEdgeDB(clientConfig: clientConfig =>
+        services.AddEdgeDB(clientPoolConfig: clientConfig =>
         {
             clientConfig.SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy;
             clientConfig.ClientType = EdgeDBClientType.Tcp;

@@ -16,7 +16,7 @@ public sealed class GelClientPool : IEdgeDBQueryable, IAsyncDisposable
     private readonly SemaphoreSlim _clientWaitSemaphore;
 
     private readonly GelConnection _connection;
-    private readonly EdgeDBClientPoolConfig _poolConfig;
+    private readonly GelClientPoolConfig _poolConfig;
     private readonly ClientPoolHolder _poolHolder;
     private readonly Session _session;
     private ConcurrentStack<BaseEdgeDBClient> _availableClients;
@@ -148,7 +148,7 @@ public sealed class GelClientPool : IEdgeDBQueryable, IAsyncDisposable
     ///     working directory. If
     ///     no file is found this method will throw a <see cref="ConfigurationException" />.
     /// </remarks>
-    public GelClientPool() : this(GelConnection.Create(), new EdgeDBClientPoolConfig()) { }
+    public GelClientPool() : this(GelConnection.Create(), new GelClientPoolConfig()) { }
 
     /// <summary>
     ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
@@ -158,7 +158,7 @@ public sealed class GelClientPool : IEdgeDBQueryable, IAsyncDisposable
     ///     no file is found this method will throw a <see cref="ConfigurationException" />.
     /// </remarks>
     /// <param name="clientPoolConfig">The config for this client pool.</param>
-    public GelClientPool(EdgeDBClientPoolConfig clientPoolConfig) : this(GelConnection.Create(),
+    public GelClientPool(GelClientPoolConfig clientPoolConfig) : this(GelConnection.Create(),
         clientPoolConfig)
     {
     }
@@ -167,14 +167,14 @@ public sealed class GelClientPool : IEdgeDBQueryable, IAsyncDisposable
     ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
     /// </summary>
     /// <param name="connection">The connection parameters used to create new clients.</param>
-    public GelClientPool(GelConnection connection) : this(connection, new EdgeDBClientPoolConfig()) { }
+    public GelClientPool(GelConnection connection) : this(connection, new GelClientPoolConfig()) { }
 
     /// <summary>
     ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
     /// </summary>
     /// <param name="connection">The connection parameters used to create new clients.</param>
     /// <param name="clientPoolConfig">The config for this client pool.</param>
-    public GelClientPool(GelConnection connection, EdgeDBClientPoolConfig clientPoolConfig)
+    public GelClientPool(GelConnection connection, GelClientPoolConfig clientPoolConfig)
     {
         if (clientPoolConfig.ClientType == EdgeDBClientType.Custom && clientPoolConfig.ClientFactory == null)
             throw new CustomClientException("You must specify a client factory in order to use custom clients");

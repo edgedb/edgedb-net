@@ -11,7 +11,7 @@ public class FullExecuteBenchmark
 
     [GlobalSetup]
     public void Setup() =>
-        ClientPool = new GelClientPool(new EdgeDBClientPoolConfig
+        ClientPool = new GelClientPool(new GelClientPoolConfig
         {
             ClientFactory = (id, c, cng) =>
             {
