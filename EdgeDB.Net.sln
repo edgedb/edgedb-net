@@ -19,7 +19,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{67ED9EF0
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.QueryBuilder.OperatorGenerator", "tools\EdgeDB.QueryBuilder.OperatorGenerator\EdgeDB.QueryBuilder.OperatorGenerator.csproj", "{1557B745-EB4F-449A-9BE7-180C8990AD47}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.DotnetTool", "tools\EdgeDB.DotnetTool\EdgeDB.DotnetTool.csproj", "{74DB9D5E-9BA9-4282-90EA-2F7BDC4C4FBD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gel.DotnetTool", "tools\Gel.DotnetTool\Gel.DotnetTool.csproj", "{74DB9D5E-9BA9-4282-90EA-2F7BDC4C4FBD}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gel.Tests.Integration", "tests\Gel.Tests.Integration\Gel.Tests.Integration.csproj", "{C189294A-4990-4A06-B120-A0AF03A798C6}"
 EndProject
