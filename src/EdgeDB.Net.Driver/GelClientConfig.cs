@@ -80,7 +80,7 @@ public class GelClientConfig
     /// </summary>
     public static readonly JsonSerializer JsonSerializer = new()
     {
-        ContractResolver = new EdgeDBContractResolver(), NullValueHandling = NullValueHandling.Ignore
+        ContractResolver = new JsonContractResolver(), NullValueHandling = NullValueHandling.Ignore
     };
 
     /// <summary>
