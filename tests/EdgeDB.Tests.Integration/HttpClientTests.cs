@@ -1,7 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Threading.Tasks;
 
-namespace EdgeDB.Tests.Integration;
+namespace Gel.Tests.Integration;
 
 [TestClass]
 public class HttpClientTests : ClientTests

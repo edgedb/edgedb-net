@@ -1,4 +1,4 @@
-﻿namespace EdgeDB.Utils;
+﻿namespace Gel.Utils;
 
 internal static class HexConverter
 {

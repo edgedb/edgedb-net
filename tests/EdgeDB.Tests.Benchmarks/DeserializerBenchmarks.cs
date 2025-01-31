@@ -1,8 +1,8 @@
 using BenchmarkDotNet.Attributes;
-using EdgeDB.Binary;
-using EdgeDB.Utils;
+using Gel.Binary;
+using Gel.Utils;
 
-namespace EdgeDB.Tests.Benchmarks;
+namespace Gel.Tests.Benchmarks;
 
 internal class DeserializerBenchmarks
 {

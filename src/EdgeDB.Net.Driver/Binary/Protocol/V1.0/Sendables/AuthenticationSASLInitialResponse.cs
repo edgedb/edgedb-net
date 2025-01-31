@@ -1,7 +1,7 @@
-using EdgeDB.Utils;
+using Gel.Utils;
 using System.Text;
 
-namespace EdgeDB.Binary.Protocol.V1._0.Packets;
+namespace Gel.Binary.Protocol.V1._0.Packets;
 
 internal sealed class AuthenticationSASLInitialResponse : Sendable
 {

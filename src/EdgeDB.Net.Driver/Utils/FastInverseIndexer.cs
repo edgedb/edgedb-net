@@ -1,4 +1,4 @@
-namespace EdgeDB;
+namespace Gel;
 
 internal ref struct FastInverseIndexer
 {

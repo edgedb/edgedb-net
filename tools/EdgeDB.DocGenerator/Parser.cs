@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml.Serialization;
 
-namespace EdgeDB.DocGenerator;
+namespace Gel.DocGenerator;
 
 internal class Parser
 {

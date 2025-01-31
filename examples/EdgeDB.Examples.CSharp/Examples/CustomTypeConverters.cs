@@ -1,7 +1,7 @@
-using EdgeDB.TypeConverters;
+using Gel.TypeConverters;
 using Microsoft.Extensions.Logging;
 
-namespace EdgeDB.ExampleApp.Examples;
+namespace Gel.ExampleApp.Examples;
 
 internal class CustomTypeConverters : IExample
 {

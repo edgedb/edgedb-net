@@ -3,7 +3,7 @@ open Serilog
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Logging
-open EdgeDB
+open Gel
 
 Log.Logger <-
     LoggerConfiguration()

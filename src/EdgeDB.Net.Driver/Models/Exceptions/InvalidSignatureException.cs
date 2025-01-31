@@ -1,4 +1,4 @@
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Represents an exception that occurs when the server signature is incorrect.

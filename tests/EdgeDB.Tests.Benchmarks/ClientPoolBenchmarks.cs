@@ -1,6 +1,6 @@
 ﻿using BenchmarkDotNet.Attributes;
 
-namespace EdgeDB.Tests.Benchmarks;
+namespace Gel.Tests.Benchmarks;
 
 public class ClientPoolBenchmarks
 {

@@ -1,12 +1,12 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     A class containing extension methods for DI.
 /// </summary>
-public static class HostingExtensions
+public static class GelHostingExtensions
 {
     /// <summary>
     ///     Adds a <see cref="GelClientPool" /> singleton to a <see cref="IServiceCollection" />.

@@ -1,11 +1,11 @@
 module CustomTypeConverters
 
 open Examples
-open EdgeDB
+open Gel
+open Gel.TypeConverters
 open Microsoft.Extensions.Logging
 open System
 open System.Runtime.CompilerServices
-open EdgeDB.TypeConverters
 
 
 

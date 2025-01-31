@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace EdgeDB.DocGenerator;
+namespace Gel.DocGenerator;
 
 internal class RSTWriter
 {

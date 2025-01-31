@@ -1,6 +1,6 @@
 module ExampleRunner
 
-open EdgeDB
+open Gel
 open Examples
 open System.Linq
 open Microsoft.Extensions.Logging

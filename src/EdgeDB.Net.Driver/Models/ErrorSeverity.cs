@@ -1,4 +1,4 @@
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     An enum representing the error severity of a <see cref="Binary.Protocol.Common.IProtocolError" />.

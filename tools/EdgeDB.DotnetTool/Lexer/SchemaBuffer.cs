@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 
-namespace EdgeDB.DotnetTool.Lexer;
+namespace Gel.DotnetTool.Lexer;
 
 internal class SchemaBuffer
 {

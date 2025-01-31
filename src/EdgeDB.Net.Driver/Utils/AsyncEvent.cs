@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace EdgeDB;
+namespace Gel;
 
 internal sealed class AsyncEvent<T>
     where T : class

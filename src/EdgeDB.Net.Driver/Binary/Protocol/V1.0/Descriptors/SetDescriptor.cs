@@ -1,4 +1,4 @@
-namespace EdgeDB.Binary.Protocol.V1._0.Descriptors;
+namespace Gel.Binary.Protocol.V1._0.Descriptors;
 
 internal readonly struct SetTypeDescriptor : ITypeDescriptor
 {

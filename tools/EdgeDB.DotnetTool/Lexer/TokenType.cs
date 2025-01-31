@@ -1,4 +1,4 @@
-﻿namespace EdgeDB.DotnetTool.Lexer;
+﻿namespace Gel.DotnetTool.Lexer;
 
 internal enum TokenType
 {

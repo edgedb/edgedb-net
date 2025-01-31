@@ -1,10 +1,10 @@
-using EdgeDB.Binary;
+using Gel.Binary;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Represents a TCP client used to interact with EdgeDB.

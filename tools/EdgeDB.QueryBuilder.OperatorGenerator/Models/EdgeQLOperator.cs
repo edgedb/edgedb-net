@@ -1,4 +1,4 @@
-﻿namespace EdgeDB.QueryBuilder.OperatorGenerator;
+﻿namespace Gel.QueryBuilder.OperatorGenerator;
 
 public class EdgeQLOperator
 {

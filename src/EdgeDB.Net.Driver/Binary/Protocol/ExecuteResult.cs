@@ -1,4 +1,4 @@
-namespace EdgeDB.Binary.Protocol;
+namespace Gel.Binary.Protocol;
 
 internal class ExecuteResult
 {

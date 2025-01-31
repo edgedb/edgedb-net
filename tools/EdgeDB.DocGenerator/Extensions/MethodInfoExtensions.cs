@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace EdgeDB.DocGenerator;
+namespace Gel.DocGenerator;
 
 public static class MethodInfoExtensions
 {

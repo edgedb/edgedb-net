@@ -1,11 +1,11 @@
-using EdgeDB.Binary;
-using EdgeDB.Binary.Duplexers;
-using EdgeDB.Utils;
+using Gel.Binary;
+using Gel.Binary.Duplexers;
+using Gel.Utils;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Represents a client that can preform queries over HTTP.

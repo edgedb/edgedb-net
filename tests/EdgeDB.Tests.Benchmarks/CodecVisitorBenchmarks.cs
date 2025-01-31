@@ -1,4 +1,4 @@
-namespace EdgeDB.Tests.Benchmarks;
+namespace Gel.Tests.Benchmarks;
 
 public class CodecVisitorBenchmarks
 {

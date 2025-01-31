@@ -1,6 +1,6 @@
 namespace Examples
 
-open EdgeDB
+open Gel
 open Microsoft.Extensions.Logging
 open System.Linq
 

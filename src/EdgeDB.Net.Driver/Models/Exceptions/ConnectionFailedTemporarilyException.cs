@@ -1,6 +1,6 @@
 using System.Net.Sockets;
 
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Represents a temporary connection failiure exception.

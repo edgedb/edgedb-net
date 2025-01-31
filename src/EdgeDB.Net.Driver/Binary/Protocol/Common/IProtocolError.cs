@@ -1,4 +1,4 @@
-namespace EdgeDB.Binary.Protocol.Common;
+namespace Gel.Binary.Protocol.Common;
 
 internal interface IProtocolError
 {

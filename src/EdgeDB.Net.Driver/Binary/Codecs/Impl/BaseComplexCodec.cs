@@ -1,8 +1,8 @@
-using EdgeDB.Binary.Protocol;
-using EdgeDB.Binary.Protocol.Common.Descriptors;
+using Gel.Binary.Protocol;
+using Gel.Binary.Protocol.Common.Descriptors;
 using System.Collections.Concurrent;
 
-namespace EdgeDB.Binary.Codecs;
+namespace Gel.Binary.Codecs;
 
 internal abstract class BaseComplexCodec<T>
     : BaseCodec<T>, IComplexCodec

@@ -1,6 +1,6 @@
-using EdgeDB.Binary.Protocol.Common;
+using Gel.Binary.Protocol.Common;
 
-namespace EdgeDB.Binary.Protocol.V1._0.Packets;
+namespace Gel.Binary.Protocol.V1._0.Packets;
 
 /// <summary>
 ///     Represents the

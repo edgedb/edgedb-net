@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace EdgeDB.DotnetTool;
+namespace Gel.DotnetTool;
 
 internal class CodeWriter
 {

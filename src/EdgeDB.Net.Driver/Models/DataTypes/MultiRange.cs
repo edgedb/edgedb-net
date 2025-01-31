@@ -1,7 +1,7 @@
-﻿using EdgeDB.DataTypes;
+﻿using Gel.DataTypes;
 using System.Collections;
 
-namespace EdgeDB.Models.DataTypes;
+namespace Gel.Models.DataTypes;
 
 /// <summary>
 ///     Represents the <c>multirange</c> type in EdgeDB.

@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
-namespace EdgeDB.Examples.ExampleTODOApi.Controllers;
+namespace Gel.Examples.ExampleTODOApi.Controllers;
 
 public class TODOController : Controller
 {

@@ -1,8 +1,8 @@
-using EdgeDB.Binary;
+using Gel.Binary;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace EdgeDB.DotnetTool;
+namespace Gel.DotnetTool;
 
 internal class ClassBuilder
 {

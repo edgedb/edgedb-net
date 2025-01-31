@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace EdgeDB;
+namespace Gel;
 
 internal static class ReflectionUtils
 {

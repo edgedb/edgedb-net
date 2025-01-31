@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace EdgeDB;
+namespace Gel;
 
 //Based on https://github.com/dotnet/coreclr/blob/master/src/mscorlib/src/System/Nullable.cs
 /// <summary>

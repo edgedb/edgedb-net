@@ -1,4 +1,4 @@
-namespace EdgeDB.DataTypes;
+namespace Gel.DataTypes;
 
 internal class TemporalCommon
 {

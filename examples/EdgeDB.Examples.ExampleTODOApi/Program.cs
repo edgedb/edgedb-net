@@ -1,4 +1,4 @@
-using EdgeDB;
+using Gel;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace EdgeDB.Binary;
+namespace Gel.Binary;
 
 /// <summary>
 ///     Represents a protocol extension.

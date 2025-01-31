@@ -1,4 +1,4 @@
-namespace EdgeDB.Binary;
+namespace Gel.Binary;
 
 internal interface ITypeDescriptor
 {

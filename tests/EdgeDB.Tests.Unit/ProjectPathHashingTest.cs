@@ -1,5 +1,5 @@
-using EdgeDB.Abstractions;
-using EdgeDB.Utils;
+using Gel.Abstractions;
+using Gel.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 
-namespace EdgeDB.Tests.Unit;
+namespace Gel.Tests.Unit;
 
 [TestClass]
 public class ProjectPathHashingTest

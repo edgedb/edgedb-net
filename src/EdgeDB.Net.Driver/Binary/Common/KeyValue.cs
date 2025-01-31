@@ -1,7 +1,7 @@
-using EdgeDB.Binary.Protocol;
+using Gel.Binary.Protocol;
 using System.Text;
 
-namespace EdgeDB.Binary;
+namespace Gel.Binary;
 
 /// <summary>
 ///     Represents a dynamic key-value pair received in a <see cref="IReceiveable" />.

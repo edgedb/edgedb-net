@@ -1,8 +1,8 @@
 using BenchmarkDotNet.Attributes;
-using EdgeDB.Binary.Codecs;
-using EdgeDB.Binary.Protocol.V1._0.Packets;
+using Gel.Binary.Codecs;
+using Gel.Binary.Protocol.V1._0.Packets;
 
-namespace EdgeDB.Tests.Benchmarks;
+namespace Gel.Tests.Benchmarks;
 
 [MemoryDiagnoser]
 public class TypeBuilderBenchmarks

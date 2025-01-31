@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace EdgeDB;
+namespace Gel;
 
 internal static class JsonSerializerExtensions
 {

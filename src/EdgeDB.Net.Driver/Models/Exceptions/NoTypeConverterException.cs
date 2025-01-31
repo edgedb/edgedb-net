@@ -1,4 +1,4 @@
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Represents an exception thrown when no type converter could be found.

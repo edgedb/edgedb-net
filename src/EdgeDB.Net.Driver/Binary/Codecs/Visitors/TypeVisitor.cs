@@ -1,13 +1,13 @@
-using EdgeDB.Binary.Builders.Wrappers;
-using EdgeDB.DataTypes;
-using EdgeDB.Utils;
+using Gel.Binary.Builders.Wrappers;
+using Gel.DataTypes;
+using Gel.Utils;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using DateTime = System.DateTime;
 
-namespace EdgeDB.Binary.Codecs;
+namespace Gel.Binary.Codecs;
 
 internal sealed class TypeVisitor : CodecVisitor
 {

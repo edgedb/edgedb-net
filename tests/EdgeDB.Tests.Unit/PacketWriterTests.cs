@@ -1,10 +1,10 @@
-using EdgeDB.Binary;
+using Gel.Binary;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 
-namespace EdgeDB.Tests.Unit;
+namespace Gel.Tests.Unit;
 
 [TestClass]
 public class PacketWriterTests

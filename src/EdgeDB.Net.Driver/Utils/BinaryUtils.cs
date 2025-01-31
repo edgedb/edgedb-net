@@ -1,9 +1,9 @@
-using EdgeDB.Binary;
-using EdgeDB.Binary.Protocol;
+using Gel.Binary;
+using Gel.Binary.Protocol;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace EdgeDB.Utils;
+namespace Gel.Utils;
 
 internal sealed unsafe class BinaryUtils
 {

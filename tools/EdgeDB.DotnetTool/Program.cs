@@ -1,5 +1,5 @@
 ﻿using CommandLine;
-using EdgeDB.DotnetTool;
+using Gel.DotnetTool;
 
 var commands = typeof(Program).Assembly.GetTypes().Where(x => x.GetInterfaces().Any(x => x == typeof(ICommand)));
 

@@ -1,8 +1,8 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Diagnostics.dotTrace;
-using EdgeDB.Tests.Benchmarks.Utils;
+using Gel.Tests.Benchmarks.Utils;
 
-namespace EdgeDB.Tests.Benchmarks;
+namespace Gel.Tests.Benchmarks;
 
 [DotTraceDiagnoser]
 public class FullExecuteBenchmark

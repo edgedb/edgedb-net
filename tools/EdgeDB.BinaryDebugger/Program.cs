@@ -1,5 +1,5 @@
-using EdgeDB;
-using EdgeDB.BinaryDebugger;
+using Gel;
+using Gel.BinaryDebugger;
 
 var clientPool = new GelClientPool(new GelClientPoolConfig
 {

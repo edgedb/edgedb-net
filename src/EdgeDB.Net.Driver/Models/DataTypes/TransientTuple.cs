@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
-namespace EdgeDB.DataTypes;
+namespace Gel.DataTypes;
 
 /// <summary>
 ///     Represents an abstract tuple which is used for deserializing edgedb tuples to dotnet tuples.

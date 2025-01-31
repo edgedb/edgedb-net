@@ -1,4 +1,4 @@
-namespace EdgeDB.Binary.Protocol;
+namespace Gel.Binary.Protocol;
 
 /// <summary>
 ///     Represents a generic packet received from the server.

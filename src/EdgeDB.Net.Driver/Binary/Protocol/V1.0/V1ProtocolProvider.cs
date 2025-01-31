@@ -1,14 +1,14 @@
-using EdgeDB.Binary.Codecs;
-using EdgeDB.Binary.Protocol.V1._0.Descriptors;
-using EdgeDB.Binary.Protocol.V1._0.Packets;
-using EdgeDB.Utils;
+using Gel.Binary.Codecs;
+using Gel.Binary.Protocol.V1._0.Descriptors;
+using Gel.Binary.Protocol.V1._0.Packets;
+using Gel.Utils;
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using System.Dynamic;
 using System.Net;
 using System.Text;
 
-namespace EdgeDB.Binary.Protocol.V1._0;
+namespace Gel.Binary.Protocol.V1._0;
 
 internal class V1ProtocolProvider : IProtocolProvider
 {

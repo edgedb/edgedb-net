@@ -1,7 +1,7 @@
-using EdgeDB.Utils;
+using Gel.Utils;
 using System.Runtime.InteropServices;
 
-namespace EdgeDB.Binary.Protocol.Common;
+namespace Gel.Binary.Protocol.Common;
 
 [StructLayout(LayoutKind.Explicit, Pack = 0, Size = 5)]
 internal struct PacketHeader

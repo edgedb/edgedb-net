@@ -1,7 +1,7 @@
-using EdgeDB.Binary.Protocol.Common;
+using Gel.Binary.Protocol.Common;
 using System.Text;
 
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Represents an exception that was caused by an error from EdgeDB.

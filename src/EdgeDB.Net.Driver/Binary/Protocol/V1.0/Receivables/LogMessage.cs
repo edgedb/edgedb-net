@@ -1,4 +1,4 @@
-namespace EdgeDB.Binary.Protocol.V1._0.Packets;
+namespace Gel.Binary.Protocol.V1._0.Packets;
 
 /// <summary>
 ///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#logmessage">Log Message</see>

@@ -1,6 +1,6 @@
-using EdgeDB.Utils;
+using Gel.Utils;
 
-namespace EdgeDB.Binary.Protocol.V1._0.Packets;
+namespace Gel.Binary.Protocol.V1._0.Packets;
 
 /// <summary>
 ///     https://www.edgedb.com/docs/reference/protocol/messages#prepare

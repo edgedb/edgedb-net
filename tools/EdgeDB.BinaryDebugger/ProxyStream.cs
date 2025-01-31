@@ -1,4 +1,4 @@
-﻿namespace EdgeDB.BinaryDebugger;
+﻿namespace Gel.BinaryDebugger;
 
 public class StreamProxy : Stream
 {

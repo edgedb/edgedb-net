@@ -1,8 +1,8 @@
-using EdgeDB.Binary.Codecs;
-using EdgeDB.Binary.Protocol.V1._0;
-using EdgeDB.Binary.Protocol.V2._0.Descriptors;
+using Gel.Binary.Codecs;
+using Gel.Binary.Protocol.V1._0;
+using Gel.Binary.Protocol.V2._0.Descriptors;
 
-namespace EdgeDB.Binary.Protocol.V2._0;
+namespace Gel.Binary.Protocol.V2._0;
 
 internal class V2ProtocolProvider : V1ProtocolProvider
 {

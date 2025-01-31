@@ -1,9 +1,9 @@
-using EdgeDB.Binary.Codecs;
-using EdgeDB.Binary.Protocol.V1._0;
-using EdgeDB.Binary.Protocol.V2._0;
+using Gel.Binary.Codecs;
+using Gel.Binary.Protocol.V1._0;
+using Gel.Binary.Protocol.V2._0;
 using System.Collections.Concurrent;
 
-namespace EdgeDB.Binary.Protocol;
+namespace Gel.Binary.Protocol;
 
 internal delegate IReceiveable PacketReadFactory(ref PacketReader reader, in int length);
 

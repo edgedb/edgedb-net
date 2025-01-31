@@ -1,6 +1,6 @@
-using EdgeDB.Binary.Protocol.DumpRestore;
+using Gel.Binary.Protocol.DumpRestore;
 
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     A class containing extension methods for edgedb clients.

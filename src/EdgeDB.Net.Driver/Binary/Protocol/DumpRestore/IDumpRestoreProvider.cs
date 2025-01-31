@@ -1,7 +1,7 @@
-using EdgeDB.Binary.Protocol.DumpRestore.V1._0;
+using Gel.Binary.Protocol.DumpRestore.V1._0;
 using System.Collections.Concurrent;
 
-namespace EdgeDB.Binary.Protocol.DumpRestore;
+namespace Gel.Binary.Protocol.DumpRestore;
 
 internal interface IDumpRestoreProvider
 {

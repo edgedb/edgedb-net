@@ -1,8 +1,8 @@
-﻿using EdgeDB.DataTypes;
+﻿using Gel.DataTypes;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
-namespace EdgeDB.ExampleApp.Examples;
+namespace Gel.ExampleApp.Examples;
 
 internal class JsonResults : IExample
 {

@@ -1,6 +1,6 @@
-using EdgeDB.Binary.Protocol;
+using Gel.Binary.Protocol;
 
-namespace EdgeDB.Binary.Codecs;
+namespace Gel.Binary.Codecs;
 
 internal interface IComplexCodec : ICodec
 {

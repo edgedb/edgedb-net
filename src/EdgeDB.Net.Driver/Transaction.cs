@@ -1,6 +1,6 @@
-using EdgeDB.DataTypes;
+using Gel.DataTypes;
 
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Represents a transaction within EdgeDB.

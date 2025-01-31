@@ -1,6 +1,6 @@
-using EdgeDB.Binary;
+using Gel.Binary;
 
-namespace EdgeDB.TypeConverters;
+namespace Gel.TypeConverters;
 
 /// <summary>
 ///     Represents a generic client-side type converter.
