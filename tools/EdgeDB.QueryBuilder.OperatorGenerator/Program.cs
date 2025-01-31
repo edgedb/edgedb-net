@@ -186,7 +186,7 @@ void BuildSingleOperator(string section, EdgeQLOperator op)
     writer.AppendLine("using System.Linq.Expressions;");
     writer.AppendLine();
 
-    var cleanedName = Regex.Replace(op.Name, @"(<.*?>)", x => "");
+    var cleanedName = Regex.Replace(op.Name!, @"(<.*?>)", x => "");
 
     using (var _ = writer.BeginScope("namespace EdgeDB.Operators"))
     {

@@ -10,13 +10,13 @@ public readonly struct Json
     /// <summary>
     ///     Gets or sets the raw json value.
     /// </summary>
-    public readonly string? Value;
+    public readonly string Value;
 
     /// <summary>
     ///     Creates a new json type with a provided value.
     /// </summary>
     /// <param name="value">The raw json value of this json object.</param>
-    public Json(string? value)
+    public Json(string value)
     {
         Value = value;
     }
@@ -42,6 +42,6 @@ public readonly struct Json
                 ? serializer.Deserialize<T>(new JsonTextReader(new StringReader(Value)))
                 : EdgeDBConfig.JsonSerializer.DeserializeObject<T>(Value);
 
-    public static implicit operator string?(Json j) => j.Value;
-    public static implicit operator Json(string? value) => new(value);
+    public static implicit operator string(Json j) => j.Value;
+    public static implicit operator Json(string value) => new(value);
 }

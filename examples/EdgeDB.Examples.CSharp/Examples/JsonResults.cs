@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using EdgeDB.DataTypes;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace EdgeDB.ExampleApp.Examples;
@@ -11,7 +12,8 @@ internal class JsonResults : IExample
     {
         var result = await client.QueryJsonAsync("select Person {name, email}");
 
-        var people = JsonConvert.DeserializeObject<Person[]>(result)!;
+        var people = JsonConvert.DeserializeObject<Person[]>(result);
+        if (people is null) { return; }
 
         Logger!.LogInformation("People from json: {@People}", people);
     }
