@@ -8,7 +8,7 @@ namespace EdgeDB.Tests.Benchmarks;
 public class TypeBuilderBenchmarks
 {
     private static readonly GelBinaryClient client =
-        new EdgeDBTcpClient(new GelConnection(), new GelClientConfig(), null!);
+        new GelTcpClient(new GelConnection(), new GelClientConfig(), null!);
 
     internal static ObjectCodec Codec;
     internal static Data Data;

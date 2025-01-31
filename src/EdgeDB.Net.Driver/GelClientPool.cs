@@ -285,7 +285,7 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
     ///     It's recommended to use the query methods defined in the <see cref="GelClientPool" /> class.
     ///     <br />
     ///     <br />
-    ///     Disposing the returned client with the <see cref="EdgeDBTcpClient.DisposeAsync" /> method
+    ///     Disposing the returned client with the <see cref="GelTcpClient.DisposeAsync" /> method
     ///     will return that client to this client pool.
     /// </remarks>
     /// <typeparam name="TClient">The type of client to get.</typeparam>
@@ -312,7 +312,7 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
     ///     It's recommended to use the query methods defined in the <see cref="GelClientPool" /> class.
     ///     <br />
     ///     <br />
-    ///     Disposing the returned client with the <see cref="EdgeDBTcpClient.DisposeAsync" /> method
+    ///     Disposing the returned client with the <see cref="GelTcpClient.DisposeAsync" /> method
     ///     will return that client to this client pool.
     /// </remarks>
     /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
@@ -378,7 +378,7 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
             case GelClientType.Tcp:
             {
                 var holder = await _poolHolder.GetPoolHandleAsync(token).ConfigureAwait(false);
-                var client = new EdgeDBTcpClient(_connection, _poolConfig, holder, id);
+                var client = new GelTcpClient(_connection, _poolConfig, holder, id);
 
                 // clone the default state to prevent modification to our reference to default state
                 client.WithSession(_session);

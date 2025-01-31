@@ -15,7 +15,7 @@ public class SCRAMTests
     public const string SCRAM_SALT = "W22ZaJ0SNY7soEsUEjb6gQ==";
 
     private static readonly GelBinaryClient _client =
-        new EdgeDBTcpClient(new GelConnection(), new GelClientConfig(), null!);
+        new GelTcpClient(new GelConnection(), new GelClientConfig(), null!);
 
     [TestMethod]
     public void TestSCRAM()

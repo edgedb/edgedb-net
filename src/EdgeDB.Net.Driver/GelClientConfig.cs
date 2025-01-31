@@ -49,7 +49,7 @@ public sealed class GelClientPoolConfig : GelClientConfig
 public enum GelClientType
 {
     /// <summary>
-    ///     The client pool will use <see cref="EdgeDBTcpClient" />s
+    ///     The client pool will use <see cref="GelTcpClient" />s
     /// </summary>
     Tcp,
 
@@ -71,7 +71,7 @@ public enum GelClientType
 }
 
 /// <summary>
-///     Represents the configuration options for a <see cref="GelClientPool" /> or <see cref="EdgeDBTcpClient" />
+///     Represents the configuration options for a <see cref="GelClientPool" /> or <see cref="GelTcpClient" />
 /// </summary>
 public class GelClientConfig
 {
