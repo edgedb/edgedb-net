@@ -7,12 +7,12 @@ internal class CustomTypeConverters : IExample
 {
     public ILogger? Logger { get; set; }
 
-    public async Task ExecuteAsync(EdgeDBClient client)
+    public async Task ExecuteAsync(GelClientPool clientPool)
     {
         // add the converter
         TypeBuilder.AddOrUpdateTypeConverter<DiscordSnowflakeIdConverter>();
 
-        var user = await client.QueryAsync<UserWithSnowflakeId>(
+        var user = await clientPool.QueryAsync<UserWithSnowflakeId>(
             "with u := (insert UserWithSnowflakeId { user_id := \"841451783728529451\", username := \"example\" } unless conflict on .user_id else (select UserWithSnowflakeId)) select u { user_id, username }");
 
         Logger!.LogInformation("User with snowflake id: {@User}", user);

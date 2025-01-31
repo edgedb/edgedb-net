@@ -5,17 +5,17 @@ namespace EdgeDB.Examples.ExampleTODOApi.Controllers;
 
 public class TODOController : Controller
 {
-    private readonly EdgeDBClient _client;
+    private readonly GelClientPool _clientPool;
 
-    public TODOController(EdgeDBClient client)
+    public TODOController(GelClientPool clientPool)
     {
-        _client = client;
+        _clientPool = clientPool;
     }
 
     [HttpGet("/todos")]
     public async Task<IActionResult> GetTODOs()
     {
-        var todos = await _client.QueryAsync<TODOModel>("select TODO { title, description, state, date_created }")
+        var todos = await _clientPool.QueryAsync<TODOModel>("select TODO { title, description, state, date_created }")
             .ConfigureAwait(false);
 
         return Ok(todos);
@@ -29,7 +29,7 @@ public class TODOController : Controller
             return BadRequest();
 
         var query = "insert TODO { title := <str>$title, description := <str>$description, state := <State>$state }";
-        await _client.ExecuteAsync(query,
+        await _clientPool.ExecuteAsync(query,
             new Dictionary<string, object?>
             {
                 {"title", todo.Title}, {"description", todo.Description}, {"state", todo.State}
@@ -41,7 +41,7 @@ public class TODOController : Controller
     [HttpDelete("/todos")]
     public async Task<IActionResult> DeleteTODO([FromQuery] [Required] string title)
     {
-        var result = await _client.QueryAsync<object>("delete TODO filter .title = <str>$title",
+        var result = await _clientPool.QueryAsync<object>("delete TODO filter .title = <str>$title",
             new Dictionary<string, object?> {{"title", title}});
 
         return result.Count > 0 ? NoContent() : NotFound();
@@ -51,7 +51,7 @@ public class TODOController : Controller
     public async Task<IActionResult> UpdateTODO([FromQuery] [Required] string title,
         [FromQuery] [Required] TODOState state)
     {
-        var result = await _client.QueryAsync<object>(
+        var result = await _clientPool.QueryAsync<object>(
             "update TODO filter .title = <str>$title set { state := <State>$state }",
             new Dictionary<string, object?> {{"title", title}, {"state", state}});
         return result.Count > 0 ? NoContent() : NotFound();

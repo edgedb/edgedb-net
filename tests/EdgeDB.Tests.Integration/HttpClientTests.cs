@@ -8,7 +8,7 @@ public class HttpClientTests : ClientTests
 {
     public HttpClientTests()
     {
-        EdgeDB = ClientProvider.HttpEdgeDB;
+        ClientPool = ClientProvider.HttpClientPool;
     }
 
     [TestMethod]

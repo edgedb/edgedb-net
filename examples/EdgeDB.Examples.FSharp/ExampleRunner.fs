@@ -6,8 +6,8 @@ open System.Linq
 open Microsoft.Extensions.Logging
 open System
 
-type ExampleRunner(client: EdgeDBClient, logger: ILogger<ExampleRunner>, factory: ILoggerFactory) =
-    member this.Client = client
+type ExampleRunner(clientPool: GelClientPool, logger: ILogger<ExampleRunner>, factory: ILoggerFactory) =
+    member this.ClientPool = clientPool
     member this.Logger = logger
     member this.Factory = factory
 
@@ -27,7 +27,7 @@ type ExampleRunner(client: EdgeDBClient, logger: ILogger<ExampleRunner>, factory
                 try
                     let inst = Activator.CreateInstance(example) :?> IExample
 
-                    let! _ = inst.ExecuteAsync(this.Client, this.Factory.CreateLogger(example.Name))
+                    let! _ = inst.ExecuteAsync(this.ClientPool, this.Factory.CreateLogger(example.Name))
 
                     this.Logger.LogInformation("{example} complete!", $"{example.Name}.fs")
 

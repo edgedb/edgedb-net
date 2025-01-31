@@ -37,12 +37,12 @@ type UserWithSnowflakeId =
 
 type CustomTypeConverters() =
     interface IExample with
-        member this.ExecuteAsync(client: EdgeDBClient, logger: ILogger) =
+        member this.ExecuteAsync(clientPool: GelClientPool, logger: ILogger) =
             task {
                 TypeBuilder.AddOrUpdateTypeConverter<DiscordSnowflakeConverter>()
 
                 let! user =
-                    client.QueryAsync<UserWithSnowflakeId>(
+                    clientPool.QueryAsync<UserWithSnowflakeId>(
                         "with u := (insert UserWithSnowflakeId { user_id := \"841451783728529451\", username := \"example\" } unless conflict on .user_id else (select UserWithSnowflakeId)) select u { user_id, username }"
                     )
 

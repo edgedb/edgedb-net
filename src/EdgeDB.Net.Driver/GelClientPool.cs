@@ -8,7 +8,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents a client pool used to interact with EdgeDB.
 /// </summary>
-public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
+public sealed class GelClientPool : IEdgeDBQueryable, IAsyncDisposable
 {
     private readonly Func<ulong, GelConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? _clientFactory;
     private readonly ConcurrentDictionary<ulong, BaseEdgeDBClient> _clients;
@@ -148,7 +148,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     ///     working directory. If
     ///     no file is found this method will throw a <see cref="ConfigurationException" />.
     /// </remarks>
-    public EdgeDBClient() : this(GelConnection.Create(), new EdgeDBClientPoolConfig()) { }
+    public GelClientPool() : this(GelConnection.Create(), new EdgeDBClientPoolConfig()) { }
 
     /// <summary>
     ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
@@ -158,7 +158,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     ///     no file is found this method will throw a <see cref="ConfigurationException" />.
     /// </remarks>
     /// <param name="clientPoolConfig">The config for this client pool.</param>
-    public EdgeDBClient(EdgeDBClientPoolConfig clientPoolConfig) : this(GelConnection.Create(),
+    public GelClientPool(EdgeDBClientPoolConfig clientPoolConfig) : this(GelConnection.Create(),
         clientPoolConfig)
     {
     }
@@ -167,14 +167,14 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
     /// </summary>
     /// <param name="connection">The connection parameters used to create new clients.</param>
-    public EdgeDBClient(GelConnection connection) : this(connection, new EdgeDBClientPoolConfig()) { }
+    public GelClientPool(GelConnection connection) : this(connection, new EdgeDBClientPoolConfig()) { }
 
     /// <summary>
     ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
     /// </summary>
     /// <param name="connection">The connection parameters used to create new clients.</param>
     /// <param name="clientPoolConfig">The config for this client pool.</param>
-    public EdgeDBClient(GelConnection connection, EdgeDBClientPoolConfig clientPoolConfig)
+    public GelClientPool(GelConnection connection, EdgeDBClientPoolConfig clientPoolConfig)
     {
         if (clientPoolConfig.ClientType == EdgeDBClientType.Custom && clientPoolConfig.ClientFactory == null)
             throw new CustomClientException("You must specify a client factory in order to use custom clients");
@@ -191,7 +191,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
         _clientFactory = clientPoolConfig.ClientFactory;
     }
 
-    internal EdgeDBClient(EdgeDBClient other, Session session)
+    internal GelClientPool(GelClientPool other, Session session)
         : this(other._connection, other._poolConfig)
     {
         _session = session;
@@ -282,7 +282,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     /// </summary>
     /// <remarks>
     ///     This method can hang if the client pool is full and all connections are in use.
-    ///     It's recommended to use the query methods defined in the <see cref="EdgeDBClient" /> class.
+    ///     It's recommended to use the query methods defined in the <see cref="GelClientPool" /> class.
     ///     <br />
     ///     <br />
     ///     Disposing the returned client with the <see cref="EdgeDBTcpClient.DisposeAsync" /> method
@@ -309,7 +309,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     /// </summary>
     /// <remarks>
     ///     This method can hang if the client pool is full and all connections are in use.
-    ///     It's recommended to use the query methods defined in the <see cref="EdgeDBClient" /> class.
+    ///     It's recommended to use the query methods defined in the <see cref="GelClientPool" /> class.
     ///     <br />
     ///     <br />
     ///     Disposing the returned client with the <see cref="EdgeDBTcpClient.DisposeAsync" /> method
@@ -484,7 +484,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     /// <returns>
     ///     A new client with the specified config.
     /// </returns>
-    public EdgeDBClient WithConfig(Action<ConfigProperties> configDelegate)
+    public GelClientPool WithConfig(Action<ConfigProperties> configDelegate)
     {
         var props = new ConfigProperties();
         configDelegate(props);
@@ -502,7 +502,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     /// <returns>
     ///     A new client with the specified config.
     /// </returns>
-    public EdgeDBClient WithConfig(Config config)
+    public GelClientPool WithConfig(Config config)
         => new(this, _session.WithConfig(config));
 
     /// <summary>
@@ -519,7 +519,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     /// <returns>
     ///     A new client with the specified globals.
     /// </returns>
-    public EdgeDBClient WithGlobals(IDictionary<string, object?> globals)
+    public GelClientPool WithGlobals(IDictionary<string, object?> globals)
         => new(this, _session.WithGlobals(globals));
 
     /// <summary>
@@ -533,7 +533,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     /// <returns>
     ///     A new client with the specified module.
     /// </returns>
-    public EdgeDBClient WithModule(string module)
+    public GelClientPool WithModule(string module)
         => new(this, _session.WithModule(module));
 
     /// <summary>
@@ -549,7 +549,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     /// <returns>
     ///     A new client with the specified module aliases.
     /// </returns>
-    public EdgeDBClient WithAliases(IDictionary<string, string> aliases)
+    public GelClientPool WithAliases(IDictionary<string, string> aliases)
         => new(this, _session.WithModuleAliases(aliases));
 
     #endregion

@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 namespace EdgeDB;
 
 /// <summary>
-///     Represents a config for a <see cref="EdgeDBClient" />, extending <see cref="EdgeDBConfig" />.
+///     Represents a config for a <see cref="GelClientPool" />, extending <see cref="EdgeDBConfig" />.
 /// </summary>
 public sealed class EdgeDBClientPoolConfig : EdgeDBConfig
 {
@@ -44,7 +44,7 @@ public sealed class EdgeDBClientPoolConfig : EdgeDBConfig
 }
 
 /// <summary>
-///     Represents different client types used in a <see cref="EdgeDBClient" />.
+///     Represents different client types used in a <see cref="GelClientPool" />.
 /// </summary>
 public enum EdgeDBClientType
 {
@@ -71,7 +71,7 @@ public enum EdgeDBClientType
 }
 
 /// <summary>
-///     Represents the configuration options for a <see cref="EdgeDBClient" /> or <see cref="EdgeDBTcpClient" />
+///     Represents the configuration options for a <see cref="GelClientPool" /> or <see cref="EdgeDBTcpClient" />
 /// </summary>
 public class EdgeDBConfig
 {

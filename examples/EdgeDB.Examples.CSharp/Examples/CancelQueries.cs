@@ -6,14 +6,14 @@ internal class CancelQueries : IExample
 {
     public ILogger? Logger { get; set; }
 
-    public async Task ExecuteAsync(EdgeDBClient client)
+    public async Task ExecuteAsync(GelClientPool clientPool)
     {
         using var tokenSource = new CancellationTokenSource();
         tokenSource.CancelAfter(TimeSpan.FromTicks(5));
 
         try
         {
-            await client.QueryRequiredSingleAsync<string>("select \"Hello, World\"", token: tokenSource.Token);
+            await clientPool.QueryRequiredSingleAsync<string>("select \"Hello, World\"", token: tokenSource.Token);
         }
         catch (OperationCanceledException)
         {

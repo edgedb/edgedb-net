@@ -273,26 +273,26 @@ public static class EdgeDBClientExtensions
     /// <summary>
     ///     Dumps the current database to a stream.
     /// </summary>
-    /// <param name="pool">The client to preform the dump with.</param>
+    /// <param name="clientPool">The client to preform the dump with.</param>
     /// <param name="dumprestoreVersion"></param>
     /// <param name="token">A token to cancel the operation with.</param>
     /// <returns>A memory stream containing the entire dumped database.</returns>
     /// <exception cref="EdgeDBErrorException">The server sent an error message during the dumping process.</exception>
     /// <exception cref="EdgeDBException">The server sent a mismatched packet.</exception>
     public static async Task<Stream?> DumpDatabaseAsync(
-        this EdgeDBClient pool,
+        this GelClientPool clientPool,
         ProtocolVersion? dumprestoreVersion = null,
         CancellationToken token = default)
     {
         var ms = new MemoryStream();
-        await DumpDatabaseAsync(pool, ms, dumprestoreVersion, token);
+        await DumpDatabaseAsync(clientPool, ms, dumprestoreVersion, token);
         return ms;
     }
 
     /// <summary>
     ///     Dumps the database to a stream.
     /// </summary>
-    /// <param name="pool">The client to preform the dump with.</param>
+    /// <param name="clientPool">The client to preform the dump with.</param>
     /// <param name="stream">The stream to write the dump to.</param>
     /// <param name="dumprestoreVersion">The version of the dump format to use.</param>
     /// <param name="token">A token to cancel the operation with.</param>
@@ -301,7 +301,7 @@ public static class EdgeDBClientExtensions
     /// <exception cref="EdgeDBException">The server sent a mismatched packet.</exception>
     /// <exception cref="ArgumentException">The provided stream cannot be written to.</exception>
     public static async Task DumpDatabaseAsync(
-        this EdgeDBClient pool,
+        this GelClientPool clientPool,
         Stream stream,
         ProtocolVersion? dumprestoreVersion = null,
         CancellationToken token = default)
@@ -311,7 +311,7 @@ public static class EdgeDBClientExtensions
             throw new ArgumentException("Cannot write to stream");
         }
 
-        await using var client = await pool.GetOrCreateClientAsync<EdgeDBBinaryClient>(token).ConfigureAwait(false);
+        await using var client = await clientPool.GetOrCreateClientAsync<EdgeDBBinaryClient>(token).ConfigureAwait(false);
 
         var dumprestoreProvider = IDumpRestoreProvider.GetProvider(client, dumprestoreVersion);
 
@@ -321,7 +321,7 @@ public static class EdgeDBClientExtensions
     /// <summary>
     ///     Restores the database based on a database dump stream.
     /// </summary>
-    /// <param name="pool">The client to preform the restore with.</param>
+    /// <param name="clientPool">The client to preform the restore with.</param>
     /// <param name="stream">The stream containing the database dump.</param>
     /// <param name="dumprestoreVersion">The version of the dump format to use.</param>
     /// <param name="token">A token to cancel the operation with.</param>
@@ -332,12 +332,12 @@ public static class EdgeDBClientExtensions
     /// </exception>
     /// <exception cref="EdgeDBErrorException">The server sent an error during the restore operation.</exception>
     public static async Task<string> RestoreDatabaseAsync(
-        this EdgeDBClient pool,
+        this GelClientPool clientPool,
         Stream stream,
         ProtocolVersion? dumprestoreVersion = null,
         CancellationToken token = default)
     {
-        await using var client = await pool.GetOrCreateClientAsync<EdgeDBBinaryClient>(token).ConfigureAwait(false);
+        await using var client = await clientPool.GetOrCreateClientAsync<EdgeDBBinaryClient>(token).ConfigureAwait(false);
 
         if (!stream.CanRead)
         {

@@ -14,13 +14,13 @@ type AbstractThing =
 
 type AbstractTypesExample() =
     interface IExample with
-        member this.ExecuteAsync(client: EdgeDBClient, logger: ILogger) =
+        member this.ExecuteAsync(clientPool: GelClientPool, logger: ILogger) =
             task {
                 // select the abstract type from the schema.
                 // Note that the type builder will 'discover' the types that inherit
                 // our F# union type.
                 let! result =
-                    client.QueryAsync<AbstractThing>("select AbstractThing { name }")
+                    clientPool.QueryAsync<AbstractThing>("select AbstractThing { name }")
                     |> Async.AwaitTask
 
                 // select only 'Thing' types
@@ -38,7 +38,7 @@ type AbstractTypesExample() =
                         | _ -> false)
 
                 let isResult =
-                    client.QueryAsync<AbstractThing>(
+                    clientPool.QueryAsync<AbstractThing>(
                         "select AbstractThing { name, [is Thing].description, [is OtherThing].attribute }"
                     )
 

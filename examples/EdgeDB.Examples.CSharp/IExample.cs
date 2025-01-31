@@ -6,9 +6,9 @@ public interface IExample
 {
     ILogger? Logger { get; set; }
 
-    Task ExecuteAsync(EdgeDBClient client);
+    Task ExecuteAsync(GelClientPool clientPool);
 
-    static async Task ExecuteAllAsync(EdgeDBClient client, ILogger logger, ILoggerFactory factory)
+    static async Task ExecuteAllAsync(GelClientPool clientPool, ILogger logger, ILoggerFactory factory)
     {
         var examples = typeof(IExample).Assembly.GetTypes()
             .Where(x => x.IsAssignableTo(typeof(IExample)) && x != typeof(IExample));
@@ -20,7 +20,7 @@ public interface IExample
             {
                 var inst = (IExample)Activator.CreateInstance(example)!;
                 inst.Logger = factory.CreateLogger(example.Name);
-                await inst.ExecuteAsync(client).ConfigureAwait(false);
+                await inst.ExecuteAsync(clientPool).ConfigureAwait(false);
                 logger.LogInformation("{example} complete!", $"{example.Name}.cs");
             }
             catch (Exception x)

@@ -1,7 +1,7 @@
 using EdgeDB;
 using EdgeDB.BinaryDebugger;
 
-var client = new EdgeDBClient(new EdgeDBClientPoolConfig
+var clientPool = new GelClientPool(new EdgeDBClientPoolConfig
 {
     ClientFactory = async (id, conn, conf) =>
     {
@@ -12,11 +12,11 @@ var client = new EdgeDBClient(new EdgeDBClientPoolConfig
     ClientType = EdgeDBClientType.Custom
 });
 
-var debugClient = await client.GetOrCreateClientAsync<DebuggerClient>();
+var debugClientPool = await clientPool.GetOrCreateClientAsync<DebuggerClient>();
 
 try
 {
-    await debugClient.QueryAsync<string>("select \"Hello, World!\"");
+    await debugClientPool.QueryAsync<string>("select \"Hello, World!\"");
 }
 catch (Exception x)
 {
@@ -24,8 +24,8 @@ catch (Exception x)
 }
 finally
 {
-    await debugClient.DisconnectAsync();
-    await debugClient.DisposeAsync();
+    await debugClientPool.DisconnectAsync();
+    await debugClientPool.DisposeAsync();
 }
 
 await Task.Delay(-1);

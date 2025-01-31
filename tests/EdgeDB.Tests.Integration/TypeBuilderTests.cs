@@ -10,16 +10,16 @@ namespace EdgeDB.Tests.Integration;
 [TestClass]
 public class TypeBuilderTests
 {
-    private readonly EdgeDBClient _client;
+    private readonly GelClientPool _clientPool;
     private readonly Func<CancellationToken> _getToken;
 
     public TypeBuilderTests()
     {
-        _client = ClientProvider.EdgeDB;
+        _clientPool = ClientProvider.ClientPool;
         _getToken = () => ClientProvider.GetTimeoutToken();
     }
 
-    private async Task EnsurePersonIsAddedAsync() => await _client.ExecuteAsync(
+    private async Task EnsurePersonIsAddedAsync() => await _clientPool.ExecuteAsync(
         "insert Person { name := \"A random name\", email := \"test@example.com\"} unless conflict on .email",
         token: _getToken());
 
@@ -29,7 +29,7 @@ public class TypeBuilderTests
         // insert person if they dont exist
         await EnsurePersonIsAddedAsync();
 
-        var person = await _client.QueryRequiredSingleAsync<PersonClass>(
+        var person = await _clientPool.QueryRequiredSingleAsync<PersonClass>(
             "select Person { name, email } filter .email = \"test@example.com\"", token: _getToken());
 
         Assert.AreEqual("A random name", person.Name);
@@ -41,7 +41,7 @@ public class TypeBuilderTests
     {
         await EnsurePersonIsAddedAsync();
 
-        var person = await _client.QueryRequiredSingleAsync<PersonImpl>(
+        var person = await _clientPool.QueryRequiredSingleAsync<PersonImpl>(
             "select Person { name, email } filter .email = \"test@example.com\"", token: _getToken());
 
         Assert.AreEqual("A random name", person.Name);
@@ -52,14 +52,14 @@ public class TypeBuilderTests
     public async Task SchemaAbstractTypeDeserialize()
     {
         // insert some types
-        await _client.ExecuteAsync(
+        await _clientPool.ExecuteAsync(
             "insert Thing { name := \"Thing1\", description := \"This is thing one!\" } unless conflict on .name",
             token: _getToken());
-        await _client.ExecuteAsync(
+        await _clientPool.ExecuteAsync(
             "insert OtherThing { name := \"Thing2\", attribute := \"<readonly>\" } unless conflict on .name",
             token: _getToken());
 
-        var abstractSelect = await _client.QueryAsync<AbstractThing>(
+        var abstractSelect = await _clientPool.QueryAsync<AbstractThing>(
             "select AbstractThing { name, [is Thing].description, [is OtherThing].attribute }", token: _getToken());
 
         foreach (var result in abstractSelect)
@@ -85,7 +85,7 @@ public class TypeBuilderTests
         await EnsurePersonIsAddedAsync();
 
         var person =
-            await _client.QueryRequiredSingleAsync<PersonConstructorBuilder>("select Person { name, email } limit 1",
+            await _clientPool.QueryRequiredSingleAsync<PersonConstructorBuilder>("select Person { name, email } limit 1",
                 token: _getToken());
 
         Assert.IsNotNull(person);
@@ -99,7 +99,7 @@ public class TypeBuilderTests
         await EnsurePersonIsAddedAsync();
 
         var person =
-            await _client.QueryRequiredSingleAsync<PersonMethodBuilder>("select Person { name, email } limit 1",
+            await _clientPool.QueryRequiredSingleAsync<PersonMethodBuilder>("select Person { name, email } limit 1",
                 token: _getToken());
 
         Assert.IsNotNull(person);
@@ -113,7 +113,7 @@ public class TypeBuilderTests
         await EnsurePersonIsAddedAsync();
 
         var person =
-            await _client.QueryRequiredSingleAsync<PersonRecord>("select Person { name, email } limit 1",
+            await _clientPool.QueryRequiredSingleAsync<PersonRecord>("select Person { name, email } limit 1",
                 token: _getToken());
 
         Assert.IsNotNull(person);
@@ -155,7 +155,7 @@ public class TypeBuilderTests
 
         Assert.AreEqual(customBuilder, typeInfo.Factory);
 
-        var person = await _client.QueryAsync<PersonClass>("select Person { name, email }", token: _getToken());
+        var person = await _clientPool.QueryAsync<PersonClass>("select Person { name, email }", token: _getToken());
 
         Assert.IsNotNull(person);
 

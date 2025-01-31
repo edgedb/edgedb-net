@@ -8,13 +8,13 @@ open System
 
 type CancelQueries() =
     interface IExample with
-        member this.ExecuteAsync(client: EdgeDBClient, logger: ILogger) =
+        member this.ExecuteAsync(clientPool: GelClientPool, logger: ILogger) =
             task {
                 let tokenSource = new CancellationTokenSource()
                 tokenSource.CancelAfter(TimeSpan.FromTicks(5))
 
                 try
-                    let! result = client.QueryRequiredSingleAsync<string>("select 'Hello, .NET'")
+                    let! result = clientPool.QueryRequiredSingleAsync<string>("select 'Hello, .NET'")
                     result |> ignore
                 with
                 | :? OperationCanceledException -> logger.LogInformation("Got task cancelled exception")
