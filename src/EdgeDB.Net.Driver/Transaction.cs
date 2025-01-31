@@ -5,7 +5,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents a transaction within EdgeDB.
 /// </summary>
-public sealed class Transaction : IEdgeDBQueryable
+public sealed class Transaction : IGelQueryable
 {
     private readonly ITransactibleClient _client;
     private readonly object _lock = new();

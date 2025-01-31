@@ -25,7 +25,7 @@ public static class EdgeDBClientExtensions
     ///     A task representing the asynchronous query operation. The result
     ///     of the task is the result of the query.
     /// </returns>
-    public static Task<IReadOnlyCollection<object?>> QueryAsync(this IEdgeDBQueryable client, string query,
+    public static Task<IReadOnlyCollection<object?>> QueryAsync(this IGelQueryable client, string query,
         IDictionary<string, object?>? args = null,
         Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         => client.QueryAsync<object>(query, args, capabilities, token);
@@ -46,7 +46,7 @@ public static class EdgeDBClientExtensions
     ///     A task representing the asynchronous query operation. The result
     ///     of the task is the result of the query.
     /// </returns>
-    public static Task<object?> QuerySingleAsync(this IEdgeDBQueryable client, string query,
+    public static Task<object?> QuerySingleAsync(this IGelQueryable client, string query,
         IDictionary<string, object?>? args = null,
         Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         => client.QuerySingleAsync<object>(query, args, capabilities, token);
@@ -67,20 +67,20 @@ public static class EdgeDBClientExtensions
     ///     A task representing the asynchronous query operation. The result
     ///     of the task is the result of the query.
     /// </returns>
-    public static Task<object> QueryRequiredSingleAsync(this IEdgeDBQueryable client, string query,
+    public static Task<object> QueryRequiredSingleAsync(this IGelQueryable client, string query,
         IDictionary<string, object?>? args = null,
         Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         => client.QueryRequiredSingleAsync<object>(query, args, capabilities, token);
 
     /// <inheritdoc
-    ///     cref="IEdgeDBQueryable.ExecuteAsync(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)" />
+    ///     cref="IGelQueryable.ExecuteAsync(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)" />
     /// <typeparam name="T">The dynamic type of the arguments for this query.</typeparam>
     /// <remarks>
     ///     The <paramref name="args" /> parameter <i>must</i> be an
     ///     <see href="https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/types/anonymous-types">anonymous type</see>
     ///     .
     /// </remarks>
-    public static Task ExecuteAsync<T>(this IEdgeDBQueryable client, string query, T args,
+    public static Task ExecuteAsync<T>(this IGelQueryable client, string query, T args,
         Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         => client.ExecuteAsync(query, TypeArgumentUtils.CreateArguments(args), capabilities, token);
 
@@ -91,8 +91,8 @@ public static class EdgeDBClientExtensions
     ///     .
     /// </remarks>
     /// <inheritdoc
-    ///     cref="IEdgeDBQueryable.QueryAsync{TResult}(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)" />
-    public static Task<IReadOnlyCollection<T?>> QueryAsync<T>(this IEdgeDBQueryable client, string query, object args,
+    ///     cref="IGelQueryable.QueryAsync{TResult}(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)" />
+    public static Task<IReadOnlyCollection<T?>> QueryAsync<T>(this IGelQueryable client, string query, object args,
         Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         => client.QueryAsync<T>(query, TypeArgumentUtils.CreateArguments(args.GetType(), args), capabilities, token);
 
@@ -103,8 +103,8 @@ public static class EdgeDBClientExtensions
     ///     .
     /// </remarks>
     /// <inheritdoc
-    ///     cref="IEdgeDBQueryable.QueryAsync{TResult}(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)" />
-    public static Task<IReadOnlyCollection<object?>> QueryAsync<T>(this IEdgeDBQueryable client, string query, T args,
+    ///     cref="IGelQueryable.QueryAsync{TResult}(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)" />
+    public static Task<IReadOnlyCollection<object?>> QueryAsync<T>(this IGelQueryable client, string query, T args,
         Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         => client.QueryAsync(query, TypeArgumentUtils.CreateArguments(args), capabilities, token);
 
@@ -115,8 +115,8 @@ public static class EdgeDBClientExtensions
     ///     .
     /// </remarks>
     /// <inheritdoc
-    ///     cref="IEdgeDBQueryable.QuerySingleAsync{TResult}(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)" />
-    public static Task<T?> QuerySingleAsync<T>(this IEdgeDBQueryable client, string query, object args,
+    ///     cref="IGelQueryable.QuerySingleAsync{TResult}(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)" />
+    public static Task<T?> QuerySingleAsync<T>(this IGelQueryable client, string query, object args,
         Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         => client.QuerySingleAsync<T>(query, TypeArgumentUtils.CreateArguments(args.GetType(), args), capabilities,
             token);
@@ -128,8 +128,8 @@ public static class EdgeDBClientExtensions
     ///     .
     /// </remarks>
     /// <inheritdoc
-    ///     cref="IEdgeDBQueryable.QuerySingleAsync{TResult}(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)" />
-    public static Task<object?> QuerySingleAsync<T>(this IEdgeDBQueryable client, string query, T args,
+    ///     cref="IGelQueryable.QuerySingleAsync{TResult}(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)" />
+    public static Task<object?> QuerySingleAsync<T>(this IGelQueryable client, string query, T args,
         Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         => client.QuerySingleAsync(query, TypeArgumentUtils.CreateArguments(args), capabilities, token);
 
@@ -140,8 +140,8 @@ public static class EdgeDBClientExtensions
     ///     .
     /// </remarks>
     /// <inheritdoc
-    ///     cref="IEdgeDBQueryable.QueryRequiredSingleAsync{TResult}(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)" />
-    public static Task<T> QueryRequiredSingleAsync<T>(this IEdgeDBQueryable client, string query, object args,
+    ///     cref="IGelQueryable.QueryRequiredSingleAsync{TResult}(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)" />
+    public static Task<T> QueryRequiredSingleAsync<T>(this IGelQueryable client, string query, object args,
         Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         => client.QueryRequiredSingleAsync<T>(query, TypeArgumentUtils.CreateArguments(args.GetType(), args),
             capabilities, token);
@@ -153,8 +153,8 @@ public static class EdgeDBClientExtensions
     ///     .
     /// </remarks>
     /// <inheritdoc
-    ///     cref="IEdgeDBQueryable.QueryRequiredSingleAsync{TResult}(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)" />
-    public static Task<object> QueryRequiredSingleAsync<T>(this IEdgeDBQueryable client, string query, T args,
+    ///     cref="IGelQueryable.QueryRequiredSingleAsync{TResult}(string, IDictionary{string, object?}?, Capabilities?, CancellationToken)" />
+    public static Task<object> QueryRequiredSingleAsync<T>(this IGelQueryable client, string query, T args,
         Capabilities? capabilities = Capabilities.Modifications, CancellationToken token = default)
         => client.QueryRequiredSingleAsync(query, TypeArgumentUtils.CreateArguments(args), capabilities, token);
 

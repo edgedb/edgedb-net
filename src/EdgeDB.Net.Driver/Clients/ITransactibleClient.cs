@@ -3,7 +3,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents a client that supports transactions.
 /// </summary>
-public interface ITransactibleClient : IEdgeDBQueryable, IAsyncDisposable
+public interface ITransactibleClient : IGelQueryable, IAsyncDisposable
 {
     /// <summary>
     ///     Gets the transaction state of the client.

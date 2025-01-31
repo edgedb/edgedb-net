@@ -8,7 +8,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents a client pool used to interact with EdgeDB.
 /// </summary>
-public sealed class GelClientPool : IEdgeDBQueryable, IAsyncDisposable
+public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
 {
     private readonly Func<ulong, GelConnection, GelClientConfig, ValueTask<BaseEdgeDBClient>>? _clientFactory;
     private readonly ConcurrentDictionary<ulong, BaseEdgeDBClient> _clients;

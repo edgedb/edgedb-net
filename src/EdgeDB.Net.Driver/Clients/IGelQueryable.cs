@@ -5,7 +5,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents a object that can be used to query a EdgeDB instance.
 /// </summary>
-public interface IEdgeDBQueryable
+public interface IGelQueryable
 {
     /// <summary>
     ///     Executes a given query without reading the returning result.

@@ -6,7 +6,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents a base edgedb client that can interaction with the EdgeDB database.
 /// </summary>
-internal abstract class BaseEdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
+internal abstract class BaseEdgeDBClient : IGelQueryable, IAsyncDisposable
 {
     private readonly AsyncEvent<Func<BaseEdgeDBClient, ValueTask<bool>>> _onDisposed = new();
 
