@@ -64,6 +64,6 @@ public class DDLTests
 
     private class TestType
     {
-        [EdgeDBProperty("name")] public string? Name { get; set; }
+        [GelProperty("name")] public string? Name { get; set; }
     }
 }

@@ -6,19 +6,19 @@ namespace EdgeDB.Examples.ExampleTODOApi;
 public class TODOModel
 {
     [JsonPropertyName("title")]
-    [EdgeDBProperty("title")]
+    [GelProperty("title")]
     public string? Title { get; set; }
 
     [JsonPropertyName("description")]
-    [EdgeDBProperty("description")]
+    [GelProperty("description")]
     public string? Description { get; set; }
 
     [JsonPropertyName("date_created")]
-    [EdgeDBProperty("date_created")]
+    [GelProperty("date_created")]
     public DateTimeOffset DateCreated { get; set; }
 
     [JsonPropertyName("state")]
-    [EdgeDBProperty("state")]
+    [GelProperty("state")]
     public TODOState State { get; set; }
 }
 

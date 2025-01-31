@@ -7,14 +7,14 @@ internal sealed class EdgeDBPropertyInfo
 {
     private readonly GelIgnoreAttribute? _ignore;
 
-    private readonly EdgeDBPropertyAttribute? _propertyAttribute;
+    private readonly GelPropertyAttribute? _propertyAttribute;
     private readonly IEdgeDBTypeConverter? _typeConverter;
     private readonly EdgeDBTypeConverterAttribute? _typeConverterAttribute;
 
     public EdgeDBPropertyInfo(PropertyInfo propInfo)
     {
         PropertyInfo = propInfo;
-        _propertyAttribute = propInfo.GetCustomAttribute<EdgeDBPropertyAttribute>();
+        _propertyAttribute = propInfo.GetCustomAttribute<GelPropertyAttribute>();
         _typeConverterAttribute = propInfo.GetCustomAttribute<EdgeDBTypeConverterAttribute>();
         _ignore = propInfo.GetCustomAttribute<GelIgnoreAttribute>();
 

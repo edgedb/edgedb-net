@@ -4,7 +4,7 @@
 ///     Marks the current field or property as a valid target for serializing/deserializing.
 /// </summary>
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
-public class EdgeDBPropertyAttribute : Attribute
+public class GelPropertyAttribute : Attribute
 {
     internal readonly string? Name;
 
@@ -12,7 +12,7 @@ public class EdgeDBPropertyAttribute : Attribute
     ///     Marks this member to be used when serializing/deserializing.
     /// </summary>
     /// <param name="propertyName">The name of the member in the edgedb schema.</param>
-    public EdgeDBPropertyAttribute(string? propertyName = null)
+    public GelPropertyAttribute(string? propertyName = null)
     {
         Name = propertyName;
     }

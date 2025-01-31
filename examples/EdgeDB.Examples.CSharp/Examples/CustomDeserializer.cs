@@ -80,9 +80,9 @@ public class CustomDeserializer : IExample
 
     public class PersonGlobal
     {
-        [EdgeDBProperty("name")] public string? Name { get; set; }
+        [GelProperty("name")] public string? Name { get; set; }
 
-        [EdgeDBProperty("email")] public string? Email { get; set; }
+        [GelProperty("email")] public string? Email { get; set; }
     }
 
     public interface IPerson
