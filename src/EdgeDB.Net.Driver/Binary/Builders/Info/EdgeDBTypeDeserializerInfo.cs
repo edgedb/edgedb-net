@@ -274,7 +274,7 @@ internal sealed class EdgeDBTypeDeserializeInfo
             return (ref ObjectEnumerator enumerator) =>
             {
                 // introspect the type name
-                if (!enumerator.Next(out var name, out var value) || name != "__tname__")
+                if (!enumerator.Next(out var name, out var value) || name != "__tname")
                     throw new ConfigurationException(
                         "Type introspection is required for abstract types, this is a bug.");
 

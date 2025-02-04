@@ -28,7 +28,7 @@ public class TypeBuilderBenchmarks
 
         Codec = new ObjectCodec(in Guid.Empty,
             new ICodec[] {new TextCodec(), new UUIDCodec(), new UUIDCodec(), new TextCodec(), new TextCodec()},
-            new[] {"__tname__", "__tid__", "id", "name", "email"});
+            new[] {"__tname", "__tid__", "id", "name", "email"});
         Codec = Codec.GetOrCreateTypeCodec(typeof(Person));
     }
 
