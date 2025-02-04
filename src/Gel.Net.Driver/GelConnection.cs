@@ -118,7 +118,6 @@ public sealed class GelConnection
     /// <remarks>
     ///     This property defaults to <c>edgedb</c>.  It is mutually exclusive with <see cref="Branch"/>.
     /// </remarks>
-    /// <exception cref="InvalidOperationException"><see cref="Branch"/> already contains a value; they're mutually exclusive</exception>
     public string? Database
     {
         get => _database ?? _branch ?? _defaultDatabase;
@@ -132,7 +131,6 @@ public sealed class GelConnection
     /// <remarks>
     ///     This property defaults to <c>__default__</c>. It is mutually exclusive with <see cref="Database"/>
     /// </remarks>
-    /// <exception cref="InvalidOperationException"><see cref="Database"/> already contains a value; they're mutually exclusive</exception>
     public string? Branch
     {
         get => _database ?? _branch ?? _defaultBranch;

@@ -1,4 +1,4 @@
-.. _edgedb-dotnet-transactions:
+.. _gel-dotnet-transactions:
 
 ============
 Transactions
@@ -13,7 +13,7 @@ the queries performed within the transactions are automatically rolled back:
   .. code-tab:: cs
     :caption: C#
 
-    var client = new EdgeDBClient();
+    var client = new GelClientPool();
 
     await client.TransactionAsync(async tx => 
         await tx.ExecuteAsync("INSERT User { name := 'John Smith' }");
@@ -22,7 +22,7 @@ the queries performed within the transactions are automatically rolled back:
   .. code-tab:: fsharp
     :caption: F#
 
-    let client = new EdgeDBClient()
+    let client = new GelClientPool()
 
     client.TransactionAsync(
       fun tx -> tx.ExecuteAsync("INSERT User { name := 'John Smith' }")
@@ -39,7 +39,7 @@ get the result of a query executed in a transaction:
   .. code-tab:: cs
     :caption: C#
 
-    var client = new EdgeDBClient();
+    var client = new GelClientPool();
 
     var transactionResult = await client.TransactionAsync(async tx => 
         await tx.QueryRequiredSingleAsync<string>("SELECT 'Hello from Transaction!'");
@@ -50,7 +50,7 @@ get the result of a query executed in a transaction:
   .. code-tab:: fsharp
     :caption: F#
 
-    let client = new EdgeDBClient()
+    let client = new GelClientPool()
 
     client.TransactionAsync(
       fun tx -> tx.QueryRequiredSingleAsync<string>("SELECT 'Hello from Transaction!'")

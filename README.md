@@ -1,4 +1,4 @@
-![EdgeDB.Net](https://raw.githubusercontent.com/quinchs/EdgeDB.Net/dev/branding/Banner.png)
+![Gel.Net](https://raw.githubusercontent.com/edgedb/edgedb-net/dev/branding/Banner.png)
 
 <p align="center">
   <a href="https://www.nuget.org/packages/EdgeDB.Net.Driver/">
@@ -15,7 +15,7 @@
   </a>
   
   <p align="center">
-    EdgeDB.Net is the official .NET driver for the <a href="https://edgedb.com">EdgeDB</a> database.
+    Gel.Net is the official .NET driver for the <a href="https://edgedb.com">Gel</a> database.
   </p>
 </p>
 
@@ -25,7 +25,7 @@ Documentation for the dotnet driver can be found [here](https://www.edgedb.com/d
 
 ## Installation
 
-EdgeDB.Net is distributed through the NuGet package manager.
+Gel.Net is distributed through the NuGet package manager.
 We recommend using the `dotnet` command or NuGet package manager in Visual
 Studio:
 
@@ -37,44 +37,46 @@ $ dotnet add package EdgeDB.Net.Driver
 
 ### Creating a client
 
-Clients are what allow your code to talk and interface with EdgeDB. The
-[`EdgeDBClient`](https://www.edgedb.com/docs/clients/dotnet/api#EdgeDB.EdgeDBClient)
+Clients are what allow your code to talk and interface with Gel. The
+[`GelClientPool`](https://www.edgedb.com/docs/clients/dotnet/api#EdgeDB.GelClientPool)
 class contains a pool of connections and numerous abstractions for executing
 queries with ease:
 
 ```cs
-using EdgeDB;
+using Gel;
 
-var client = new EdgeDBClient();
+var client = new GelClientPool();
 ```
 
 ### Client configuration
 
-`EdgeDBClient` will automatically determine how to connect to your EdgeDB
-instance by resolving [EdgeDB Projects](https://www.edgedb.com/docs/intro/projects).
+`GelClientPool` will automatically determine how to connect to your Gel
+instance by resolving [Gel Projects](https://www.edgedb.com/docs/intro/projects).
 For specifying custom connection arguments, considering checking out the
-[`EdgeDBConnection`](https://www.edgedb.com/docs/clients/dotnet/connection_parameters#EdgeDBConnection)
-class. Here's an example of using the [`.Parse()`](https://www.edgedb.com/docs/clients/dotnet/connection_parameters#EdgeDBConnection.Parse-string?-string?-Action_EdgeDBConnection_?-bool)
+[`GelConnection`](https://www.edgedb.com/docs/clients/dotnet/connection_parameters#GelConnection)
+class. Here's an example of using the [`.Create()`](https://www.edgedb.com/docs/clients/dotnet/connection_parameters#GelConnection.Create-Options?)
 method:
 
 ```cs
-using EdgeDB;
+using Gel;
 
-var connection = EdgeDBConnection.Parse("edgedb://user:password@localhost:5656/mydb");
-var client = new EdgeDBClient(connection);
+var connection = GelConnection.Create(
+  new GelConnection.Options(){dsn="gel://user:password@localhost:5656/mybranch"}
+);
+var client = new GelClientPool(connection);
 ```
 
 ### Executing queries
 
-**Note**: EdgeDB.Net is a fully asynchronous driver, and as such, all I/O
+**Note**: Gel.Net is a fully asynchronous driver, and as such, all I/O
 operations are performed asynchronously.
 
 
-Queries are executed through the `EdgeDBClient` by using different helper
+Queries are executed through the `GelClientPool` by using different helper
 methods. Your choice of method is dependent on the kind of query you're making,
 better known as [cardinality](https://www.edgedb.com/docs/clients/dotnet/index#cardinality-and-return-types).
 
-Query helper methods will expect a generic `T` type which is the [.NET version of an EdgeDB type](https://www.edgedb.com/docs/clients/dotnet/datatypes#datatypes):
+Query helper methods will expect a generic `T` type which is the [.NET version of an Gel type](https://www.edgedb.com/docs/clients/dotnet/datatypes#datatypes):
 
 ```cs
 var result = await client.QueryAsync<long>("select 2 + 2"); // returns 4
@@ -82,19 +84,19 @@ var result = await client.QueryAsync<long>("select 2 + 2"); // returns 4
 
 ## Contributing
 
-We openly welcome and accept contributions to EdgeDB.Net! Before writing a
+We openly welcome and accept contributions to Gel.Net! Before writing a
 GitHub Issue or Pull Request, please see our [contribution requirements](CONTRIBUTING.md).
 
 ## Examples
 
 This repository contains a list of [working examples](examples),
-check them out to see EdgeDB.Net in action!
+check them out to see Gel.Net in action!
 
 
 ## Compiling
 
-If you're building EdgeDB.Net from source, you will need to download the
-[.NET 6 SDK](https://dotnet.microsoft.com/en-us/download).
+If you're building Gel.Net from source, you will need to download the
+[.NET 8 SDK](https://dotnet.microsoft.com/en-us/download).
   
 Once you have the SDK installed, you can then run `dotnet build` in the root
 directory of the project:

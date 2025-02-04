@@ -1,4 +1,4 @@
-.. _edgedb-dotnet-config:
+.. _gel-dotnet-config:
 
 =============
 Configuration
@@ -6,8 +6,8 @@ Configuration
 
 There are two different types of configuration that can be made: clientside 
 config, and session state. Clientside configuration is strictly related 
-on how EdgeDB.Net operates; while session state is configuration for
-a particular connection with EdgeDB.
+on how Gel.Net operates; while session state is configuration for
+a particular connection with Gel.
 
 Configuring the client
 ======================
@@ -15,28 +15,28 @@ Configuring the client
 Clientside configuration happens at client instansiation and cannot be 
 mutated.
 
-The :dn:class:`EdgeDB.EdgeDBClientPoolConfig` is used to configurate the 
-:dn:class:`EdgeDB.EdgeDBClient` instance by passing it as a parameter 
+The :dn:class:`Gel.GelClientPoolConfig` is used to configurate the 
+:dn:class:`Gel.GelClient` instance by passing it as a parameter 
 to the clients constructor:
 
 .. tabs::
 
   .. code-tab:: csharp
 
-    var config = new EdgeDBClientPoolConfig()
+    var config = new GelClientPoolConfig()
     {
         ConnectionTimeout = 5000u
     };
 
-    var client = new EdgeDBClient(config);
+    var client = new GelClient(config);
 
   .. code-tab:: fsharp
 
-    let config = EdgeDBClientPoolConfig(
+    let config = GelClientPoolConfig(
       ConnectionTimeout = 5000u
     )
 
-    let client = EdgeDBClient(config)
+    let client = GelClient(config)
 
 +-----------------------+--------------------------+---------------------------------------------------------------------------------------------------+
 | Property              | Type                     | Description                                                                                       |
@@ -68,7 +68,7 @@ a new client instance with the applied changes. The client instance
 returned from a state change shares the same underlying connection 
 pool as the client it was derived from.
 
-See :dn:method:`EdgeDB.EdgeDBClient.WithConfig(Config)`, 
-:dn:method:`EdgeDB.EdgeDBClient.WithGlobals(IDictionary<string,object>)`,
-:dn:method:`EdgeDB.EdgeDBClient.WithModule(string)`, and
-:dn:method:`EdgeDB.EdgeDBClient.WithAliases(IDictionary<string,string>)`
+See :dn:method:`Gel.GelClient.WithConfig(Config)`, 
+:dn:method:`Gel.GelClient.WithGlobals(IDictionary<string,object>)`,
+:dn:method:`Gel.GelClient.WithModule(string)`, and
+:dn:method:`Gel.GelClient.WithAliases(IDictionary<string,string>)`

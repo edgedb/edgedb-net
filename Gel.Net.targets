@@ -2,8 +2,8 @@
     <PropertyGroup>
         <VersionPrefix>1.4.0</VersionPrefix>
         <LangVersion>latest</LangVersion>
-        <Authors>EdgeDB.Net Contributors</Authors>
-        <PackageTags>edgedb;db;database</PackageTags>
+        <Authors>Gel.Net Contributors</Authors>
+        <PackageTags>edgedb;gel;db;database</PackageTags>
         <PackageProjectUrl>https://github.com/edgedb/edgedb-net</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageIcon>PackageLogo.png</PackageIcon>

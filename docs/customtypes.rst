@@ -1,4 +1,4 @@
-.. _edgedb-dotnet-custom-types:
+.. _gel-dotnet-custom-types:
 
 ================
 Custom Datatypes
@@ -8,13 +8,13 @@ Custom types are deserializable from a query's results by either using classes,
 records or structs. By default, all properties are mapped with a one-to-one
 relationship to the result of any given query.
 
-.. _edgedb-dotnet-property-attribute:
+.. _gel-dotnet-property-attribute:
 
 Using attributes
 ----------------
 
 Much like the ``[JsonProperty]`` attribute in Newtonsoft.Json, the 
-``[EdgeDBProperty]`` attribute can be used to customize the mapping of a
+``[GelProperty]`` attribute can be used to customize the mapping of a
 property to a results' property name:
 
 .. tabs::
@@ -23,30 +23,30 @@ property to a results' property name:
     
     public class Person
     {
-        [EdgeDBProperty("name")]
+        [GelProperty("name")]
         public string? Name { get; set; }
 
-        [EdgeDBProperty("age")]
+        [GelProperty("age")]
         public int Age { get; set; }
     }
   
   .. code-tab:: fsharp
     
     type Person = {
-      [<EdgeDBProperty("name")>]
+      [<GelProperty("name")>]
       Name: string option
       
-      [<EdgeDBProperty("age")>]
+      [<GelProperty("age")>]
       Age: int
     }
 
-.. _edgedb-dotnet-naming-strategy:
+.. _gel-dotnet-naming-strategy:
 
 Using a naming strategy
 -----------------------
 
-Naming strategies can be forced in EdgeDB.Net by using the
-``EdgeDBClientPoolConfig.SchemaNamingStrategy`` property. Changing its value will
+Naming strategies can be forced in Gel.Net by using the
+``GelClientPoolPoolConfig.SchemaNamingStrategy`` property. Changing its value will
 result in all property names being implicitly converted to what is chosen:
 
 Each property in a custom type will automatically have their property
@@ -57,42 +57,42 @@ in this example.
   
   .. code-tab:: cs
     
-    var config = new EdgeDBClientPoolConfig
+    var config = new GelClientPoolPoolConfig
     {
         SchemaNamingStrategy = INamingStrategy.SnakeCase
     };
 
-    var client = new EdgeDBClient(config);
+    var client = new GelClientPool(config);
   
   .. code-tab:: fsharp
     
-    let config = EdgeDBClientPoolConfig(
+    let config = GelClientPoolPoolConfig(
       SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy
     )
 
-    let client = EdgeDBClient(config)
+    let client = GelClientPool(config)
 
-.. _edgedb-dotnet-polymorphism:
+.. _gel-dotnet-polymorphism:
 
 Polymorphic types
 -----------------
 
 .. This is oddly worded. Last sentence could use better wording.
 
-EdgeDB.Net supports polymorphic custom types, reflecting inheritance found in
-EdgeDB. When the return type of a query is an interface or abstract class,
-EdgeDB.Net will try and scan the assembly of a result for all types
+Gel.Net supports polymorphic custom types, reflecting inheritance found in
+Gel. When the return type of a query is an interface or abstract class,
+Gel.Net will try and scan the assembly of a result for all types
 inheriting or implementing the return type, and deserialize them into
 children based off of their parent.
 
 It's very important to note that the names of types implemented must match
-those found in a schema. If this isn't possible, try using the ``EdgeDBType``
+those found in a schema. If this isn't possible, try using the ``GelType``
 attribute on a class instead for specification.
 
 .. note:: 
 
   To implement custom behaviour for deserializing abstract/interface types, see
-  :ref:`custom deserialization <edgedb-dotnet-custom-deserialization>`.
+  :ref:`custom deserialization <gel-dotnet-custom-deserialization>`.
 
 .. tabs::
 
@@ -139,14 +139,14 @@ attribute on a class instead for specification.
     let movies = content.Where(fun x -> match x with Movie -> true | _ -> false)
     let shows = content.Where(fun x -> match x with TVShow -> true | _ -> false)
 
-.. _edgedb-dotnet-custom-deserialization:
+.. _gel-dotnet-custom-deserialization:
 
 Custom deserializers
 --------------------
 
 Custom methods and callbacks may be defined when trying to deserialize custom
 types using the ``TypeBuilder`` class. These methods will be called once
-EdgeDB.Net begins deserializing a user-defined type.
+Gel.Net begins deserializing a user-defined type.
 
 There are two ways to add custom deserialization methods: attributes and
 callbacks. Both methods result in the same behaviour.
@@ -154,7 +154,7 @@ callbacks. Both methods result in the same behaviour.
 Attributes
 ^^^^^^^^^^
 
-Methods and constructors can be marked with the ``[EdgeDBDeserializer]``
+Methods and constructors can be marked with the ``[GelDeserializer]``
 attribute, but only one may be applied per method.
 
 The method or constructor must also take in a ``IDictionary<string, object?>``
@@ -163,9 +163,9 @@ values.
 
 .. note:: 
   
-  The keys of ``IDictionary`` are what's received from EdgeDB. The names
+  The keys of ``IDictionary`` are what's received from Gel. The names
   of each key may not reflect properties found in the type - only 
-  the names of fields returned from EdgeDB.
+  the names of fields returned from Gel.
 
 .. tabs::
   
@@ -178,7 +178,7 @@ values.
         public int Age { get; set; }
 
         // constructor
-        [EdgeDBDeserializer]
+        [GelDeserializer]
         public Person(IDictionary<string, object?> data)
         {
             Name = (string?)data["name"];
@@ -186,7 +186,7 @@ values.
         }
 
         // method
-        [EdgeDBDeserializer]
+        [GelDeserializer]
         public void Deserialize(IDictionary<string, object?> data)
         {
             Name = (string?)data["name"];
@@ -203,7 +203,7 @@ values.
         member this.Email with get() = email and set(v) = email <- v
 
         // constructor
-        [<EdgeDBDeserializer()>]
+        [<GelDeserializer()>]
         new(raw: IDictionary<string, obj>) as this =
             PersonConstructor()
             then
@@ -211,14 +211,14 @@ values.
                 this.Email <- raw.["email"] :?> string
 
         // method
-        [<EdgeDBDeserializer()>]
+        [<GelDeserializer()>]
         member this.Deserialize(raw: IDictionary<string, obj>) =
             this.Name <- raw.["name"] :?> string
             this.Email <- raw.["email"] :?> string
 
 .. note:: 
 
-  Having both a method and a constructor with the ``EdgeDBDeserializer`` 
+  Having both a method and a constructor with the ``GelDeserializer`` 
   attribute will not work. Your type will need to have at least one of either
   in order to work.
 

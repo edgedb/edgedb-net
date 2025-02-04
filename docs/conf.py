@@ -17,9 +17,9 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'edgedb'
-copyright = '2019-present MagicStack Inc. and the EdgeDB authors.'
-author = 'MagicStack Inc. and the EdgeDB authors'
+project = 'gel'
+copyright = '2019-present MagicStack Inc. and the Gel authors.'
+author = 'MagicStack Inc. and the Gel authors'
 
 
 # The full version, including alpha/beta/rc tags

@@ -1,7 +1,7 @@
 #
-# This source file is part of the EdgeDB open source project.
+# This source file is part of the Gel open source project.
 #
-# Copyright 2019-present MagicStack Inc. and the EdgeDB authors.
+# Copyright 2019-present MagicStack Inc. and the Gel authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@
 
 
 r"""
-===========================================
-:dn: domain for EdgeDB driver documentation
-===========================================
+========================================
+:dn: domain for Gel driver documentation
+========================================
 
 """
 
@@ -423,7 +423,7 @@ class DNCallableDirective(DNObject):
     ]
 
     def handle_signature(self, sig: str, signode: desc_signature) -> Tuple[str, str]:
-        # i0: adopting this code from edgedb-js as it works well for getting the
+        # i0: adopting this code from gel-js as it works well for getting the
         # return type shown in the code block rendered.
         # if the function has a return type specified, clip it before
         # processing the rest of signature

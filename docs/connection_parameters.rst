@@ -1,146 +1,105 @@
-.. _edgedb-dotnet-connection-parameters:
+.. _gel-dotnet-connection-parameters:
 
 =====================
 Connection Parameters
 =====================
 
-The ``EdgeDBClient`` constructor can accept an ``EdgeDBConnection`` class which
-specifies how the client should connect to EdgeDB. The main way to to construct
-a ``EdgeDBConnection`` is to use the static helper methods:
+The ``GelClientPool`` constructor can accept an ``GelConnection`` class which
+specifies how the client should connect to Gel. The main way to to construct
+a ``GelConnection`` is to use the static helper method ``Create``
 
-.. dn:class:: EdgeDBConnection
+.. dn:class:: GelConnection
     :no_link:
-    
-    .. note::
 
-        The ``TLSCertData`` property is obselete following version 1.0 and
-        higher.
+    Represents a class containing information on how to connect to a gel instance. 
 
-    Represents a client-facing connection to EdgeDB.
-
-    :property string Username:
-        The username used to connect to the database.
-        Defaults to ``"edgedb"``.
-
-    :property string? Password:
-        The password to connect to the database.
 
     :property string Hostname:
-        The hostname of the EdgeDB instance.
-        Defaults to ``"127.0.0.1"``.
+        Gets the hostname of the gel instance to connect to. 
 
     :property int Port:
-        The port of the EdgeDB instance to connect to.
-        Defaults to ``5656``.
+        Gets the port of the gel instance to connect to. 
 
-    :property string? Database:
-        The database name to use when connecting.
-        Defaults to ``"edgedb"``.
+        .. note::
+            This property defaults to 5656 
+
+    :property string Database:
+        Gets the database name to use when connecting. 
+
+        .. note::
+            This property defaults to ``edgedb``. It is mutually exclusive with ``Gel.GelConnection.Branch``. 
+
+
+    :property string Branch:
+        Gets the branch name to use when connecting. 
+
+        .. note::
+            This property defaults to ``__default__``. It is mutually exclusive with ``Gel.GelConnection.Database``
+
+    :property string Username:
+        Gets the username used to connect to the database. 
+
+        .. note::
+            This property defaults to edgedb 
+
+    :property string Password:
+        Gets the password to connect to the database. 
+
+    :property string SecretKey:
+        Gets the secret key used to authenticate with cloud instances. 
+
+    :property string TLSCertificateAuthority:
+        Gets the TLS Certificate Authority. 
 
     :property TLSSecurityMode TLSSecurity:
-        The TLS security level.
-        Defaults to ``TLSSecurityMode.Strict``.
+        Gets the TLS security level. 
 
-    .. dn:method:: FromDSN(string dsn): EdgeDBConnection
+        .. note::
+            The default value is ``Gel.TLSSecurityMode.Strict``. 
 
-        Creates a :dn:class:`EdgeDBConnection` from an `EdgeDB DSN`_.
+    :property string TLSServerName:
+        Gets the TLS server name to be used. 
 
-        :param string dsn: 
-            The DSN to create the connection from.
+        .. note::
+            Overrides the value provided by Hostname. 
 
-        :returns:
-           A :dn:class:`EdgeDBConnection` representing the DSN.
+    :property int WaitUntilAvailable:
+        Gets the number of miliseconds a client will wait for a connection to be established with the server. 
 
-        :throws ArgumentException:
-            A query parameter has already been defined in the DSN.
+    :property Dictionary<string, string> ServerSettings:
+        Additional settings for the server connection. 
 
-        :throws FormatException:
-            Port was not in the correct format of int.
+        .. note::
+            This currently has no effect. 
 
-        :throws FileNotFoundException:
-            A file parameter wasn't found.
+    .. dn:method::  Create(Options options): GelConnection
 
-        :throws KeyNotFoundException:
-            An environment variable couldn't be found.
-    
-    .. dn:method:: FromProjectFile(string path): EdgeDBConnection
+        Parses the `gel.toml`, optional ``T:Gel.GelConnection.Options``, and environment variables
+        to build an :dn:class:`Gel.GelConnection`.
 
-        Creates a :dn:class:`EdgeDBConnection` from a ``.toml`` project file.
+        This function will first search for the first valid primary args (which can set host/port)
+        in the following order:
+        - ``T:Gel.GelConnection.Options``
+        - Environment variables
+        - `gel.toml` file
 
-        :param string path:
-            The path to the ``.toml`` project file.
-        
-        :returns:
-            A :dn:class:`EdgeDBConnection` representing the project defined in
-            the ``.toml`` file.
+        It will then apply any secondary args from the environment variables and options.
 
-        :throws FileNotFoundException:
-            The supplied file path, credentials path, or instance-name file
-            doesn't exist.
+        If any primary ``T:Gel.GelConnection.Options`` are present, then all environment variables
+        are ignored.
 
-        :throws DirectoryNotFoundException:
-            The project directory doesn't exist for the supplied toml file.
+        See the `documentation <https://www.edgedb.com/docs/reference/connection>`_ for more information. 
 
-    .. dn:method:: FromInstanceName(string name): EdgeDBConnection
-
-        Creates a :dn:class:`EdgeDBConnection` from an instance name.
-
-        :param string name:
-            The name of the instance.
+        :param Options options:
+            Options used to build the :dn:class:`Gel.GelConnection`.
 
         :returns:
-            A :dn:class:`EdgeDBConnection` containing connection details for
-            the specific instance.
+            A :dn:class:`Gel.GelConnection` class that can be used to connect to a Gel instance. 
 
-        :throws FileNotFoundException:
-            The instances config file couldn't be found.
-
-    .. dn:method:: ResolveEdgeDBTOML(): EdgeDBConnection
-
-        Resolves a connection by traversing the current working directory and
-        its parents
-        to find an ``edgedb.toml`` file.
-
-        :returns:
-            A resolved :dn:class:`EdgeDBConnection`.
-            
-        :throws FileNotFoundException:
-            No ``edgedb.toml`` file could be found.
-
-    .. dn:method:: Parse(string? instance = null, \
-            string? dsn = null, \
-            Action<EdgeDBConnection>? configure = null, \
-            bool autoResolve = true \
-        ): EdgeDBConnection
-
-        Parses the provided arguments to build a :dn:class:`EdgeDBConnection`;
-        parse logic follows the `Priority Levels`_ of arguments.
-
-        :param string? instance:
-            The instance name to connect to.
-
-        :param string? dsn:
-            The DSN string to use to connect.
-
-        :param Action<EdgeDBConnection>? configure:
-            A configuration delegate.
-
-        :param bool autoResolve:
-            Whether or not to autoresolve a connection using
-            :dn:method:`EdgeDBConnection.ResolveEdgeDBTOML`.
-
-        :returns:
-            A :dn:class:`EdgeDBConnection` that can be used to connect to a
-            EdgeDB instance.
-
-        :throws ConfigurationException:
-            An error occured while parsing or configuring the
-            :dn:class:`EdgeDBConnection`.
-
-        :throws FileNotFoundException:
-            A configuration file could not be found.
+        :throws Gel.ConfigurationException:
+            An error occured while parsing or configuring the :dn:class:`Gel.GelConnection`. 
 
 
 .. _Priority Levels: https://www.edgedb.com/docs/reference/connection#ref-reference-connection-priority
-.. _EdgeDB DSN: https://www.edgedb.com/docs/reference/dsn
+.. _gel DSN: https://www.edgedb.com/docs/reference/dsn
 

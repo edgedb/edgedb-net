@@ -1,6 +1,6 @@
 # Contributing
 
-EdgeDB.Net is an open-source project, and we appreciate any and all
+Gel.Net is an open-source project, and we appreciate any and all
 contributions made by our community. However, please conform to the
 following guidelines when possible:
 

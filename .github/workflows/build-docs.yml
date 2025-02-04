@@ -24,7 +24,7 @@ jobs:
       run: dotnet build --no-restore
 
     - name: Doc generation
-      run: dotnet run --project  ./tools/EdgeDB.DocGenerator/ -- $GITHUB_WORKSPACE
+      run: dotnet run --project  ./tools/Gel.DocGenerator/ -- $GITHUB_WORKSPACE
 
     - name: Set git status Env
       id: gh-status-check
