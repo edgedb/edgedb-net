@@ -6,7 +6,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents an exception that was caused by an error from EdgeDB.
 /// </summary>
-public sealed class EdgeDBErrorException : EdgeDBException
+public sealed class ServerErrorException : GelException
 {
     private const ushort ERROR_LINE_START = 0xFFF3;
     private const ushort ERROR_LINE_END = 0xFFF6;
@@ -19,14 +19,14 @@ public sealed class EdgeDBErrorException : EdgeDBException
     internal IProtocolError ErrorResponse;
 
     /// <summary>
-    ///     Constructs a new <see cref="EdgeDBErrorException" /> with the specified
+    ///     Constructs a new <see cref="ServerErrorException" /> with the specified
     ///     <see cref="IProtocolError" />.
     /// </summary>
     /// <param name="error">
     ///     The <see cref="IProtocolError" /> which
     ///     caused this exception to be thrown.
     /// </param>
-    internal EdgeDBErrorException(IProtocolError error)
+    internal ServerErrorException(IProtocolError error)
         : base(error.Message,
             typeof(ServerErrorCodes).GetField(error.ErrorCode.ToString())
                 ?.IsDefined(typeof(ShouldRetryAttribute), false) ?? false,
@@ -46,7 +46,7 @@ public sealed class EdgeDBErrorException : EdgeDBException
     }
 
     /// <summary>
-    ///     Constructs a new <see cref="EdgeDBErrorException" /> with the specified
+    ///     Constructs a new <see cref="ServerErrorException" /> with the specified
     ///     <see cref="IProtocolError" /> and query string.
     /// </summary>
     /// <param name="error">
@@ -54,7 +54,7 @@ public sealed class EdgeDBErrorException : EdgeDBException
     ///     caused this exception to be thrown.
     /// </param>
     /// <param name="query">The query that caused this error to be thrown.</param>
-    internal EdgeDBErrorException(IProtocolError error, string? query)
+    internal ServerErrorException(IProtocolError error, string? query)
         : this(error)
     {
         Query = query;

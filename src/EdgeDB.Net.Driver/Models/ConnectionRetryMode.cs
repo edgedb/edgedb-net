@@ -6,7 +6,7 @@
 public enum ConnectionRetryMode
 {
     /// <summary>
-    ///     The client should retry to connect up to the specified <see cref="EdgeDBConfig.MaxConnectionRetries" />.
+    ///     The client should retry to connect up to the specified <see cref="GelClientConfig.MaxConnectionRetries" />.
     /// </summary>
     AlwaysRetry,
 

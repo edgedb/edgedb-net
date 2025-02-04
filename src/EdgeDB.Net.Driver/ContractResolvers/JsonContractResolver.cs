@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace EdgeDB.ContractResolvers;
 
-internal sealed class EdgeDBContractResolver : DefaultContractResolver
+internal sealed class JsonContractResolver : DefaultContractResolver
 {
     protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
     {

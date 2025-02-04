@@ -13,16 +13,16 @@ namespace EdgeDB.Tests.Integration;
 [TestClass]
 public class QueryTests
 {
-    private readonly EdgeDBClient _client;
+    private readonly GelClientPool _clientPool;
 
     public QueryTests()
     {
-        _client = ClientProvider.EdgeDB;
+        _clientPool = ClientProvider.ClientPool;
     }
 
     private async Task TestTypeQuerying<TType>(string tname, TType expected, Func<TType, TType, bool>? comparer = null)
     {
-        var actual = await _client.QueryRequiredSingleAsync<TType>($"select <{tname}>$value",
+        var actual = await _clientPool.QueryRequiredSingleAsync<TType>($"select <{tname}>$value",
             new Dictionary<string, object?> {{"value", expected}});
 
         if (comparer is not null)
@@ -49,7 +49,7 @@ public class QueryTests
         await TestTypeQuerying("array<int64>", new long[] {1, 2, 3}, Enumerable.SequenceEqual);
         await TestTypeQuerying("array<int64>", (IEnumerable<long>)new long[] {1, 2, 3}, Enumerable.SequenceEqual);
 
-        var result = await _client.QueryAsync<long>("select {1,2,3}");
+        var result = await _clientPool.QueryAsync<long>("select {1,2,3}");
 
         Assert.IsNotNull(result);
         Assert.AreEqual(3, result.Count);
@@ -60,7 +60,7 @@ public class QueryTests
     public async Task TestPlainObjectDeserialization()
     {
         var result =
-            await _client.QueryRequiredSingleAsync<dynamic>(
+            await _clientPool.QueryRequiredSingleAsync<dynamic>(
                 "select { a := 1, b := 'hello', c := { d := 2, e := 'world'} }");
 
         Assert.IsInstanceOfType(result.a, typeof(long));
@@ -77,12 +77,12 @@ public class QueryTests
     [TestMethod]
     public async Task TupleQueries()
     {
-        var result = await _client.QueryRequiredSingleAsync<(long one, long two)>("select (1,2)");
+        var result = await _clientPool.QueryRequiredSingleAsync<(long one, long two)>("select (1,2)");
         Assert.AreEqual(1, result.one);
         Assert.AreEqual(2, result.two);
 
         var (one, two, three, four, five, six, seven, eight, nine, ten) =
-            await _client
+            await _clientPool
                 .QueryRequiredSingleAsync<(long one, long two, long three, long four, long five, long six, long seven,
                     long eight, long nine, long ten)>("select (1,2,3,4,5,6,7,8,9,10)");
         Assert.AreEqual(1, one);
@@ -96,7 +96,7 @@ public class QueryTests
         Assert.AreEqual(9, nine);
         Assert.AreEqual(10, ten);
 
-        var result2 = await _client.QueryRequiredSingleAsync<(long one, long two)>("select (one := 1, two := 2)");
+        var result2 = await _clientPool.QueryRequiredSingleAsync<(long one, long two)>("select (one := 1, two := 2)");
         Assert.AreEqual(1, result2.one);
         Assert.AreEqual(2, result2.two);
     }
@@ -104,7 +104,7 @@ public class QueryTests
     [TestMethod]
     public async Task SetQueries()
     {
-        var result = await _client.QueryAsync<long>("select {1,2}");
+        var result = await _clientPool.QueryAsync<long>("select {1,2}");
         Assert.AreEqual(1, result.First());
         Assert.AreEqual(2, result.Last());
     }
@@ -365,9 +365,9 @@ public class QueryTests
     #region Typeless queries
 
     private Task TestTypelessQuery<T>(string toSelect, T expected)
-        => TestTypelessQuery(_client, toSelect, expected);
+        => TestTypelessQuery(_clientPool, toSelect, expected);
 
-    private async Task TestTypelessQuery<T>(EdgeDBClient client, string toSelect, T expected)
+    private async Task TestTypelessQuery<T>(GelClientPool client, string toSelect, T expected)
     {
         var result = await client.QueryRequiredSingleAsync<object>($"select {toSelect}");
 
@@ -376,9 +376,9 @@ public class QueryTests
     }
 
     private Task TestTypelessQuery<T>(string toSelect, Predicate<T> predicate)
-        => TestTypelessQuery(_client, toSelect, predicate);
+        => TestTypelessQuery(_clientPool, toSelect, predicate);
 
-    private async Task TestTypelessQuery<T>(EdgeDBClient client, string toSelect, Predicate<T> predicate)
+    private async Task TestTypelessQuery<T>(GelClientPool client, string toSelect, Predicate<T> predicate)
     {
         var result = await client.QueryRequiredSingleAsync<object>($"select {toSelect}");
 
@@ -389,7 +389,7 @@ public class QueryTests
     [TestMethod]
     public async Task TestTypelessFreeObjectQuery()
     {
-        var result = await _client.QueryRequiredSingleAsync<dynamic>(
+        var result = await _clientPool.QueryRequiredSingleAsync<dynamic>(
             "select { a := 1, b := \"Foo\", c := { ca := \"Bar\", cb := <uuid>\"4a0e4b46-b6b1-11ed-95ac-b35bb41e8bbc\" }, d := {1,2,3} }");
 
         Assert.AreEqual(1L, result.a);
@@ -498,13 +498,13 @@ public class QueryTests
     [TestMethod]
     public async Task TestTypelessSetOfArrayAndRange()
     {
-        var longResult = (await _client.QueryAsync<long[]>("select {[1,2], [3,4]}")).ToArray();
+        var longResult = (await _clientPool.QueryAsync<long[]>("select {[1,2], [3,4]}")).ToArray();
 
         Assert.AreEqual(2, longResult.Length);
         Assert.IsTrue(longResult[0]!.SequenceEqual(new long[] {1, 2}));
         Assert.IsTrue(longResult[1]!.SequenceEqual(new long[] {3, 4}));
 
-        var strResult = (await _client.QueryAsync<string[]>("select {['Foo'], ['Bar', 'Baz']}")).ToArray();
+        var strResult = (await _clientPool.QueryAsync<string[]>("select {['Foo'], ['Bar', 'Baz']}")).ToArray();
 
         Assert.AreEqual(2, strResult.Length);
         Assert.IsTrue(strResult[0]!.SequenceEqual(new[] {"Foo"}));
@@ -557,7 +557,7 @@ public class QueryTests
         var r = new DateDuration(TimeSpan.FromDays(2));
         var s = new byte[] {1, 2, 3, 4, 5};
 
-        var result = await _client.QueryRequiredSingleAsync<ScalarContainer>(
+        var result = await _clientPool.QueryRequiredSingleAsync<ScalarContainer>(
             """
             WITH
                 container := (INSERT tests::ScalarContainer {
@@ -676,7 +676,7 @@ public class QueryTests
     [TestMethod]
     public async Task TestNestedObjectQuery()
     {
-        var result = await _client.QuerySingleAsync<A>("select { prop_a := { prop_b := \"foo\"} }");
+        var result = await _clientPool.QuerySingleAsync<A>("select { prop_a := { prop_b := \"foo\"} }");
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.PropA);
@@ -686,7 +686,7 @@ public class QueryTests
     [TestMethod]
     public async Task TestNestedCollectionQuery()
     {
-        var arrArrResult = await _client.QuerySingleAsync<A>("select { array_of_string := ['foo', 'bar', 'baz'] }");
+        var arrArrResult = await _clientPool.QuerySingleAsync<A>("select { array_of_string := ['foo', 'bar', 'baz'] }");
 
         Assert.IsNotNull(arrArrResult);
         Assert.IsNotNull(arrArrResult.ArrayOfString);
@@ -694,21 +694,21 @@ public class QueryTests
         Assert.IsTrue(arrArrResult.ArrayOfString.SequenceEqual(new[] {"foo", "bar", "baz"}));
 
 
-        var listArrResult = await _client.QuerySingleAsync<A>("select { list_of_string := ['foo', 'bar', 'baz'] }");
+        var listArrResult = await _clientPool.QuerySingleAsync<A>("select { list_of_string := ['foo', 'bar', 'baz'] }");
 
         Assert.IsNotNull(listArrResult);
         Assert.IsNotNull(listArrResult.ListOfString);
         Assert.AreEqual(3, listArrResult.ListOfString.Count);
         Assert.IsTrue(listArrResult.ListOfString.SequenceEqual(new[] {"foo", "bar", "baz"}));
 
-        var arrSetResult = await _client.QuerySingleAsync<A>("select { array_of_string := {'foo', 'bar', 'baz'} }");
+        var arrSetResult = await _clientPool.QuerySingleAsync<A>("select { array_of_string := {'foo', 'bar', 'baz'} }");
 
         Assert.IsNotNull(arrSetResult);
         Assert.IsNotNull(arrSetResult.ArrayOfString);
         Assert.AreEqual(3, arrSetResult.ArrayOfString.Length);
         Assert.IsTrue(arrSetResult.ArrayOfString.SequenceEqual(new[] {"foo", "bar", "baz"}));
 
-        var listSetResult = await _client.QuerySingleAsync<A>("select { list_of_string := {'foo', 'bar', 'baz'} }");
+        var listSetResult = await _clientPool.QuerySingleAsync<A>("select { list_of_string := {'foo', 'bar', 'baz'} }");
 
         Assert.IsNotNull(listSetResult);
         Assert.IsNotNull(listSetResult.ListOfString);

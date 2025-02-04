@@ -7,7 +7,7 @@ internal static class CodecExtensions
 {
     #region ICodec
 
-    public static object? Deserialize(this ICodec codec, EdgeDBBinaryClient client, in ReadOnlySpan<byte> buffer)
+    public static object? Deserialize(this ICodec codec, GelBinaryClient client, in ReadOnlySpan<byte> buffer)
     {
         var reader = new PacketReader(buffer);
         return codec.Deserialize(ref reader, client.CodecContext);
@@ -19,20 +19,20 @@ internal static class CodecExtensions
         return codec.Deserialize(ref reader, context);
     }
 
-    public static object? Deserialize(this ICodec codec, EdgeDBBinaryClient client, byte[] buffer)
+    public static object? Deserialize(this ICodec codec, GelBinaryClient client, byte[] buffer)
     {
         var reader = new PacketReader(buffer);
         return codec.Deserialize(ref reader, client.CodecContext);
     }
 
-    public static object? Deserialize(this ICodec codec, EdgeDBBinaryClient client, in ReadOnlyMemory<byte> buffer)
+    public static object? Deserialize(this ICodec codec, GelBinaryClient client, in ReadOnlyMemory<byte> buffer)
     {
         var reader = new PacketReader(buffer.Span);
         return codec.Deserialize(ref reader, client.CodecContext);
     }
 
 
-    public static ReadOnlyMemory<byte> Serialize(this ICodec codec, EdgeDBBinaryClient client, object? value)
+    public static ReadOnlyMemory<byte> Serialize(this ICodec codec, GelBinaryClient client, object? value)
     {
         var writer = new PacketWriter();
         codec.Serialize(ref writer, value, client.CodecContext);
@@ -43,19 +43,19 @@ internal static class CodecExtensions
 
     #region ICodec<T>
 
-    public static T? Deserialize<T>(this ICodec<T> codec, EdgeDBBinaryClient client, byte[] buffer)
+    public static T? Deserialize<T>(this ICodec<T> codec, GelBinaryClient client, byte[] buffer)
     {
         var reader = new PacketReader(buffer);
         return codec.Deserialize(ref reader, client.CodecContext);
     }
 
-    public static T? Deserialize<T>(this ICodec<T> codec, EdgeDBBinaryClient client, in ReadOnlySpan<byte> buffer)
+    public static T? Deserialize<T>(this ICodec<T> codec, GelBinaryClient client, in ReadOnlySpan<byte> buffer)
     {
         var reader = new PacketReader(buffer);
         return codec.Deserialize(ref reader, client.CodecContext);
     }
 
-    public static T? Deserialize<T>(this ICodec<T> codec, EdgeDBBinaryClient client, in ReadOnlyMemory<byte> buffer)
+    public static T? Deserialize<T>(this ICodec<T> codec, GelBinaryClient client, in ReadOnlyMemory<byte> buffer)
     {
         var reader = new PacketReader(buffer.Span);
         return codec.Deserialize(ref reader, client.CodecContext);
@@ -67,7 +67,7 @@ internal static class CodecExtensions
         return codec.Deserialize(ref reader, context);
     }
 
-    public static ReadOnlyMemory<byte> Serialize<T>(this ICodec<T> codec, EdgeDBBinaryClient client, T? value)
+    public static ReadOnlyMemory<byte> Serialize<T>(this ICodec<T> codec, GelBinaryClient client, T? value)
     {
         var writer = new PacketWriter();
         codec.Serialize(ref writer, value, client.CodecContext);

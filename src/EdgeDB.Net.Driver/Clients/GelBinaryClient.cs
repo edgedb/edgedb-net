@@ -15,12 +15,12 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents an abstract binary client.
 /// </summary>
-internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
+internal abstract class GelBinaryClient : BaseGelClient
 {
     private readonly SemaphoreSlim _commandSemaphore;
     private readonly SemaphoreSlim _connectSemaphone;
     private readonly SemaphoreSlim _semaphore;
-    internal readonly EdgeDBConnection Connection;
+    internal readonly GelConnection Connection;
     internal readonly TimeSpan ConnectionTimeout;
 
     internal readonly ILogger Logger;
@@ -46,9 +46,9 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
     /// <param name="clientConfig">The configuration for this client.</param>
     /// <param name="clientPoolHolder">The client pool holder for this client.</param>
     /// <param name="clientId">The optional client id of this client. This is used for logging and client pooling.</param>
-    public EdgeDBBinaryClient(
-        EdgeDBConnection connection,
-        EdgeDBConfig clientConfig,
+    public GelBinaryClient(
+        GelConnection connection,
+        GelClientConfig clientConfig,
         IDisposable clientPoolHolder,
         ulong? clientId = null)
         : base(clientId ?? 0, clientPoolHolder)
@@ -90,7 +90,7 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
     internal ref Guid StateDescriptorId
         => ref _stateDescriptorId;
 
-    internal EdgeDBConfig ClientConfig { get; }
+    internal GelClientConfig ClientConfig { get; }
 
     protected CancellationToken DisconnectCancelToken
         => Duplexer.DisconnectToken;
@@ -143,8 +143,8 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
         ObjectBuilder.PreheatedCodec? PreheatedCodec
     );
 
-    /// <exception cref="EdgeDBException">A general error occored.</exception>
-    /// <exception cref="EdgeDBErrorException">The client received an <see cref="IProtocolError" />.</exception>
+    /// <exception cref="GelException">A general error occored.</exception>
+    /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
     internal virtual async Task<ExecuteResult> ExecuteInternalAsync(string query,
@@ -217,7 +217,7 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
                 throw new QueryTimeoutException(ClientConfig.MessageTimeout, query, ce);
             else throw;
         }
-        catch (EdgeDBException x) when (x.ShouldReconnect && !isRetry)
+        catch (GelException x) when (x.ShouldReconnect && !isRetry)
         {
             Logger.LogDebug("Execute threw an exception which allows reconnects, reconnecting...");
 
@@ -229,7 +229,7 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
             return await ExecuteInternalAsync(query, args, cardinality, capabilities, format, true, implicitTypeName,
                 preheat, token).ConfigureAwait(false);
         }
-        catch (EdgeDBException x) when (x.ShouldRetry && !isRetry)
+        catch (GelException x) when (x.ShouldRetry && !isRetry)
         {
             Logger.LogDebug("Execute threw an exception which allows retries, retrying...");
 
@@ -243,10 +243,10 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
         {
             Logger.InternalExecuteFailed(x);
 
-            if (x is EdgeDBErrorException)
+            if (x is ServerErrorException)
                 throw;
 
-            throw new EdgeDBException($"Failed to execute query{(isRetry ? " after retrying once" : "")}", x);
+            throw new GelException($"Failed to execute query{(isRetry ? " after retrying once" : "")}", x);
         }
         finally
         {
@@ -265,8 +265,8 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
     }
 
     /// <inheritdoc />
-    /// <exception cref="EdgeDBException">A general error occored.</exception>
-    /// <exception cref="EdgeDBErrorException">The client received an <see cref="IProtocolError" />.</exception>
+    /// <exception cref="GelException">A general error occored.</exception>
+    /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
     public override async Task ExecuteAsync(string query, IDictionary<string, object?>? args = null,
@@ -275,8 +275,8 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
             .ConfigureAwait(false);
 
     /// <inheritdoc />
-    /// <exception cref="EdgeDBException">A general error occored.</exception>
-    /// <exception cref="EdgeDBErrorException">The client received an <see cref="IProtocolError" />.</exception>
+    /// <exception cref="GelException">A general error occored.</exception>
+    /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
     /// <exception cref="InvalidOperationException">Target type doesn't match received type.</exception>
@@ -321,8 +321,8 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
     }
 
     /// <inheritdoc />
-    /// <exception cref="EdgeDBException">A general error occored.</exception>
-    /// <exception cref="EdgeDBErrorException">The client received an <see cref="IProtocolError" />.</exception>
+    /// <exception cref="GelException">A general error occored.</exception>
+    /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
     /// <exception cref="ResultCardinalityMismatchException">The results cardinality was not what the query expected.</exception>
@@ -356,8 +356,8 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
     }
 
     /// <inheritdoc />
-    /// <exception cref="EdgeDBException">A general error occored.</exception>
-    /// <exception cref="EdgeDBErrorException">The client received an <see cref="IProtocolError" />.</exception>
+    /// <exception cref="GelException">A general error occored.</exception>
+    /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
     /// <exception cref="ResultCardinalityMismatchException">The results cardinality was not what the query expected.</exception>
@@ -393,8 +393,8 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
 
     /// <inheritdoc />
     /// <exception cref="ResultCardinalityMismatchException">The results cardinality was not what the query expected.</exception>
-    /// <exception cref="EdgeDBException">A general error occored.</exception>
-    /// <exception cref="EdgeDBErrorException">The client received an <see cref="IProtocolError" />.</exception>
+    /// <exception cref="GelException">A general error occored.</exception>
+    /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
     public override async Task<Json> QueryJsonAsync(string query, IDictionary<string, object?>? args = null,
@@ -409,8 +409,8 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
     }
 
     /// <inheritdoc />
-    /// <exception cref="EdgeDBException">A general error occored.</exception>
-    /// <exception cref="EdgeDBErrorException">The client received an <see cref="IProtocolError" />.</exception>
+    /// <exception cref="GelException">A general error occored.</exception>
+    /// <exception cref="ServerErrorException">The client received an <see cref="IProtocolError" />.</exception>
     /// <exception cref="UnexpectedMessageException">The client received an unexpected message.</exception>
     /// <exception cref="MissingCodecException">A codec could not be found for the given input arguments or the result.</exception>
     public override async Task<IReadOnlyCollection<Json>> QueryJsonElementsAsync(string query,
@@ -427,7 +427,7 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
                     object? text = result.ProtocolResult.OutCodecInfo.Codec.Deserialize(this, in x);
                     return text is string
                         ? new Json((string)text)
-                        : throw new EdgeDBException("Error parsing JsonElements.");
+                        : throw new GelException("Error parsing JsonElements.");
                 })
                 .ToImmutableArray()
             : ImmutableArray<Json>.Empty;
@@ -542,7 +542,7 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
                     Logger.ConnectionMessageProcessing(message.Type);
                     await _protocolProvider.ProcessAsync(in message);
                 }
-                catch (EdgeDBErrorException x) when (x.ShouldReconnect)
+                catch (ServerErrorException x) when (x.ShouldReconnect)
                 {
                     if (ClientConfig.RetryMode is not ConnectionRetryMode.AlwaysRetry) throw;
 
@@ -612,7 +612,7 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
             {
                 stream = await GetStreamAsync(token).ConfigureAwait(false);
             }
-            catch (EdgeDBException x) when (x.ShouldReconnect)
+            catch (GelException x) when (x.ShouldReconnect)
             {
                 attempts++;
                 Logger.AttemptToReconnect((uint)attempts, ClientConfig.MaxConnectionRetries);
@@ -629,7 +629,7 @@ internal abstract class EdgeDBBinaryClient : BaseEdgeDBClient
             // send handshake
             await Duplexer.SendAsync(token, _protocolProvider.Handshake()).ConfigureAwait(false);
         }
-        catch (EdgeDBException x) when (x.ShouldReconnect)
+        catch (GelException x) when (x.ShouldReconnect)
         {
             if (_currentRetries == ClientConfig.MaxConnectionRetries)
             {

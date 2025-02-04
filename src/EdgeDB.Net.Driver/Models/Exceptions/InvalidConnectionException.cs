@@ -3,7 +3,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents an error with the provided connection details.
 /// </summary>
-public class InvalidConnectionException : EdgeDBException
+public class InvalidConnectionException : GelException
 {
     /// <summary>
     ///     Constructs a new <see cref="InvalidConnectionException" /> with the specified error message.

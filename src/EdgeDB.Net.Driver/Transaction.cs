@@ -5,7 +5,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents a transaction within EdgeDB.
 /// </summary>
-public sealed class Transaction : IEdgeDBQueryable
+public sealed class Transaction : IGelQueryable
 {
     private readonly ITransactibleClient _client;
     private readonly object _lock = new();
@@ -73,7 +73,7 @@ public sealed class Transaction : IEdgeDBQueryable
             }
         }
 
-        EdgeDBException? innerException = null;
+        GelException? innerException = null;
 
         for (var i = 0; i != _settings.RetryAttempts; i++)
         {
@@ -82,7 +82,7 @@ public sealed class Transaction : IEdgeDBQueryable
                 await func().ConfigureAwait(false);
                 return;
             }
-            catch (EdgeDBException x) when (x.ShouldRetry)
+            catch (GelException x) when (x.ShouldRetry)
             {
                 innerException = x;
             }
@@ -102,7 +102,7 @@ public sealed class Transaction : IEdgeDBQueryable
             }
         }
 
-        EdgeDBException? innerException = null;
+        GelException? innerException = null;
 
         for (var i = 0; i != _settings.RetryAttempts; i++)
         {
@@ -110,7 +110,7 @@ public sealed class Transaction : IEdgeDBQueryable
             {
                 return await func().ConfigureAwait(false);
             }
-            catch (EdgeDBException x) when (x.ShouldRetry)
+            catch (GelException x) when (x.ShouldRetry)
             {
                 innerException = x;
             }

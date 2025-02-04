@@ -7,12 +7,12 @@ internal class CustomTypeConverters : IExample
 {
     public ILogger? Logger { get; set; }
 
-    public async Task ExecuteAsync(EdgeDBClient client)
+    public async Task ExecuteAsync(GelClientPool clientPool)
     {
         // add the converter
         TypeBuilder.AddOrUpdateTypeConverter<DiscordSnowflakeIdConverter>();
 
-        var user = await client.QueryAsync<UserWithSnowflakeId>(
+        var user = await clientPool.QueryAsync<UserWithSnowflakeId>(
             "with u := (insert UserWithSnowflakeId { user_id := \"841451783728529451\", username := \"example\" } unless conflict on .user_id else (select UserWithSnowflakeId)) select u { user_id, username }");
 
         Logger!.LogInformation("User with snowflake id: {@User}", user);
@@ -25,7 +25,7 @@ internal class CustomTypeConverters : IExample
         public string? Username { get; set; }
     }
 
-    public class DiscordSnowflakeIdConverter : EdgeDBTypeConverter<DiscordSnowflakeId, string>
+    public class DiscordSnowflakeIdConverter : GelTypeConverter<DiscordSnowflakeId, string>
     {
         public override DiscordSnowflakeId ConvertFrom(string? value)
             => value is null ? default : new DiscordSnowflakeId(ulong.Parse(value));

@@ -7,20 +7,20 @@ namespace EdgeDB.Tests.Benchmarks;
 [DotTraceDiagnoser]
 public class FullExecuteBenchmark
 {
-    public EdgeDBClient? Client;
+    public GelClientPool? ClientPool;
 
     [GlobalSetup]
     public void Setup() =>
-        Client = new EdgeDBClient(new EdgeDBClientPoolConfig
+        ClientPool = new GelClientPool(new GelClientPoolConfig
         {
             ClientFactory = (id, c, cng) =>
             {
                 var client = new MockQueryClient(c, cng, null!, id);
-                return ValueTask.FromResult<BaseEdgeDBClient>(client);
+                return ValueTask.FromResult<BaseGelClient>(client);
             }
         });
 
     [Benchmark]
     public Task<IReadOnlyCollection<string?>> FullExecuteAsync() =>
-        Client!.QueryAsync<string>("select \"Hello, World!\"");
+        ClientPool!.QueryAsync<string>("select \"Hello, World!\"");
 }

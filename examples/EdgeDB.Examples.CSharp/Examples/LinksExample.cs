@@ -6,7 +6,7 @@ internal class LinksExample : IExample
 {
     public ILogger? Logger { get; set; }
 
-    public async Task ExecuteAsync(EdgeDBClient client)
+    public async Task ExecuteAsync(GelClientPool clientPool)
     {
         // create a new movie
         var createMovieQuery = "with" +
@@ -22,29 +22,29 @@ internal class LinksExample : IExample
         var selectMovieQuery =
             "select Movie {title, year, director: {name, email}, actors: {name, email}} filter .title = 'Inception'";
 
-        await client.ExecuteAsync(createMovieQuery).ConfigureAwait(false);
+        await clientPool.ExecuteAsync(createMovieQuery).ConfigureAwait(false);
 
         // select it
-        var movie = await client.QueryRequiredSingleAsync<Movie>(selectMovieQuery).ConfigureAwait(false);
+        var movie = await clientPool.QueryRequiredSingleAsync<Movie>(selectMovieQuery).ConfigureAwait(false);
 
         Logger?.LogInformation("Movie: {@Movie}", movie);
     }
 
     public class Person
     {
-        [EdgeDBProperty("name")] public string? Name { get; set; }
+        [GelProperty("name")] public string? Name { get; set; }
 
-        [EdgeDBProperty("email")] public string? Email { get; set; }
+        [GelProperty("email")] public string? Email { get; set; }
     }
 
     public class Movie
     {
-        [EdgeDBProperty("title")] public string? Title { get; set; }
+        [GelProperty("title")] public string? Title { get; set; }
 
-        [EdgeDBProperty("year")] public int Year { get; set; }
+        [GelProperty("year")] public int Year { get; set; }
 
-        [EdgeDBProperty("director")] public Person? Director { get; set; } // single link
+        [GelProperty("director")] public Person? Director { get; set; } // single link
 
-        [EdgeDBProperty("actors")] public Person[]? Actors { get; set; } // multi link, can also use List<Person> here
+        [GelProperty("actors")] public Person[]? Actors { get; set; } // multi link, can also use List<Person> here
     }
 }

@@ -9,31 +9,31 @@ namespace EdgeDB.Tests.Integration;
 [TestClass]
 public class DDLTests
 {
-    private readonly EdgeDBClient _client;
-    private readonly EdgeDBClient _ddlClient;
+    private readonly GelClientPool _clientPool;
+    private readonly GelClientPool _ddlClientPool;
     private readonly Func<CancellationToken> _getToken;
 
 
     public DDLTests()
     {
-        _client = ClientProvider.EdgeDB;
-        _ddlClient = _client.WithConfig(x => x.DDLPolicy = DDLPolicy.AlwaysAllow);
+        _clientPool = ClientProvider.ClientPool;
+        _ddlClientPool = _clientPool.WithConfig(x => x.DDLPolicy = DDLPolicy.AlwaysAllow);
         _getToken = () => ClientProvider.GetTimeoutToken();
     }
 
     [TestMethod]
     public async Task TestDDLInvalidCapabilitiesAndSessionConfig() =>
-        await Assert.ThrowsExceptionAsync<EdgeDBErrorException>(async () =>
+        await Assert.ThrowsExceptionAsync<ServerErrorException>(async () =>
         {
-            await _client.ExecuteAsync("CREATE TYPE TestType { CREATE REQUIRED PROPERTY name -> str; }",
+            await _clientPool.ExecuteAsync("CREATE TYPE TestType { CREATE REQUIRED PROPERTY name -> str; }",
                 token: _getToken());
         });
 
     [TestMethod]
     public async Task TestDDLInvalidCapabilitiesAndValidConfig() =>
-        await Assert.ThrowsExceptionAsync<EdgeDBErrorException>(async () =>
+        await Assert.ThrowsExceptionAsync<ServerErrorException>(async () =>
         {
-            await _ddlClient.ExecuteAsync("CREATE TYPE TestType { CREATE REQUIRED PROPERTY name -> str; }",
+            await _ddlClientPool.ExecuteAsync("CREATE TYPE TestType { CREATE REQUIRED PROPERTY name -> str; }",
                 token: _getToken());
         });
 
@@ -42,10 +42,10 @@ public class DDLTests
     {
         try
         {
-            await _ddlClient.ExecuteAsync("CREATE TYPE TestType { CREATE REQUIRED PROPERTY name -> str; }",
+            await _ddlClientPool.ExecuteAsync("CREATE TYPE TestType { CREATE REQUIRED PROPERTY name -> str; }",
                 capabilities: Capabilities.All, token: _getToken());
 
-            var testResult = await _ddlClient.QueryRequiredSingleAsync<TestType>(
+            var testResult = await _ddlClientPool.QueryRequiredSingleAsync<TestType>(
                 "with t := (insert TestType { name := 'test' }) select t { name } limit 1", token: _getToken());
 
             Assert.IsNotNull(testResult);
@@ -56,14 +56,14 @@ public class DDLTests
             // try to drop the type, don't throw if this fails
             try
             {
-                await _ddlClient.ExecuteAsync("DROP TYPE TestType", capabilities: Capabilities.All, token: _getToken());
+                await _ddlClientPool.ExecuteAsync("DROP TYPE TestType", capabilities: Capabilities.All, token: _getToken());
             }
-            catch (EdgeDBErrorException) { }
+            catch (ServerErrorException) { }
         }
     }
 
     private class TestType
     {
-        [EdgeDBProperty("name")] public string? Name { get; set; }
+        [GelProperty("name")] public string? Name { get; set; }
     }
 }

@@ -8,9 +8,9 @@ internal class JsonResults : IExample
 {
     public ILogger? Logger { get; set; }
 
-    public async Task ExecuteAsync(EdgeDBClient client)
+    public async Task ExecuteAsync(GelClientPool clientPool)
     {
-        var result = await client.QueryJsonAsync("select Person {name, email}");
+        var result = await clientPool.QueryJsonAsync("select Person {name, email}");
 
         var people = JsonConvert.DeserializeObject<Person[]>(result);
         if (people is null) { return; }

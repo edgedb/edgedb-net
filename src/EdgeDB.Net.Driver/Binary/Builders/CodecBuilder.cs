@@ -137,13 +137,13 @@ internal sealed class CodecBuilder
     public static ICodec? GetCodec(IProtocolProvider provider, in Guid id)
         => GetProviderCache(provider).Cache.TryGetValue(id, out var codec) ? codec : GetScalarCodec(provider, id);
 
-    public static ICodec BuildCodec(EdgeDBBinaryClient client, in Guid id, byte[] buff)
+    public static ICodec BuildCodec(GelBinaryClient client, in Guid id, byte[] buff)
     {
         var reader = new PacketReader(buff.AsSpan());
         return BuildCodec(client, in id, ref reader);
     }
 
-    public static ICodec BuildCodec(EdgeDBBinaryClient client, in Guid id, ref PacketReader reader)
+    public static ICodec BuildCodec(GelBinaryClient client, in Guid id, ref PacketReader reader)
     {
         if (id == NullCodecId)
             return GetOrCreateCodec<NullCodec>(client.ProtocolProvider);

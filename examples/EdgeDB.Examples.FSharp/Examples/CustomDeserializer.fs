@@ -18,7 +18,7 @@ type PersonConstructor() =
         with get () = email
         and set (v) = email <- v
 
-    [<EdgeDBDeserializer>]
+    [<GelDeserializer>]
     new(raw: IDictionary<string, obj>) as this =
         PersonConstructor()
         then
@@ -29,7 +29,7 @@ type PersonMethod() =
     member val Name = "" with get, set
     member val Email = "" with get, set
 
-    [<EdgeDBDeserializer>]
+    [<GelDeserializer>]
     member this.Deserialize(raw: IDictionary<string, obj>) =
         this.Name <- raw.["name"] :?> string
         this.Email <- raw.["email"] :?> string
@@ -57,7 +57,7 @@ type PersonImpl() =
 
 type CustomDeserializer() =
     interface IExample with
-        member this.ExecuteAsync(client: EdgeDBClient, logger: ILogger) =
+        member this.ExecuteAsync(clientPool: GelClientPool, logger: ILogger) =
             task {
                 // Define our queries
                 let insertQuery =
@@ -67,7 +67,7 @@ type CustomDeserializer() =
                     "select Person { name, email } filter .email = \"example@example.com\""
 
                 // Insert john
-                client.ExecuteAsync(insertQuery) |> Async.AwaitTask |> Async.Ignore |> ignore
+                clientPool.ExecuteAsync(insertQuery) |> Async.AwaitTask |> Async.Ignore |> ignore
 
                 // Define a custom deserializer for the 'PersonGlobal' type
                 TypeBuilder.AddOrUpdateTypeBuilder<PersonGlobal>(fun person data ->
@@ -87,10 +87,10 @@ type CustomDeserializer() =
 
                     person)
 
-                let! exampleConstructor = client.QueryRequiredSingleAsync<PersonConstructor>(selectQuery)
-                let! exampleMethod = client.QueryRequiredSingleAsync<PersonMethod>(selectQuery)
-                let! exampleGlobal = client.QueryRequiredSingleAsync<PersonGlobal>(selectQuery)
-                let! exampleInterface = client.QueryRequiredSingleAsync<IPerson>(selectQuery)
+                let! exampleConstructor = clientPool.QueryRequiredSingleAsync<PersonConstructor>(selectQuery)
+                let! exampleMethod = clientPool.QueryRequiredSingleAsync<PersonMethod>(selectQuery)
+                let! exampleGlobal = clientPool.QueryRequiredSingleAsync<PersonGlobal>(selectQuery)
+                let! exampleInterface = clientPool.QueryRequiredSingleAsync<IPerson>(selectQuery)
 
                 logger.LogInformation("Constructor deserializer: {@Person}", exampleConstructor)
                 logger.LogInformation("Method defined deserializer {@Person}", exampleMethod)

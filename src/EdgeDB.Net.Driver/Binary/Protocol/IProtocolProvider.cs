@@ -7,7 +7,7 @@ namespace EdgeDB.Binary.Protocol;
 
 internal delegate IReceiveable PacketReadFactory(ref PacketReader reader, in int length);
 
-internal delegate IProtocolProvider ProtocolProviderFactory(EdgeDBBinaryClient client);
+internal delegate IProtocolProvider ProtocolProviderFactory(GelBinaryClient client);
 
 internal delegate ref ICodec? RelativeCodecDelegate(in int position);
 
@@ -16,7 +16,7 @@ internal delegate ref ITypeDescriptor RelativeDescriptorDelegate(in int position
 internal interface IProtocolProvider
 {
     private static ProtocolProviderFactory? _defaultProvider;
-    private static readonly ConcurrentDictionary<EdgeDBConnection, ProtocolProviderFactory> _providers = new();
+    private static readonly ConcurrentDictionary<GelConnection, ProtocolProviderFactory> _providers = new();
 
     public static readonly Dictionary<ProtocolVersion, (Type Type, ProtocolProviderFactory Factory)> Providers = new()
     {
@@ -34,14 +34,14 @@ internal interface IProtocolProvider
 
     void Reset();
 
-    public static IProtocolProvider GetDefaultProvider(EdgeDBBinaryClient client)
+    public static IProtocolProvider GetDefaultProvider(GelBinaryClient client)
         => (_defaultProvider ??= Providers[ProtocolVersion.EdgeDBBinaryDefaultVersion].Factory)(client);
 
-    public static IProtocolProvider GetProvider(EdgeDBBinaryClient client)
+    public static IProtocolProvider GetProvider(GelBinaryClient client)
         => _providers.GetOrAdd(client.Connection,
             _ => Providers[ProtocolVersion.EdgeDBBinaryDefaultVersion].Factory)(client);
 
-    public static void UpdateProviderFor(EdgeDBBinaryClient client, IProtocolProvider provider)
+    public static void UpdateProviderFor(GelBinaryClient client, IProtocolProvider provider)
         => _providers.AddOrUpdate(client.Connection, Providers[provider.Version].Factory,
             (_, __) => Providers[provider.Version].Factory);
 

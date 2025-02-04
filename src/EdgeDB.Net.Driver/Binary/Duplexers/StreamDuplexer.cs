@@ -13,7 +13,7 @@ internal sealed class StreamDuplexer : IBinaryDuplexer
 {
     public const int PACKET_HEADER_SIZE = 5;
 
-    private readonly EdgeDBBinaryClient _client;
+    private readonly GelBinaryClient _client;
 
     private readonly object _connectivityLock = new();
     private readonly SemaphoreSlim _duplexLock;
@@ -29,7 +29,7 @@ internal sealed class StreamDuplexer : IBinaryDuplexer
 
     private Stream? _stream;
 
-    public unsafe StreamDuplexer(EdgeDBBinaryClient client)
+    public unsafe StreamDuplexer(GelBinaryClient client)
     {
         _client = client;
         _disconnectTokenSource = new CancellationTokenSource();
@@ -63,7 +63,7 @@ internal sealed class StreamDuplexer : IBinaryDuplexer
             if (IsConnected)
                 await SendAsync(token, _client.ProtocolProvider.Terminate()).ConfigureAwait(false);
         }
-        catch (EdgeDBException) { } // assume its because the connection is closed.
+        catch (GelException) { } // assume its because the connection is closed.
 
         await DisconnectInternalAsync();
     }
@@ -128,7 +128,7 @@ internal sealed class StreamDuplexer : IBinaryDuplexer
             _client.Logger.IdleDisconnect();
 
             await DisconnectInternalAsync();
-            throw new EdgeDBErrorException(err);
+            throw new ServerErrorException(err);
         }
         catch (IOException ioException) when (ioException.InnerException is SocketException socketException)
         {
@@ -150,7 +150,7 @@ internal sealed class StreamDuplexer : IBinaryDuplexer
             await DisconnectInternalAsync();
             return null;
         }
-        catch (EdgeDBErrorException)
+        catch (ServerErrorException)
         {
             throw;
         }
@@ -175,7 +175,7 @@ internal sealed class StreamDuplexer : IBinaryDuplexer
         // check stream after reconnect
         if (_stream is null)
         {
-            throw new EdgeDBException("Cannot send message to a force-closed connection");
+            throw new GelException("Cannot send message to a force-closed connection");
         }
 
         using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(token, _disconnectTokenSource.Token);

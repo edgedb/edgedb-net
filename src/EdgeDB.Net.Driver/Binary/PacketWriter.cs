@@ -75,7 +75,7 @@ internal unsafe ref struct PacketWriter
     {
         if (!CanWrite)
         {
-            throw new EdgeDBException("Cannot write/modify the underlying free'd buffer");
+            throw new GelException("Cannot write/modify the underlying free'd buffer");
         }
     }
 

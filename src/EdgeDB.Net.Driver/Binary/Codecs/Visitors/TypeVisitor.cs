@@ -11,14 +11,14 @@ namespace EdgeDB.Binary.Codecs;
 
 internal sealed class TypeVisitor : CodecVisitor
 {
-    private readonly EdgeDBBinaryClient _client;
+    private readonly GelBinaryClient _client;
 
     private readonly ILogger _logger;
 
     private Type? _targetType;
     private TypeVisitorContext? _context;
 
-    public TypeVisitor(EdgeDBBinaryClient client)
+    public TypeVisitor(GelBinaryClient client)
     {
         _logger = client.Logger;
         _client = client;
@@ -37,7 +37,7 @@ internal sealed class TypeVisitor : CodecVisitor
         Task VisitCodecAsync(Ref<ICodec> codec, CancellationToken token)
     {
         if (_context is null)
-            throw new EdgeDBException("Context was not initialized for type walking");
+            throw new GelException("Context was not initialized for type walking");
 
 #if DEBUG
         var sw = Stopwatch.StartNew();
@@ -264,7 +264,7 @@ internal sealed class TypeVisitor : CodecVisitor
             => Type == typeof(object);
 
         public string? Name { get; set; }
-        public EdgeDBTypeDeserializeInfo? Deserializer { get; set; }
+        public GelTypeDeserializeInfo? Deserializer { get; set; }
         public bool InnerRealType { get; set; }
 
         public int Depth { get; init; }

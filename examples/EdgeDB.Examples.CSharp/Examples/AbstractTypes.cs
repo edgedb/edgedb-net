@@ -6,12 +6,12 @@ internal class AbstractTypes : IExample
 {
     public ILogger? Logger { get; set; }
 
-    public async Task ExecuteAsync(EdgeDBClient client)
+    public async Task ExecuteAsync(GelClientPool clientPool)
     {
         // select the abstract type from the schema.
         // Note that the type builder will 'discover' the types that inherit
         // our C# abstract type.
-        var result = await client.QueryAsync<AbstractThing>("select AbstractThing { name }");
+        var result = await clientPool.QueryAsync<AbstractThing>("select AbstractThing { name }");
 
         // select only 'Thing' types
         var things = result.Where(x => x is Thing);
@@ -23,7 +23,7 @@ internal class AbstractTypes : IExample
         // reflects back into C#, the returning collection contains both 'Thing' and
         // 'OtherThing' types we defined. I'd like to see an ORM try doing that :D
         var isResult =
-            await client.QueryAsync<AbstractThing>(
+            await clientPool.QueryAsync<AbstractThing>(
                 "select AbstractThing { name, [is Thing].description, [is OtherThing].attribute }");
     }
 

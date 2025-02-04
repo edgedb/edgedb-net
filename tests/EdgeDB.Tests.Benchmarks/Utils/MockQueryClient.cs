@@ -3,7 +3,7 @@ using EdgeDB.Utils;
 
 namespace EdgeDB.Tests.Benchmarks.Utils;
 
-internal class MockQueryClient : EdgeDBBinaryClient
+internal class MockQueryClient : GelBinaryClient
 {
     public static readonly byte[] AuthenticationFirst;
     public static readonly byte[] AuthenticationSecond;
@@ -49,7 +49,7 @@ internal class MockQueryClient : EdgeDBBinaryClient
                 "430000002C000000000000000000000000000653454C4543540000000000000000000000000000000000000000");
     }
 
-    public MockQueryClient(EdgeDBConnection connection, EdgeDBConfig clientConfig, IDisposable clientPoolHolder,
+    public MockQueryClient(GelConnection connection, GelClientConfig clientConfig, IDisposable clientPoolHolder,
         ulong? clientId = null)
         : base(connection, clientConfig, clientPoolHolder, clientId)
     {

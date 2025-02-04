@@ -22,7 +22,7 @@ internal class V1DumpRestoreProvider : IDumpRestoreProvider
 
     public ProtocolVersion DumpRestoreVersion { get; } = (1, 0);
 
-    public async Task DumpDatabaseAsync(EdgeDBBinaryClient client, Stream stream, CancellationToken token = default)
+    public async Task DumpDatabaseAsync(GelBinaryClient client, Stream stream, CancellationToken token = default)
     {
         using var cmdLock = await client.AquireCommandLockAsync(token).ConfigureAwait(false);
 
@@ -45,7 +45,7 @@ internal class V1DumpRestoreProvider : IDumpRestoreProvider
                         break;
                     case ErrorResponse error:
                     {
-                        throw new EdgeDBErrorException(error);
+                        throw new ServerErrorException(error);
                     }
                 }
             }
@@ -56,7 +56,7 @@ internal class V1DumpRestoreProvider : IDumpRestoreProvider
         }
     }
 
-    public async Task<string> RestoreDatabaseAsync(EdgeDBBinaryClient client, Stream stream, CancellationToken token)
+    public async Task<string> RestoreDatabaseAsync(GelBinaryClient client, Stream stream, CancellationToken token)
     {
         using var cmdLock = await client.AquireCommandLockAsync(token).ConfigureAwait(false);
 
@@ -81,7 +81,7 @@ internal class V1DumpRestoreProvider : IDumpRestoreProvider
             switch (result.Packet)
             {
                 case ErrorResponse err:
-                    throw new EdgeDBErrorException(err);
+                    throw new ServerErrorException(err);
                 case RestoreReady:
                     result.Finish();
                     break;
@@ -100,7 +100,7 @@ internal class V1DumpRestoreProvider : IDumpRestoreProvider
         return restoreResult is null
             ? throw new UnexpectedDisconnectException()
             : restoreResult is ErrorResponse error
-                ? throw new EdgeDBErrorException(error)
+                ? throw new ServerErrorException(error)
                 : restoreResult is not CommandComplete complete
                     ? throw new UnexpectedMessageException(ServerMessageType.CommandComplete, restoreResult.Type)
                     : complete.Status;

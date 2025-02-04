@@ -5,20 +5,20 @@ namespace EdgeDB.Tests.Integration;
 
 internal class ClientProvider
 {
-    public static EdgeDBClient EdgeDB
-        => new(new EdgeDBClientPoolConfig {SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy});
+    public static GelClientPool ClientPool
+        => new(new GelClientPoolConfig {SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy});
 
-    public static EdgeDBClient HttpEdgeDB
-        => new(new EdgeDBClientPoolConfig
+    public static GelClientPool HttpClientPool
+        => new(new GelClientPoolConfig
         {
-            SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy, ClientType = EdgeDBClientType.Http
+            SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy, ClientType = GelClientType.Http
         });
 
-    public static EdgeDBClient ConfigureClient(Action<EdgeDBClientPoolConfig> conf)
+    public static GelClientPool ConfigureClient(Action<GelClientPoolConfig> conf)
     {
-        var config = new EdgeDBClientPoolConfig();
+        var config = new GelClientPoolConfig();
         conf(config);
-        return new EdgeDBClient(config);
+        return new GelClientPool(config);
     }
 
     public static CancellationToken GetTimeoutToken()

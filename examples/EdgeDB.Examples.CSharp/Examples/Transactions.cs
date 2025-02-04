@@ -6,10 +6,10 @@ public class Transactions : IExample
 {
     public ILogger? Logger { get; set; }
 
-    public async Task ExecuteAsync(EdgeDBClient client)
+    public async Task ExecuteAsync(GelClientPool clientPool)
     {
         // we can enter a transaction by calling TransactionAsync on a client.
-        var str = await client.TransactionAsync(async tx =>
+        var str = await clientPool.TransactionAsync(async tx =>
         {
             // inside our transaction we can preform queries using the 'tx' object.
             // ontop of this, anything we return in the transaction is returned by the

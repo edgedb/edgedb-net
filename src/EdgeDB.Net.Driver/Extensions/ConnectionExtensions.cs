@@ -5,7 +5,7 @@ namespace EdgeDB;
 
 internal static class ConnectionExtensions
 {
-    public static X509Certificate2? GetCertificate(this EdgeDBConnection connection)
+    public static X509Certificate2? GetCertificate(this GelConnection connection)
     {
         if (connection.TLSCertificateAuthority is null)
             return null;

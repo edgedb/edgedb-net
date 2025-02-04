@@ -5,9 +5,9 @@ using Newtonsoft.Json;
 namespace EdgeDB;
 
 /// <summary>
-///     Represents a config for a <see cref="EdgeDBClient" />, extending <see cref="EdgeDBConfig" />.
+///     Represents a config for a <see cref="GelClientPool" />, extending <see cref="GelClientConfig" />.
 /// </summary>
-public sealed class EdgeDBClientPoolConfig : EdgeDBConfig
+public sealed class GelClientPoolConfig : GelClientConfig
 {
     private int? _poolSize;
 
@@ -29,32 +29,32 @@ public sealed class EdgeDBClientPoolConfig : EdgeDBConfig
     /// <summary>
     ///     Gets or sets the client type the pool will use.
     /// </summary>
-    public EdgeDBClientType ClientType { get; set; }
+    public GelClientType ClientType { get; set; }
 
     /// <summary>
     ///     Gets or sets the client factory to use when adding new clients to the client pool.
     /// </summary>
     /// <remarks>
-    ///     The <see cref="ClientType" /> must be <see cref="EdgeDBClientType.Custom" /> to use this property.
+    ///     The <see cref="ClientType" /> must be <see cref="GelClientType.Custom" /> to use this property.
     /// </remarks>
-    internal Func<ulong, EdgeDBConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? ClientFactory { get; set; }
+    internal Func<ulong, GelConnection, GelClientConfig, ValueTask<BaseGelClient>>? ClientFactory { get; set; }
 
     internal bool HasCustomPoolSize
         => _poolSize.HasValue;
 }
 
 /// <summary>
-///     Represents different client types used in a <see cref="EdgeDBClient" />.
+///     Represents different client types used in a <see cref="GelClientPool" />.
 /// </summary>
-public enum EdgeDBClientType
+public enum GelClientType
 {
     /// <summary>
-    ///     The client pool will use <see cref="EdgeDBTcpClient" />s
+    ///     The client pool will use <see cref="GelTcpClient" />s
     /// </summary>
     Tcp,
 
     /// <summary>
-    ///     The client pool will use <see cref="EdgeDBHttpClient" />s
+    ///     The client pool will use <see cref="GelHttpClient" />s
     /// </summary>
     Http,
 
@@ -65,22 +65,22 @@ public enum EdgeDBClientType
     Unix,
 
     /// <summary>
-    ///     The client pool will use the <see cref="EdgeDBClientPoolConfig.ClientFactory" /> to add new clients.
+    ///     The client pool will use the <see cref="GelClientPoolConfig.ClientFactory" /> to add new clients.
     /// </summary>
     Custom
 }
 
 /// <summary>
-///     Represents the configuration options for a <see cref="EdgeDBClient" /> or <see cref="EdgeDBTcpClient" />
+///     Represents the configuration options for a <see cref="GelClientPool" /> or <see cref="GelTcpClient" />
 /// </summary>
-public class EdgeDBConfig
+public class GelClientConfig
 {
     /// <summary>
     ///     Gets the <see cref="JsonSerializer" /> capable of serializing/deserializing edgedb types.
     /// </summary>
     public static readonly JsonSerializer JsonSerializer = new()
     {
-        ContractResolver = new EdgeDBContractResolver(), NullValueHandling = NullValueHandling.Ignore
+        ContractResolver = new JsonContractResolver(), NullValueHandling = NullValueHandling.Ignore
     };
 
     /// <summary>

@@ -15,7 +15,7 @@ namespace EdgeDB;
 /// </summary>
 public static class TypeBuilder
 {
-    internal static readonly ConcurrentDictionary<Type, EdgeDBTypeDeserializeInfo> TypeInfo = new();
+    internal static readonly ConcurrentDictionary<Type, GelTypeDeserializeInfo> TypeInfo = new();
     internal static readonly ConcurrentDictionary<Type, IEdgeDBTypeConverter> TypeConverters = new();
     internal static readonly INamingStrategy AttributeNamingStrategy;
     private static readonly List<string> _scannedAssemblies;
@@ -49,7 +49,7 @@ public static class TypeBuilder
     public static void AddOrUpdateTypeBuilder<TType>(
         Action<TType, IDictionary<string, object?>> builder)
     {
-        if (!EdgeDBTypeConstructorInfo.TryGetConstructorInfo(typeof(TType), out var ctorInfo) ||
+        if (!GelTypeConstructorInfo.TryGetConstructorInfo(typeof(TType), out var ctorInfo) ||
             ctorInfo.EmptyConstructor is null)
             throw new TargetInvocationException(
                 $"Cannot create an instance of {typeof(TType).Name}: no empty constructor found", null);
@@ -65,7 +65,7 @@ public static class TypeBuilder
             return instance;
         }
 
-        var inst = new EdgeDBTypeDeserializeInfo(typeof(TType), Factory);
+        var inst = new GelTypeDeserializeInfo(typeof(TType), Factory);
 
         TypeInfo.AddOrUpdate(typeof(TType), inst, (_, _) => inst);
 
@@ -74,7 +74,7 @@ public static class TypeBuilder
     }
 
     /// <summary>
-    ///     Adds or updates a custom <see cref="EdgeDBTypeConverter{TSource, TTarget}" />
+    ///     Adds or updates a custom <see cref="GelTypeConverter{TSource, TTarget}" />
     /// </summary>
     /// <typeparam name="TConverter">The type converter to add.</typeparam>
     /// <returns />
@@ -100,7 +100,7 @@ public static class TypeBuilder
             info.UpdateFactory(factory);
         else
         {
-            TypeInfo.TryAdd(typeof(TType), new EdgeDBTypeDeserializeInfo(typeof(TType), factory));
+            TypeInfo.TryAdd(typeof(TType), new GelTypeDeserializeInfo(typeof(TType), factory));
             ScanAssemblyForTypes(typeof(TType).Assembly);
         }
     }
@@ -124,7 +124,7 @@ public static class TypeBuilder
     #region Type helpers
 
     internal static bool TryGetTypeDeserializerInfo(Type type,
-        [MaybeNullWhen(false)] out EdgeDBTypeDeserializeInfo info)
+        [MaybeNullWhen(false)] out GelTypeDeserializeInfo info)
     {
         info = null;
 
@@ -133,7 +133,7 @@ public static class TypeBuilder
 
         if (!TypeInfo.TryGetValue(type, out var typeInfo))
         {
-            info = TypeInfo.AddOrUpdate(type, new EdgeDBTypeDeserializeInfo(type), (_, v) => v);
+            info = TypeInfo.AddOrUpdate(type, new GelTypeDeserializeInfo(type), (_, v) => v);
             ScanAssemblyForTypes(type.Assembly);
         }
         else
@@ -142,7 +142,7 @@ public static class TypeBuilder
         return info is not null;
     }
 
-    internal static object? BuildObject(EdgeDBBinaryClient client, Type type, ObjectCodec codec,
+    internal static object? BuildObject(GelBinaryClient client, Type type, ObjectCodec codec,
         in ReadOnlyMemory<byte> data)
     {
         if (!IsValidObjectType(type))
@@ -150,7 +150,7 @@ public static class TypeBuilder
 
         if (!TypeInfo.TryGetValue(type, out var info))
         {
-            info = TypeInfo.AddOrUpdate(type, new EdgeDBTypeDeserializeInfo(type), (_, v) => v);
+            info = TypeInfo.AddOrUpdate(type, new GelTypeDeserializeInfo(type), (_, v) => v);
             ScanAssemblyForTypes(type.Assembly);
         }
 
@@ -168,7 +168,7 @@ public static class TypeBuilder
 
         if (!TypeInfo.TryGetValue(type, out var info))
         {
-            info = TypeInfo.AddOrUpdate(type, new EdgeDBTypeDeserializeInfo(type), (_, v) => v);
+            info = TypeInfo.AddOrUpdate(type, new GelTypeDeserializeInfo(type), (_, v) => v);
             ScanAssemblyForTypes(type.Assembly);
         }
 
@@ -204,7 +204,7 @@ public static class TypeBuilder
             type.IsRecord() ||
             type.IsAnonymousType() ||
             ((type.IsClass || type.IsValueType)
-             && EdgeDBTypeConstructorInfo.TryGetConstructorInfo(type, out _));
+             && GelTypeConstructorInfo.TryGetConstructorInfo(type, out _));
     }
 
     internal static bool TryGetCollectionParser(Type type, out Func<Array, Type, object>? builder)
@@ -233,7 +233,7 @@ public static class TypeBuilder
         info = null;
         var method = objectType.GetMethods().FirstOrDefault(x =>
         {
-            if (x.GetCustomAttribute<EdgeDBDeserializerAttribute>() != null && x.ReturnType == typeof(void))
+            if (x.GetCustomAttribute<GelDeserializerAttribute>() != null && x.ReturnType == typeof(void))
             {
                 var parameters = x.GetParameters();
 
@@ -262,12 +262,12 @@ public static class TypeBuilder
                 return;
 
             // look for any type marked with the 'EdgeDBType' attribute
-            var types = assembly.DefinedTypes.Where(x => x.GetCustomAttribute<EdgeDBTypeAttribute>() != null);
+            var types = assembly.DefinedTypes.Where(x => x.GetCustomAttribute<GelTypeAttribute>() != null);
 
             // register them with the default builder
             foreach (var type in types)
             {
-                var info = new EdgeDBTypeDeserializeInfo(type);
+                var info = new GelTypeDeserializeInfo(type);
                 TypeInfo.TryAdd(type, info);
                 foreach (var parentType in TypeInfo.Where(x =>
                              (x.Key.IsInterface || x.Key.IsAbstract) && x.Key != type && type.IsAssignableTo(x.Key)))
@@ -292,7 +292,7 @@ public static class TypeBuilder
             var childTypes = assembly.DefinedTypes.Where(x =>
                 x.IsSubclassOf(abstractType.Key) || x.ImplementedInterfaces.Contains(abstractType.Key) ||
                 x.IsAssignableTo(abstractType.Key));
-            abstractType.Value.AddOrUpdateChildren(childTypes.Select(x => new EdgeDBTypeDeserializeInfo(x)));
+            abstractType.Value.AddOrUpdateChildren(childTypes.Select(x => new GelTypeDeserializeInfo(x)));
         }
     }
 

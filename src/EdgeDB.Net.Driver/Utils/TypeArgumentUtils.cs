@@ -68,7 +68,7 @@ internal static class TypeArgumentUtils
 
         private static Func<T, IDictionary<string, object?>> GetReflectionBuilder(Type type)
         {
-            var propMap = EdgeDBPropertyMapInfo.Create(type);
+            var propMap = GelPropertyMapInfo.Create(type);
 
             return value =>
             {
@@ -93,7 +93,7 @@ internal static class TypeArgumentUtils
                 Expression.Assign(dictExp, Expression.New(typeof(Dictionary<string, object?>)))
             };
 
-            var propMap = EdgeDBPropertyMapInfo.Create(type);
+            var propMap = GelPropertyMapInfo.Create(type);
 
             foreach (var prop in propMap.Map)
             {

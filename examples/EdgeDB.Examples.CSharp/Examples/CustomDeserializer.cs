@@ -6,7 +6,7 @@ public class CustomDeserializer : IExample
 {
     public ILogger? Logger { get; set; }
 
-    public async Task ExecuteAsync(EdgeDBClient client)
+    public async Task ExecuteAsync(GelClientPool clientPool)
     {
         // Define our queries
         var insertQuery =
@@ -14,7 +14,7 @@ public class CustomDeserializer : IExample
         var selectQuery = "select Person { name, email } filter .email = \"john@example.com\"";
 
         // Insert john
-        await client.ExecuteAsync(insertQuery).ConfigureAwait(false);
+        await clientPool.ExecuteAsync(insertQuery).ConfigureAwait(false);
 
         // Define a custom deserializer for the 'PersonGlobal' type
         TypeBuilder.AddOrUpdateTypeBuilder<PersonGlobal>((person, data) =>
@@ -35,16 +35,16 @@ public class CustomDeserializer : IExample
 
         // should call the constructor to deserialize
         var johnConstructor =
-            await client.QueryRequiredSingleAsync<PersonConstructor>(selectQuery).ConfigureAwait(false);
+            await clientPool.QueryRequiredSingleAsync<PersonConstructor>(selectQuery).ConfigureAwait(false);
 
         // should call the 'PersonBuilder' method to deserialize
-        var johnMethod = await client.QueryRequiredSingleAsync<PersonMethod>(selectQuery).ConfigureAwait(false);
+        var johnMethod = await clientPool.QueryRequiredSingleAsync<PersonMethod>(selectQuery).ConfigureAwait(false);
 
         // should call the global method defined on line 72 to deserialize
-        var johnGlobal = await client.QueryRequiredSingleAsync<PersonGlobal>(selectQuery).ConfigureAwait(false);
+        var johnGlobal = await clientPool.QueryRequiredSingleAsync<PersonGlobal>(selectQuery).ConfigureAwait(false);
 
         // should call the global factory defined on line 80 to deserialize
-        var johnImmutable = await client.QueryRequiredSingleAsync<IPerson>(selectQuery).ConfigureAwait(false);
+        var johnImmutable = await clientPool.QueryRequiredSingleAsync<IPerson>(selectQuery).ConfigureAwait(false);
 
         Logger?.LogInformation("Globally defined deserializer: {@Person}", johnGlobal);
         Logger?.LogInformation("Constructor deserializer: {@Person}", johnConstructor);
@@ -54,7 +54,7 @@ public class CustomDeserializer : IExample
 
     public class PersonConstructor
     {
-        [EdgeDBDeserializer]
+        [GelDeserializer]
         public PersonConstructor(IDictionary<string, object?> raw)
         {
             Name = (string)raw["name"]!;
@@ -70,7 +70,7 @@ public class CustomDeserializer : IExample
         public string? Name { get; set; }
         public string? Email { get; set; }
 
-        [EdgeDBDeserializer]
+        [GelDeserializer]
         public void PersonBuilder(IDictionary<string, object?> raw)
         {
             Name = (string)raw["name"]!;
@@ -80,9 +80,9 @@ public class CustomDeserializer : IExample
 
     public class PersonGlobal
     {
-        [EdgeDBProperty("name")] public string? Name { get; set; }
+        [GelProperty("name")] public string? Name { get; set; }
 
-        [EdgeDBProperty("email")] public string? Email { get; set; }
+        [GelProperty("email")] public string? Email { get; set; }
     }
 
     public interface IPerson

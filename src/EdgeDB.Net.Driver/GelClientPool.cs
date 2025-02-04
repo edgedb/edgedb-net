@@ -8,18 +8,18 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents a client pool used to interact with EdgeDB.
 /// </summary>
-public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
+public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
 {
-    private readonly Func<ulong, EdgeDBConnection, EdgeDBConfig, ValueTask<BaseEdgeDBClient>>? _clientFactory;
-    private readonly ConcurrentDictionary<ulong, BaseEdgeDBClient> _clients;
+    private readonly Func<ulong, GelConnection, GelClientConfig, ValueTask<BaseGelClient>>? _clientFactory;
+    private readonly ConcurrentDictionary<ulong, BaseGelClient> _clients;
     private readonly object _clientsLock = new();
     private readonly SemaphoreSlim _clientWaitSemaphore;
 
-    private readonly EdgeDBConnection _connection;
-    private readonly EdgeDBClientPoolConfig _poolConfig;
+    private readonly GelConnection _connection;
+    private readonly GelClientPoolConfig _poolConfig;
     private readonly ClientPoolHolder _poolHolder;
     private readonly Session _session;
-    private ConcurrentStack<BaseEdgeDBClient> _availableClients;
+    private ConcurrentStack<BaseGelClient> _availableClients;
     private ulong _clientIndex;
 
     private readonly int _poolSize;
@@ -28,7 +28,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     /// <summary>
     ///     Gets all clients within the client pool.
     /// </summary>
-    internal IReadOnlyCollection<BaseEdgeDBClient> Clients
+    internal IReadOnlyCollection<BaseGelClient> Clients
         => _clients.Values.ToImmutableArray();
 
     /// <summary>
@@ -47,7 +47,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     public int AvailableClients
         => _availableClients.Count(x =>
         {
-            if (x is EdgeDBBinaryClient binaryClient)
+            if (x is GelBinaryClient binaryClient)
                 return binaryClient.IsIdle;
             return x.IsConnected;
         });
@@ -85,7 +85,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     /// </remarks>
     public IReadOnlyDictionary<string, object?> ServerConfig { get; private set; }
 
-    internal EdgeDBClientType ClientType
+    internal GelClientType ClientType
         => _poolConfig.ClientType;
 
     public async ValueTask DisposeAsync()
@@ -108,7 +108,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     ///     Disconnects all clients within the client pool.
     /// </summary>
     /// <remarks>
-    ///     This task will run all <see cref="BaseEdgeDBClient.DisconnectAsync" /> methods in parallel.
+    ///     This task will run all <see cref="BaseGelClient.DisconnectAsync" /> methods in parallel.
     /// </remarks>
     /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
     /// <returns>The total number of clients disconnected.</returns>
@@ -133,7 +133,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
         lock (_clientsLock)
         {
             _availableClients =
-                new ConcurrentStack<BaseEdgeDBClient>(_availableClients.Where(x => x.ClientId != id).ToArray());
+                new ConcurrentStack<BaseGelClient>(_availableClients.Where(x => x.ClientId != id).ToArray());
             _clients.TryRemove(id, out _);
         }
     }
@@ -148,7 +148,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     ///     working directory. If
     ///     no file is found this method will throw a <see cref="ConfigurationException" />.
     /// </remarks>
-    public EdgeDBClient() : this(EdgeDBConnection.Create(), new EdgeDBClientPoolConfig()) { }
+    public GelClientPool() : this(GelConnection.Create(), new GelClientPoolConfig()) { }
 
     /// <summary>
     ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
@@ -158,7 +158,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     ///     no file is found this method will throw a <see cref="ConfigurationException" />.
     /// </remarks>
     /// <param name="clientPoolConfig">The config for this client pool.</param>
-    public EdgeDBClient(EdgeDBClientPoolConfig clientPoolConfig) : this(EdgeDBConnection.Create(),
+    public GelClientPool(GelClientPoolConfig clientPoolConfig) : this(GelConnection.Create(),
         clientPoolConfig)
     {
     }
@@ -167,31 +167,31 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
     /// </summary>
     /// <param name="connection">The connection parameters used to create new clients.</param>
-    public EdgeDBClient(EdgeDBConnection connection) : this(connection, new EdgeDBClientPoolConfig()) { }
+    public GelClientPool(GelConnection connection) : this(connection, new GelClientPoolConfig()) { }
 
     /// <summary>
     ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
     /// </summary>
     /// <param name="connection">The connection parameters used to create new clients.</param>
     /// <param name="clientPoolConfig">The config for this client pool.</param>
-    public EdgeDBClient(EdgeDBConnection connection, EdgeDBClientPoolConfig clientPoolConfig)
+    public GelClientPool(GelConnection connection, GelClientPoolConfig clientPoolConfig)
     {
-        if (clientPoolConfig.ClientType == EdgeDBClientType.Custom && clientPoolConfig.ClientFactory == null)
+        if (clientPoolConfig.ClientType == GelClientType.Custom && clientPoolConfig.ClientFactory == null)
             throw new CustomClientException("You must specify a client factory in order to use custom clients");
 
         _poolConfig = clientPoolConfig;
-        _clients = new ConcurrentDictionary<ulong, BaseEdgeDBClient>();
+        _clients = new ConcurrentDictionary<ulong, BaseGelClient>();
         _poolSize = clientPoolConfig.DefaultPoolSize;
         _connection = connection;
         ServerConfig = new Dictionary<string, object?>();
-        _availableClients = new ConcurrentStack<BaseEdgeDBClient>();
+        _availableClients = new ConcurrentStack<BaseGelClient>();
         _clientWaitSemaphore = new SemaphoreSlim(1, 1);
         _poolHolder = new(_poolSize);
         _session = Session.Default;
         _clientFactory = clientPoolConfig.ClientFactory;
     }
 
-    internal EdgeDBClient(EdgeDBClient other, Session session)
+    internal GelClientPool(GelClientPool other, Session session)
         : this(other._connection, other._poolConfig)
     {
         _session = session;
@@ -282,10 +282,10 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     /// </summary>
     /// <remarks>
     ///     This method can hang if the client pool is full and all connections are in use.
-    ///     It's recommended to use the query methods defined in the <see cref="EdgeDBClient" /> class.
+    ///     It's recommended to use the query methods defined in the <see cref="GelClientPool" /> class.
     ///     <br />
     ///     <br />
-    ///     Disposing the returned client with the <see cref="EdgeDBTcpClient.DisposeAsync" /> method
+    ///     Disposing the returned client with the <see cref="GelTcpClient.DisposeAsync" /> method
     ///     will return that client to this client pool.
     /// </remarks>
     /// <typeparam name="TClient">The type of client to get.</typeparam>
@@ -296,7 +296,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     /// </returns>
     /// <exception cref="CustomClientException">The client returned cannot be assigned to <typeparamref name="TClient" />.</exception>
     internal async ValueTask<TClient> GetOrCreateClientAsync<TClient>(CancellationToken token = default)
-        where TClient : BaseEdgeDBClient
+        where TClient : BaseGelClient
     {
         var client = await GetOrCreateClientAsync(token);
         if (client is TClient clientTyped)
@@ -309,18 +309,18 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     /// </summary>
     /// <remarks>
     ///     This method can hang if the client pool is full and all connections are in use.
-    ///     It's recommended to use the query methods defined in the <see cref="EdgeDBClient" /> class.
+    ///     It's recommended to use the query methods defined in the <see cref="GelClientPool" /> class.
     ///     <br />
     ///     <br />
-    ///     Disposing the returned client with the <see cref="EdgeDBTcpClient.DisposeAsync" /> method
+    ///     Disposing the returned client with the <see cref="GelTcpClient.DisposeAsync" /> method
     ///     will return that client to this client pool.
     /// </remarks>
     /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
     /// <returns>
     ///     A task that represents the asynchonous operation of getting an available client. The tasks
-    ///     result is a <see cref="BaseEdgeDBClient" /> instance.
+    ///     result is a <see cref="BaseGelClient" /> instance.
     /// </returns>
-    internal async Task<BaseEdgeDBClient> GetOrCreateClientAsync(CancellationToken token = default)
+    internal async Task<BaseGelClient> GetOrCreateClientAsync(CancellationToken token = default)
     {
         // try get an available client ready for commands
         if (_availableClients.TryPop(out var result))
@@ -371,19 +371,19 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
         return await CreateClientAsync(clientIndex, token).ConfigureAwait(false);
     }
 
-    private async Task<BaseEdgeDBClient> CreateClientAsync(ulong id, CancellationToken token = default)
+    private async Task<BaseGelClient> CreateClientAsync(ulong id, CancellationToken token = default)
     {
         switch (_poolConfig.ClientType)
         {
-            case EdgeDBClientType.Tcp:
+            case GelClientType.Tcp:
             {
                 var holder = await _poolHolder.GetPoolHandleAsync(token).ConfigureAwait(false);
-                var client = new EdgeDBTcpClient(_connection, _poolConfig, holder, id);
+                var client = new GelTcpClient(_connection, _poolConfig, holder, id);
 
                 // clone the default state to prevent modification to our reference to default state
                 client.WithSession(_session);
 
-                async ValueTask OnConnect(BaseEdgeDBClient _)
+                async ValueTask OnConnect(BaseGelClient _)
                 {
                     if (client.SuggestedPoolConcurrency.HasValue && !_poolConfig.HasCustomPoolSize)
                     {
@@ -415,10 +415,10 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
 
                 return client;
             }
-            case EdgeDBClientType.Http:
+            case GelClientType.Http:
             {
                 var holder = await _poolHolder.GetPoolHandleAsync(token).ConfigureAwait(false);
-                var client = new EdgeDBHttpClient(_connection, _poolConfig, holder, id);
+                var client = new GelHttpClient(_connection, _poolConfig, holder, id);
 
                 client.WithSession(_session);
 
@@ -440,7 +440,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
 
                 return client;
             }
-            case EdgeDBClientType.Custom when _clientFactory is not null:
+            case GelClientType.Custom when _clientFactory is not null:
             {
                 var client = await _clientFactory(id, _connection, _poolConfig).ConfigureAwait(false)!;
 
@@ -465,7 +465,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
             }
 
             default:
-                throw new EdgeDBException($"No client found for type {_poolConfig.ClientType}");
+                throw new GelException($"No client found for type {_poolConfig.ClientType}");
         }
     }
 
@@ -484,7 +484,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     /// <returns>
     ///     A new client with the specified config.
     /// </returns>
-    public EdgeDBClient WithConfig(Action<ConfigProperties> configDelegate)
+    public GelClientPool WithConfig(Action<ConfigProperties> configDelegate)
     {
         var props = new ConfigProperties();
         configDelegate(props);
@@ -502,7 +502,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     /// <returns>
     ///     A new client with the specified config.
     /// </returns>
-    public EdgeDBClient WithConfig(Config config)
+    public GelClientPool WithConfig(Config config)
         => new(this, _session.WithConfig(config));
 
     /// <summary>
@@ -519,7 +519,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     /// <returns>
     ///     A new client with the specified globals.
     /// </returns>
-    public EdgeDBClient WithGlobals(IDictionary<string, object?> globals)
+    public GelClientPool WithGlobals(IDictionary<string, object?> globals)
         => new(this, _session.WithGlobals(globals));
 
     /// <summary>
@@ -533,7 +533,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     /// <returns>
     ///     A new client with the specified module.
     /// </returns>
-    public EdgeDBClient WithModule(string module)
+    public GelClientPool WithModule(string module)
         => new(this, _session.WithModule(module));
 
     /// <summary>
@@ -549,7 +549,7 @@ public sealed class EdgeDBClient : IEdgeDBQueryable, IAsyncDisposable
     /// <returns>
     ///     A new client with the specified module aliases.
     /// </returns>
-    public EdgeDBClient WithAliases(IDictionary<string, string> aliases)
+    public GelClientPool WithAliases(IDictionary<string, string> aliases)
         => new(this, _session.WithModuleAliases(aliases));
 
     #endregion

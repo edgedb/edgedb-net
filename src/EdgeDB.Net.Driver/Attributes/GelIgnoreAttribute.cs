@@ -5,6 +5,6 @@
 /// </summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Property | AttributeTargets.Field |
                 AttributeTargets.Constructor)]
-public class EdgeDBIgnoreAttribute : Attribute
+public class GelIgnoreAttribute : Attribute
 {
 }

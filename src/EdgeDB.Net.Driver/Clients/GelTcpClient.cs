@@ -9,7 +9,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents a TCP client used to interact with EdgeDB.
 /// </summary>
-internal sealed class EdgeDBTcpClient : EdgeDBBinaryClient, ITransactibleClient
+internal sealed class GelTcpClient : GelBinaryClient, ITransactibleClient
 {
     private readonly StreamDuplexer _duplexer;
     private SslStream? _secureStream;
@@ -25,7 +25,7 @@ internal sealed class EdgeDBTcpClient : EdgeDBBinaryClient, ITransactibleClient
     /// <param name="clientConfig">The configuration for this client.</param>
     /// <param name="clientPoolHolder">The client pool holder for this client.</param>
     /// <param name="clientId">The optional client id of this client. This is used for logging and client pooling.</param>
-    public EdgeDBTcpClient(EdgeDBConnection connection, EdgeDBConfig clientConfig, IDisposable clientPoolHolder,
+    public GelTcpClient(GelConnection connection, GelClientConfig clientConfig, IDisposable clientPoolHolder,
         ulong? clientId = null)
         : base(connection, clientConfig, clientPoolHolder, clientId)
     {
@@ -140,7 +140,7 @@ internal sealed class EdgeDBTcpClient : EdgeDBBinaryClient, ITransactibleClient
         var isolationMode = isolation switch
         {
             Isolation.Serializable => "serializable",
-            _ => throw new EdgeDBException("Unknown isolation mode")
+            _ => throw new GelException("Unknown isolation mode")
         };
 
         var readMode = readOnly ? "read only" : "read write";

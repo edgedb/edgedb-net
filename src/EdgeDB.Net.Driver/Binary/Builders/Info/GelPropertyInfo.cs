@@ -3,20 +3,20 @@ using System.Reflection;
 
 namespace EdgeDB;
 
-internal sealed class EdgeDBPropertyInfo
+internal sealed class GelPropertyInfo
 {
-    private readonly EdgeDBIgnoreAttribute? _ignore;
+    private readonly GelIgnoreAttribute? _ignore;
 
-    private readonly EdgeDBPropertyAttribute? _propertyAttribute;
+    private readonly GelPropertyAttribute? _propertyAttribute;
     private readonly IEdgeDBTypeConverter? _typeConverter;
-    private readonly EdgeDBTypeConverterAttribute? _typeConverterAttribute;
+    private readonly GelTypeConverterAttribute? _typeConverterAttribute;
 
-    public EdgeDBPropertyInfo(PropertyInfo propInfo)
+    public GelPropertyInfo(PropertyInfo propInfo)
     {
         PropertyInfo = propInfo;
-        _propertyAttribute = propInfo.GetCustomAttribute<EdgeDBPropertyAttribute>();
-        _typeConverterAttribute = propInfo.GetCustomAttribute<EdgeDBTypeConverterAttribute>();
-        _ignore = propInfo.GetCustomAttribute<EdgeDBIgnoreAttribute>();
+        _propertyAttribute = propInfo.GetCustomAttribute<GelPropertyAttribute>();
+        _typeConverterAttribute = propInfo.GetCustomAttribute<GelTypeConverterAttribute>();
+        _ignore = propInfo.GetCustomAttribute<GelIgnoreAttribute>();
 
         if (TypeBuilder.TypeConverters.TryGetValue(PropertyInfo.PropertyType, out var converter))
             _typeConverter = converter;

@@ -12,11 +12,11 @@ namespace EdgeDB.Binary.Protocol.V1._0;
 
 internal class V1ProtocolProvider : IProtocolProvider
 {
-    private readonly EdgeDBBinaryClient _client;
+    private readonly GelBinaryClient _client;
     private Dictionary<string, object?> _rawServerConfig = new();
     private ReadOnlyMemory<byte> _serverKey;
 
-    public V1ProtocolProvider(EdgeDBBinaryClient client)
+    public V1ProtocolProvider(GelBinaryClient client)
     {
         _client = client;
     }
@@ -164,7 +164,7 @@ internal class V1ProtocolProvider : IProtocolProvider
                         // if we have not, this is a issue with the client implementation
                         if (!gotStateDescriptor)
                         {
-                            throw new EdgeDBException("Failed to properly encode state data, this is a bug.");
+                            throw new GelException("Failed to properly encode state data, this is a bug.");
                         }
 
                         // we can safely retry by finishing this duplex and starting a
@@ -185,7 +185,7 @@ internal class V1ProtocolProvider : IProtocolProvider
         } while (!successfullyParsed && !executeSuccess);
 
         if (error.HasValue)
-            throw new EdgeDBErrorException(error.Value, queryParameters.Query);
+            throw new ServerErrorException(error.Value, queryParameters.Query);
 
         return new ExecuteResult(receivedData.ToArray(), parseResult.OutCodecInfo);
     }
@@ -214,9 +214,9 @@ internal class V1ProtocolProvider : IProtocolProvider
                 if (parseAttempts > 2)
                 {
                     throw error.HasValue
-                        ? new EdgeDBException($"Failed to parse query after {parseAttempts} attempts",
-                            new EdgeDBErrorException(error.Value, queryParameters.Query))
-                        : new EdgeDBException($"Failed to parse query after {parseAttempts} attempts");
+                        ? new GelException($"Failed to parse query after {parseAttempts} attempts",
+                            new ServerErrorException(error.Value, queryParameters.Query))
+                        : new GelException($"Failed to parse query after {parseAttempts} attempts");
                 }
 
                 await foreach (var result in Duplexer.DuplexAndSyncAsync(new Parse
@@ -244,7 +244,7 @@ internal class V1ProtocolProvider : IProtocolProvider
                             // if we have not, this is a issue with the client implementation
                             if (!gotStateDescriptor)
                             {
-                                throw new EdgeDBException("Failed to properly encode state data, this is a bug.");
+                                throw new GelException("Failed to properly encode state data, this is a bug.");
                             }
 
                             // we can safely retry by finishing this duplex and starting a
@@ -288,7 +288,7 @@ internal class V1ProtocolProvider : IProtocolProvider
         }
 
         if (error.HasValue)
-            throw new EdgeDBErrorException(error.Value, queryParameters.Query);
+            throw new ServerErrorException(error.Value, queryParameters.Query);
 
         if (outCodecInfo is null)
             throw new MissingCodecException("Couldn't find a valid output codec");
@@ -489,7 +489,7 @@ internal class V1ProtocolProvider : IProtocolProvider
                 if (authStatus.AuthStatus == AuthStatus.AuthenticationRequiredSASLMessage)
                 {
                     if (authStatus.AuthenticationMethods is null || authStatus.AuthenticationMethods.Length == 0)
-                        throw new EdgeDBException(
+                        throw new GelException(
                             "Expected an authentication method for AuthenticationStatus message. but got null");
 
                     return new ValueTask(StartSASLAuthenticationAsync(authStatus.AuthenticationMethods[0]));
@@ -651,7 +651,7 @@ internal class V1ProtocolProvider : IProtocolProvider
                 }
                     break;
                 case ErrorResponse err:
-                    throw new EdgeDBErrorException(err);
+                    throw new ServerErrorException(err);
             }
         }
     }

@@ -3,7 +3,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents an exception that occurs within transactions.
 /// </summary>
-public class TransactionException : EdgeDBException
+public class TransactionException : GelException
 {
     /// <summary>
     ///     Constructs a new <see cref="TransactionException" /> with a specified error message.

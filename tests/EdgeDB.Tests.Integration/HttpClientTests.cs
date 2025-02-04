@@ -8,13 +8,13 @@ public class HttpClientTests : ClientTests
 {
     public HttpClientTests()
     {
-        EdgeDB = ClientProvider.HttpEdgeDB;
+        ClientPool = ClientProvider.HttpClientPool;
     }
 
     [TestMethod]
     public override Task TestPoolTransactions()
     {
-        Assert.ThrowsExceptionAsync<EdgeDBException>(() => base.TestPoolTransactions());
+        Assert.ThrowsExceptionAsync<GelException>(() => base.TestPoolTransactions());
         return Task.CompletedTask;
     }
 }

@@ -5,15 +5,15 @@ namespace EdgeDB.Tests.Benchmarks;
 public class ClientPoolBenchmarks
 {
     internal static MockedEdgeDBClient SingleClient;
-    internal static EdgeDBClient ClientPool;
+    internal static GelClientPool ClientPool;
 
     static ClientPoolBenchmarks()
     {
         SingleClient = new MockedEdgeDBClient(0);
-        ClientPool = new EdgeDBClient(new EdgeDBClientPoolConfig
+        ClientPool = new GelClientPool(new GelClientPoolConfig
         {
-            ClientType = EdgeDBClientType.Custom,
-            ClientFactory = (id, _, _) => ValueTask.FromResult<BaseEdgeDBClient>(new MockedEdgeDBClient(id)),
+            ClientType = GelClientType.Custom,
+            ClientFactory = (id, _, _) => ValueTask.FromResult<BaseGelClient>(new MockedEdgeDBClient(id)),
             DefaultPoolSize = 100
         });
     }

@@ -16,11 +16,11 @@ public class ClientTests
 
     public ClientTests()
     {
-        EdgeDB = ClientProvider.EdgeDB;
+        ClientPool = ClientProvider.ClientPool;
         _getToken = () => ClientProvider.GetTimeoutToken();
     }
 
-    internal EdgeDBClient EdgeDB { get; set; }
+    internal GelClientPool ClientPool { get; set; }
 
     [TestMethod]
     public async Task TestMultiRanges()
@@ -30,7 +30,7 @@ public class ClientTests
             new Range<int>(-40, -20), new Range<int>(5, 10), new Range<int>(20, 50), new Range<int>(5000, 5001),
         });
 
-        var result = await EdgeDB.QueryRequiredSingleAsync<MultiRange<int>>("select <multirange<int32>>$arg",
+        var result = await ClientPool.QueryRequiredSingleAsync<MultiRange<int>>("select <multirange<int32>>$arg",
             new {arg = multiRange});
 
         Assert.AreEqual(result.Length, multiRange.Length);
@@ -41,12 +41,12 @@ public class ClientTests
     [TestMethod]
     public async Task TestNullableReturns()
     {
-        var result = await EdgeDB.QuerySingleAsync<long?>("select <optional int64>$arg", new {arg = 1L});
+        var result = await ClientPool.QuerySingleAsync<long?>("select <optional int64>$arg", new {arg = 1L});
 
         Assert.IsTrue(result.HasValue);
         Assert.AreEqual(1L, result.Value);
 
-        result = await EdgeDB.QuerySingleAsync<long?>("select <optional int64>$arg", new {arg = (long?)null});
+        result = await ClientPool.QuerySingleAsync<long?>("select <optional int64>$arg", new {arg = (long?)null});
 
         Assert.IsFalse(result.HasValue);
     }
@@ -54,7 +54,7 @@ public class ClientTests
     [TestMethod]
     public async Task TestCommandLocks()
     {
-        await using var client = await EdgeDB.GetOrCreateClientAsync<EdgeDBBinaryClient>(_getToken());
+        await using var client = await ClientPool.GetOrCreateClientAsync<GelBinaryClient>(_getToken());
         var timeoutToken = new CancellationTokenSource();
         timeoutToken.CancelAfter(1000);
         using var firstLock = await client.AquireCommandLockAsync(timeoutToken.Token);
@@ -68,11 +68,11 @@ public class ClientTests
     [TestMethod]
     public async Task TestPoolQueryMethods()
     {
-        var jsonResult = await EdgeDB.QueryJsonAsync("select {(a := 1), (a := 2)}", token: _getToken());
+        var jsonResult = await ClientPool.QueryJsonAsync("select {(a := 1), (a := 2)}", token: _getToken());
         Assert.AreEqual("[{\"a\" : 1}, {\"a\" : 2}]", jsonResult.Value);
 
         var queryJsonElementsResult =
-            await EdgeDB.QueryJsonElementsAsync("select {(a := 1), (a := 2)}", token: _getToken());
+            await ClientPool.QueryJsonElementsAsync("select {(a := 1), (a := 2)}", token: _getToken());
 
         Assert.AreEqual(2, queryJsonElementsResult.Count());
 
@@ -80,30 +80,30 @@ public class ClientTests
         Assert.AreEqual("{\"a\" : 2}", queryJsonElementsResult.Last().Value);
 
         var querySingleResult =
-            await EdgeDB.QuerySingleAsync<long>("select 123", token: _getToken()).ConfigureAwait(false);
+            await ClientPool.QuerySingleAsync<long>("select 123", token: _getToken()).ConfigureAwait(false);
         Assert.AreEqual(123, querySingleResult);
 
-        var queryRequiredSingeResult = await EdgeDB.QueryRequiredSingleAsync<long>("select 123", token: _getToken());
+        var queryRequiredSingeResult = await ClientPool.QueryRequiredSingleAsync<long>("select 123", token: _getToken());
         Assert.AreEqual(123, queryRequiredSingeResult);
     }
 
     [TestMethod]
     public async Task TestPoolRelease()
     {
-        BaseEdgeDBClient client;
-        await using (client = await EdgeDB.GetOrCreateClientAsync(_getToken()))
+        BaseGelClient client;
+        await using (client = await ClientPool.GetOrCreateClientAsync(_getToken()))
         {
             await Task.Delay(100);
         }
 
         // client should be back in the pool
-        Assert.IsTrue(EdgeDB.Clients.Contains(client));
+        Assert.IsTrue(ClientPool.Clients.Contains(client));
     }
 
     [TestMethod]
     public virtual async Task TestPoolTransactions()
     {
-        var result = await EdgeDB.TransactionAsync(async tx =>
+        var result = await ClientPool.TransactionAsync(async tx =>
         {
             return await tx.QuerySingleAsync<string>("select \"Transaction within pools\"", token: _getToken());
         });
@@ -115,7 +115,7 @@ public class ClientTests
     public async Task DisconnectAndReconnect()
     {
         // using raw client for this one,
-        var client = await EdgeDB.GetOrCreateClientAsync(_getToken());
+        var client = await ClientPool.GetOrCreateClientAsync(_getToken());
 
         // disconnect should close the underlying connection, and remove alloc'd resources for said connection.
         await client.DisconnectAsync(_getToken());
@@ -129,17 +129,17 @@ public class ClientTests
     [TestMethod]
     public void StateChange()
     {
-        var client2 = EdgeDB.WithConfig(x => x.DDLPolicy = DDLPolicy.AlwaysAllow);
+        var client2 = ClientPool.WithConfig(x => x.DDLPolicy = DDLPolicy.AlwaysAllow);
 
-        Assert.IsNull(EdgeDB.Config.DDLPolicy);
+        Assert.IsNull(ClientPool.Config.DDLPolicy);
         Assert.AreEqual(DDLPolicy.AlwaysAllow, client2.Config.DDLPolicy);
 
         var client3 = client2.WithModule("test_module");
 
-        Assert.IsNull(EdgeDB.Config.DDLPolicy);
+        Assert.IsNull(ClientPool.Config.DDLPolicy);
         Assert.AreEqual(DDLPolicy.AlwaysAllow, client2.Config.DDLPolicy);
         Assert.AreEqual("test_module", client3.Module);
         Assert.AreNotEqual("test_module", client2.Module);
-        Assert.AreNotEqual("test_module", EdgeDB.Module);
+        Assert.AreNotEqual("test_module", ClientPool.Module);
     }
 }

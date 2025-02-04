@@ -6,7 +6,7 @@ namespace EdgeDB.Binary.Codecs;
 
 internal sealed class TypeInitializedObjectCodec : ObjectCodec
 {
-    private readonly EdgeDBTypeDeserializeInfo _deserializer;
+    private readonly GelTypeDeserializeInfo _deserializer;
 
     public TypeInitializedObjectCodec(Type target, ObjectCodec codec)
         : base(codec.Id, codec.InnerCodecs, codec.PropertyNames, codec.Metadata)
@@ -18,7 +18,7 @@ internal sealed class TypeInitializedObjectCodec : ObjectCodec
         Parent = codec;
     }
 
-    public EdgeDBTypeDeserializeInfo Deserializer
+    public GelTypeDeserializeInfo Deserializer
         => _deserializer;
 
     public ObjectCodec Parent { get; }
@@ -45,7 +45,7 @@ internal sealed class TypeInitializedObjectCodec : ObjectCodec
         }
         catch (Exception x)
         {
-            throw new EdgeDBException($"Failed to deserialize object to {TargetType}", x);
+            throw new GelException($"Failed to deserialize object to {TargetType}", x);
         }
         finally
         {
@@ -103,7 +103,7 @@ internal class ObjectCodec
         }
         catch (Exception x)
         {
-            throw new EdgeDBException("Failed to deserialize object", x);
+            throw new GelException("Failed to deserialize object", x);
         }
         finally
         {

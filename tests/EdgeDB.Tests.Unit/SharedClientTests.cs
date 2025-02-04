@@ -61,10 +61,10 @@ public class SharedClientTests
 
     private class TestResult
     {
-        public EdgeDBConnection? Connection { get; init; }
+        public GelConnection? Connection { get; init; }
         public Exception? Exception { get; init; }
 
-        public static implicit operator TestResult(EdgeDBConnection c) => new() {Connection = c};
+        public static implicit operator TestResult(GelConnection c) => new() {Connection = c};
         public static implicit operator TestResult(Exception x) => new() {Exception = x};
     }
 
@@ -74,7 +74,7 @@ public class SharedClientTests
         {
             ISystemProvider mockSystem = new MockSystemProvider(testCase);
 
-            EdgeDBConnection.Options config = new()
+            GelConnection.Options config = new()
             {
                 Instance = testCase?.Options?.Instance,
                 Dsn = testCase?.Options?.Dsn,
@@ -106,7 +106,7 @@ public class SharedClientTests
                 ServerSettings = testCase?.Options?.ServerSettings,
             };
 
-            EdgeDBConnection connection = EdgeDBConnection._Create(config, mockSystem);
+            GelConnection connection = GelConnection._Create(config, mockSystem);
 
             return connection;
         }
@@ -144,7 +144,7 @@ public class SharedClientTests
 
         Assert.IsNull(result.Exception, $"\"{result.Exception?.Message}\"\n{result.Exception?.StackTrace}");
         Assert.IsNotNull(result.Connection);
-        EdgeDBConnection actual = result.Connection;
+        GelConnection actual = result.Connection;
 
         Assert.AreEqual(expectedHostname, actual.Hostname);
         Assert.AreEqual(expectedPort, actual.Port);

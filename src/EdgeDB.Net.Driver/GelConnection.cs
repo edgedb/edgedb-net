@@ -47,7 +47,7 @@ internal class ConnectionCredentials
 /// <summary>
 ///     Represents a class containing information on how to connect to a edgedb instance.
 /// </summary>
-public sealed class EdgeDBConnection
+public sealed class GelConnection
 {
     private const string INSTANCE_ENV_NAME = "INSTANCE";
     private const string DSN_ENV_NAME = "DSN";
@@ -216,7 +216,7 @@ public sealed class EdgeDBConnection
     /// <summary>
     ///     Optional args which can be passed into <see cref="Create"/>.
     /// </summary>
-    public class Options
+    public sealed class Options
     {
         // Primary args
         // These can set host/port of the connection.
@@ -262,7 +262,7 @@ public sealed class EdgeDBConnection
 
     /// <summary>
     ///     Parses the `gel.toml`, optional <see cref="Options"/>, and environment variables to build an
-    ///     <see cref="EdgeDBConnection" />.
+    ///     <see cref="GelConnection" />.
     /// 
     ///     This function will first search for the first valid primary args (which can set host/port)
     ///     in the following order:
@@ -277,19 +277,19 @@ public sealed class EdgeDBConnection
     ///     See the <see href="https://www.edgedb.com/docs/reference/connection">documentation</see>
     ///     for more information.
     /// </summary>
-    /// <param name="options">Options used to build the <see cref="EdgeDBConnection" />.</param>
+    /// <param name="options">Options used to build the <see cref="GelConnection" />.</param>
     /// <returns>
-    ///     A <see cref="EdgeDBConnection" /> class that can be used to connect to a EdgeDB instance.
+    ///     A <see cref="GelConnection" /> class that can be used to connect to a EdgeDB instance.
     /// </returns>
     /// <exception cref="ConfigurationException">
-    ///     An error occured while parsing or configuring the <see cref="EdgeDBConnection" />.
+    ///     An error occured while parsing or configuring the <see cref="GelConnection" />.
     /// </exception>
-    public static EdgeDBConnection Create(Options? options = null)
+    public static GelConnection Create(Options? options = null)
     {
         return _Create(options ?? new(), null);
     }
 
-    internal static EdgeDBConnection _Create(Options options, ISystemProvider? platform)
+    internal static GelConnection _Create(Options options, ISystemProvider? platform)
     {
         platform ??= ConfigUtils.DefaultPlatformProvider;
 
@@ -702,7 +702,7 @@ public sealed class EdgeDBConnection
 
     #region Create Helpers
 
-    internal static EdgeDBConnection _FromResolvedFields(ConfigUtils.ResolvedFields resolvedFields, ISystemProvider? platform)
+    internal static GelConnection _FromResolvedFields(ConfigUtils.ResolvedFields resolvedFields, ISystemProvider? platform)
     {
         platform ??= ConfigUtils.DefaultPlatformProvider;
 

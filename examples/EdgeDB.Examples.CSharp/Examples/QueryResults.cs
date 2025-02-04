@@ -12,18 +12,18 @@ public class QueryResults : IExample
     // [EdgeDBType("Person")]
     // public class DatabasePerson { ... }
 
-    public async Task ExecuteAsync(EdgeDBClient client)
+    public async Task ExecuteAsync(GelClientPool clientPool)
     {
         // Lets first insert a new person with the insert query
         var insertQuery =
             "insert Person { name := \"John Smith\", email := \"john@example.com\" } unless conflict on .email";
 
         // We can use the ExecuteAsync query as we don't need the result.
-        await client.ExecuteAsync(insertQuery).ConfigureAwait(false);
+        await clientPool.ExecuteAsync(insertQuery).ConfigureAwait(false);
 
         // Lets now preform a deserialization into our custom type Person by selecting them from the database.
         // Note: we can use QueryRequiredSingle here since the email property is exclusive.
-        var john = await client
+        var john = await clientPool
             .QueryRequiredSingleAsync<Person>("select Person { name, email } filter .email = \"john@example.com\"")
             .ConfigureAwait(false);
 

@@ -3,7 +3,7 @@ namespace EdgeDB;
 /// <summary>
 ///     Represents an exception thrown when a query operation times out.
 /// </summary>
-public class QueryTimeoutException : EdgeDBException
+public class QueryTimeoutException : GelException
 {
     internal QueryTimeoutException(uint timeout, string query, OperationCanceledException ce)
         : base("The query operation timed out", ce)

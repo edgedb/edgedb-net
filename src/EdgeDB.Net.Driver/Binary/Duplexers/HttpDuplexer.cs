@@ -13,13 +13,13 @@ internal sealed class HttpDuplexer : IBinaryDuplexer
 {
     private static readonly Regex _contentTypeRegex = new(@"application\/x\.edgedb\.v_(\d+)_(\d+)\.binary");
 
-    private readonly EdgeDBHttpClient _client;
+    private readonly GelHttpClient _client;
     private readonly Queue<IReceiveable> _packetQueue;
     private readonly SemaphoreSlim _readSemaphore;
     private readonly SemaphoreSlim _sendSemaphore;
     private TaskCompletionSource _packetReadTCS;
 
-    public HttpDuplexer(EdgeDBHttpClient client)
+    public HttpDuplexer(GelHttpClient client)
     {
         _client = client;
         _packetQueue = new Queue<IReceiveable>(5);
@@ -73,7 +73,7 @@ internal sealed class HttpDuplexer : IBinaryDuplexer
     public async Task<IReceiveable?> ReadNextAsync(CancellationToken token = default)
     {
         if (!IsConnected)
-            throw new EdgeDBException("Cannot read from a closed connection");
+            throw new GelException("Cannot read from a closed connection");
 
         await _readSemaphore.WaitAsync(token).ConfigureAwait(false);
 
@@ -97,7 +97,7 @@ internal sealed class HttpDuplexer : IBinaryDuplexer
     public async ValueTask SendAsync(CancellationToken token = default, params Sendable[] packets)
     {
         if (!IsConnected)
-            throw new EdgeDBException("Cannot send message to a closed connection");
+            throw new GelException("Cannot send message to a closed connection");
 
         await _sendSemaphore.WaitAsync(token).ConfigureAwait(false);
 
@@ -121,7 +121,7 @@ internal sealed class HttpDuplexer : IBinaryDuplexer
             result.EnsureSuccessStatusCode();
 
             if (result.Content.Headers.ContentType?.MediaType is null)
-                throw new EdgeDBException("HTTP response content type is not present");
+                throw new GelException("HTTP response content type is not present");
 
             if (result.Content.Headers.ContentType.MediaType != ContentTypeHeader)
             {
@@ -133,20 +133,20 @@ internal sealed class HttpDuplexer : IBinaryDuplexer
                     var minor = ushort.Parse(match.Groups[2].Value);
 
                     if (!_client.TryNegotiateProtocol(in major, in minor))
-                        throw new EdgeDBException(
+                        throw new GelException(
                             $"The protocol requirements of the server cannot be met, theirs: {major}.{minor}, ours: {ProtocolProvider.Version}");
 
                     // resend with new provider
                     attempts++;
 
                     if (attempts > _client.ClientConfig.MaxConnectionRetries)
-                        throw new EdgeDBException($"Failed to negotiate with server after {attempts} attempts");
+                        throw new GelException($"Failed to negotiate with server after {attempts} attempts");
 
                     result = await SendInternalAsync(token, packets);
                     goto process_result;
                 }
                 else
-                    throw new EdgeDBException(
+                    throw new GelException(
                         $"HTTP response content type is unknown/unsupported: {result.Content.Headers.ContentType.MediaType}");
             }
 
@@ -155,7 +155,7 @@ internal sealed class HttpDuplexer : IBinaryDuplexer
             var length = result.Content.Headers.ContentLength;
 
             if (!length.HasValue)
-                throw new EdgeDBException("HTTP response content length is not specified");
+                throw new GelException("HTTP response content length is not specified");
 
             await ReadPacketsAsync(stream, length.Value, token).ConfigureAwait(false);
         }
@@ -220,7 +220,7 @@ internal sealed class HttpDuplexer : IBinaryDuplexer
             var packet = PacketSerializer.DeserializePacket(in packetFactory, in buffer);
 
             if (packet is null)
-                throw new EdgeDBException($"Failed to deserialize packet type {header.Type}");
+                throw new GelException($"Failed to deserialize packet type {header.Type}");
 
             _packetQueue.Enqueue(packet);
 
