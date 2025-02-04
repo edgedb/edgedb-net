@@ -52,9 +52,9 @@ public sealed class ProtocolVersion : IComparable<ProtocolVersion>
     /// <inheritdoc />
     public override string ToString() => $"{Major}.{Minor}";
 
-    /// <inheritdoc />
     public bool Equals(in ushort major, in ushort minor) => Major == major && Minor == minor;
 
+    /// <inheritdoc />
     public override bool Equals(object? obj)
     {
         if (obj is not ProtocolVersion version)
