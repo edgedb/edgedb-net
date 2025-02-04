@@ -16,11 +16,11 @@ internal class Parser
         var members = t.members!.Select(x => DocMember.FromMember(x)).OrderByDescending(x => x.Type).ToArray();
 
         // get the edgebd.net assembly
-        var edgedbAssembly = Assembly.GetAssembly(typeof(GelClientPool))!;
+        var gelAssembly = Assembly.GetAssembly(typeof(GelClientPool))!;
 
         foreach (var member in members)
         {
-            member.Populate(members, edgedbAssembly);
+            member.Populate(members, gelAssembly);
         }
 
         foreach (var member in members)

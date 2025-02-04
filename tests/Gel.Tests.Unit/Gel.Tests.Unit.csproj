@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj"/>
+    <ProjectReference Include="..\..\src\Gel.Net.Driver\Gel.Net.Driver.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

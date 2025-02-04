@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../EdgeDB.Net.targets"/>
+  <Import Project="../../Gel.Net.targets"/>
   <PropertyGroup>
-    <AssemblyName>EdgeDB.Net.Driver</AssemblyName>
-    <RootNamespace>EdgeDB</RootNamespace>
-    <Description>A core driver to interface with EdgeDB</Description>
-    <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
+    <AssemblyName>Gel.Net.Driver</AssemblyName>
+    <RootNamespace>Gel</RootNamespace>
+    <Description>A core driver to interface with Gel</Description>
+    <TargetFrameworks>net8.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>

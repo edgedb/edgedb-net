@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.31903.286
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Net.Driver", "src\EdgeDB.Net.Driver\EdgeDB.Net.Driver.csproj", "{0C1C6233-388F-4FAE-955B-F0A6D33D44C9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gel.Net.Driver", "src\Gel.Net.Driver\Gel.Net.Driver.csproj", "{0C1C6233-388F-4FAE-955B-F0A6D33D44C9}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Examples.CSharp", "examples\EdgeDB.Examples.CSharp\EdgeDB.Examples.CSharp.csproj", "{B85156A1-66B3-46F1-B238-19B96C4C7729}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gel.Examples.CSharp", "examples\Gel.Examples.CSharp\Gel.Examples.CSharp.csproj", "{B85156A1-66B3-46F1-B238-19B96C4C7729}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Tests.Unit", "tests\EdgeDB.Tests.Unit\EdgeDB.Tests.Unit.csproj", "{CD4A4B5D-4B67-4E64-A13B-3F7BF770B056}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gel.Tests.Unit", "tests\Gel.Tests.Unit\Gel.Tests.Unit.csproj", "{CD4A4B5D-4B67-4E64-A13B-3F7BF770B056}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{025AAADF-16AF-4367-9C3D-9E60EDED832F}"
 EndProject
@@ -17,21 +17,21 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{6F
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{67ED9EF0-7828-44C0-8CB0-DEBD69EC94CA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.QueryBuilder.OperatorGenerator", "tools\EdgeDB.QueryBuilder.OperatorGenerator\EdgeDB.QueryBuilder.OperatorGenerator.csproj", "{1557B745-EB4F-449A-9BE7-180C8990AD47}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gel.QueryBuilder.OperatorGenerator", "tools\Gel.QueryBuilder.OperatorGenerator\Gel.QueryBuilder.OperatorGenerator.csproj", "{1557B745-EB4F-449A-9BE7-180C8990AD47}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.DotnetTool", "tools\EdgeDB.DotnetTool\EdgeDB.DotnetTool.csproj", "{74DB9D5E-9BA9-4282-90EA-2F7BDC4C4FBD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gel.DotnetTool", "tools\Gel.DotnetTool\Gel.DotnetTool.csproj", "{74DB9D5E-9BA9-4282-90EA-2F7BDC4C4FBD}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Tests.Integration", "tests\EdgeDB.Tests.Integration\EdgeDB.Tests.Integration.csproj", "{C189294A-4990-4A06-B120-A0AF03A798C6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gel.Tests.Integration", "tests\Gel.Tests.Integration\Gel.Tests.Integration.csproj", "{C189294A-4990-4A06-B120-A0AF03A798C6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Tests.Benchmarks", "tests\EdgeDB.Tests.Benchmarks\EdgeDB.Tests.Benchmarks.csproj", "{5FFD1E88-614D-409B-8420-F9571AC7CA60}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gel.Tests.Benchmarks", "tests\Gel.Tests.Benchmarks\Gel.Tests.Benchmarks.csproj", "{5FFD1E88-614D-409B-8420-F9571AC7CA60}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.BinaryDebugger", "tools\EdgeDB.BinaryDebugger\EdgeDB.BinaryDebugger.csproj", "{3A4AAAA0-9948-43D3-B838-8EFAC130240C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gel.BinaryDebugger", "tools\Gel.BinaryDebugger\Gel.BinaryDebugger.csproj", "{3A4AAAA0-9948-43D3-B838-8EFAC130240C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDB.Examples.ExampleTODOApi", "examples\EdgeDB.Examples.ExampleTODOApi\EdgeDB.Examples.ExampleTODOApi.csproj", "{E38429C6-53A5-4311-8189-1F78238666DC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gel.Examples.ExampleTODOApi", "examples\Gel.Examples.ExampleTODOApi\Gel.Examples.ExampleTODOApi.csproj", "{E38429C6-53A5-4311-8189-1F78238666DC}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "EdgeDB.Examples.FSharp", "examples\EdgeDB.Examples.FSharp\EdgeDB.Examples.FSharp.fsproj", "{F25AA805-163F-46B4-942E-B1A5EBE8383C}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Gel.Examples.FSharp", "examples\Gel.Examples.FSharp\Gel.Examples.FSharp.fsproj", "{F25AA805-163F-46B4-942E-B1A5EBE8383C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EdgeDB.DocGenerator", "tools\EdgeDB.DocGenerator\EdgeDB.DocGenerator.csproj", "{776EAE34-5A30-45B0-9277-C399CC2ABA53}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gel.DocGenerator", "tools\Gel.DocGenerator\Gel.DocGenerator.csproj", "{776EAE34-5A30-45B0-9277-C399CC2ABA53}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
