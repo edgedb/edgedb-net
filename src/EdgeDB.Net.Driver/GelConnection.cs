@@ -1,5 +1,5 @@
-using EdgeDB.Abstractions;
-using EdgeDB.Utils;
+using Gel.Abstractions;
+using Gel.Utils;
 using Newtonsoft.Json;
 using System.Collections;
 using System.Net.Security;
@@ -8,7 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     A json readable representation of an EdgeDBConnection.

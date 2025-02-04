@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace EdgeDB.Binary.Protocol.DumpRestore.V1._0;
+namespace Gel.Binary.Protocol.DumpRestore.V1._0;
 
 // 0x00 -> 0x02 Type
 // 0x02 -> 0x16 Hash

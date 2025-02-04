@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace EdgeDB.DotnetTool;
+namespace Gel.DotnetTool;
 
 internal static class PascalUtils
 {

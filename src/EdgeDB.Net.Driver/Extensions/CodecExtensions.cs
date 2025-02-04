@@ -1,7 +1,7 @@
-using EdgeDB.Binary;
-using EdgeDB.Binary.Codecs;
+using Gel.Binary;
+using Gel.Binary.Codecs;
 
-namespace EdgeDB;
+namespace Gel;
 
 internal static class CodecExtensions
 {

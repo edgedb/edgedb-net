@@ -1,4 +1,4 @@
-namespace EdgeDB.Binary.Protocol.V1._0.Packets;
+namespace Gel.Binary.Protocol.V1._0.Packets;
 
 internal sealed class Sync : Sendable
 {

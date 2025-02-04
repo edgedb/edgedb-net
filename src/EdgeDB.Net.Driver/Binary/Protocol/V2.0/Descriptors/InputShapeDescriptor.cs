@@ -1,6 +1,6 @@
-using InputShapeElement = EdgeDB.Binary.Protocol.V1._0.Descriptors.ShapeElement;
+using InputShapeElement = Gel.Binary.Protocol.V1._0.Descriptors.ShapeElement;
 
-namespace EdgeDB.Binary.Protocol.V2._0.Descriptors;
+namespace Gel.Binary.Protocol.V2._0.Descriptors;
 
 internal readonly struct InputShapeDescriptor : ITypeDescriptor
 {

@@ -1,9 +1,9 @@
-using EdgeDB.DataTypes;
-using EdgeDB.State;
+using Gel.DataTypes;
+using Gel.State;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Represents a client pool used to interact with EdgeDB.

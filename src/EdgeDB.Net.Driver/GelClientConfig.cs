@@ -1,8 +1,8 @@
-using EdgeDB.ContractResolvers;
+using Gel.ContractResolvers;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Represents a config for a <see cref="GelClientPool" />, extending <see cref="GelClientConfig" />.
@@ -142,7 +142,7 @@ public class GelClientConfig
     ///         public EdgeDB.DataTypes.DateTime EDBDateTime { get; set; }
     ///     }
     ///     </code>
-    ///     would be deserialized as <see cref="EdgeDB.DataTypes.DateTime" /> regardless of this option.
+    ///     would be deserialized as <see cref="Gel.DataTypes.DateTime" /> regardless of this option.
     ///     Where this option does apply is when using <see langword="dynamic" /> or <see langword="object" />
     ///     as the generic in one of the Query* methods, e.g.:
     ///     <code>

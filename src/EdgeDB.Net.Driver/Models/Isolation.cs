@@ -1,4 +1,4 @@
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     An enum representing the transaction mode within a <see cref="Transaction" />.

@@ -1,6 +1,6 @@
-﻿using EdgeDB.DotnetTool.Lexer;
+﻿using Gel.DotnetTool.Lexer;
 
-namespace EdgeDB.DotnetTool;
+namespace Gel.DotnetTool;
 
 internal class SchemaReader
 {

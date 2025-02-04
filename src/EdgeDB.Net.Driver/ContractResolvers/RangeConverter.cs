@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace EdgeDB.ContractResolvers;
+namespace Gel.ContractResolvers;
 
 internal sealed class RangeConverter : JsonConverter
 {

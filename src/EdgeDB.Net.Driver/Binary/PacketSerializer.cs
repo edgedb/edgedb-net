@@ -1,9 +1,9 @@
-using EdgeDB.Binary.Protocol;
-using EdgeDB.DataTypes;
+using Gel.Binary.Protocol;
+using Gel.DataTypes;
 using System.Numerics;
 using DateTime = System.DateTime;
 
-namespace EdgeDB.Binary;
+namespace Gel.Binary;
 
 internal sealed class PacketSerializer
 {

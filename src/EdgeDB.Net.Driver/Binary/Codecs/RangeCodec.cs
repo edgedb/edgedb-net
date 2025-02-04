@@ -1,8 +1,8 @@
-using EdgeDB.Binary.Protocol.Common.Descriptors;
-using EdgeDB.DataTypes;
+using Gel.Binary.Protocol.Common.Descriptors;
+using Gel.DataTypes;
 using SysRange = System.Range;
 
-namespace EdgeDB.Binary.Codecs;
+namespace Gel.Binary.Codecs;
 
 internal sealed class RangeCodec<T>
     : BaseComplexCodec<Range<T>>, IWrappingCodec, ICacheableCodec, ICompiledCodec

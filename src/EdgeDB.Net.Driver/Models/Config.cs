@@ -1,6 +1,6 @@
-using EdgeDB.DataTypes;
+using Gel.DataTypes;
 
-namespace EdgeDB.State;
+namespace Gel.State;
 
 /// <summary>
 ///     Represents a DDL policy.

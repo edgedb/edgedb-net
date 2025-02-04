@@ -1,13 +1,13 @@
-using EdgeDB.Binary.Protocol;
-using EdgeDB.Binary.Protocol.Common;
-using EdgeDB.Utils;
+using Gel.Binary.Protocol;
+using Gel.Binary.Protocol.Common;
+using Gel.Utils;
 using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 
-namespace EdgeDB.Binary;
+namespace Gel.Binary;
 
 internal sealed class StreamDuplexer : IBinaryDuplexer
 {

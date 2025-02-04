@@ -1,6 +1,6 @@
-using EdgeDB.Binary.Protocol.V1._0.Packets;
+using Gel.Binary.Protocol.V1._0.Packets;
 
-namespace EdgeDB.Binary.Protocol.DumpRestore.V1._0;
+namespace Gel.Binary.Protocol.DumpRestore.V1._0;
 
 internal sealed class DumpState
 {

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace EdgeDB.Examples.ExampleTODOApi;
+namespace Gel.Examples.ExampleTODOApi;
 
 [GelType]
 public class TODOModel

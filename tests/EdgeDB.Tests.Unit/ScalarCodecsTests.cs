@@ -1,12 +1,12 @@
-using EdgeDB.Binary;
-using EdgeDB.Binary.Codecs;
-using EdgeDB.DataTypes;
+using Gel.Binary;
+using Gel.Binary.Codecs;
+using Gel.DataTypes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
-using DateTime = EdgeDB.DataTypes.DateTime;
+using DateTime = Gel.DataTypes.DateTime;
 
-namespace EdgeDB.Tests.Unit;
+namespace Gel.Tests.Unit;
 
 [TestClass]
 public class ScalarCodecsTests

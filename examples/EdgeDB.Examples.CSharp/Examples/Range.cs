@@ -1,7 +1,7 @@
-using EdgeDB.DataTypes;
+using Gel.DataTypes;
 using Microsoft.Extensions.Logging;
 
-namespace EdgeDB.ExampleApp.Examples;
+namespace Gel.ExampleApp.Examples;
 
 internal class RangeExample : IExample
 {

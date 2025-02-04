@@ -1,13 +1,13 @@
-using EdgeDB.Binary.Protocol;
-using EdgeDB.Binary.Protocol.Common;
-using EdgeDB.Utils;
+using Gel.Binary.Protocol;
+using Gel.Binary.Protocol.Common;
+using Gel.Utils;
 using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
-namespace EdgeDB.Binary.Duplexers;
+namespace Gel.Binary.Duplexers;
 
 internal sealed class HttpDuplexer : IBinaryDuplexer
 {

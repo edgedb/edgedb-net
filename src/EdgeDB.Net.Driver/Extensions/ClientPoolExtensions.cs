@@ -1,4 +1,4 @@
-namespace EdgeDB;
+namespace Gel;
 
 public static class ClientPoolExtensions
 {

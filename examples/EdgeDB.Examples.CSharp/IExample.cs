@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 
-namespace EdgeDB.ExampleApp;
+namespace Gel.ExampleApp;
 
 public interface IExample
 {

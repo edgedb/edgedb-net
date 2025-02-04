@@ -1,7 +1,7 @@
 ﻿using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
-namespace EdgeDB;
+namespace Gel;
 
 internal static class ConnectionExtensions
 {

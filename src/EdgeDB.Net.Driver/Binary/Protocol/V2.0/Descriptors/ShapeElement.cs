@@ -1,6 +1,6 @@
-using EdgeDB.Binary.Protocol.Common.Descriptors;
+using Gel.Binary.Protocol.Common.Descriptors;
 
-namespace EdgeDB.Binary.Protocol.V2._0.Descriptors;
+namespace Gel.Binary.Protocol.V2._0.Descriptors;
 
 internal readonly struct ShapeElement
 {

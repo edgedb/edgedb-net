@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace EdgeDB.ExampleApp.Examples;
+namespace Gel.ExampleApp.Examples;
 
 internal class Records : IExample
 {

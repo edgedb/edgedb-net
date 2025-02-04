@@ -1,7 +1,7 @@
-using EdgeDB.Binary.Protocol.Common.Descriptors;
-using EdgeDB.DataTypes;
+using Gel.Binary.Protocol.Common.Descriptors;
+using Gel.DataTypes;
 
-namespace EdgeDB.Binary.Codecs;
+namespace Gel.Binary.Codecs;
 
 internal sealed class LocalTimeCodec : BaseTemporalCodec<LocalTime>
 {

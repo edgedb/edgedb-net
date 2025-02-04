@@ -1,13 +1,13 @@
-using EdgeDB.DataTypes;
-using EdgeDB.Models.DataTypes;
-using EdgeDB.State;
+using Gel.DataTypes;
+using Gel.Models.DataTypes;
+using Gel.State;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace EdgeDB.Tests.Integration;
+namespace Gel.Tests.Integration;
 
 [TestClass]
 public class ClientTests

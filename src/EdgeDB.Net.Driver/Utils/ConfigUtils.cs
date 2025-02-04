@@ -1,5 +1,5 @@
-using EdgeDB.Abstractions;
-using EdgeDB.Models;
+using Gel.Abstractions;
+using Gel.Models;
 using Newtonsoft.Json;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace EdgeDB.Utils;
+namespace Gel.Utils;
 
 internal static class ConfigUtils
 {

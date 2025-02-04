@@ -1,9 +1,9 @@
-using EdgeDB.Binary.Protocol.V1._0.Packets;
-using EdgeDB.Utils;
+using Gel.Binary.Protocol.V1._0.Packets;
+using Gel.Utils;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 
-namespace EdgeDB.Binary.Protocol.DumpRestore.V1._0;
+namespace Gel.Binary.Protocol.DumpRestore.V1._0;
 
 internal class V1DumpRestoreProvider : IDumpRestoreProvider
 {

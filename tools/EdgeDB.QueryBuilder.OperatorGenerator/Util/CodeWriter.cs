@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace EdgeDB.QueryBuilder.OperatorGenerator;
+namespace Gel.QueryBuilder.OperatorGenerator;
 
 internal class CodeWriter
 {

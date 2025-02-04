@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using SysDateTime = System.DateTime;
 
-namespace EdgeDB.DataTypes;
+namespace Gel.DataTypes;
 
 /// <summary>
 ///     A struct representing a date and time without a timezone.

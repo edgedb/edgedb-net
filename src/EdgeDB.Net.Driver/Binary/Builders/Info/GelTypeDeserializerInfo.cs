@@ -1,11 +1,11 @@
-using EdgeDB.Binary.Builders.Wrappers;
-using EdgeDB.DataTypes;
+using Gel.Binary.Builders.Wrappers;
+using Gel.DataTypes;
 using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace EdgeDB;
+namespace Gel;
 
 internal sealed class GelTypeDeserializeInfo
 {

@@ -1,6 +1,6 @@
-using EdgeDB.Binary.Protocol.Common.Descriptors;
+using Gel.Binary.Protocol.Common.Descriptors;
 
-namespace EdgeDB.Binary.Codecs;
+namespace Gel.Binary.Codecs;
 
 internal abstract class BaseArgumentCodec<T> : BaseCodec<T>, IArgumentCodec<T>
 {

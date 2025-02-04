@@ -1,7 +1,7 @@
 module BasicQueryFunctions
 
 open Examples
-open EdgeDB
+open Gel
 open Microsoft.Extensions.Logging
 
 type BasicQueryFunctions() =

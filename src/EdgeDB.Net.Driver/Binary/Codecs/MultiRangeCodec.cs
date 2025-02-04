@@ -1,8 +1,8 @@
-﻿using EdgeDB.Binary.Protocol.Common.Descriptors;
-using EdgeDB.DataTypes;
-using EdgeDB.Models.DataTypes;
+﻿using Gel.Binary.Protocol.Common.Descriptors;
+using Gel.DataTypes;
+using Gel.Models.DataTypes;
 
-namespace EdgeDB.Binary.Codecs;
+namespace Gel.Binary.Codecs;
 
 internal sealed class MultiRangeCodec<T>
     : BaseCodec<MultiRange<T>>, IWrappingCodec, ICacheableCodec, ICompiledCodec

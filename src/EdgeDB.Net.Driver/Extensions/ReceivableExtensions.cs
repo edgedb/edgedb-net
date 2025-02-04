@@ -1,7 +1,7 @@
-using EdgeDB.Binary.Protocol;
-using EdgeDB.Binary.Protocol.Common;
+using Gel.Binary.Protocol;
+using Gel.Binary.Protocol.Common;
 
-namespace EdgeDB;
+namespace Gel;
 
 internal static class ReceivableExtensions
 {

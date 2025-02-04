@@ -1,16 +1,16 @@
-using EdgeDB.Binary;
-using EdgeDB.Binary.Codecs;
-using EdgeDB.Binary.Protocol;
-using EdgeDB.Binary.Protocol.Common;
-using EdgeDB.DataTypes;
+using Gel.Binary;
+using Gel.Binary.Codecs;
+using Gel.Binary.Protocol;
+using Gel.Binary.Protocol.Common;
+using Gel.DataTypes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
-using ProtocolExecuteResult = EdgeDB.Binary.Protocol.ExecuteResult;
+using ProtocolExecuteResult = Gel.Binary.Protocol.ExecuteResult;
 
-namespace EdgeDB;
+namespace Gel;
 
 /// <summary>
 ///     Represents an abstract binary client.

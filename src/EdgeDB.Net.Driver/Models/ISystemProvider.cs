@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 
-namespace EdgeDB.Abstractions;
+namespace Gel.Abstractions;
 
 internal interface ISystemProvider
 {

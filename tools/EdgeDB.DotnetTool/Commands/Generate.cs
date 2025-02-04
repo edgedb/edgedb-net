@@ -2,7 +2,7 @@
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-namespace EdgeDB.DotnetTool.Commands;
+namespace Gel.DotnetTool.Commands;
 
 [Verb("generate", HelpText = "Generates classes based off of a schema")]
 internal class Generate : ICommand

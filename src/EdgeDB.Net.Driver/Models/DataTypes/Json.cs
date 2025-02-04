@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace EdgeDB.DataTypes;
+namespace Gel.DataTypes;
 
 /// <summary>
 ///     Represents a standard json value.

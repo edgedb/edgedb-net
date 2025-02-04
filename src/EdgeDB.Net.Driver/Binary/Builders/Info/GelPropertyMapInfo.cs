@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 
-namespace EdgeDB;
+namespace Gel;
 
 internal readonly struct GelPropertyMapInfo
 {

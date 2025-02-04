@@ -1,9 +1,9 @@
-using EdgeDB.Utils;
+using Gel.Utils;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace EdgeDB.Binary;
+namespace Gel.Binary;
 
 internal unsafe ref struct PacketWriter
 {

@@ -1,9 +1,9 @@
-using EdgeDB.Binary.Codecs;
-using EdgeDB.Binary.Protocol;
+using Gel.Binary.Codecs;
+using Gel.Binary.Protocol;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 
-namespace EdgeDB.Binary;
+namespace Gel.Binary;
 
 internal sealed class CodecInfo
 {

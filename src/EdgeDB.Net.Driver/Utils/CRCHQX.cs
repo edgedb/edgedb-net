@@ -1,7 +1,7 @@
 // Copied from python binascii.crc_hqx implementation:
 // https://github.com/python/cpython/blob/main/Modules/binascii.c
 
-namespace EdgeDB.Utils;
+namespace Gel.Utils;
 
 internal sealed class CRCHQX
 {

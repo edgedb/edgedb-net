@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace EdgeDB.DocGenerator;
+namespace Gel.DocGenerator;
 
 public static class TypeExtensions
 {

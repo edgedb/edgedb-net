@@ -1,12 +1,12 @@
-using EdgeDB.Binary.Codecs;
-using EdgeDB.DataTypes;
-using EdgeDB.Utils;
+using Gel.Binary.Codecs;
+using Gel.DataTypes;
+using Gel.Utils;
 using Microsoft.Extensions.Logging;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Reflection;
 
-namespace EdgeDB;
+namespace Gel;
 
 internal sealed class ObjectBuilder
 {
