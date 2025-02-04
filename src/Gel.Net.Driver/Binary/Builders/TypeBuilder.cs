@@ -11,12 +11,12 @@ using System.Runtime.CompilerServices;
 namespace Gel;
 
 /// <summary>
-///     Represents the class used to build types from edgedb query results.
+///     Represents the class used to build types from gel query results.
 /// </summary>
 public static class TypeBuilder
 {
     internal static readonly ConcurrentDictionary<Type, GelTypeDeserializeInfo> TypeInfo = new();
-    internal static readonly ConcurrentDictionary<Type, IEdgeDBTypeConverter> TypeConverters = new();
+    internal static readonly ConcurrentDictionary<Type, IGelTypeConverter> TypeConverters = new();
     internal static readonly INamingStrategy AttributeNamingStrategy;
     private static readonly List<string> _scannedAssemblies;
 
@@ -80,9 +80,9 @@ public static class TypeBuilder
     /// <returns />
     /// <inheritdoc cref="Activator.CreateInstance(Type)" />
     public static void AddOrUpdateTypeConverter<TConverter>()
-        where TConverter : IEdgeDBTypeConverter
+        where TConverter : IGelTypeConverter
     {
-        var instance = (IEdgeDBTypeConverter)Activator.CreateInstance(typeof(TConverter))!;
+        var instance = (IGelTypeConverter)Activator.CreateInstance(typeof(TConverter))!;
 
         TypeConverters.AddOrUpdate(instance.Source, instance, (_, _) => instance);
     }
@@ -261,7 +261,7 @@ public static class TypeBuilder
             if (_scannedAssemblies.Contains(identifier))
                 return;
 
-            // look for any type marked with the 'EdgeDBType' attribute
+            // look for any type marked with the 'GelType' attribute
             var types = assembly.DefinedTypes.Where(x => x.GetCustomAttribute<GelTypeAttribute>() != null);
 
             // register them with the default builder

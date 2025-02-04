@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "EdgeDB.DocGenerator": {
+    "Gel.DocGenerator": {
       "commandName": "Project",
       "commandLineArgs": "."
     }

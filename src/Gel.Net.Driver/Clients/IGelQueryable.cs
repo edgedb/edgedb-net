@@ -3,7 +3,7 @@ using Gel.DataTypes;
 namespace Gel;
 
 /// <summary>
-///     Represents a object that can be used to query a EdgeDB instance.
+///     Represents a object that can be used to query a Gel instance.
 /// </summary>
 public interface IGelQueryable
 {

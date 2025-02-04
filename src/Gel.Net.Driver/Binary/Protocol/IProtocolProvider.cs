@@ -35,11 +35,11 @@ internal interface IProtocolProvider
     void Reset();
 
     public static IProtocolProvider GetDefaultProvider(GelBinaryClient client)
-        => (_defaultProvider ??= Providers[ProtocolVersion.EdgeDBBinaryDefaultVersion].Factory)(client);
+        => (_defaultProvider ??= Providers[ProtocolVersion.GelBinaryDefaultVersion].Factory)(client);
 
     public static IProtocolProvider GetProvider(GelBinaryClient client)
         => _providers.GetOrAdd(client.Connection,
-            _ => Providers[ProtocolVersion.EdgeDBBinaryDefaultVersion].Factory)(client);
+            _ => Providers[ProtocolVersion.GelBinaryDefaultVersion].Factory)(client);
 
     public static void UpdateProviderFor(GelBinaryClient client, IProtocolProvider provider)
         => _providers.AddOrUpdate(client.Connection, Providers[provider.Version].Factory,

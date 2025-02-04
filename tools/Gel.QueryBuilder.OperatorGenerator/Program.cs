@@ -5,8 +5,8 @@ using System.Text.RegularExpressions;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-const string OperatorsOutputDir = "../../../../EdgeDB.Net.QueryBuilder/Operators";
-const string EdgeQLOutput = "../../../../../src/EdgeDB.Net.QueryBuilder";
+const string OperatorsOutputDir = "../../../../Gel.Net.QueryBuilder/Operators";
+const string EdgeQLOutput = "../../../../../src/Gel.Net.QueryBuilder";
 const string OperatorDefinitionFile = "../../../operators.yml";
 const string ParamaterNames = "abcdefghijklmnopqrstuvwxyz";
 
@@ -22,12 +22,12 @@ var writer = new CodeWriter();
 
 writer.AppendLine("#nullable restore");
 writer.AppendLine("#pragma warning disable");
-writer.AppendLine("using EdgeDB.Operators;");
-writer.AppendLine("using EdgeDB.DataTypes;");
+writer.AppendLine("using Gel.Operators;");
+writer.AppendLine("using Gel.DataTypes;");
 writer.AppendLine("using System.Numerics;");
 writer.AppendLine();
 
-using (var _ = writer.BeginScope("namespace EdgeDB"))
+using (var _ = writer.BeginScope("namespace Gel"))
 {
     using (var __ = writer.BeginScope("public sealed partial class EdgeQL"))
     {
@@ -105,7 +105,7 @@ using (var _ = writer.BeginScope("namespace EdgeDB"))
                                 $"///     A function that represents the EdgeQL version of: <code>{serializedExpression}</code>");
                             writer.AppendLine("/// </summary>");
 
-                            writer.AppendLine($"[EquivalentOperator(typeof(EdgeDB.Operators.{operatorName}))]");
+                            writer.AppendLine($"[EquivalentOperator(typeof(Gel.Operators.{operatorName}))]");
                             foreach (var map in op.ParameterMap)
                             {
                                 var split = map.Split(":");
@@ -164,7 +164,7 @@ void WriteEnums(EdgeQLOperator[] enums)
     {
         var writer = new CodeWriter();
 
-        using (var _ = writer.BeginScope("namespace EdgeDB"))
+        using (var _ = writer.BeginScope("namespace Gel"))
         {
             if (en.SerializeMethod != null)
                 writer.AppendLine($"[EnumSerializer(SerializationMethod.{en.SerializeMethod})]");
@@ -188,7 +188,7 @@ void BuildSingleOperator(string section, EdgeQLOperator op)
 
     var cleanedName = Regex.Replace(op.Name!, @"(<.*?>)", x => "");
 
-    using (var _ = writer.BeginScope("namespace EdgeDB.Operators"))
+    using (var _ = writer.BeginScope("namespace Gel.Operators"))
     {
         using (var __ = writer.BeginScope($"internal class {FirstCharToUpper(section)}{cleanedName} : IEdgeQLOperator"))
         {

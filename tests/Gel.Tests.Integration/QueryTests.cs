@@ -125,7 +125,7 @@ public class QueryTests
         await TestArrayQuerying("int32", new[] {1, 2, 5, 9, 24});
         await TestArrayQuerying("int64", new long[] {1, 2, 5, 9, 24});
 
-        await TestArrayQuerying("str", new[] {"Hello", "EdgeDB", "Dot", "Net"});
+        await TestArrayQuerying("str", new[] {"Hello", "Gel", "Dot", "Net"});
 
         await TestArrayQuerying("bool", new[] {true, false, false, true});
 

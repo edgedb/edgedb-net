@@ -121,9 +121,9 @@ public class ClientTests
         await client.DisconnectAsync(_getToken());
 
         // should run just fine, restarting the underlying connection.
-        var str = await client.QueryRequiredSingleAsync<string>("select \"Hello, EdgeDB.Net!\"", token: _getToken());
+        var str = await client.QueryRequiredSingleAsync<string>("select \"Hello, Gel.Net!\"", token: _getToken());
 
-        Assert.AreEqual("Hello, EdgeDB.Net!", str);
+        Assert.AreEqual("Hello, Gel.Net!", str);
     }
 
     [TestMethod]

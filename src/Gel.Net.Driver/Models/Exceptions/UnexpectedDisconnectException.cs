@@ -1,7 +1,7 @@
 namespace Gel;
 
 /// <summary>
-///     Represents an exception that was caused by an unexpected disconnection from EdgeDB.
+///     Represents an exception that was caused by an unexpected disconnection from Gel.
 /// </summary>
 public class UnexpectedDisconnectException : GelException
 {

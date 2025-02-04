@@ -1,8 +1,8 @@
 {
   "profiles": {
-    "EdgeDB.DotnetTool": {
+    "Gel.DotnetTool": {
       "commandName": "Project",
-      "commandLineArgs": "generate -f C:\\Users\\lynch\\source\\repos\\EdgeDB\\src\\EdgeDB.DotnetTool\\test.esdl -v"
+      "commandLineArgs": "generate -f C:\\Users\\lynch\\source\\repos\\Gel\\src\\Gel.DotnetTool\\test.esdl -v"
     },
     "Profile 1": {
       "commandName": "Executable"

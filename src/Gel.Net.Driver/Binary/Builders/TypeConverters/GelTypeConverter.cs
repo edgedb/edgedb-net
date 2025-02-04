@@ -7,20 +7,20 @@ namespace Gel.TypeConverters;
 /// </summary>
 /// <typeparam name="TSource">The client-side type which the converter is responsible for converting.</typeparam>
 /// <typeparam name="TTarget">The database-side type which the converter is responsible for converting to.</typeparam>
-public abstract class GelTypeConverter<TSource, TTarget> : IEdgeDBTypeConverter
+public abstract class GelTypeConverter<TSource, TTarget> : IGelTypeConverter
 {
     /// <inheritdoc />
     public virtual bool CanConvert(Type from, Type to)
         => from == typeof(TSource) && to == typeof(TTarget);
 
-    object? IEdgeDBTypeConverter.ConvertFrom(object? value)
+    object? IGelTypeConverter.ConvertFrom(object? value)
         => ConvertFrom((TTarget?)value);
 
-    object? IEdgeDBTypeConverter.ConvertTo(object? value)
+    object? IGelTypeConverter.ConvertTo(object? value)
         => ConvertTo((TSource?)value);
 
-    Type IEdgeDBTypeConverter.Source => typeof(TSource);
-    Type IEdgeDBTypeConverter.Target => typeof(TTarget);
+    Type IGelTypeConverter.Source => typeof(TSource);
+    Type IGelTypeConverter.Target => typeof(TTarget);
 
     /// <summary>
     ///     Converts the given <typeparamref name="TTarget" /> to a <typeparamref name="TSource" />.
@@ -43,7 +43,7 @@ public abstract class GelTypeConverter<TSource, TTarget> : IEdgeDBTypeConverter
 ///     Represents a custom type converter capable of converting
 ///     one type to another.
 /// </summary>
-public interface IEdgeDBTypeConverter
+public interface IGelTypeConverter
 {
     /// <summary>
     ///     Gets the source type of the converter.

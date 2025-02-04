@@ -4,15 +4,15 @@ internal class TemporalCommon
 {
     private const long MicrosecondsPerDay = 86400000000;
     private const long MicrosecondsPerMonth = MicrosecondsPerDay * 31;
-    public static readonly DateTimeOffset EdgeDBEpocDateTimeUTC = new(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
+    public static readonly DateTimeOffset GelEpocDateTimeUTC = new(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
     public static DateTimeOffset DateTimeOffsetFromMicroseconds(long microseconds, bool preserveTimezone = false)
     {
         var time =
 #if NET7_0_OR_GREATER
-                EdgeDBEpocDateTimeUTC.AddMicroseconds(microseconds);
+                GelEpocDateTimeUTC.AddMicroseconds(microseconds);
 #else
-            EdgeDBEpocDateTimeUTC.AddMilliseconds(microseconds /
+                GelEpocDateTimeUTC.AddMilliseconds(microseconds /
                                                   1000d); // maintains the precision as we divide by a double
 #endif
         return preserveTimezone
@@ -45,7 +45,7 @@ internal class TemporalCommon
 
     public static long ToMicroseconds(DateTimeOffset datetime)
     {
-        var offset = datetime - EdgeDBEpocDateTimeUTC;
+        var offset = datetime - GelEpocDateTimeUTC;
 
         return
 #if NET7_0_OR_GREATER
@@ -88,5 +88,5 @@ internal class TemporalCommon
     }
 
     public static int ToDays(DateOnly date) =>
-        (int)Math.Round((date.ToDateTime(TimeOnly.MinValue) - EdgeDBEpocDateTimeUTC).TotalDays);
+        (int)Math.Round((date.ToDateTime(TimeOnly.MinValue) - GelEpocDateTimeUTC).TotalDays);
 }

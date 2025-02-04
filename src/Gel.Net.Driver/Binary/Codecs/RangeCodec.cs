@@ -73,7 +73,7 @@ internal sealed class RangeCodec<T>
         if (range.Lower.HasValue)
         {
             if (range.Lower.Value is not int v)
-                throw new NotSupportedException("Cannot use edgedb range as its inner type is not int32");
+                throw new NotSupportedException("Cannot use gel range as its inner type is not int32");
 
             start = v;
         }
@@ -81,7 +81,7 @@ internal sealed class RangeCodec<T>
         if (range.Upper.HasValue)
         {
             if (range.Upper.Value is not int v)
-                throw new NotSupportedException("Cannot use edgedb range as its inner type is not int32");
+                throw new NotSupportedException("Cannot use gel range as its inner type is not int32");
 
             end = v;
         }
@@ -94,7 +94,7 @@ internal sealed class RangeCodec<T>
         // only support int32
         if (typeof(T) != typeof(int))
             throw new NotSupportedException(
-                "EdgeDB.DataTypes.Range<T> must be of int32 to implicitly convert to/from System.Range");
+                "Gel.DataTypes.Range<T> must be of int32 to implicitly convert to/from System.Range");
     }
 
     public override Range<T> Deserialize(ref PacketReader reader, CodecContext context)

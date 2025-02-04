@@ -11,7 +11,7 @@ public class GelPropertyAttribute : Attribute
     /// <summary>
     ///     Marks this member to be used when serializing/deserializing.
     /// </summary>
-    /// <param name="propertyName">The name of the member in the edgedb schema.</param>
+    /// <param name="propertyName">The name of the member in the gel schema.</param>
     public GelPropertyAttribute(string? propertyName = null)
     {
         Name = propertyName;

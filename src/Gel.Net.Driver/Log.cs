@@ -190,13 +190,13 @@ internal static partial class Log
     [LoggerMessage(
         27,
         LogLevel.Warning,
-        "A message read consumed {Percent}% of the EdgeDBConfig.MessageTimeout duration of {Timeout}ms. Consider increasing the message timeout if your queries take long to compute")]
+        "A message read consumed {Percent}% of the GelConfig.MessageTimeout duration of {Timeout}ms. Consider increasing the message timeout if your queries take long to compute")]
     public static partial void MessageTimeoutDeltaWarning(this ILogger logger, int percent, int timeout);
 
     [LoggerMessage(
         28,
         LogLevel.Error,
-        "A message read exceeded the EdgeDBConfig.MessageTimeout of {Timeout}ms by {Percent}%. Hint: try increasing the message timeout to accommodate your queries")]
+        "A message read exceeded the GelConfig.MessageTimeout of {Timeout}ms by {Percent}%. Hint: try increasing the message timeout to accommodate your queries")]
     public static partial void MessageTimeoutDeltaError(this ILogger logger, int percent, int timeout);
 
     [LoggerMessage(

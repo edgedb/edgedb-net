@@ -8,7 +8,7 @@ internal sealed class GelPropertyInfo
     private readonly GelIgnoreAttribute? _ignore;
 
     private readonly GelPropertyAttribute? _propertyAttribute;
-    private readonly IEdgeDBTypeConverter? _typeConverter;
+    private readonly IGelTypeConverter? _typeConverter;
     private readonly GelTypeConverterAttribute? _typeConverterAttribute;
 
     public GelPropertyInfo(PropertyInfo propInfo)
@@ -27,13 +27,13 @@ internal sealed class GelPropertyInfo
     public string PropertyName
         => PropertyInfo.Name;
 
-    public string EdgeDBName
+    public string GelName
         => AttributeName ?? TypeBuilder.SchemaNamingStrategy.Convert(PropertyInfo);
 
     public string? AttributeName
         => _propertyAttribute?.Name;
 
-    public IEdgeDBTypeConverter? CustomConverter
+    public IGelTypeConverter? CustomConverter
         => _typeConverterAttribute?.Converter ?? _typeConverter;
 
     public Type Type

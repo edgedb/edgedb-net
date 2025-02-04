@@ -1,7 +1,7 @@
 namespace Gel;
 
 /// <summary>
-///     Represents a protocol version used within EdgeDB.
+///     Represents a protocol version used within Gel.
 /// </summary>
 public sealed class ProtocolVersion : IComparable<ProtocolVersion>
 {
@@ -11,9 +11,9 @@ public sealed class ProtocolVersion : IComparable<ProtocolVersion>
     public static readonly ProtocolVersion DumpRestoreDefaultVersion = (1, 0);
 
     /// <summary>
-    ///     The default protocol version used for the edgedb binary protocol.
+    ///     The default protocol version used for the gel binary protocol.
     /// </summary>
-    public static readonly ProtocolVersion EdgeDBBinaryDefaultVersion = (2, 0);
+    public static readonly ProtocolVersion GelBinaryDefaultVersion = (2, 0);
 
     /// <summary>
     ///     Constructs a new <see cref="ProtocolVersion" />.

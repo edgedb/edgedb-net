@@ -18,7 +18,7 @@ let host =
         .ConfigureServices(fun services ->
             services
                 .AddLogging(fun logBuilder -> logBuilder.ClearProviders().AddSerilog(dispose = true) |> ignore)
-                .AddEdgeDB(clientPoolConfig = fun c -> c.SchemaNamingStrategy <- INamingStrategy.SnakeCaseNamingStrategy)
+                .AddClientPool(clientPoolConfig = fun c -> c.SchemaNamingStrategy <- INamingStrategy.SnakeCaseNamingStrategy)
                 .AddSingleton<ExampleRunner>()
             |> ignore)
         .Build()

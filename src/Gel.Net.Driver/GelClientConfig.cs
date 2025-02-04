@@ -61,7 +61,7 @@ public enum GelClientType
     /// <summary>
     ///     The client pool will use unix domain sockets to connect.
     /// </summary>
-    [Obsolete("EdgeDB servers no longer support unix domain sockets.", true)]
+    [Obsolete("Gel servers no longer support unix domain sockets.", true)]
     Unix,
 
     /// <summary>
@@ -76,7 +76,7 @@ public enum GelClientType
 public class GelClientConfig
 {
     /// <summary>
-    ///     Gets the <see cref="JsonSerializer" /> capable of serializing/deserializing edgedb types.
+    ///     Gets the <see cref="JsonSerializer" /> capable of serializing/deserializing gel types.
     /// </summary>
     public static readonly JsonSerializer JsonSerializer = new()
     {
@@ -131,7 +131,7 @@ public class GelClientConfig
 
     /// <summary>
     ///     Gets or sets whether or not to prefer using .NETs system temporal types
-    ///     when deserializing EdgeDB's temporal types using non-concrete query result
+    ///     when deserializing Gel's temporal types using non-concrete query result
     ///     definitions.
     /// </summary>
     /// <remarks>
@@ -139,7 +139,7 @@ public class GelClientConfig
     ///     <code>
     ///     public class ExampleModel
     ///     {
-    ///         public EdgeDB.DataTypes.DateTime EDBDateTime { get; set; }
+    ///         public Gel.DataTypes.DateTime EDBDateTime { get; set; }
     ///     }
     ///     </code>
     ///     would be deserialized as <see cref="Gel.DataTypes.DateTime" /> regardless of this option.

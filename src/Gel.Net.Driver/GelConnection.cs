@@ -11,8 +11,8 @@ using System.Web;
 namespace Gel;
 
 /// <summary>
-///     A json readable representation of an EdgeDBConnection.
-///     When using Credentials to create an EdgeDBConnection, the data must conform to this type.
+///     A json readable representation of an GelConnection.
+///     When using Credentials to create an GelConnection, the data must conform to this type.
 /// </summary>
 internal class ConnectionCredentials
 {
@@ -45,7 +45,7 @@ internal class ConnectionCredentials
 
 
 /// <summary>
-///     Represents a class containing information on how to connect to a edgedb instance.
+///     Represents a class containing information on how to connect to a gel instance.
 /// </summary>
 public sealed class GelConnection
 {
@@ -89,7 +89,7 @@ public sealed class GelConnection
     #region Main connection args
 
     /// <summary>
-    ///     Gets the hostname of the edgedb instance to connect to.
+    ///     Gets the hostname of the gel instance to connect to.
     /// </summary>
     /// <remarks>
     ///     This property defaults to localhost.
@@ -101,7 +101,7 @@ public sealed class GelConnection
     private string? _hostname;
 
     /// <summary>
-    ///     Gets the port of the edgedb instance to connect to.
+    ///     Gets the port of the gel instance to connect to.
     /// </summary>
     /// <remarks>
     ///     This property defaults to 5656
@@ -279,7 +279,7 @@ public sealed class GelConnection
     /// </summary>
     /// <param name="options">Options used to build the <see cref="GelConnection" />.</param>
     /// <returns>
-    ///     A <see cref="GelConnection" /> class that can be used to connect to a EdgeDB instance.
+    ///     A <see cref="GelConnection" /> class that can be used to connect to a Gel instance.
     /// </returns>
     /// <exception cref="ConfigurationException">
     ///     An error occured while parsing or configuring the <see cref="GelConnection" />.
@@ -508,7 +508,7 @@ public sealed class GelConnection
 
         if (!hasPrimaryOptions && !hasPrimaryEnv)
         {
-            ConfigUtils.ResolvedFields? fromToml = _ResolveEdgeDBTOML(platform);
+            ConfigUtils.ResolvedFields? fromToml = _ResolveInstanceTOML(platform);
             if (fromToml is not null)
             {
                 resolvedFields.MergeFrom(fromToml);
@@ -1117,7 +1117,7 @@ public sealed class GelConnection
         throw new ConfigurationException($"Invalid instance name '{name}'");
     }
 
-    internal static ConfigUtils.ResolvedFields? _ResolveEdgeDBTOML(ISystemProvider? platform)
+    internal static ConfigUtils.ResolvedFields? _ResolveInstanceTOML(ISystemProvider? platform)
     {
         platform ??= ConfigUtils.DefaultPlatformProvider;
 

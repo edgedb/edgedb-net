@@ -3,7 +3,7 @@ using Gel.Binary.Protocol.DumpRestore;
 namespace Gel;
 
 /// <summary>
-///     A class containing extension methods for edgedb clients.
+///     A class containing extension methods for gel clients.
 /// </summary>
 public static class GelClientExtensions
 {

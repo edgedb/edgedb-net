@@ -6,7 +6,7 @@ using System.Collections.Immutable;
 namespace Gel;
 
 /// <summary>
-///     Represents a client pool used to interact with EdgeDB.
+///     Represents a client pool used to interact with Gel.
 /// </summary>
 public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
 {
@@ -77,7 +77,7 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
         => _session.Globals;
 
     /// <summary>
-    ///     Gets the EdgeDB server config.
+    ///     Gets the Gel server config.
     /// </summary>
     /// <remarks>
     ///     The returned dictionary can be empty if the client pool hasn't connected any clients
@@ -141,20 +141,20 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
     #region ctors
 
     /// <summary>
-    ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
+    ///     Creates a new instance of a Gel client pool allowing you to execute commands.
     /// </summary>
     /// <remarks>
-    ///     This constructor uses the default config and will attempt to find your EdgeDB project toml file in the current
+    ///     This constructor uses the default config and will attempt to find your Gel project toml file in the current
     ///     working directory. If
     ///     no file is found this method will throw a <see cref="ConfigurationException" />.
     /// </remarks>
     public GelClientPool() : this(GelConnection.Create(), new GelClientPoolConfig()) { }
 
     /// <summary>
-    ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
+    ///     Creates a new instance of a Gel client pool allowing you to execute commands.
     /// </summary>
     /// <remarks>
-    ///     This constructor will attempt to find your EdgeDB project toml file in the current working directory. If
+    ///     This constructor will attempt to find your Gel project toml file in the current working directory. If
     ///     no file is found this method will throw a <see cref="ConfigurationException" />.
     /// </remarks>
     /// <param name="clientPoolConfig">The config for this client pool.</param>
@@ -164,13 +164,13 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
     }
 
     /// <summary>
-    ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
+    ///     Creates a new instance of a Gel client pool allowing you to execute commands.
     /// </summary>
     /// <param name="connection">The connection parameters used to create new clients.</param>
     public GelClientPool(GelConnection connection) : this(connection, new GelClientPoolConfig()) { }
 
     /// <summary>
-    ///     Creates a new instance of a EdgeDB client pool allowing you to execute commands.
+    ///     Creates a new instance of a Gel client pool allowing you to execute commands.
     /// </summary>
     /// <param name="connection">The connection parameters used to create new clients.</param>
     /// <param name="clientPoolConfig">The config for this client pool.</param>
@@ -259,7 +259,7 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
     #region Client creation
 
     /// <summary>
-    ///     Ensures that a connection is established to the EdgeDB server; and that the client
+    ///     Ensures that a connection is established to the Gel server; and that the client
     ///     pool is configured to the servers recommended pool size.
     /// </summary>
     /// <param name="token">A cancellation token used to cancel the asynchronous operation.</param>
@@ -278,7 +278,7 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
     }
 
     /// <summary>
-    ///     Gets or creates a client in the client pool used to interact with edgedb.
+    ///     Gets or creates a client in the client pool used to interact with gel.
     /// </summary>
     /// <remarks>
     ///     This method can hang if the client pool is full and all connections are in use.
@@ -305,7 +305,7 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
     }
 
     /// <summary>
-    ///     Gets or creates a client in the client pool used to interact with edgedb.
+    ///     Gets or creates a client in the client pool used to interact with gel.
     /// </summary>
     /// <remarks>
     ///     This method can hang if the client pool is full and all connections are in use.

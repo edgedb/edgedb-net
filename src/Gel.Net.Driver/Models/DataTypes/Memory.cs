@@ -1,7 +1,7 @@
 namespace Gel.DataTypes;
 
 /// <summary>
-///     Represents the memory type in EdgeDB.
+///     Represents the memory type in Gel.
 /// </summary>
 public readonly struct Memory
 {
