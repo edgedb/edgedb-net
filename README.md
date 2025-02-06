@@ -1,11 +1,11 @@
 ![Gel.Net](https://raw.githubusercontent.com/edgedb/edgedb-net/dev/branding/Banner.png)
 
 <p align="center">
-  <a href="https://www.nuget.org/packages/EdgeDB.Net.Driver/">
-    <img src="https://img.shields.io/nuget/dt/EdgeDB.Net.Driver" alt="Downloads">
+  <a href="https://www.nuget.org/packages/Gel.Net.Driver/">
+    <img src="https://img.shields.io/nuget/dt/Gel.Net.Driver" alt="Downloads">
   </a>
-  <a href="https://www.nuget.org/packages/EdgeDB.Net.Driver/">
-    <img src="https://img.shields.io/nuget/vpre/EdgeDB.Net.Driver.svg?maxAge=2592000?style=plastic" alt="NuGet">
+  <a href="https://www.nuget.org/packages/Gel.Net.Driver/">
+    <img src="https://img.shields.io/nuget/vpre/Gel.Net.Driver.svg?maxAge=2592000?style=plastic" alt="NuGet">
   </a>
   <a href="https://github.com/edgedb/edgedb-net/actions/workflows/tests.yml">
     <img src="https://github.com/edgedb/edgedb-net/actions/workflows/tests.yml/badge.svg?branch=dev" alt="Tests">
@@ -30,7 +30,7 @@ We recommend using the `dotnet` command or NuGet package manager in Visual
 Studio:
 
 ```bash
-$ dotnet add package EdgeDB.Net.Driver
+$ dotnet add package Gel.Net.Driver
 ```
 
 ## Basic usage
