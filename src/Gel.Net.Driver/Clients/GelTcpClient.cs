@@ -7,7 +7,7 @@ using System.Security.Cryptography.X509Certificates;
 namespace Gel;
 
 /// <summary>
-///     Represents a TCP client used to interact with EdgeDB.
+///     Represents a TCP client used to interact with Gel.
 /// </summary>
 internal sealed class GelTcpClient : GelBinaryClient, ITransactibleClient
 {

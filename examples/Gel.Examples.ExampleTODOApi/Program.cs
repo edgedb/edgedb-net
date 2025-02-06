@@ -9,7 +9,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddEdgeDB();
+builder.Services.AddClientPool();
 
 var app = builder.Build();
 

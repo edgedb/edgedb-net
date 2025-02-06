@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 namespace Gel.DataTypes;
 
 /// <summary>
-///     Represents an abstract tuple which is used for deserializing edgedb tuples to dotnet tuples.
+///     Represents an abstract tuple which is used for deserializing gel tuples to dotnet tuples.
 /// </summary>
 public readonly struct TransientTuple : ITuple
 {

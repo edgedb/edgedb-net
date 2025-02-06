@@ -79,11 +79,19 @@ internal static class ConfigUtils
 
         while (true)
         {
-            var target = platform.CombinePaths(dir!, "edgedb.toml");
+            var edgeDBTarget = platform.CombinePaths(dir!, "edgedb.toml");
 
-            if (platform.FileExists(target))
+            if (platform.FileExists(edgeDBTarget))
             {
-                tomlPath = target;
+                tomlPath = edgeDBTarget;
+                return true;
+            }
+
+            var gelTarget = platform.CombinePaths(dir!, "gel.toml");
+
+            if (platform.FileExists(gelTarget))
+            {
+                tomlPath = gelTarget;
                 return true;
             }
 

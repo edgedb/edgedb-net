@@ -1,13 +1,13 @@
-# Building a TODO API with EdgeDB and ASP.Net Core
+# Building a TODO API with Gel and ASP.Net Core
 
-For this tutorial we're going to build a simple TODO API using the EdgeDB as a database. We'll start by creating a new
+For this tutorial we're going to build a simple TODO API using the Gel as a database. We'll start by creating a new
 asp.net core project.
 
 ```console
-$ dotnet new webapi -n EdgeDB.Examples.ExampleTODOApi
+$ dotnet new webapi -n Gel.Examples.ExampleTODOApi
 ```
 
-Once we have our ASP.Net Core project, we can add the EdgeDB.Net driver to our project as a reference.
+Once we have our ASP.Net Core project, we can add the Gel.Net driver to our project as a reference.
 
 #### Myget
 
@@ -21,9 +21,9 @@ $ dotnet add package EdgeDB.Net.Driver -Source https://www.myget.org/F/edgedb-ne
 $ dotnet add package EdgeDB.Net.Driver
 ```
 
-## Initializing EdgeDB
+## Initializing Gel
 
-Lets now create our EdgeDB instance for this API, for this we're going to use the `edgedb` cli.
+Lets now create our Gel instance for this API, for this we're going to use the `gel` cli.
 
 ### Installing the CLI
 
@@ -39,44 +39,44 @@ $ curl --proto '=https' --tlsv1.2 -sSf https://sh.edgedb.com | sh
 PS> iwr https://ps1.edgedb.com -useb | iex
 ```
 
-Then verify that the CLI is installed and available with the `edgedb --version` command. If you get
-a `Command not found` error, you may need to open a new terminal window before the `edgedb` command is available.
+Then verify that the CLI is installed and available with the `gel --version` command. If you get
+a `Command not found` error, you may need to open a new terminal window before the `gel` command is available.
 
 Once the CLI is installed, we can initialize a project for our TODO api. You can read more
-about [EdgeDB projects here.](https://www.edgedb.com/docs/guides/projects)
+about [Gel projects here.](https://www.edgedb.com/docs/guides/projects)
 
 ```console
-$ edgedb project init
+$ gel project init
 ```
 
 This command will take you through an interactive setup process which looks like the following:
 
 ```
-No `edgedb.toml` found in `~/example` or above
+No `gel.toml` found in `~/example` or above
 
 Do you want to initialize a new project? [Y/n]
 > Y
 
-Specify the name of EdgeDB instance to use with this project [default:
+Specify the name of Gel instance to use with this project [default:
 example]:
 > dotnet-example
 
-Checking EdgeDB versions...
-Specify the version of EdgeDB to use with this project [default: 1.x]:
+Checking Gel versions...
+Specify the version of Gel to use with this project [default: 1.x]:
 > 1.x
 
 Do you want to start instance automatically on login? [y/n]
 > y
 ┌─────────────────────┬──────────────────────────────────────────────┐
 │ Project directory   │ ~/example                                    │
-│ Project config      │ ~/example/edgedb.toml                        │
+│ Project config      │ ~/example/gel.toml                        │
 │ Schema dir (empty)  │ ~/example/dbschema                           │
 │ Installation method │ portable package                             │
 │ Start configuration │ manual                                       │
 │ Version             │ 1.x                                          │
 │ Instance name       │ dotnet-example                               │
 └─────────────────────┴──────────────────────────────────────────────┘
-Initializing EdgeDB instance...
+Initializing Gel instance...
 Applying migrations...
 Everything is up to date. Revision initial.
 Project initialized.
@@ -84,7 +84,7 @@ Project initialized.
 
 ## Defining the schema
 
-We now have a edgedb project linked to our TODO API, lets next add our schema we will use for our API. Our database
+We now have a gel project linked to our TODO API, lets next add our schema we will use for our API. Our database
 schema file is located in the `dbschema` directory, by default the name of the file is `default.esdl` and it looks like
 this
 
@@ -140,7 +140,7 @@ Our datetime property will automatically be set to the current date and time whe
 Lets now run the migration commands to apply the schema change to the database.
 
 ```console
-$ edgedb migration create
+$ gel migration create
 ```
 
 ## Defining our C# type
@@ -171,31 +171,31 @@ public class TODOModel
 }
 ```
 
-We now need to mark this type as a valid type to use when deserializing, we can do this with the `EdgeDbType` attribute
+We now need to mark this type as a valid type to use when deserializing, we can do this with the `GelType` attribute
 
 ```diff
-+[EdgeDBType]
++[GelType]
 public class TODOModel
 ```
 
 One thing to note is our property names, they're different from the ones in the schema file. We can use
-the `EdgeDBProperty` attribute to map the schema file property names to the C# properties.
+the `GelProperty` attribute to map the schema file property names to the C# properties.
 
 ```diff
 public class TODOModel
 {
     public class TODOModel
     {
-+        [EdgeDBProperty("title")]
++        [GelProperty("title")]
         public string? Title { get; set; }
 
-+        [EdgeDBProperty("description")]
++        [GelProperty("description")]
         public string? Description { get; set; }
 
-+        [EdgeDBProperty("date_created")]
++        [GelProperty("date_created")]
         public DateTimeOffset DateCreated { get; set; }
 
-+        [EdgeDBProperty("state")]
++        [GelProperty("state")]
         public TODOState State { get; set; }
     }
 
@@ -214,19 +214,19 @@ We should also add attributes for serializing this class to JSON as we're going 
     public class TODOModel
     {
 +        [JsonPropertyName("title")]
-        [EdgeDBProperty("title")]
+        [GelProperty("title")]
         public string? Title { get; set; }
 
 +        [JsonPropertyName("description")]
-        [EdgeDBProperty("description")]
+        [GelProperty("description")]
         public string? Description { get; set; }
 
 +        [JsonPropertyName("date_created")]
-        [EdgeDBProperty("date_created")]
+        [GelProperty("date_created")]
         public DateTimeOffset DateCreated { get; set; }
 
 +        [JsonPropertyName("state")]
-        [EdgeDBProperty("state")]
+        [GelProperty("state")]
         public TODOState State { get; set; }
     }
 
@@ -239,17 +239,17 @@ We should also add attributes for serializing this class to JSON as we're going 
 }
 ```
 
-Our type is now mapped to the edgedb type `TODO` and we can use it to deserialize query data.
+Our type is now mapped to the gel type `TODO` and we can use it to deserialize query data.
 
-## Setting up EdgeDB.Net in our project
+## Setting up Gel.Net in our project
 
-Lets now setup an edgedb client we can use for our project, this is relatively simple for us as we can
+Lets now setup an gel client we can use for our project, this is relatively simple for us as we can
 use [Dependency Injection](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection?view=aspnetcore-6.0).
 
 Lets head over to our `Program.cs` file and add the following:
 
 ```diff
-+ using EdgeDB;
++ using Gel;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -260,7 +260,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-+ builder.Services.AddEdgeDB();
++ builder.Services.AddClientPool();
 
 var app = builder.Build();
 
@@ -280,24 +280,24 @@ app.MapControllers();
 app.Run();
 ```
 
-And thats it! We now have a `EdgeDBClient` singleton within our service collection.
+And thats it! We now have a `GelClientPool` singleton within our service collection.
 
 ## Defining our API routes
 
-Lets create a new controller for our API called `TODOController` and have DI inject the `EdgeDBClient` into the
+Lets create a new controller for our API called `TODOController` and have DI inject the `GelClientPool` into the
 constructor.
 
 ```diff
 +using Microsoft.AspNetCore.Mvc;
 +using System.ComponentModel.DataAnnotations;
 +
-+namespace EdgeDB.Examples.ExampleTODOApi.Controllers
++namespace Gel.Examples.ExampleTODOApi.Controllers
 +{
 +    public class TODOController : Controller
 +    {
-+        private readonly EdgeDBClient _client;
++        private readonly GelClientPool _client;
 +
-+        public TODOController(EdgeDBClient client)
++        public TODOController(GelClientPool client)
 +        {
 +            _client = client;
 +        }
@@ -311,13 +311,13 @@ Lets start with the `GET` route for fetching all of our todos.
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
-namespace EdgeDB.Examples.ExampleTODOApi.Controllers
+namespace Gel.Examples.ExampleTODOApi.Controllers
 {
     public class TODOController : Controller
     {
-        private readonly EdgeDBClient _client;
+        private readonly GelClientPool _client;
 
-        public TODOController(EdgeDBClient client)
+        public TODOController(GelClientPool client)
         {
             _client = client;
         }
@@ -357,13 +357,13 @@ This means our api is functional. Lets now add a route for creating a new todo.
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
-namespace EdgeDB.Examples.ExampleTODOApi.Controllers
+namespace Gel.Examples.ExampleTODOApi.Controllers
 {
     public class TODOController : Controller
     {
-        private readonly EdgeDBClient _client;
+        private readonly GelClientPool _client;
 
-        public TODOController(EdgeDBClient client)
+        public TODOController(GelClientPool client)
         {
             _client = client;
         }
@@ -439,13 +439,13 @@ to delete todos.
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
-namespace EdgeDB.Examples.ExampleTODOApi.Controllers
+namespace Gel.Examples.ExampleTODOApi.Controllers
 {
     public class TODOController : Controller
     {
-        private readonly EdgeDBClient _client;
+        private readonly GelClientPool _client;
 
-        public TODOController(EdgeDBClient client)
+        public TODOController(GelClientPool client)
         {
             _client = client;
         }
@@ -516,13 +516,13 @@ Lets finally add a route to update a todos state.
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
-namespace EdgeDB.Examples.ExampleTODOApi.Controllers
+namespace Gel.Examples.ExampleTODOApi.Controllers
 {
     public class TODOController : Controller
     {
-        private readonly EdgeDBClient _client;
+        private readonly GelClientPool _client;
 
-        public TODOController(EdgeDBClient client)
+        public TODOController(GelClientPool client)
         {
             _client = client;
         }
@@ -608,6 +608,6 @@ As we can see our state was updated successfully.
 
 # Conclusion
 
-This tutorial has covered the basics of how to use the EdgeDB client to query, update and delete data. Feel free to
+This tutorial has covered the basics of how to use the Gel client to query, update and delete data. Feel free to
 expirement with the source
-code [here](https://github.com/quinchs/EdgeDB.Net/tree/dev/examples/EdgeDB.Examples.ExampleTODOApi).
+code [here](https://github.com/edgedb/edgedb-net/tree/dev/examples/Gel.Examples.ExampleTODOApi).

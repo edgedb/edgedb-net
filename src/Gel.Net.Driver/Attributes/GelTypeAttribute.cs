@@ -11,7 +11,7 @@ public class GelTypeAttribute : Attribute
     /// <summary>
     ///     Marks this as a valid target to use when serializing/deserializing.
     /// </summary>
-    /// <param name="name">The name of the type in the edgedb schema.</param>
+    /// <param name="name">The name of the type in the gel schema.</param>
     public GelTypeAttribute(string name)
     {
         Name = name;

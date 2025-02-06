@@ -9,7 +9,7 @@
     }
   },
   "profiles": {
-    "EdgeDB.Examples.ExampleTODOApi": {
+    "Gel.Examples.ExampleTODOApi": {
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "swagger",

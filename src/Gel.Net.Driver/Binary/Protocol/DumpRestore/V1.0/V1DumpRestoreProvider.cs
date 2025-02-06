@@ -118,7 +118,7 @@ internal class V1DumpRestoreProvider : IDumpRestoreProvider
         ThrowIfEndOfStream(stream.Read(formatBuffer) == DUMP_FILE_FORMAT_LENGTH);
 
         if (!formatBuffer.SequenceEqual(DUMP_FILE_FORMAT_BLOB))
-            throw new FormatException("Format of stream does not match the edgedb dump format");
+            throw new FormatException("Format of stream does not match the dump format");
 
         Restore? restore = null;
         List<RestoreBlock> blocks = new();

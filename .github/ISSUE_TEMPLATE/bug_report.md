@@ -22,16 +22,16 @@ A clear and concise description of what you expected to happen. If applicable, a
 **Versions (please complete the following information):**
 
 <!--
-For EdgeDB Version: run `edgedb query 'select sys::get_version_as_str()'` from your project directory (or run `select sys::get_version_as_str();` in the EdgeDB interactive shell).
-For EdgeDB CLI version: Run `edgedb --version` from anywhere
-For `edgedb-net` version: Run `dotnet list package` from your project directory and look for "EdgeDB.Net.Driver", or find the version number in NuGet's "Installed" tab.
+For Gel Version: run `gel query 'select sys::get_version_as_str()'` from your project directory (or run `select sys::get_version_as_str();` in the Gel interactive shell).
+For Gel CLI version: Run `gel --version` from anywhere
+For `gel-net` version: Run `dotnet list package` from your project directory and look for "EdgeDB.Net.Driver", or find the version number in NuGet's "Installed" tab.
 For .NET version: dotnet --version
 -->
 
 - OS:
-- EdgeDB version:
-- EdgeDB CLI version:
-- `edgedb-net` version:
+- Gel version:
+- Gel CLI version:
+- `gel-net` version:
 - .NET version:
 
 **Additional context**

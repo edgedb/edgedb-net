@@ -26,7 +26,7 @@ internal sealed class GelTypeDeserializeInfo
 
         var factory = CreateDefaultFactory();
 
-        EdgeDBTypeName = _type.GetCustomAttribute<GelTypeAttribute>()?.Name ?? _type.Name;
+        GelTypeName = _type.GetCustomAttribute<GelTypeAttribute>()?.Name ?? _type.Name;
 
         if (_wrapper is not null)
         {
@@ -48,7 +48,7 @@ internal sealed class GelTypeDeserializeInfo
 
         _type = _wrapper?.GetInnerType(type) ?? type;
 
-        EdgeDBTypeName = _type.GetCustomAttribute<GelTypeAttribute>()?.Name ?? _type.Name;
+        GelTypeName = _type.GetCustomAttribute<GelTypeAttribute>()?.Name ?? _type.Name;
 
         if (_wrapper is not null)
         {
@@ -64,7 +64,7 @@ internal sealed class GelTypeDeserializeInfo
         }
     }
 
-    public string EdgeDBTypeName { get; }
+    public string GelTypeName { get; }
 
     public bool IsAbtractType
         => _type.IsAbstract || _type.IsInterface;
@@ -285,10 +285,10 @@ internal sealed class GelTypeDeserializeInfo
 
                 GelTypeDeserializeInfo? info = null;
 
-                if ((info = Children.FirstOrDefault(x => x.Value.EdgeDBTypeName == typeName).Value) is null)
+                if ((info = Children.FirstOrDefault(x => x.Value.GelTypeName == typeName).Value) is null)
                 {
                     throw new GelException(
-                        $"Failed to deserialize the edgedb type '{typeName}'. Could not find relivant child of {_type.Name}");
+                        $"Failed to deserialize the gel type '{typeName}'. Could not find relivant child of {_type.Name}");
                 }
 
                 // deserialize as child

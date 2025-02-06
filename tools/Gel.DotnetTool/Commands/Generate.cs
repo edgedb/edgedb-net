@@ -14,7 +14,7 @@ internal class Generate : ICommand
     public string? FilePath { get; set; }
 
     [Option('n', "namespace", Required = false, HelpText = "The namespace for the generated code files",
-        Default = "EdgeDB.Generated")]
+        Default = "Gel.Generated")]
     public string? Namespace { get; set; }
 
     [Option('o', "output", Required = false, HelpText = "The output directory for the generated files",
@@ -35,11 +35,6 @@ internal class Generate : ICommand
         {
             Task.Run(() =>
             {
-                //var client = new EdgeDBTcpClient(EdgeDBConnection.FromDSN(ConnectionString), new EdgeDBConfig
-                //{
-                //    // TODO: config?
-                //});
-
                 //await client.ConnectAsync();
                 //var result =  await client.QuerySingleAsync<string>($"describe schema as sdl");
                 return Task.CompletedTask;

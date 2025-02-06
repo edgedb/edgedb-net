@@ -1,8 +1,8 @@
 {
   "profiles": {
-    "EdgeDB.DocGenerator": {
+    "Gel.DocGenerator": {
       "commandName": "Project",
-      "commandLineArgs": "C:\\Users\\lynch\\source\\repos\\EdgeDB"
+      "commandLineArgs": "."
     }
   }
 }

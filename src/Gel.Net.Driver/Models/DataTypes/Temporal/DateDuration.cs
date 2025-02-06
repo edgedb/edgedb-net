@@ -6,7 +6,7 @@ namespace Gel.DataTypes;
 ///     A struct representing a span of time in days.
 /// </summary>
 /// <remarks>
-///     This type is only available in EdgeDB 2.0 or later.
+///     This type is only available in Gel 2.0 or later.
 /// </remarks>
 public readonly struct DateDuration
 {

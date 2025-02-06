@@ -18,7 +18,7 @@ internal readonly struct GelPropertyMapInfo
             return cached;
 
         var props = type.GetProperties();
-        var edgedbProps = new GelPropertyInfo[props.Length];
+        var gelProps = new GelPropertyInfo[props.Length];
         var indexMap = new Dictionary<GelPropertyInfo, int>(props.Length);
         var map = new Dictionary<string, GelPropertyInfo>(props.Length);
 
@@ -26,17 +26,17 @@ internal readonly struct GelPropertyMapInfo
         {
             var prop = props[i];
             var edbProp = new GelPropertyInfo(prop);
-            edgedbProps[i] = edbProp;
+            gelProps[i] = edbProp;
 
             indexMap.Add(edbProp, i);
 
             if (prop.GetCustomAttribute<GelIgnoreAttribute>() is null)
             {
-                map.Add(edbProp.EdgeDBName, edbProp);
+                map.Add(edbProp.GelName, edbProp);
             }
         }
 
-        var info = new GelPropertyMapInfo {IndexMap = indexMap, Map = map, Properties = edgedbProps};
+        var info = new GelPropertyMapInfo {IndexMap = indexMap, Map = map, Properties = gelProps};
 
         _cache.TryAdd(type, info);
 

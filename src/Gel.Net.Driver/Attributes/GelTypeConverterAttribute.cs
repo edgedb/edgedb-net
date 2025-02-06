@@ -9,7 +9,7 @@ namespace Gel;
 [AttributeUsage(AttributeTargets.Property)]
 public class GelTypeConverterAttribute : Attribute
 {
-    internal IEdgeDBTypeConverter Converter;
+    internal IGelTypeConverter Converter;
 
     /// <summary>
     ///     Initializes the <see cref="GelTypeConverterAttribute" /> with the
@@ -22,9 +22,9 @@ public class GelTypeConverterAttribute : Attribute
     /// </exception>
     public GelTypeConverterAttribute(Type converterType)
     {
-        if (converterType.GetInterface(nameof(IEdgeDBTypeConverter)) is null)
+        if (converterType.GetInterface(nameof(IGelTypeConverter)) is null)
         {
-            throw new ArgumentException("Converter type must implement IEdgeDBTypeConverter");
+            throw new ArgumentException("Converter type must implement IGelTypeConverter");
         }
 
         if (converterType.IsAbstract || converterType.IsInterface)
@@ -32,6 +32,6 @@ public class GelTypeConverterAttribute : Attribute
             throw new ArgumentException("Converter type must be a concrete type");
         }
 
-        Converter = (IEdgeDBTypeConverter)Activator.CreateInstance(converterType)!;
+        Converter = (IGelTypeConverter)Activator.CreateInstance(converterType)!;
     }
 }

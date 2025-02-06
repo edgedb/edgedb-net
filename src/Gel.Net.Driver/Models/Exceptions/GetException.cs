@@ -1,7 +1,7 @@
 namespace Gel;
 
 /// <summary>
-///     Represents a generic exception that occured with the edgedb library.
+///     Represents a generic exception that occured with the gel library.
 /// </summary>
 public class GelException : Exception
 {

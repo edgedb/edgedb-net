@@ -4,16 +4,16 @@ namespace Gel.Tests.Benchmarks;
 
 public class ClientPoolBenchmarks
 {
-    internal static MockedEdgeDBClient SingleClient;
+    internal static MockedGelClient SingleClient;
     internal static GelClientPool ClientPool;
 
     static ClientPoolBenchmarks()
     {
-        SingleClient = new MockedEdgeDBClient(0);
+        SingleClient = new MockedGelClient(0);
         ClientPool = new GelClientPool(new GelClientPoolConfig
         {
             ClientType = GelClientType.Custom,
-            ClientFactory = (id, _, _) => ValueTask.FromResult<BaseGelClient>(new MockedEdgeDBClient(id)),
+            ClientFactory = (id, _, _) => ValueTask.FromResult<BaseGelClient>(new MockedGelClient(id)),
             DefaultPoolSize = 100
         });
     }

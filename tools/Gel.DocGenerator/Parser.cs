@@ -9,7 +9,7 @@ internal class Parser
 {
     public static DocMember[] Load(string file)
     {
-        var serializer = new XmlSerializer(typeof(Doc));
+        var serializer = new XmlSerializer(typeof(Doc), new XmlRootAttribute("doc"));
         using var reader = new StreamReader(file);
         var t = (Doc)serializer.Deserialize(reader)!;
 
@@ -88,6 +88,9 @@ public class DocType : DocMember
                 }
             }
         }
+
+        if (DotnetType is null)
+            throw new Exception($"DotnetType {Name} is null");
     }
 
     public override void Finalize(DocMember[] members) => Members = members.Where(x => x.Parent == this).ToArray();
@@ -105,26 +108,29 @@ public class DocMethod : DocMember
 
     public override void Populate(DocMember[] members, Assembly assembly)
     {
-        Name = GetNodeTermName();
-        var parentName = NodeName[..(NodeName.Length - Name.Length - 1)];
+        List<string> termNames = GetNodeTermNames();
+        Name = termNames[1];
+
+        var parentName = termNames[0];
+
         Parent = members.FirstOrDefault(x => x.NodeName == parentName) as DocType ?? new DocType(parentName, assembly);
 
         if (Name.StartsWith("#ctor"))
         {
-            var args = Name == "#ctor" ? Array.Empty<string>() : Name[6..^1].Split(',');
-            Method = Parent!.DotnetType!.GetTypeInfo().DeclaredConstructors.FirstOrDefault(x =>
+            string[] args = termNames.Count > 2 ? termNames[2][1..^1].Split(',') : [];
+            Method = Parent!.DotnetType!.GetTypeInfo().DeclaredConstructors.FirstOrDefault(dotnetCtor =>
             {
-                var p = x.GetParameters();
+                var dotnetParams = dotnetCtor.GetParameters();
 
-                if (p.Length! != args.Length)
+                if (dotnetParams.Length! != args.Length)
                     return false;
 
-                for (var i = 0; i != p.Length; i++)
+                for (var i = 0; i != dotnetParams.Length; i++)
                 {
-                    var fmt = FormatRawArgument(x, args[i]);
+                    var fmt = FormatRawArgument(dotnetCtor, args[i]);
 
-                    if ((p[i].ParameterType.FullName ?? p[i].ParameterType.Name) != fmt
-                        && p[i].ToString().Split(' ')[0] != fmt)
+                    if ((dotnetParams[i].ParameterType.FullName ?? dotnetParams[i].ParameterType.Name) != fmt
+                        && dotnetParams[i].ToString().Split(' ')[0] != fmt)
                         return false;
                 }
 
@@ -146,75 +152,91 @@ public class DocMethod : DocMember
             // When these generic arguments are used as method arguments, the *index*
             // is used to define *which* generic is used.
 
-            var methodGenericMatch = Regex.Match(Name, @"(.*?)``(\d+?)(?>$|\()");
+            var termGenericsCount = 0;
 
-            var methodGenericCount = 0;
-
-            if (methodGenericMatch.Success)
+            if (IsGenericName(Name))
             {
-                methodGenericCount = int.Parse(methodGenericMatch.Groups[2].Value);
+                termGenericsCount = GetGenericArgCount(Name);
             }
 
             // params
-            if (Name.Contains('('))
+            if (termNames.Count > 2)
             {
                 // OK, i hate doc strings: basic split of ',' wont work
                 // because of generic type arguments. We need to traverse the args string
                 // and control an escape flag to determine if the arg is generically escaped
                 // or not.
 
-                var paramString = Regex.Match(Name, @".*?\((.*?)\)").Groups[1].Value;
+                var termParams = PullArgs(termNames[2][1..^1]);
 
-                var args = PullArgs(paramString);
-
-                var targetMethodName = Regex.Replace(Name.Split('(')[0], @"(`{1,2}\d+)", m => "");
-
-                Method = Parent!.DotnetType!.GetTypeInfo().DeclaredMethods.FirstOrDefault(x =>
+                var termMethodName = termNames[1];
+                if (IsGenericName(Name))
                 {
-                    var p = x.GetParameters();
+                    termMethodName = GetGenericBaseName(termMethodName);
+                }
 
-                    if (p.Length! != args.Count)
+                Method = Parent!.DotnetType!.GetTypeInfo().DeclaredMethods.FirstOrDefault(dotnetMethod =>
+                {
+                    if (termMethodName != dotnetMethod.Name)
                         return false;
 
-                    var generics = x.GetGenericArguments() ?? System.Type.EmptyTypes;
+                    var dotnetParams = dotnetMethod.GetParameters();
 
-                    if (generics.Length != methodGenericCount)
+                    if (dotnetParams.Length! != termParams.Count)
+                        return false;
+
+                    var dotnetGenericArgs = dotnetMethod.GetGenericArguments() ?? System.Type.EmptyTypes;
+
+                    if (dotnetGenericArgs.Length != termGenericsCount)
                         return false;
 
                     // check generics
 
-                    for (var i = 0; i != p.Length; i++)
+                    for (var i = 0; i != dotnetParams.Length; i++)
                     {
-                        var n = args[i];
-                        var pr = p[i];
-                        if (n.EndsWith('@'))
+                        var termParam = termParams[i];
+                        var dotnetParam = dotnetParams[i];
+                        if (termParam.EndsWith('@'))
                         {
-                            n = n[..^1] + "&"; // makes byref
-                            if (!pr.IsOut)
+                            termParam = termParam[..^1] + "&"; // makes byref
+                            if (!dotnetParam.IsOut)
                                 return false;
                         }
 
-                        // reformat our docstring parameter name to match a dotnet parameter name
-                        var fmt = FormatRawArgument(x, n);
+                        // Generic parameters are prefixed with a number of "`" based on where
+                        // they are declared (eg. class, inner class, method, etc.)
+                        // There isn't a straight forward way to calculate this from reflection
+                        // so just reduce all repeated "`" to a single one.
+                        while (termParam.Contains("``"))
+                        {
+                            termParam = termParam.Replace("``", "`");
+                        }
 
-                        if (fmt != (pr.ParameterType.FullName ?? pr.ParameterType.Name) &&
-                            fmt != pr.ToString().Split(' ')[0])
+                        string dotnetTermName = DotnetTypeToTermName(dotnetParam.ParameterType);
+
+                        if (termParam != dotnetTermName)
                             return false;
                     }
 
-                    return targetMethodName == x.Name;
+                    return true;
                 });
             }
             else
             {
+                var targetMethodName = termNames[1];
+                if (IsGenericName(Name))
+                {
+                    targetMethodName = GetGenericBaseName(targetMethodName);
+                }
+
                 Method = Parent!.DotnetType!.GetTypeInfo().DeclaredMethods.FirstOrDefault(x =>
-                    x.Name == (methodGenericMatch.Success ? methodGenericMatch.Groups[1].Value : Name) &&
-                    x.GetGenericArguments().Length == methodGenericCount);
+                    x.Name == targetMethodName &&
+                    x.GetGenericArguments().Length == termGenericsCount);
             }
         }
 
         if (Method is null)
-            throw new Exception("Method is null");
+            throw new Exception($"Method {Name} is null");
     }
 
     private static List<string> PullArgs(string s)
@@ -251,6 +273,54 @@ public class DocMethod : DocMember
             args.Add(currentArg);
 
         return args;
+    }
+
+    private static bool IsGenericName(string name)
+    {
+        return name.Contains("`");
+    }
+
+    private static string GetGenericBaseName(string name)
+    {
+        return name[0 .. name.IndexOf("`")];
+    }
+
+    private static int GetGenericArgCount(string name)
+    {
+        return int.Parse(name[(name.LastIndexOf("`") + 1) .. ]);
+    }
+
+    private static string DotnetTypeToTermName(Type typeInfo)
+    {
+        if (typeInfo.IsGenericParameter)
+        {
+            return "`" + typeInfo.GenericParameterPosition.ToString();
+        }
+        else if (typeInfo.IsGenericType)
+        {
+            return typeInfo.Namespace
+                + "."
+                + typeInfo.Name[0..typeInfo.Name.IndexOf('`')]
+                + "{"
+                + (typeInfo.GenericTypeArguments.Count() > 0
+                    ? string.Join(
+                        ",",
+                        typeInfo.GenericTypeArguments.Select(
+                            x => DotnetTypeToTermName(x))
+                    )
+                    : string.Join(
+                        ",",
+                        Enumerable.Range(0, GetGenericArgCount(typeInfo.Name))
+                        .Select(x => "`" + x.ToString())
+                    )
+                )
+                + "}";
+        }
+        else
+        {
+            // Normally FullName will use "+" instead of "." if `typeInfo.IsNested`
+            return typeInfo.FullName!.Replace('+', '.');
+        }
     }
 
     private static string FormatRawArgument(MethodBase method, string section)
@@ -308,9 +378,13 @@ public class DocProperty : DocMember
 
     public override void Populate(DocMember[] members, Assembly assembly)
     {
-        Name = GetNodeTermName();
+        List<string> termNames = GetNodeTermNames();
+        Name = termNames[1];
 
-        var parentName = NodeName[..(NodeName.Length - Name.Length - 1)];
+        // Term name uses '#' for some reason
+        Name = Name.Replace('#', '.');
+
+        var parentName = termNames[0];
 
         //special case for indexing
         if (Regex.IsMatch(Name, @".*?\(.*?\)"))
@@ -319,6 +393,9 @@ public class DocProperty : DocMember
         Parent = members.FirstOrDefault(x => x.NodeName == parentName) as DocType ?? new DocType(parentName, assembly);
 
         PropertyInfo = Parent!.DotnetType!.GetTypeInfo().DeclaredProperties.FirstOrDefault(x => x.Name == Name);
+
+        if (PropertyInfo is null)
+            throw new Exception($"PropertyInfo {Name} is null");
     }
 }
 
@@ -333,9 +410,10 @@ public class DocField : DocMember
 
     public override void Populate(DocMember[] members, Assembly assembly)
     {
-        Name = GetNodeTermName();
+        List<string> termNames = GetNodeTermNames();
+        Name = termNames[1];
 
-        var parentName = NodeName[..(NodeName.Length - Name.Length - 1)];
+        var parentName = termNames[0];
 
         //special case for indexing
         if (Regex.IsMatch(Name, @".*?\(.*?\)"))
@@ -344,6 +422,9 @@ public class DocField : DocMember
         Parent = members.FirstOrDefault(x => x.NodeName == parentName) as DocType ?? new DocType(parentName, assembly);
 
         FieldInfo = Parent!.DotnetType!.GetTypeInfo().DeclaredFields.FirstOrDefault(x => x.Name == Name);
+
+        if (FieldInfo is null)
+            throw new Exception($"FieldInfo {Name} is null");
     }
 }
 
@@ -399,26 +480,36 @@ public class DocMember
 
     public static MemberType GetTypeOfDefName(string name) => (MemberType)name[0];
 
-    protected string GetNodeTermName()
+    protected List<string> GetNodeTermNames()
     {
-        var esc = false;
-        var i = 0;
-
-        return new string(NodeName.Reverse().TakeWhile(x =>
+        try
         {
-            if (x == ')')
+            int paren = NodeName.IndexOf('(');
+            if (paren >= 0)
             {
-                esc = true;
-                i++;
-            }
-            else if (x == '(')
-            {
-                i--;
-                esc = i != 0;
-            }
+                int dot = NodeName.LastIndexOf('.', paren - 1);
 
-            return esc || x != '.';
-        }).Reverse().ToArray());
+                return [
+                    NodeName[0 .. dot],
+                    NodeName[(dot + 1) .. paren],
+                    NodeName[paren ..],
+                ];
+            }
+            else
+            {
+                int dot = NodeName.LastIndexOf('.');
+
+                return [
+                    NodeName[0 .. dot],
+                    NodeName[(dot + 1) ..]
+                ];
+            }
+        }
+        catch (Exception)
+        {
+            Console.WriteLine($"  {NodeName}");
+            throw;
+        }
     }
 }
 

@@ -20,6 +20,6 @@ public enum Isolation
     ///     before the first query or data-modification statement was executed in
     ///     this transaction.
     /// </summary>
-    [Obsolete("EdgeDB 1.3>= no longer supports this", true)]
+    [Obsolete("Gel 1.3>= no longer supports this", true)]
     RepeatableRead
 }

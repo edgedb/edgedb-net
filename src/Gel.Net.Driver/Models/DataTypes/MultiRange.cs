@@ -4,7 +4,7 @@ using System.Collections;
 namespace Gel.Models.DataTypes;
 
 /// <summary>
-///     Represents the <c>multirange</c> type in EdgeDB.
+///     Represents the <c>multirange</c> type in Gel.
 /// </summary>
 /// <typeparam name="T">The inner type of the multirange.</typeparam>
 public readonly struct MultiRange<T> : IEnumerable<Range<T>>

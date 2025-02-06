@@ -2,9 +2,9 @@ using Gel.DataTypes;
 
 namespace Gel.Tests.Benchmarks;
 
-internal class MockedEdgeDBClient : BaseGelClient
+internal class MockedGelClient : BaseGelClient
 {
-    public MockedEdgeDBClient(ulong id)
+    public MockedGelClient(ulong id)
         : base(id, null!)
     {
     }

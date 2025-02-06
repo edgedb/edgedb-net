@@ -4,7 +4,7 @@ using System.Text;
 namespace Gel;
 
 /// <summary>
-///     Represents an exception that was caused by an error from EdgeDB.
+///     Represents an exception that was caused by an error from Gel.
 /// </summary>
 public sealed class ServerErrorException : GelException
 {

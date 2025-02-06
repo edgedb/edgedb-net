@@ -45,7 +45,7 @@ internal class ClassBuilder
         var writer = new CodeWriter();
 
         writer.AppendLine($"// Generated on {DateTimeOffset.UtcNow:O}");
-        writer.AppendLine("using EdgeDB;");
+        writer.AppendLine("using Gel;");
 
         var name = t.Name;
 
@@ -75,7 +75,7 @@ internal class ClassBuilder
             else
             {
                 // generate class
-                writer.AppendLine($"[EdgeDBType(\"{t.Name}\")]");
+                writer.AppendLine($"[GelType(\"{t.Name}\")]");
                 using (var __ = writer.BeginScope(
                            $"public{(t.IsAbstract ? " abstract" : "")} class {name} : {ResolveTypename(context!, t.Extending) ?? "BaseObject"}"))
                 {
@@ -168,7 +168,7 @@ internal class ClassBuilder
             type = $"Set<{type}>";
 
         writer.AppendLine(
-            $"[EdgeDBProperty(\"{prop.Name}\", IsLink = {Lower(prop.IsLink)}, IsRequired = {Lower(prop.Required)}, IsReadOnly = {Lower(prop.ReadOnly)}, IsComputed = {Lower(prop.IsComputed)})]");
+            $"[GelProperty(\"{prop.Name}\", IsLink = {Lower(prop.IsLink)}, IsRequired = {Lower(prop.Required)}, IsReadOnly = {Lower(prop.ReadOnly)}, IsComputed = {Lower(prop.IsComputed)})]");
 
         // TODO: maybe remove set operator for readonly / computed?
         writer.AppendLine($"public {type} {name} {{ get; set; }}");

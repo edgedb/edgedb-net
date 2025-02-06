@@ -11,7 +11,7 @@ public readonly struct LocalDate
     ///     Gets a <see cref="System.DateOnly" /> that represents the current <see cref="LocalDate" />.
     /// </summary>
     public DateOnly DateOnly
-        => DateOnly.FromDateTime(TemporalCommon.EdgeDBEpocDateTimeUTC.AddDays(Days).DateTime);
+        => DateOnly.FromDateTime(TemporalCommon.GelEpocDateTimeUTC.AddDays(Days).DateTime);
 
     /// <summary>
     ///     Gets the days component of this <see cref="LocalDate" />; representing the number of

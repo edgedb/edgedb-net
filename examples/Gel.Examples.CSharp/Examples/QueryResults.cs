@@ -6,10 +6,10 @@ public class QueryResults : IExample
 {
     public ILogger? Logger { get; set; }
 
-    // If you have ever used Newtonsoft.Json this will feel quite similar, we specify the 'EdgeDBProperty'
+    // If you have ever used Newtonsoft.Json this will feel quite similar, we specify the 'GelProperty'
     // attribute to define the properties name within the schema, if you want your class name to be different
-    // then the schema you can do the exact sam thing with the EdgeDBType attribute ex:
-    // [EdgeDBType("Person")]
+    // then the schema you can do the exact sam thing with the GelType attribute ex:
+    // [GelType("Person")]
     // public class DatabasePerson { ... }
 
     public async Task ExecuteAsync(GelClientPool clientPool)

@@ -3,7 +3,7 @@ using Gel.DataTypes;
 namespace Gel;
 
 /// <summary>
-///     Represents a transaction within EdgeDB.
+///     Represents a transaction within Gel.
 /// </summary>
 public sealed class Transaction : IGelQueryable
 {

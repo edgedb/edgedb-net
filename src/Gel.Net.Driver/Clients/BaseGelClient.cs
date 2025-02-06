@@ -4,7 +4,7 @@ using Gel.State;
 namespace Gel;
 
 /// <summary>
-///     Represents a base edgedb client that can interaction with the EdgeDB database.
+///     Represents a base gel client that can interaction with the Gel database.
 /// </summary>
 internal abstract class BaseGelClient : IGelQueryable, IAsyncDisposable
 {

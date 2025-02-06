@@ -19,7 +19,7 @@ public static class GelHostingExtensions
     /// <returns>
     ///     The source <see cref="IServiceCollection" /> with <see cref="GelClientPool" /> added as a singleton.
     /// </returns>
-    public static IServiceCollection AddEdgeDB(this IServiceCollection collection, GelConnection? connection = null,
+    public static IServiceCollection AddClientPool(this IServiceCollection collection, GelConnection? connection = null,
         Action<GelClientPoolConfig>? clientPoolConfig = null)
     {
         var conn = connection ?? GelConnection.Create();
@@ -32,7 +32,7 @@ public static class GelHostingExtensions
 
             if (config.Logger is null)
             {
-                config.Logger = provider.GetService<ILoggerFactory>()?.CreateLogger("EdgeDB");
+                config.Logger = provider.GetService<ILoggerFactory>()?.CreateLogger("Gel");
             }
 
             return config;

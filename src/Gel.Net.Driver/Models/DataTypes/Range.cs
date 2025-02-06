@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace Gel.DataTypes;
 
 /// <summary>
-///     Represents the <see href="https://www.edgedb.com/docs/stdlib/range">Range</see> type in EdgeDB.
+///     Represents the <see href="https://www.edgedb.com/docs/stdlib/range">Range</see> type in Gel.
 /// </summary>
 /// <typeparam name="T">The inner type of the range.</typeparam>
 public readonly struct Range<T>

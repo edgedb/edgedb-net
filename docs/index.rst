@@ -1,8 +1,8 @@
-.. _edgedb-dotnet-intro:
+.. _gel-dotnet-intro:
 
-==============================
-.NET client library for EdgeDB
-==============================
+===========================
+.NET client library for Gel
+===========================
 
 .. toctree:: 
   :maxdepth: 3
@@ -16,19 +16,19 @@
   api
   transactions
 
-EdgeDB.Net is the official EdgeDB .NET client, compatable with C#, F# and
+Gel.Net is the official Gel .NET client, compatable with C#, F# and
 VB.NET.
 
 .. note::
 
-  EdgeDB version 2.0 and above is required to use EdgeDB.Net.
+  Gel version 2.0 and above is required to use Gel.Net.
 
-.. _edgedb-dotnet-installing:
+.. _gel-dotnet-installing:
 
 Installing
 ----------
 
-EdgeDB.Net is distributed between two package managers: NuGet and MyGet;
+Gel.Net is distributed between two package managers: NuGet and MyGet;
 for stable and unstable respectively. To install the latest version, run the
 following command in your terminal:
 
@@ -49,35 +49,35 @@ following command in your terminal:
 
     $ dotnet add package EdgeDB.Net.Driver --source https://www.myget.org/F/edgedb-net/api/v3/index.json
 
-.. _edgedb-dotnet-basic-usage:
+.. _gel-dotnet-basic-usage:
 
 Quickstart
 ----------
 
-To start, you will need to setup an EdgeDB project and have an instance
+To start, you will need to setup an Gel project and have an instance
 created. For more information regarding how to do this, we recommend going
 through the `Quickstart guide <https://www.edgedb.com/docs/intro/quickstart>`_.
 
-After you have an instance running, you may now create an ``EdgeDBClient``:
+After you have an instance running, you may now create an ``GelClientPool``:
 
 .. tabs::
 
   .. code-tab:: cs
 
-    using EdgeDB.Net;
+    using Gel.Net;
   
-    var client = new EdgeDBClient();
+    var client = new GelClientPool();
 
   .. code-tab:: fsharp
 
-    open EdgeDB
+    open Gel
     
-    let client = EdgeDBClient()
+    let client = GelClientPool()
 
-``EdgeDBClient`` will automatically attempt to resolve your project's instance.
+``GelClientPool`` will automatically attempt to resolve your project's instance.
 In most circumstances, you won't need to specify any connection parameters.
 However, if you do need to, you'll want to do that by using
-``EdgeDBConnection.Parse()`` and passing the result into the client's instance.
+``GelConnection.Parse()`` and passing the result into the client's instance.
 
 Executing queries
 ^^^^^^^^^^^^^^^^^
@@ -104,15 +104,15 @@ with the ``QuerySingleAsync<T>`` method and printing its result:
 
 .. note:: 
 
-  For more information on how EdgeDB types are mapped to .NET types,
-  refer to the documentation on :ref:`datatypes <edgedb-dotnet-datatypes>`.
+  For more information on how Gel types are mapped to .NET types,
+  refer to the documentation on :ref:`datatypes <gel-dotnet-datatypes>`.
 
-.. _edgedb-dotnet-types-cardinality:
+.. _gel-dotnet-types-cardinality:
 
 Cardinality and return types
 ----------------------------
 
-Cardinality is exposed as different methods in the ``EdgeDBClient``. This means
+Cardinality is exposed as different methods in the ``GelClientPool``. This means
 you will need to specify which cardinality you want in your query by using
 what's given in the table below:
 
@@ -156,41 +156,41 @@ names and values within each result.
 .. note::
 
   For more information on how to use classes, refer to the documentation
-  on :ref:`custom types <edgedb-dotnet-custom-types>`.
+  on :ref:`custom types <gel-dotnet-custom-types>`.
 
 Dependency Injection (DI)
 -------------------------
 
-EdgeDB.Net supports `Dependency Injection`_ design patterns, allowing you to 
-easily integrate EdgeDB with your existing applications.
+Gel.Net supports `Dependency Injection`_ design patterns, allowing you to 
+easily integrate Gel with your existing applications.
 
 .. tabs::
 
   .. code-tab:: cs
 
-    using EdgeDB.Net;
+    using Gel.Net;
     using Microsoft.Extensions.DependencyInjection;
     
     ...
 
-    services.AddEdgeDB();
+    services.AddClientPool();
 
   .. code-tab:: fsharp
 
-    open EdgeDB.Net;
+    open Gel.Net;
     open Microsoft.Extensions.DependencyInjection;
     
     ...
 
-    services.AddEdgeDB();
+    services.AddClientPool();
 
-You can specify both a ``EdgeDBConnection`` and a delegate for configuring 
-the ``EdgeDBClientConfig``, the client will be added as a singleton to your 
+You can specify both a ``GelConnection`` and a delegate for configuring 
+the ``GelClientPoolConfig``, the client will be added as a singleton to your 
 service collection.
 
 .. note:: 
 
   Currently, there is no way to create a factory for clients, your service collection 
-  may only contain **one** ``EdgeDBClient``.
+  may only contain **one** ``GelClientPool``.
 
 .. _Dependency Injection: https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection

@@ -18,12 +18,12 @@ internal readonly struct DumpHeader : IReceiveable
     public readonly int Length;
 
     /// <summary>
-    ///     The EdgeDB major version.
+    ///     The Gel major version.
     /// </summary>
     public readonly ushort MajorVersion;
 
     /// <summary>
-    ///     The EdgeDB minor version.
+    ///     The Gel minor version.
     /// </summary>
     public readonly ushort MinorVersion;
 

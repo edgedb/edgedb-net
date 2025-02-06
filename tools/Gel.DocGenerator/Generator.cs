@@ -23,7 +23,7 @@ internal class Generator
     {
         var builder = new RSTWriter();
 
-        builder.AppendLine(".. _edgedb-dotnet-exceptions:\n");
+        builder.AppendLine(".. _gel-dotnet-exceptions:\n");
 
         builder.AppendLine("==========");
         builder.AppendLine("Exceptions");
@@ -44,7 +44,7 @@ internal class Generator
     {
         var builder = new RSTWriter();
 
-        builder.AppendLine(".. _edgedb-dotnet-api:\n");
+        builder.AppendLine(".. _gel-dotnet-api:\n");
 
         builder.AppendLine("=================");
         builder.AppendLine("API Documentation");
