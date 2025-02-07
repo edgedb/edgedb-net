@@ -12,13 +12,13 @@ Once we have our ASP.Net Core project, we can add the Gel.Net driver to our proj
 #### Myget
 
 ```console
-$ dotnet add package EdgeDB.Net.Driver -Source https://www.myget.org/F/edgedb-net/api/v3/index.json
+$ dotnet add package Gel.Net.Driver -Source https://www.myget.org/F/edgedb-net/api/v3/index.json
 ```
 
 #### NuGet
 
 ```console
-$ dotnet add package EdgeDB.Net.Driver
+$ dotnet add package Gel.Net.Driver
 ```
 
 ## Initializing Gel
