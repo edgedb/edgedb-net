@@ -810,14 +810,14 @@ API Documentation
 
         .. dn:method::  Create(Options options): GelConnection
 
-            Parses the `gel.toml`, optional ``T:Gel.GelConnection.Options``, and environment variables
+            Parses the ``gel.toml``, optional ``T:Gel.GelConnection.Options``, and environment variables
             to build an :dn:class:`Gel.GelConnection`.
 
             This function will first search for the first valid primary args (which can set host/port)
             in the following order:
             - ``T:Gel.GelConnection.Options``
             - Environment variables
-            - `gel.toml` file
+            - ``gel.toml`` file
 
             It will then apply any secondary args from the environment variables and options.
 
