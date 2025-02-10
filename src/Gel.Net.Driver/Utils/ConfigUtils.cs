@@ -13,10 +13,8 @@ internal static class ConfigUtils
 {
     internal static ISystemProvider DefaultPlatformProvider { get; } = new DefaultSystemProvider();
 
-    private static string GetEdgeDBKnownBasePath(ISystemProvider? platform)
+    private static string GetEdgeDBKnownBasePath(ISystemProvider platform)
     {
-        platform ??= DefaultPlatformProvider;
-
         if (platform.IsOSPlatform(OSPlatform.Windows))
             return platform.CombinePaths(platform.GetHomeDir(), "AppData", "Local", "EdgeDB");
         if (platform.IsOSPlatform(OSPlatform.OSX))
@@ -29,20 +27,16 @@ internal static class ConfigUtils
         return platform.CombinePaths(xdgConfigDir, "edgedb");
     }
 
-    private static string GetEdgeDBBasePath(ISystemProvider? platform)
+    private static string GetEdgeDBBasePath(ISystemProvider platform)
     {
-        platform ??= DefaultPlatformProvider;
-
         var basePath = GetEdgeDBKnownBasePath(platform);
         return platform.DirectoryExists(basePath)
             ? basePath
             : platform.CombinePaths(platform.GetHomeDir(), ".edgedb");
     }
 
-    public static string GetInstanceProjectDirectory(string projectDir, ISystemProvider? platform)
+    public static string GetInstanceProjectDirectory(string projectDir, ISystemProvider platform)
     {
-        platform ??= DefaultPlatformProvider;
-
         var fullPath = platform.GetFullPath(projectDir);
         var baseName = projectDir.Split(platform.DirectorySeparatorChar).Last();
         var hash = "";
@@ -56,25 +50,26 @@ internal static class ConfigUtils
         return platform.CombinePaths(GetEdgeDBConfigDir(platform), "projects", $"{baseName}-{hash.ToLower()}");
     }
 
-    public static string GetEdgeDBConfigDir(ISystemProvider? platform)
-        => (platform ?? DefaultPlatformProvider).IsOSPlatform(OSPlatform.Windows)
-            ? (platform ?? DefaultPlatformProvider).CombinePaths(GetEdgeDBBasePath(platform), "config")
+    public static string GetEdgeDBConfigDir(ISystemProvider platform)
+        => platform.IsOSPlatform(OSPlatform.Windows)
+            ? platform.CombinePaths(GetEdgeDBBasePath(platform), "config")
             : GetEdgeDBBasePath(platform);
 
-    public static string GetCredentialsDir(ISystemProvider? platform)
-        => (platform ?? DefaultPlatformProvider).CombinePaths(GetEdgeDBConfigDir(platform), "credentials");
+    public static string GetCredentialsDir(ISystemProvider platform)
+        => platform.CombinePaths(GetEdgeDBConfigDir(platform), "credentials");
 
-    public static bool TryResolveInstanceTOML([NotNullWhen(true)] out string? tomlPath, ISystemProvider? platform)
+    public static bool TryResolveInstanceTOML(
+        [NotNullWhen(true)] out string? tomlPath,
+        ISystemProvider platform)
     {
-        platform ??= DefaultPlatformProvider;
-
         return TryResolveInstanceTOML(platform.GetCurrentDirectory(), out tomlPath, platform);
     }
 
-    public static bool TryResolveInstanceTOML(string cdir, [NotNullWhen(true)] out string? tomlPath, ISystemProvider? platform)
+    public static bool TryResolveInstanceTOML(
+        string cdir,
+        [NotNullWhen(true)] out string? tomlPath,
+        ISystemProvider platform)
     {
-        platform ??= DefaultPlatformProvider;
-
         var dir = cdir;
 
         while (true)
@@ -109,10 +104,11 @@ internal static class ConfigUtils
         return false;
     }
 
-    public static bool TryResolveProjectDatabase(string stashDir, [NotNullWhen(true)] out string? database, ISystemProvider? platform)
+    public static bool TryResolveProjectDatabase(
+        string stashDir,
+        [NotNullWhen(true)] out string? database,
+        ISystemProvider platform)
     {
-        platform ??= DefaultPlatformProvider;
-
         database = null;
 
         if (!platform.DirectoryExists(stashDir))
@@ -129,10 +125,11 @@ internal static class ConfigUtils
         return false;
     }
 
-    public static bool TryResolveInstanceCloudProfile(out string? profile, out string? linkedInstanceName, ISystemProvider? platform)
+    public static bool TryResolveInstanceCloudProfile(
+        out string? profile,
+        out string? linkedInstanceName,
+        ISystemProvider platform)
     {
-        platform ??= DefaultPlatformProvider;
-
         profile = null;
         linkedInstanceName = null;
 
@@ -144,11 +141,12 @@ internal static class ConfigUtils
         return TryResolveInstanceCloudProfile(stashDir, out profile, out linkedInstanceName, platform);
     }
 
-    public static bool TryResolveInstanceCloudProfile(string stashDir, out string? profile,
-        out string? linkedInstanceName, ISystemProvider? platform)
+    public static bool TryResolveInstanceCloudProfile(
+        string stashDir,
+        out string? profile,
+        out string? linkedInstanceName,
+        ISystemProvider platform)
     {
-        platform ??= DefaultPlatformProvider;
-
         profile = null;
         linkedInstanceName = null;
 
@@ -172,10 +170,8 @@ internal static class ConfigUtils
         return profile is not null || linkedInstanceName is not null;
     }
 
-    public static CloudProfile ReadCloudProfile(string profile, ISystemProvider? platform)
+    public static CloudProfile ReadCloudProfile(string profile, ISystemProvider platform)
     {
-        platform ??= DefaultPlatformProvider;
-
         var profilePath = platform.CombinePaths(GetEdgeDBConfigDir(platform), "cloud-credentials", $"{profile}.json");
 
         if (!platform.FileExists(profilePath))
