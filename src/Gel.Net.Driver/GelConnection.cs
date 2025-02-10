@@ -284,13 +284,11 @@ public sealed class GelConnection
     /// </exception>
     public static GelConnection Create(Options? options = null)
     {
-        return _Create(options ?? new(), null);
+        return _Create(options ?? new(), ConfigUtils.DefaultPlatformProvider);
     }
 
-    internal static GelConnection _Create(Options options, ISystemProvider? platform)
+    internal static GelConnection _Create(Options options, ISystemProvider platform)
     {
-        platform ??= ConfigUtils.DefaultPlatformProvider;
-
         ConfigUtils.ResolvedFields resolvedFields = new();
 
         #region Primary Options
@@ -700,10 +698,8 @@ public sealed class GelConnection
 
     #region Create Helpers
 
-    internal static GelConnection _FromResolvedFields(ConfigUtils.ResolvedFields resolvedFields, ISystemProvider? platform)
+    internal static GelConnection _FromResolvedFields(ConfigUtils.ResolvedFields resolvedFields, ISystemProvider platform)
     {
-        platform ??= ConfigUtils.DefaultPlatformProvider;
-
         if (ConfigUtils.TryGetFieldValue(resolvedFields.Host, out string host))
         {
             if (host.Contains(','))
@@ -803,10 +799,8 @@ public sealed class GelConnection
         @"^(?<entry>[^=&]+(?:=[^=&]*)?)(?:&(?<entry>[^=&]+(?:=[^=&]*)?))*$"
     );
 
-    internal static ConfigUtils.ResolvedFields _FromDSN(string dsn, ISystemProvider? platform)
+    internal static ConfigUtils.ResolvedFields _FromDSN(string dsn, ISystemProvider platform)
     {
-        platform ??= ConfigUtils.DefaultPlatformProvider;
-
         Match dsnMatch = _dsnRegex.Match(Uri.UnescapeDataString(dsn));
         if (!dsnMatch.Success)
         {
@@ -1058,10 +1052,8 @@ public sealed class GelConnection
         return resolvedFields;
     }
 
-    internal static ConfigUtils.ResolvedFields _FromProjectFile(string path, ISystemProvider? platform)
+    internal static ConfigUtils.ResolvedFields _FromProjectFile(string path, ISystemProvider platform)
     {
-        platform ??= ConfigUtils.DefaultPlatformProvider;
-
         if (!platform.FileExists(path))
             throw new FileNotFoundException("Couldn't find the specified project file", path);
 
@@ -1088,10 +1080,8 @@ public sealed class GelConnection
         return resolvedFields;
     }
 
-    internal static ConfigUtils.ResolvedFields _FromInstanceName(string name, string? cloudProfile, ISystemProvider? platform)
+    internal static ConfigUtils.ResolvedFields _FromInstanceName(string name, string? cloudProfile, ISystemProvider platform)
     {
-        platform ??= ConfigUtils.DefaultPlatformProvider;
-
         if (Regex.IsMatch(name, @"^\w(-?\w)*$"))
         {
             var configPath = platform.CombinePaths(ConfigUtils.GetCredentialsDir(platform), $"{name}.json");
@@ -1115,10 +1105,8 @@ public sealed class GelConnection
         throw new ConfigurationException($"Invalid instance name '{name}'");
     }
 
-    internal static ConfigUtils.ResolvedFields? _ResolveInstanceTOML(ISystemProvider? platform)
+    internal static ConfigUtils.ResolvedFields? _ResolveInstanceTOML(ISystemProvider platform)
     {
-        platform ??= ConfigUtils.DefaultPlatformProvider;
-
         var dir = platform.GetCurrentDirectory();
 
         while (true)
@@ -1140,7 +1128,7 @@ public sealed class GelConnection
 
     private static readonly string _defaultCloudProfile = "default";
     private static ConfigUtils.ResolvedFields ParseCloudInstanceName(
-        string name, string? secretKey, string? cloudProfile, ISystemProvider? platform)
+        string name, string? secretKey, string? cloudProfile, ISystemProvider platform)
     {
         if (name.Length > DOMAIN_NAME_MAX_LEN)
         {
