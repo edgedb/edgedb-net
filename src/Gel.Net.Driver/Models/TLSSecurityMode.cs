@@ -33,7 +33,7 @@ public enum TLSSecurityMode
 
 internal class TLSSecurityModeParser : JsonConverter<TLSSecurityMode?>
 {
-    internal static bool TryParse(string text, bool parseEmptyAsNull, out TLSSecurityMode? tlsSecurity)
+    internal static bool TryParse(string text, bool emptyAsDefault, out TLSSecurityMode? tlsSecurity)
     {
         // Capitalized text does not conform to other libraries,
         // but is supported for backwards compatibility.
@@ -53,7 +53,7 @@ internal class TLSSecurityModeParser : JsonConverter<TLSSecurityMode?>
                 return true;
             case "":
                 tlsSecurity = null;
-                return parseEmptyAsNull;
+                return emptyAsDefault;
         }
         tlsSecurity = null;
         return false;
