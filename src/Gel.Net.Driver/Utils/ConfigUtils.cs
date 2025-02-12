@@ -397,7 +397,7 @@ internal static class ConfigUtils
     private static readonly Regex _humanMilliseconds = new Regex(
         @"(?<time>(?:(?<=\s|^)-\s*)?\d*\.?\d*)\s*(?:ms(?=\s|\d|\.|$)|milliseconds?(?:\s|$))",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex _humanNanoseconds = new Regex(
+    private static readonly Regex _humanMicroseconds = new Regex(
         @"(?<time>(?:(?<=\s|^)-\s*)?\d*\.?\d*)\s*(?:us(\s|\d|\.|$)|microseconds?(?:\s|$))",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
@@ -468,8 +468,8 @@ internal static class ConfigUtils
             if (PopHumanDuration(_humanMinutes, 60 * 1000, ref text, ref time)) { found = true; }
             if (PopHumanDuration(_humanSeconds, 1 * 1000, ref text, ref time)) { found = true; }
             if (PopHumanDuration(_humanMilliseconds, 1, ref text, ref time)) { found = true; }
-            // We parse nanoseconds, but don't support them
-            if (PopHumanDuration(_humanNanoseconds, 0, ref text, ref time)) { found = true; }
+            // We parse microseconds, but don't support them
+            if (PopHumanDuration(_humanMicroseconds, 0, ref text, ref time)) { found = true; }
             if (found && text.Trim() == "")
             {
                 return time;
