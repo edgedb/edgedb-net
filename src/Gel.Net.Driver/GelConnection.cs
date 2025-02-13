@@ -859,12 +859,12 @@ public sealed class GelConnection
                 string[] entry = capture.Value.Split('=');
                 if (entry.Length == 2)
                 {
-                    if (args.ContainsKey(entry[0]))
+                    string paramName = entry[0].ToLower();
+                    if (args.ContainsKey(paramName))
                     {
                         throw new ConfigurationException($"Invalid DSN: dupliate query parameter \"{entry[0]}\"");
                     }
 
-                    string paramName = entry[0];
                     if (paramName.EndsWith("_env")) paramName = paramName.Substring(0, paramName.Length - "_env".Length);
                     if (paramName.EndsWith("_file")) paramName = paramName.Substring(0, paramName.Length - "_file".Length);
 
@@ -882,21 +882,13 @@ public sealed class GelConnection
                 }
                 else
                 {
-                    if (entry[0] == "port")
-                    {
-                        throw new ConfigurationException("Invalid port in dsn query parameters");
-                    }
-                    else if (entry[0] == "database")
-                    {
-                        throw new ConfigurationException("Invalid database in dsn query parameters");
-                    }
-                    else if (entry[0] == "branch")
-                    {
-                        throw new ConfigurationException("Invalid branch in dsn query parameters");
-                    }
-                    else if (entry[0] == "tls_security")
+                    if (entry[0] == "tls_security")
                     {
                         throw new ConfigurationException("Invalid TLS Security in dsn query parameters");
+                    }
+                    else
+                    {
+                        throw new ConfigurationException($"Invalid {entry[0]} in dsn query parameters");
                     }
                 }
             }
@@ -919,8 +911,7 @@ public sealed class GelConnection
         if (username is not null) { resolvedFields.User = username; }
         if (password is not null) { resolvedFields.Password = password; }
 
-        if (args.Any(x => x.Key.StartsWith("branch", StringComparison.InvariantCultureIgnoreCase))
-            && args.Any(x => x.Key.StartsWith("database", StringComparison.InvariantCultureIgnoreCase)))
+        if (args.Any(x => x.Key.StartsWith("branch")) && args.Any(x => x.Key.StartsWith("database")))
         {
             throw new ConfigurationException("Invalid DSN: branch and database are mutually exclusive");
         }
