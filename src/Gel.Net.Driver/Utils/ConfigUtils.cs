@@ -339,7 +339,7 @@ internal static class ConfigUtils
         @"(?<time>(?:(?<=\s|^)-\s*)?\d*\.?\d*)\s*(?:us(\s|\d|\.|$)|microseconds?(?:\s|$))",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    internal static ConfigUtils.ResolvedField<int> ParseWaitUntilAvailable(string text)
+    internal static ResolvedField<int> ParseWaitUntilAvailable(string text)
     {
         string originalText = text;
 

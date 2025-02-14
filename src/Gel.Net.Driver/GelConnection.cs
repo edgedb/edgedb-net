@@ -478,6 +478,11 @@ public sealed class GelConnection
                 }
                 if (platform.GetGelEnvVariable(PORT_ENV_NAME, out envName, out envVar))
                 {
+                    if (envVar.StartsWith("tcp://"))
+                    {
+                        platform.WriteWarning(
+                            $"{envName} in \"tcp://host:port\" format, so will be ignored");
+                    }
                     ConfigUtils.ResolvedField<int>? port = ConfigUtils.ParsePort(envVar);
                     if (port is not null)
                     {

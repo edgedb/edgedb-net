@@ -55,6 +55,33 @@ public class SharedClientTests
             {
                 AssertSameException(result, testCase.Error);
             }
+
+            if (testCase.Warnings is not null)
+            {
+                Assert.AreEqual(
+                    testCase.Warnings.Count,
+                    result.Warnings.Count,
+                    $"{testCase.Name}"
+                );
+                foreach ((int warningIndex, string expectedWarningType) in testCase.Warnings.Select((x, i) => (i, x)))
+                {
+                    (Type expectedType, Regex expectedRegex) = _errorMapping[expectedWarningType];
+
+                    string actual = result.Warnings[warningIndex];
+
+                    Assert.IsTrue(
+                        expectedRegex.Match(actual).Success,
+                        $"{testCase.Name}: Warning message \"{actual}\" does not match pattern \"{expectedRegex}\"\n");
+                }
+            }
+            else
+            {
+                Assert.AreEqual(
+                    0,
+                    result.Warnings.Count,
+                    $"{testCase.Name}"
+                );
+            }
         }
     }
 
@@ -62,17 +89,31 @@ public class SharedClientTests
     {
         public GelConnection? Connection { get; init; }
         public Exception? Exception { get; init; }
+        public List<string> Warnings { get; init; } = [];
 
-        public static implicit operator TestResult(GelConnection c) => new() {Connection = c};
-        public static implicit operator TestResult(Exception x) => new() {Exception = x};
+        public static TestResult Create(
+            GelConnection c,
+            List<string>? w
+        ) => new() {
+            Connection = c,
+            Warnings = w ?? [],
+        };
+
+        public static TestResult Create(
+            Exception x,
+            List<string>? w
+        ) => new() {
+            Exception = x,
+            Warnings = w ?? [],
+        };
     }
 
     private static TestResult ParseConnection(TestCase testCase)
     {
+        MockSystemProvider mockSystem = new MockSystemProvider(testCase);
+
         try
         {
-            ISystemProvider mockSystem = new MockSystemProvider(testCase);
-
             GelConnection.Options config = new()
             {
                 Instance = testCase?.Options?.Instance,
@@ -107,11 +148,11 @@ public class SharedClientTests
 
             GelConnection connection = GelConnection._Create(config, mockSystem);
 
-            return connection;
+            return TestResult.Create(connection, mockSystem.Warnings);
         }
-        catch (Exception x)
+        catch (Exception exception)
         {
-            return x;
+            return TestResult.Create(exception, mockSystem.Warnings);
         }
     }
 
