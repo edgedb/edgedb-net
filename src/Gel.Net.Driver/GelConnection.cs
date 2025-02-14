@@ -220,6 +220,8 @@ public sealed class GelConnection
         // These can set host/port of the connection.
         public string? Instance { get; set; }
         public string? Dsn { get; set; }
+        public string? Credentials { get; set; }
+        public string? CredentialsFile { get; set; }
         public string? Host { get; set; }
         public int? Port { get; set; }
 
@@ -229,8 +231,6 @@ public sealed class GelConnection
         public string? User { get; set; }
         public string? Password { get; set; }
         public string? SecretKey { get; set; }
-        public string? Credentials { get; set; }
-        public string? CredentialsFile { get; set; }
         public string? TLSCertificateAuthority { get; set; }
         public string? TLSCertificateAuthorityFile { get; set; }
         public TLSSecurityMode? TLSSecurity { get; set; }
@@ -241,6 +241,8 @@ public sealed class GelConnection
         public bool IsEmpty =>
             Instance is null
             && Dsn is null
+            && Credentials is null
+            && CredentialsFile is null
             && Host is null
             && Port is null
             && Database is null
@@ -248,8 +250,6 @@ public sealed class GelConnection
             && User is null
             && Password is null
             && SecretKey is null
-            && Credentials is null
-            && CredentialsFile is null
             && TLSCertificateAuthority is null
             && TLSCertificateAuthorityFile is null
             && TLSSecurity is null

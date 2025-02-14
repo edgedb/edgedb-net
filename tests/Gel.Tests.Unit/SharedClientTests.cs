@@ -32,7 +32,6 @@ public class SharedClientTests
         {
             if (testCase.FileSystem is not null
                 && (
-                    !(testCase.Platform is null && RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) ||
                     !(testCase.Platform == "windows" && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) ||
                     !(testCase.Platform == "macos" && RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                     ))
@@ -78,6 +77,8 @@ public class SharedClientTests
             {
                 Instance = testCase?.Options?.Instance,
                 Dsn = testCase?.Options?.Dsn,
+                Credentials = testCase?.Options?.Credentials,
+                CredentialsFile = testCase?.Options?.CredentialsFile,
                 Host = testCase?.Options?.Host,
                 Port = (
                     testCase?.Options?.Port is null
@@ -92,8 +93,6 @@ public class SharedClientTests
                 User = testCase?.Options?.User,
                 Password = testCase?.Options?.Password,
                 SecretKey = testCase?.Options?.SecretKey,
-                Credentials = testCase?.Options?.Credentials,
-                CredentialsFile = testCase?.Options?.CredentialsFile,
                 TLSCertificateAuthority = testCase?.Options?.TlsCA,
                 TLSCertificateAuthorityFile = testCase?.Options?.TlsCAFile,
                 TLSSecurity = (
@@ -464,6 +463,12 @@ public class SharedClientTests
             [JsonProperty("dsn")]
             public string? Dsn { get; init; }
 
+            [JsonProperty("credentials")]
+            public string? Credentials { get; init; }
+
+            [JsonProperty("credentialsFile")]
+            public string? CredentialsFile { get; init; }
+
             [JsonProperty("host")]
             public string? Host { get; init; }
 
@@ -486,12 +491,6 @@ public class SharedClientTests
             [JsonProperty("secretKey")]
             public string? SecretKey { get; init; }
 
-            [JsonProperty("credentials")]
-            public string? Credentials { get; init; }
-
-            [JsonProperty("credentialsFile")]
-            public string? CredentialsFile { get; init; }
-
             [JsonProperty("tlsCA")]
             public string? TlsCA { get; init; }
 
@@ -509,35 +508,6 @@ public class SharedClientTests
 
             [JsonProperty("serverSettings")]
             public Dictionary<string, string>? ServerSettings { get; init; }
-        }
-
-        public class Credentials
-        {
-            [JsonProperty("host")]
-            public string? Host { get; init; }
-
-            [JsonProperty("port")]
-            [JsonConverter(typeof(AsStringConverter))]
-            public string? Port { get; init; }
-
-            [JsonProperty("database")]
-            public string? Database { get; init; }
-
-            [JsonProperty("branch")]
-            public string? Branch { get; init; }
-
-            [JsonProperty("user")]
-            public string? User { get; init; }
-
-            [JsonProperty("password")]
-            public string? Password { get; init; }
-
-            [JsonProperty("tls_ca")]
-            public string? TlsCA { get; init; }
-
-            [JsonProperty("tls_security")]
-            [JsonConverter(typeof(TLSSecurityModeParser))]
-            public TLSSecurityMode? TlsSecurity { get; init; }
         }
 
         public class FileSystemData

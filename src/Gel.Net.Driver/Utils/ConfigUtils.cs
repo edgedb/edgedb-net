@@ -58,52 +58,6 @@ internal static class ConfigUtils
     public static string GetCredentialsDir(ISystemProvider platform)
         => platform.CombinePaths(GetEdgeDBConfigDir(platform), "credentials");
 
-    public static bool TryResolveInstanceTOML(
-        [NotNullWhen(true)] out string? tomlPath,
-        ISystemProvider platform)
-    {
-        return TryResolveInstanceTOML(platform.GetCurrentDirectory(), out tomlPath, platform);
-    }
-
-    public static bool TryResolveInstanceTOML(
-        string cdir,
-        [NotNullWhen(true)] out string? tomlPath,
-        ISystemProvider platform)
-    {
-        var dir = cdir;
-
-        while (true)
-        {
-            var edgeDBTarget = platform.CombinePaths(dir!, "edgedb.toml");
-
-            if (platform.FileExists(edgeDBTarget))
-            {
-                tomlPath = edgeDBTarget;
-                return true;
-            }
-
-            var gelTarget = platform.CombinePaths(dir!, "gel.toml");
-
-            if (platform.FileExists(gelTarget))
-            {
-                tomlPath = gelTarget;
-                return true;
-            }
-
-
-            var parent = platform.DirectoryGetParent(dir!);
-
-            if (parent is null || !parent.Exists)
-                break;
-
-
-            dir = parent.FullName;
-        }
-
-        tomlPath = null;
-        return false;
-    }
-
     public static bool TryResolveProjectDatabase(
         string stashDir,
         [NotNullWhen(true)] out string? database,
@@ -123,22 +77,6 @@ internal static class ConfigUtils
         }
 
         return false;
-    }
-
-    public static bool TryResolveInstanceCloudProfile(
-        out string? profile,
-        out string? linkedInstanceName,
-        ISystemProvider platform)
-    {
-        profile = null;
-        linkedInstanceName = null;
-
-        if (!TryResolveInstanceTOML(out var toml, platform))
-            return false;
-
-        var stashDir = GetInstanceProjectDirectory(platform.DirectoryGetParent(toml)!.FullName!, platform);
-
-        return TryResolveInstanceCloudProfile(stashDir, out profile, out linkedInstanceName, platform);
     }
 
     public static bool TryResolveInstanceCloudProfile(
