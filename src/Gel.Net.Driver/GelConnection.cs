@@ -39,8 +39,7 @@ internal class ConnectionCredentials
     public string? TlsCA { get; init; }
 
     [JsonProperty("tls_security")]
-    [JsonConverter(typeof(TLSSecurityModeParser))]
-    public TLSSecurityMode? TlsSecurity { get; init; }
+    public string? TlsSecurity { get; init; }
 }
 
 
@@ -1022,17 +1021,7 @@ public sealed class GelConnection
                     resolvedFields.TLSServerName = value;
                     break;
                 case "tls_security":
-                    resolvedFields.TLSSecurity = value.Convert<TLSSecurityMode>(v =>
-                    {
-                        try
-                        {
-                            return TLSSecurityModeParser.Parse(v);
-                        }
-                        catch (Exception e)
-                        {
-                            return e;
-                        }
-                    });
+                    resolvedFields.TLSSecurity = value.Convert(ConfigUtils.ParseTLSSecurityMode);
                     break;
                 case "wait_until_available":
                     resolvedFields.WaitUntilAvailable = value.Convert(ConfigUtils.ParseWaitUntilAvailable);

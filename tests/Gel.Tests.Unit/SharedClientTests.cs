@@ -114,6 +114,28 @@ public class SharedClientTests
 
         try
         {
+            int? optionsPort = null;
+            if (testCase?.Options?.Port is not null)
+            {
+                if (int.TryParse(testCase?.Options?.Port, out var parsedPort))
+                {
+                    optionsPort = parsedPort;
+                }
+                else
+                {
+                    throw new ConfigurationException(
+                        $"Invalid port: {testCase?.Options?.Port}, not an integer");
+                }
+            }
+
+            TLSSecurityMode? tlsSecurity = null;
+            if (testCase?.Options?.TlsSecurity is not null)
+            {
+                tlsSecurity =
+                    ConfigUtils.ParseTLSSecurityMode(testCase.Options.TlsSecurity)
+                    .CheckAndGetValue();
+            }
+
             GelConnection.Options config = new()
             {
                 Instance = testCase?.Options?.Instance,
@@ -121,14 +143,7 @@ public class SharedClientTests
                 Credentials = testCase?.Options?.Credentials,
                 CredentialsFile = testCase?.Options?.CredentialsFile,
                 Host = testCase?.Options?.Host,
-                Port = (
-                    testCase?.Options?.Port is null
-                        ? null
-                        : int.TryParse(testCase?.Options?.Port, out var parsedPort)
-                            ? parsedPort
-                            : throw new ConfigurationException(
-                                $"Invalid port: {testCase?.Options?.Port}, not an integer")
-                ),
+                Port = optionsPort,
                 Database = testCase?.Options?.Database,
                 Branch = testCase?.Options?.Branch,
                 User = testCase?.Options?.User,
@@ -136,11 +151,7 @@ public class SharedClientTests
                 SecretKey = testCase?.Options?.SecretKey,
                 TLSCertificateAuthority = testCase?.Options?.TlsCA,
                 TLSCertificateAuthorityFile = testCase?.Options?.TlsCAFile,
-                TLSSecurity = (
-                    testCase?.Options?.TlsSecurity is null
-                        ? null
-                        : TLSSecurityModeParser.Parse(testCase.Options.TlsSecurity)
-                ),
+                TLSSecurity = tlsSecurity,
                 TLSServerName = testCase?.Options?.TlsServerName,
                 WaitUntilAvailable = testCase?.Options?.WaitUntilAvailable,
                 ServerSettings = testCase?.Options?.ServerSettings,
@@ -172,7 +183,15 @@ public class SharedClientTests
         string expectedPassword = expectedResult.Password ?? "";
         string? expectedSecretKey = expectedResult.SecretKey;
         string? expectedTLSCertificateAuthority = expectedResult.TlsCAData;
-        TLSSecurityMode expectedTLSSecurity = expectedResult.TlsSecurity ?? TLSSecurityMode.Strict;
+        TLSSecurityMode expectedTLSSecurity = TLSSecurityMode.Default;
+        if (expectedResult.TlsSecurity is not null)
+        {
+            if (TLSSecurityModeParser.TryParse(
+                expectedResult.TlsSecurity, false, out var parsedTlsSecurity))
+            {
+                expectedTLSSecurity = parsedTlsSecurity ?? TLSSecurityMode.Default;
+            }
+        };
         string? expectedTLSServerName = expectedResult.TlsServerName;
         int expectedWaitUntilAvailable = 
             expectedResult.WaitUntilAvailable is not null
@@ -600,8 +619,7 @@ public class SharedClientTests
             public string? TlsCAData { get; init; }
 
             [JsonProperty("tlsSecurity")]
-            [JsonConverter(typeof(TLSSecurityModeParser))]
-            public TLSSecurityMode? TlsSecurity { get; init; }
+            public string? TlsSecurity { get; init; }
 
             [JsonProperty("tlsServerName")]
             public string? TlsServerName { get; init; }

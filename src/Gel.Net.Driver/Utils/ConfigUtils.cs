@@ -276,7 +276,7 @@ internal static class ConfigUtils
             if (credentials.Host is not null) { result.Host = credentials.Host; }
             if (credentials.Port is not null)
             {
-                result.Port = MergeField(result.Port, ParsePort(credentials.Port));
+                result.Port = ParsePort(credentials.Port) ?? result.Port;
             }
             if (credentials.Database is not null)
             {
@@ -289,7 +289,10 @@ internal static class ConfigUtils
             if (credentials.User is not null) { result.User = credentials.User; }
             if (credentials.Password is not null) { result.Password = credentials.Password; }
             if (credentials.TlsCA is not null) { result.TLSCertificateAuthority = credentials.TlsCA; }
-            if (credentials.TlsSecurity is not null) { result.TLSSecurity = credentials.TlsSecurity; }
+            if (credentials.TlsSecurity is not null)
+            {
+                result.TLSSecurity = ParseTLSSecurityMode(credentials.TlsSecurity);
+            }
 
             return result;
         }
@@ -312,6 +315,20 @@ internal static class ConfigUtils
         else
         {
             return new ConfigurationException($"Invalid port: \"{text}\", not an integer");
+        }
+    }
+
+    public static ResolvedField<TLSSecurityMode> ParseTLSSecurityMode(string text)
+    {
+        if (TLSSecurityModeParser.TryParse(text, false, out TLSSecurityMode? tlsSecurity))
+        {
+            return tlsSecurity ?? TLSSecurityMode.Default;
+        }
+        else
+        {
+            return new ConfigurationException(
+                $"Invalid TLS Security: \"{text}\", "
+                + "must be one of \"insecure\", \"no_host_verification\", \"strict\", or \"default\"");
         }
     }
 
