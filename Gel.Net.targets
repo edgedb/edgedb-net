@@ -1,6 +1,6 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <VersionPrefix>0.0.1</VersionPrefix>
+        <VersionPrefix>2.0.0</VersionPrefix>
         <LangVersion>latest</LangVersion>
         <Authors>Gel.Net Contributors</Authors>
         <PackageTags>edgedb;gel;db;database</PackageTags>

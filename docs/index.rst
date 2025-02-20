@@ -47,7 +47,7 @@ following command in your terminal:
   .. code-tab:: bash
     :caption: MyGet
 
-    $ dotnet add package Gel.Net.Driver --source https://www.myget.org/F/edgedb-net/api/v3/index.json
+    $ dotnet add package Gel.Net.Driver --source https://www.myget.org/F/gel-net/api/v3/index.json
 
 .. _gel-dotnet-basic-usage:
 
