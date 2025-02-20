@@ -24,4 +24,4 @@ jobs:
       - name: Pack
         run: dotnet pack src/Gel.Net.Driver/Gel.Net.Driver.csproj -c Release -o ./artifacts --no-build
       - name: Upload
-        run: dotnet nuget push ./artifacts/Gel.Net.*.nupkg --api-key ${{ secrets.MYGET_GEL_NET }} --source https://www.myget.org/F/edgedb-net/api/v2/package
+        run: dotnet nuget push ./artifacts/Gel.Net.*.nupkg --api-key ${{ secrets.MYGET_GEL_NET }} --source https://www.myget.org/F/gel-net/api/v2/package
