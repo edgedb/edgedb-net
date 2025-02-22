@@ -76,7 +76,7 @@ Queries are executed through the `GelClientPool` by using different helper
 methods. Your choice of method is dependent on the kind of query you're making,
 better known as [cardinality](https://www.geldata.com/docs/clients/dotnet/index#cardinality-and-return-types).
 
-Query helper methods will expect a generic `T` type which is the [.NET version of an Gel type](https://www.edgedb.com/docs/clients/dotnet/datatypes#datatypes):
+Query helper methods will expect a generic `T` type which is the [.NET version of an Gel type](https://www.geldata.com/docs/clients/dotnet/datatypes#datatypes):
 
 ```cs
 var result = await client.QueryAsync<long>("select 2 + 2"); // returns 4

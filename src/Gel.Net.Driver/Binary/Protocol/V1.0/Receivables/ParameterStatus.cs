@@ -2,7 +2,7 @@ namespace Gel.Binary.Protocol.V1._0.Packets;
 
 /// <summary>
 ///     Represents the
-///     <see href="https://www.edgedb.com/docs/reference/protocol/messages#parameterstatus">Parameter Status</see> packet.
+///     <see href="https://www.geldata.com/docs/reference/protocol/messages#parameterstatus">Parameter Status</see> packet.
 /// </summary>
 internal readonly struct ParameterStatus : IReceiveable
 {
