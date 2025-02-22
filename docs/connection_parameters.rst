@@ -40,7 +40,7 @@ a ``GelConnection`` is to use the static helper method ``Create``
         Gets the username used to connect to the database. 
 
         .. note::
-            This property defaults to edgedb 
+            This property defaults to ``edgedb`` 
 
     :property string Password:
         Gets the password to connect to the database. 
@@ -88,7 +88,7 @@ a ``GelConnection`` is to use the static helper method ``Create``
         If any primary ``T:Gel.GelConnection.Options`` are present, then all environment variables
         are ignored.
 
-        See the `documentation <https://www.edgedb.com/docs/reference/connection>`_ for more information. 
+        See the `documentation <https://www.geldata.com/docs/reference/connection>`_ for more information. 
 
         :param Options options:
             Options used to build the :dn:class:`Gel.GelConnection`.
@@ -100,6 +100,6 @@ a ``GelConnection`` is to use the static helper method ``Create``
             An error occured while parsing or configuring the :dn:class:`Gel.GelConnection`. 
 
 
-.. _Priority Levels: https://www.edgedb.com/docs/reference/connection#ref-reference-connection-priority
-.. _gel DSN: https://www.edgedb.com/docs/reference/dsn
+.. _Priority Levels: https://www.geldata.com/docs/reference/connection#ref-reference-connection-priority
+.. _gel DSN: https://www.geldata.com/docs/reference/dsn
 

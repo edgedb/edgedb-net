@@ -115,7 +115,7 @@ public sealed class GelConnection
     ///     Gets the database name to use when connecting.
     /// </summary>
     /// <remarks>
-    ///     This property defaults to <c>edgedb</c>.  It is mutually exclusive with <see cref="Branch"/>.
+    ///     This property defaults to <c>"edgedb"</c>.  It is mutually exclusive with <see cref="Branch"/>.
     /// </remarks>
     public string? Database
     {
@@ -128,7 +128,7 @@ public sealed class GelConnection
     ///     Gets the branch name to use when connecting.
     /// </summary>
     /// <remarks>
-    ///     This property defaults to <c>__default__</c>. It is mutually exclusive with <see cref="Database"/>
+    ///     This property defaults to <c>"__default__"</c>. It is mutually exclusive with <see cref="Database"/>
     /// </remarks>
     public string? Branch
     {
@@ -141,7 +141,7 @@ public sealed class GelConnection
     ///     Gets the username used to connect to the database.
     /// </summary>
     /// <remarks>
-    ///     This property defaults to edgedb
+    ///     This property defaults to <c>"edgedb"</c>
     /// </remarks>
     public string Username
     {
@@ -271,7 +271,7 @@ public sealed class GelConnection
     /// 
     ///     If any primary <see cref="Options"/> are present, then all environment variables are ignored.
     /// 
-    ///     See the <see href="https://www.edgedb.com/docs/reference/connection">documentation</see>
+    ///     See the <see href="https://www.geldata.com/docs/reference/connection">documentation</see>
     ///     for more information.
     /// </summary>
     /// <param name="options">Options used to build the <see cref="GelConnection" />.</param>

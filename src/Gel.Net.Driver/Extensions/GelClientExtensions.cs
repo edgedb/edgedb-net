@@ -256,7 +256,7 @@ public static class GelClientExtensions
                     await transaction.RollbackAsync().ConfigureAwait(false);
                 }
                 catch (Exception rollbackErr) when
-                    (rollbackErr is not GelException) // see https://github.com/edgedb/edgedb-js/blob/f170b5f53eab605454704e869e083c2afc693ada/src/client.ts#L142
+                    (rollbackErr is not GelException) // see https://github.com/geldata/gel-js/blob/f170b5f53eab605454704e869e083c2afc693ada/src/client.ts#L142
                 {
                     throw;
                 }

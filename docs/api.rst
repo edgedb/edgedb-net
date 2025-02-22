@@ -658,7 +658,7 @@ API Documentation
 
         .. dn:method::  WithGlobals(IDictionary<string,object> globals): GelClientPool
 
-            Creates a new client with the specified `Globals <https://www.edgedb.com/docs/datamodel/globals#globals>`_. 
+            Creates a new client with the specified `Globals <https://www.geldata.com/docs/datamodel/globals#globals>`_. 
 
             .. note::
 
@@ -747,7 +747,7 @@ API Documentation
 
             .. note::
 
-                This property defaults to ``edgedb``. It is mutually exclusive with ``Gel.GelConnection.Branch``. 
+                This property defaults to ``"edgedb"``. It is mutually exclusive with ``Gel.GelConnection.Branch``. 
 
 
         :property string Branch:
@@ -755,7 +755,7 @@ API Documentation
 
             .. note::
 
-                This property defaults to ``__default__``. It is mutually exclusive with ``Gel.GelConnection.Database``
+                This property defaults to ``"__default__"``. It is mutually exclusive with ``Gel.GelConnection.Database``
 
 
         :property string Username:
@@ -763,7 +763,7 @@ API Documentation
 
             .. note::
 
-                This property defaults to edgedb 
+                This property defaults to ``"edgedb"`` 
 
 
         :property string Password:
@@ -824,7 +824,7 @@ API Documentation
             If any primary ``T:Gel.GelConnection.Options`` are present, then all environment variables
             are ignored.
 
-            See the `documentation <https://www.edgedb.com/docs/reference/connection>`_ for more information. 
+            See the `documentation <https://www.geldata.com/docs/reference/connection>`_ for more information. 
 
             :param Options options:
                 Options used to build the :dn:class:`Gel.GelConnection`.
@@ -2095,7 +2095,7 @@ API Documentation
 
     .. dn:struct:: Range<T>
 
-        Represents the `Range <https://www.edgedb.com/docs/stdlib/range>`_ type in Gel. 
+        Represents the `Range <https://www.geldata.com/docs/stdlib/range>`_ type in Gel. 
 
         :param T:
             The inner type of the range.

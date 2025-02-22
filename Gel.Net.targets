@@ -4,11 +4,11 @@
         <LangVersion>latest</LangVersion>
         <Authors>Gel.Net Contributors</Authors>
         <PackageTags>edgedb;gel;db;database</PackageTags>
-        <PackageProjectUrl>https://github.com/edgedb/edgedb-net</PackageProjectUrl>
+        <PackageProjectUrl>https://github.com/geldata/gel-net</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageIcon>PackageLogo.png</PackageIcon>
         <RepositoryType>git</RepositoryType>
-        <RepositoryUrl>git://github.com/edgedb/edgedb-net</RepositoryUrl>
+        <RepositoryUrl>git://github.com/geldata/gel-net</RepositoryUrl>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(BuildNumber)' == '' ">
         <VersionSuffix Condition=" '$(VersionSuffix)' != ''">$(VersionSuffix)-dev</VersionSuffix>

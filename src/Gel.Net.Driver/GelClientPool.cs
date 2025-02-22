@@ -507,7 +507,7 @@ public sealed class GelClientPool : IGelQueryable, IAsyncDisposable
 
     /// <summary>
     ///     Creates a new client with the specified
-    ///     <see href="https://www.edgedb.com/docs/datamodel/globals#globals">Globals</see>.
+    ///     <see href="https://www.geldata.com/docs/datamodel/globals#globals">Globals</see>.
     /// </summary>
     /// <remarks>
     ///     The created client is a 'sub' client of this one, the child client

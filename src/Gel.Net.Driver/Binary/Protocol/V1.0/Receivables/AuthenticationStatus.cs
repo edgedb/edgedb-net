@@ -2,7 +2,7 @@ namespace Gel.Binary.Protocol.V1._0.Packets;
 
 /// <summary>
 ///     Represents the
-///     <see href="https://www.edgedb.com/docs/reference/protocol/messages#authenticationok">AuthenticationOK</see>,
+///     <see href="https://www.geldata.com/docs/reference/protocol/messages#authenticationok">AuthenticationOK</see>,
 ///     <see href="https://www.edgedb.com/docs/reference/protocol/messages#authenticationsasl">AuthenticationSASL</see>,
 ///     <see href="https://www.edgedb.com/docs/reference/protocol/messages#authenticationsaslcontinue">AuthenticationSASLContinue</see>
 ///     ,

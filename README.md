@@ -1,4 +1,4 @@
-![Gel.Net](https://raw.githubusercontent.com/edgedb/edgedb-net/dev/branding/Banner.png)
+![Gel.Net](https://raw.githubusercontent.com/geldata/gel-net/dev/branding/Banner.png)
 
 <p align="center">
   <a href="https://www.nuget.org/packages/Gel.Net.Driver/">
@@ -7,21 +7,21 @@
   <a href="https://www.nuget.org/packages/Gel.Net.Driver/">
     <img src="https://img.shields.io/nuget/vpre/Gel.Net.Driver.svg?maxAge=2592000?style=plastic" alt="NuGet">
   </a>
-  <a href="https://github.com/edgedb/edgedb-net/actions/workflows/tests.yml">
-    <img src="https://github.com/edgedb/edgedb-net/actions/workflows/tests.yml/badge.svg?branch=dev" alt="Tests">
+  <a href="https://github.com/geldata/gel-net/actions/workflows/tests.yml">
+    <img src="https://github.com/geldata/gel-net/actions/workflows/tests.yml/badge.svg?branch=dev" alt="Tests">
   </a>
   <a href="https://discord.gg/tM4EpAaeSq">
     <img src="https://discord.com/api/guilds/841451783728529451/widget.png" alt="Discord">
   </a>
   
   <p align="center">
-    Gel.Net is the official .NET driver for the <a href="https://edgedb.com">Gel</a> database.
+    Gel.Net is the official .NET driver for the <a href="https://geldata.com">Gel</a> database.
   </p>
 </p>
 
 ## Documentation
 
-Documentation for the dotnet driver can be found [here](https://www.edgedb.com/docs/clients/dotnet).
+Documentation for the dotnet driver can be found [here](https://www.geldata.com/docs/clients/dotnet).
 
 ## Installation
 
@@ -38,7 +38,7 @@ $ dotnet add package Gel.Net.Driver
 ### Creating a client
 
 Clients are what allow your code to talk and interface with Gel. The
-[`GelClientPool`](https://www.edgedb.com/docs/clients/dotnet/api#EdgeDB.GelClientPool)
+[`GelClientPool`](https://www.geldata.com/docs/clients/dotnet/api#Gel.GelClientPool)
 class contains a pool of connections and numerous abstractions for executing
 queries with ease:
 
@@ -51,10 +51,10 @@ var client = new GelClientPool();
 ### Client configuration
 
 `GelClientPool` will automatically determine how to connect to your Gel
-instance by resolving [Gel Projects](https://www.edgedb.com/docs/intro/projects).
+instance by resolving [Gel Projects](https://www.geldata.com/docs/intro/projects).
 For specifying custom connection arguments, considering checking out the
-[`GelConnection`](https://www.edgedb.com/docs/clients/dotnet/connection_parameters#GelConnection)
-class. Here's an example of using the [`.Create()`](https://www.edgedb.com/docs/clients/dotnet/connection_parameters#GelConnection.Create-Options?)
+[`GelConnection`](https://www.geldata.com/docs/clients/dotnet/connection_parameters#GelConnection)
+class. Here's an example of using the [`.Create()`](https://www.geldata.com/docs/clients/dotnet/connection_parameters#GelConnection.Create-Options?)
 method:
 
 ```cs
@@ -74,7 +74,7 @@ operations are performed asynchronously.
 
 Queries are executed through the `GelClientPool` by using different helper
 methods. Your choice of method is dependent on the kind of query you're making,
-better known as [cardinality](https://www.edgedb.com/docs/clients/dotnet/index#cardinality-and-return-types).
+better known as [cardinality](https://www.geldata.com/docs/clients/dotnet/index#cardinality-and-return-types).
 
 Query helper methods will expect a generic `T` type which is the [.NET version of an Gel type](https://www.edgedb.com/docs/clients/dotnet/datatypes#datatypes):
 
