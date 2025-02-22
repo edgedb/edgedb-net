@@ -4,7 +4,7 @@ namespace Gel.Binary.Protocol.V1._0.Packets;
 
 /// <summary>
 ///     Represents the
-///     <see href="https://www.edgedb.com/docs/reference/protocol/messages#errorresponse">Error Response</see> packet.
+///     <see href="https://www.geldata.com/docs/reference/protocol/messages#errorresponse">Error Response</see> packet.
 /// </summary>
 #pragma warning disable CS0618 // Type or member is obsolete
 internal readonly struct ErrorResponse : IReceiveable, IExecuteError, IProtocolError
