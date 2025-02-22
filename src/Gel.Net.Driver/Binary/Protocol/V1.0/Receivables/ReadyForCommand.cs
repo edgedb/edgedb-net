@@ -2,7 +2,7 @@ namespace Gel.Binary.Protocol.V1._0.Packets;
 
 /// <summary>
 ///     Represents the
-///     <see href="https://www.edgedb.com/docs/reference/protocol/messages#readyforcommand">Ready for Command</see> packet.
+///     <see href="https://www.geldata.com/docs/reference/protocol/messages#readyforcommand">Ready for Command</see> packet.
 /// </summary>
 internal readonly struct ReadyForCommand : IReceiveable
 {

@@ -7,7 +7,7 @@ public enum IOFormat : byte
 {
     /// <summary>
     ///     The format will be encoded as binary following the
-    ///     <see href="https://www.edgedb.com/docs/reference/protocol/dataformats#data-wire-formats">Data Wire Formats</see>
+    ///     <see href="https://www.geldata.com/docs/reference/protocol/dataformats#data-wire-formats">Data Wire Formats</see>
     ///     protocol.
     /// </summary>
     Binary = 0x62,

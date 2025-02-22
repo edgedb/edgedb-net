@@ -1,7 +1,7 @@
 namespace Gel.Binary.Protocol.V1._0.Packets;
 
 /// <summary>
-///     Represents the <see href="https://www.edgedb.com/docs/reference/protocol/messages#data">Data</see> packet
+///     Represents the <see href="https://www.geldata.com/docs/reference/protocol/messages#data">Data</see> packet
 /// </summary>
 internal readonly struct Data : IReceiveable
 {

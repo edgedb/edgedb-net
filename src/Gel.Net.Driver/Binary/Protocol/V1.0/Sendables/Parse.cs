@@ -3,7 +3,7 @@ using Gel.Utils;
 namespace Gel.Binary.Protocol.V1._0.Packets;
 
 /// <summary>
-///     https://www.edgedb.com/docs/reference/protocol/messages#prepare
+///     https://www.geldata.com/docs/reference/protocol/messages#prepare
 /// </summary>
 internal sealed class Parse : Sendable
 {

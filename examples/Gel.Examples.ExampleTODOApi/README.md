@@ -43,7 +43,7 @@ Then verify that the CLI is installed and available with the `gel --version` com
 a `Command not found` error, you may need to open a new terminal window before the `gel` command is available.
 
 Once the CLI is installed, we can initialize a project for our TODO api. You can read more
-about [Gel projects here.](https://www.edgedb.com/docs/guides/projects)
+about [Gel projects here.](https://www.geldata.com/docs/guides/projects)
 
 ```console
 $ gel project init
@@ -106,7 +106,7 @@ module default {
 
 Our todo structure will consist of four feilds: `title`, `description`, `date_created`, and `state`. Our `state` field
 will be the state of the todo ex: `Not Started`, `In Progress`, `Completed`, for this we will have to define our own
-enum type. You can read more about [enums here.](https://www.edgedb.com/docs/datamodel/primitives#enums).
+enum type. You can read more about [enums here.](https://www.geldata.com/docs/datamodel/primitives#enums).
 
 ```diff
 module default {
@@ -399,7 +399,7 @@ namespace Gel.Examples.ExampleTODOApi.Controllers
 
 Our new route will validate the todo we're passing in and if it's valid, we'll insert it into the database. One thing to
 note here is we're using the `Dictionary<string, object?>` to pass in our parameters. This is to prevent any query
-injection attacks. You can learn more about [EdgeQL parameters here.](https://www.edgedb.com/docs/edgeql/parameters).
+injection attacks. You can learn more about [EdgeQL parameters here.](https://www.geldata.com/docs/edgeql/parameters).
 
 ### Testing the POST route
 
@@ -610,4 +610,4 @@ As we can see our state was updated successfully.
 
 This tutorial has covered the basics of how to use the Gel client to query, update and delete data. Feel free to
 expirement with the source
-code [here](https://github.com/edgedb/edgedb-net/tree/dev/examples/Gel.Examples.ExampleTODOApi).
+code [here](https://github.com/geldata/gel-net/tree/dev/examples/Gel.Examples.ExampleTODOApi).
