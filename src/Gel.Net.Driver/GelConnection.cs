@@ -184,7 +184,7 @@ public sealed class GelConnection
     ///     Gets the TLS server name to be used.
     /// </summary>
     /// <remarks>
-    ///     Overrides the value provided by Hostname.
+    ///     Overrides the value provided by Hostname for TLS.
     /// </remarks>
     public string? TLSServerName { get; private set; }
 
@@ -211,30 +211,277 @@ public sealed class GelConnection
     #region Create Function
 
     /// <summary>
-    ///     Optional args which can be passed into <see cref="Create"/>.
+    ///     Parses the `gel.toml`, parameters, and environment variables to build a <see cref="GelConnection" />.
+    /// 
+    ///     This function will first search for the first valid primary args (which can set host/port)
+    ///     in the following order:
+    ///     - Primary parameters
+    ///     - Environment variables
+    ///     - `gel.toml` file
+    /// 
+    ///     It will then apply any secondary args from the environment variables and options.
+    /// 
+    ///     If any primary parameters are present, then all environment variables are ignored.
+    /// 
+    ///     See the <see href="https://docs.geldata.com/reference/clients/connection">documentation</see>
+    ///     for more information.
+    /// </summary>
+    /// <param name="instance">
+    ///     The name of a local instance, remote linked instance, or a Gel Cloud instance.
+    ///     
+    ///     This is a primary parameter.
+    /// </param>
+    /// <param name="dsn">/>
+    ///     A connection URL of the form gel://user:pass@host:port/branch.
+    ///     For a guide to DSNs, see the
+    ///     <see href="https://docs.geldata.com/reference/reference/dsn#ref-dsn">DSN Specification</see>.
+    ///     
+    ///     This is a primary parameter.
+    /// </param>
+    /// <param name="credentials">/>
+    ///     The json representation of the connection. See <see cref="ConnectionCredentials"/>.
+    ///     Checking in the value of this parameter could present a security risk and is not recommended.
+    ///     
+    ///     This is a primary parameter.
+    /// </param>
+    /// <param name="credentialsFile">/>
+    ///     The path to a json file representing a connection. See <see cref="ConnectionCredentials"/>.
+    ///     Checking in the credentials file could present a security risk and is not recommended.
+    ///     
+    ///     This is a primary parameter.
+    /// </param>
+    /// <param name="host">/>
+    ///     The hostname of the gel instance to connect to.
+    ///     
+    ///     This is a primary parameter.
+    /// </param>
+    /// <param name="port">/>
+    ///     The port of the gel instance to connect to.
+    ///     
+    ///     This is a primary parameter.
+    /// </param>
+    /// <param name="database">/>
+    ///     The database name to use when connecting. Mutually exclusive with <paramref name="branch"/>.
+    ///     
+    ///     This is a secondary parameter.
+    /// </param>
+    /// <param name="branch">/>
+    ///     The branch name to use when connecting. Mutually exclusive with <paramref name="database"/>.
+    ///     
+    ///     This is a secondary parameter.
+    /// </param>
+    /// <param name="user">/>
+    ///     The username used to connect to the database.
+    ///     
+    ///     This is a secondary parameter.
+    /// </param>
+    /// <param name="password">/>
+    ///     The password to connect to the database.
+    ///     
+    ///     This is a secondary parameter.
+    /// </param>
+    /// <param name="secretKey">/>
+    ///     The secret key used to authenticate with cloud instances.
+    ///     
+    ///     This is a secondary parameter.
+    /// </param>
+    /// <param name="tlsCertificateAuthority">/>
+    ///     The TLS Certificate Authority.
+    ///     
+    ///     This is a secondary parameter.
+    /// </param>
+    /// <param name="tlsCertificateAuthorityFile">/>
+    ///     The path to A file which contains the TLS Certificate Authority.
+    ///     
+    ///     This is a secondary parameter.
+    /// </param>
+    /// <param name="tlsSecurity">/>
+    ///     The TLS security level.
+    ///     
+    ///     This is a secondary parameter.
+    /// </param>
+    /// <param name="tlsServerName">/>
+    ///     The TLS server name. Overrides the hostname for TLS.
+    ///     
+    ///     This is a secondary parameter.
+    /// </param>
+    /// <param name="waitUntilAvailable">/>
+    ///     The number of miliseconds a client will wait for a connection to be
+    ///     established with the server.
+    ///     
+    ///     This is a secondary parameter.
+    /// </param>
+    /// <param name="serverSettings">/>
+    ///     Additional settings for the server connection. Currently has no effect
+    ///     
+    ///     This is a secondary parameter.
+    /// </param>
+    /// <returns>
+    ///     A <see cref="GelConnection" /> class that can be used to connect to a Gel instance.
+    /// </returns>
+    /// <exception cref="ConfigurationException">
+    ///     An error occured while parsing or configuring the <see cref="GelConnection" />.
+    /// </exception>
+    public static GelConnection Create(
+        string? instance = null,
+        string? dsn = null,
+        string? credentials = null,
+        string? credentialsFile = null,
+        string? host = null,
+        int? port = null,
+        string? database = null,
+        string? branch = null,
+        string? user = null,
+        string? password = null,
+        string? secretKey = null,
+        string? tlsCertificateAuthority = null,
+        string? tlsCertificateAuthorityFile = null,
+        TLSSecurityMode? tlsSecurity = null,
+        string? tlsServerName = null,
+        string? waitUntilAvailable = null,
+        Dictionary<string, string>? serverSettings = null
+    )
+    {
+        Options options = new();
+        return _Create(
+            new()
+            {
+                Instance = instance,
+                Dsn = dsn,
+                Credentials = credentials,
+                CredentialsFile = credentialsFile,
+                Host = host,
+                Port = port,
+                Database = database,
+                Branch = branch,
+                User = user,
+                Password = password,
+                SecretKey = secretKey,
+                TLSCertificateAuthority = tlsCertificateAuthority,
+                TLSCertificateAuthorityFile = tlsCertificateAuthorityFile,
+                TLSSecurity = tlsSecurity,
+                TLSServerName = tlsServerName,
+                WaitUntilAvailable = waitUntilAvailable,
+                ServerSettings = serverSettings,
+
+            },
+            ConfigUtils.DefaultPlatformProvider
+        );
+    }
+
+    /// <summary>
+    ///     Optional args which can be passed into <see cref="Create(Options?)"/>.
+    ///     
+    ///     Primary args can set host/port of the connection.
     /// </summary>
     public sealed class Options
     {
-        // Primary args
-        // These can set host/port of the connection.
+        /// <summary>
+        ///     The name of a local instance, remote linked instance, or a Gel Cloud instance.
+        ///     
+        ///     This is a primary parameter. 
+        /// </summary>
         public string? Instance { get; set; }
+        /// <summary>
+        ///     A connection URL of the form gel://user:pass@host:port/branch.
+        ///     For a guide to DSNs, see the
+        ///     <see href="https://docs.geldata.com/reference/reference/dsn#ref-dsn">DSN Specification</see>.
+        ///     
+        ///     This is a primary parameter.
+        /// </summary>
         public string? Dsn { get; set; }
+        /// <summary>
+        ///     The json representation of the connection. See <see cref="ConnectionCredentials"/>.
+        ///     Checking in the value of this parameter could present a security risk and is not recommended.
+        ///     
+        ///     This is a primary parameter.
+        /// </summary>
         public string? Credentials { get; set; }
+        /// <summary>
+        ///     The path to a json file representing a connection. See <see cref="ConnectionCredentials"/>.
+        ///     Checking in the credentials file could present a security risk and is not recommended.
+        ///     
+        ///     This is a primary parameter.
+        /// </summary>
         public string? CredentialsFile { get; set; }
+        /// <summary>
+        ///     The hostname of the gel instance to connect to.
+        ///     
+        ///     This is a primary parameter.
+        /// </summary>
         public string? Host { get; set; }
+        /// <summary>
+        ///     The port of the gel instance to connect to.
+        ///     
+        ///     This is a primary parameter.
+        /// </summary>
         public int? Port { get; set; }
-
-        // Secondary args
+        /// <summary>
+        ///     The database name to use when connecting. Mutually exclusive with <see cref="Branch"/>.
+        ///     
+        ///     This is a secondary parameter.
+        /// </summary>
         public string? Database { get; set; }
+        /// <summary>
+        ///     The branch name to use when connecting. Mutually exclusive with <see cref="Database"/>.
+        ///     
+        ///     This is a secondary parameter.
+        /// </summary>
         public string? Branch { get; set; }
+        /// <summary>
+        ///     The username used to connect to the database.
+        ///     
+        ///     This is a secondary parameter.
+        /// </summary>
         public string? User { get; set; }
+        /// <summary>
+        ///     The password to connect to the database.
+        ///     
+        ///     This is a secondary parameter.
+        /// </summary>
         public string? Password { get; set; }
+        /// <summary>
+        ///     The secret key used to authenticate with cloud instances.
+        ///     
+        ///     This is a secondary parameter. 
+        /// </summary>
         public string? SecretKey { get; set; }
+        /// <summary>
+        ///     The TLS Certificate Authority.
+        ///     
+        ///     This is a secondary parameter.
+        /// </summary>
         public string? TLSCertificateAuthority { get; set; }
+        /// <summary>
+        ///     The path to A file which contains the TLS Certificate Authority.
+        ///     
+        ///     This is a secondary parameter.
+        /// </summary>
         public string? TLSCertificateAuthorityFile { get; set; }
+        /// <summary>
+        ///     The TLS security level.
+        ///     
+        ///     This is a secondary parameter.
+        /// </summary>
         public TLSSecurityMode? TLSSecurity { get; set; }
+        /// <summary>
+        ///     The TLS server name. Overrides the hostname for TLS.
+        ///     
+        ///     This is a secondary parameter. 
+        /// </summary>
         public string? TLSServerName { get; set; }
+        /// <summary>
+        ///     The number of miliseconds a client will wait for a connection to be
+        ///     established with the server.
+        ///     
+        ///     This is a secondary parameter.
+        /// </summary>
         public string? WaitUntilAvailable { get; set; }
+        /// <summary>
+        ///     Additional settings for the server connection. Currently has no effect.
+        ///     
+        ///     This is a secondary parameter.
+        /// </summary>
         public Dictionary<string, string>? ServerSettings { get; set; }
 
         public bool IsEmpty =>
@@ -258,7 +505,7 @@ public sealed class GelConnection
     }
 
     /// <summary>
-    ///     Parses the `gel.toml`, optional <see cref="Options"/>, and environment variables to build an
+    ///     Parses the `gel.toml`, optional <see cref="Options"/>, and environment variables to build a
     ///     <see cref="GelConnection" />.
     /// 
     ///     This function will first search for the first valid primary args (which can set host/port)
@@ -271,7 +518,7 @@ public sealed class GelConnection
     /// 
     ///     If any primary <see cref="Options"/> are present, then all environment variables are ignored.
     /// 
-    ///     See the <see href="https://www.geldata.com/docs/reference/connection">documentation</see>
+    ///     See the <see href="https://docs.geldata.com/reference/clients/connection">documentation</see>
     ///     for more information.
     /// </summary>
     /// <param name="options">Options used to build the <see cref="GelConnection" />.</param>
@@ -281,9 +528,9 @@ public sealed class GelConnection
     /// <exception cref="ConfigurationException">
     ///     An error occured while parsing or configuring the <see cref="GelConnection" />.
     /// </exception>
-    public static GelConnection Create(Options? options = null)
+    public static GelConnection Create(Options options)
     {
-        return _Create(options ?? new(), ConfigUtils.DefaultPlatformProvider);
+        return _Create(options, ConfigUtils.DefaultPlatformProvider);
     }
 
     internal static GelConnection _Create(Options options, ISystemProvider platform)
