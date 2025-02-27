@@ -213,13 +213,13 @@ public sealed class GelConnection
     /// <summary>
     ///     Parses the `gel.toml`, parameters, and environment variables to build a <see cref="GelConnection" />.
     /// 
-    ///     This function will first search for the first valid primary args (which can set host/port)
+    ///     This function will first search for the first valid primary parameters (which can set host/port)
     ///     in the following order:
     ///     - Primary parameters
     ///     - Environment variables
     ///     - `gel.toml` file
     /// 
-    ///     It will then apply any secondary args from the environment variables and options.
+    ///     It will then apply any secondary parameters from the environment variables and options.
     /// 
     ///     If any primary parameters are present, then all environment variables are ignored.
     /// 
@@ -505,7 +505,7 @@ public sealed class GelConnection
     }
 
     /// <summary>
-    ///     Parses the `gel.toml`, optional <see cref="Options"/>, and environment variables to build a
+    ///     Parses the `gel.toml`, <see cref="Options"/>, and environment variables to build a
     ///     <see cref="GelConnection" />.
     /// 
     ///     This function will first search for the first valid primary args (which can set host/port)

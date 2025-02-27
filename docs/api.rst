@@ -763,7 +763,7 @@ API Documentation
 
             .. note::
 
-                This property defaults to ``"edgedb"`` 
+                This property defaults to ``"edgedb"``
 
 
         :property string Password:
@@ -791,7 +791,7 @@ API Documentation
 
             .. note::
 
-                Overrides the value provided by Hostname. 
+                Overrides the value provided by Hostname for TLS. 
 
 
         :property int WaitUntilAvailable:
@@ -808,13 +808,90 @@ API Documentation
 
         .. dn:method::  ToString(): string
 
+        .. dn:method::  Create(string instance, string dsn, string credentials, string credentialsFile, string host, Int32? port, string database, string branch, string user, string password, string secretKey, string tlsCertificateAuthority, string tlsCertificateAuthorityFile, TLSSecurityMode? tlsSecurity, string tlsServerName, string waitUntilAvailable, Dictionary<string,string> serverSettings): GelConnection
+
+            Parses the ``gel.toml``, parameters, and environment variables to
+            build a :dn:class:`Gel.GelConnection`.
+
+            This function will first search for the first valid primary parameters (which can set host/port)
+            in the following order:
+
+            - Primary parameters
+            - Environment variables
+            - ``gel.toml`` file
+
+            It will then apply any secondary args from the environment variables and options.
+
+            If any primary parameters are present, then all environment variables are ignored.
+
+            See the `documentation <https://docs.geldata.com/reference/clients/connection>`_ for more information. 
+
+            :param string instance:
+                The name of a local instance, remote linked instance, or a Gel Cloud instance. This is a primary parameter. 
+
+            :param string dsn:
+                /> A connection URL of the form gel://user:pass@host:port/branch. For a guide to DSNs, see the `DSN Specification <https://docs.geldata.com/reference/reference/dsn#ref-dsn>`_. This is a primary parameter. 
+
+            :param string credentials:
+                /> The json representation of the connection. See ``T:Gel.ConnectionCredentials``. Checking in the value of this parameter could present a security risk and is not recommended. This is a primary parameter. 
+
+            :param string credentialsFile:
+                /> The path to a json file representing a connection. See ``T:Gel.ConnectionCredentials``. Checking in the credentials file could present a security risk and is not recommended. This is a primary parameter. 
+
+            :param string host:
+                /> The hostname of the gel instance to connect to. This is a primary parameter. 
+
+            :param Nullable<int> port:
+                /> The port of the gel instance to connect to. This is a primary parameter. 
+
+            :param string database:
+                /> The database name to use when connecting. Mutually exclusive with ``Gel.DocGenerator.docMemberSummaryParamref``. This is a secondary parameter. 
+
+            :param string branch:
+                /> The branch name to use when connecting. Mutually exclusive with ``Gel.DocGenerator.docMemberSummaryParamref``. This is a secondary parameter. 
+
+            :param string user:
+                /> The username used to connect to the database. This is a secondary parameter. 
+
+            :param string password:
+                /> The password to connect to the database. This is a secondary parameter. 
+
+            :param string secretKey:
+                /> The secret key used to authenticate with cloud instances. This is a secondary parameter. 
+
+            :param string tlsCertificateAuthority:
+                /> The TLS Certificate Authority. This is a secondary parameter. 
+
+            :param string tlsCertificateAuthorityFile:
+                /> The path to A file which contains the TLS Certificate Authority. This is a secondary parameter. 
+
+            :param Nullable<TLSSecurityMode> tlsSecurity:
+                /> The TLS security level. This is a secondary parameter. 
+
+            :param string tlsServerName:
+                /> The TLS server name. Overrides the hostname for TLS. This is a secondary parameter. 
+
+            :param string waitUntilAvailable:
+                /> The number of miliseconds a client will wait for a connection to be established with the server. This is a secondary parameter. 
+
+            :param Dictionary<string, string> serverSettings:
+                /> Additional settings for the server connection. Currently has no effect This is a secondary parameter. 
+
+            :returns:
+
+                A :dn:class:`Gel.GelConnection` class that can be used to connect to a Gel instance. 
+
+            :throws Gel.ConfigurationException:
+                An error occured while parsing or configuring the :dn:class:`Gel.GelConnection`. 
+
         .. dn:method::  Create(Options options): GelConnection
 
-            Parses the ``gel.toml``, optional ``T:Gel.GelConnection.Options``, and environment variables
-            to build an :dn:class:`Gel.GelConnection`.
+            Parses the ``gel.toml``, ``T:Gel.GelConnection.Options``, and environment variables
+            to build a :dn:class:`Gel.GelConnection`.
 
             This function will first search for the first valid primary args (which can set host/port)
             in the following order:
+
             - ``T:Gel.GelConnection.Options``
             - Environment variables
             - ``gel.toml`` file
@@ -824,7 +901,7 @@ API Documentation
             If any primary ``T:Gel.GelConnection.Options`` are present, then all environment variables
             are ignored.
 
-            See the `documentation <https://www.geldata.com/docs/reference/connection>`_ for more information. 
+            See the `documentation <https://docs.geldata.com/reference/clients/connection>`_ for more information. 
 
             :param Options options:
                 Options used to build the :dn:class:`Gel.GelConnection`.
