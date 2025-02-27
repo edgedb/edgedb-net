@@ -846,7 +846,7 @@ API Documentation
         A class containing extension methods for DI. 
 
 
-        .. dn:method::  AddClientPool(this IServiceCollection collection, GelConnection connection, Action<GelClientPoolConfig> clientPoolConfig): IServiceCollection
+        .. dn:method::  AddGel(this IServiceCollection collection, GelConnection connection, Action<GelClientPoolConfig> clientPoolConfig): IServiceCollection
 
             Adds a :dn:class:`Gel.GelClientPool` singleton to a ``Microsoft.Extensions.DependencyInjection.IServiceCollection``. 
 

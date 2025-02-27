@@ -173,7 +173,7 @@ easily integrate Gel with your existing applications.
     
     ...
 
-    services.AddClientPool();
+    services.AddGel();
 
   .. code-tab:: fsharp
 
@@ -182,7 +182,7 @@ easily integrate Gel with your existing applications.
     
     ...
 
-    services.AddClientPool();
+    services.AddGel();
 
 You can specify both a ``GelConnection`` and a delegate for configuring 
 the ``GelClientPoolConfig``, the client will be added as a singleton to your 
