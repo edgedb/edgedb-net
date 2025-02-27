@@ -19,7 +19,7 @@ public static class GelHostingExtensions
     /// <returns>
     ///     The source <see cref="IServiceCollection" /> with <see cref="GelClientPool" /> added as a singleton.
     /// </returns>
-    public static IServiceCollection AddClientPool(this IServiceCollection collection, GelConnection? connection = null,
+    public static IServiceCollection AddGel(this IServiceCollection collection, GelConnection? connection = null,
         Action<GelClientPoolConfig>? clientPoolConfig = null)
     {
         var conn = connection ?? GelConnection.Create();

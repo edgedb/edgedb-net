@@ -260,7 +260,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-+ builder.Services.AddClientPool();
++ builder.Services.AddGel();
 
 var app = builder.Build();
 

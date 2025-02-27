@@ -20,7 +20,7 @@ using var host = Host.CreateDefaultBuilder()
             loggingBuilder.AddSerilog(dispose: true);
         });
 
-        services.AddClientPool(clientPoolConfig: clientConfig =>
+        services.AddGel(clientPoolConfig: clientConfig =>
         {
             clientConfig.SchemaNamingStrategy = INamingStrategy.SnakeCaseNamingStrategy;
             clientConfig.ClientType = GelClientType.Tcp;
